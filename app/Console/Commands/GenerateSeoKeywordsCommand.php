@@ -23,110 +23,110 @@ class GenerateSeoKeywordsCommand extends Command
         // 1. Generate for Static Pages (page_seo table)
         $pages = [
             'home' => [
-                'title_ar' => 'فاميلي هوم للعقارات | شقق، فلل، صفقات عقارية بالتقسيط في مصر والسعودية',
-                'title_en' => 'Family Home Real Estate | Luxury Apartments, Villas & Property Deals in Egypt & KSA',
-                'meta_description_ar' => 'ابحث عن شقتك أو فيلتك المستقبلية بأفضل أسعار وأنظمة سداد بالتقسيط مع فاميلي هوم العقارية. اكتشف أحدث الكمبوندات والمشاريع السكنية والتجارية في القاهرة الجديدة والشيخ زايد والعاصمة الإدارية.',
-                'meta_description_en' => 'Find your dream home with Family Home Real Estate. Explore top apartments, luxury villas, and commercial properties for sale with flexible installment payment plans across Egypt and Saudi Arabia.',
+                'title_ar' => 'فاميلي هوم للعقارات في مصر | شقق، فلل، صفقات عقارية بالتقسيط بالجنيه المصري',
+                'title_en' => 'Family Home Real Estate Egypt | Apartments, Villas & Property Deals in EGP',
+                'meta_description_ar' => 'ابحث عن شقتك أو فيلتك المستقبلية بأفضل الأسعار وأنظمة السداد بالتقسيط بالجنيه المصري مع فاميلي هوم العقارية. اكتشف أحدث الكمبوندات والمشاريع السكنية والتجارية في القاهرة الجديدة، التجمع الخامس، الشيخ زايد، والعاصمة الإدارية.',
+                'meta_description_en' => 'Find your dream home with Family Home Real Estate Egypt. Explore top apartments, luxury villas, and commercial properties for sale in EGP with flexible installment payment plans across Egypt.',
                 'ar' => [
-                    'عقارات مصر', 'عقارات السعودية', 'شقق للبيع', 'فيلا للبيع', 'عقارات فاميلي هوم', 'فاميلي هوم العقارية',
-                    'عقارات للبيع في القاهرة', 'عقارات الرياض', 'استثمار عقاري', 'شقق للبيع بالتقسيط', 'شقق تمليك',
-                    'فلل للبيع', 'محلات للبيع', 'مكاتب إدارية للبيع', 'شقق للبيع في التجمع الخامس', 'شقق للبيع في الشيخ زايد',
-                    'عقارات العاصمة الإدارية', 'كمبوندات القاهرة الجديدة', 'أحدث العقارات والمشاريع', 'أدوار كاملة للبيع',
-                    'بنتهاوس للبيع', 'دوبلكس للبيع', 'شقق للبيع في جدة', 'شقق للبيع في دبي', 'أسعار العقارات اليوم',
-                    'دليل العقارات العربي', 'مكتب عقارات معتمد', 'وسيط عقاري موثوق', 'شقق فاخرة للبيع', 'فلل مودرن للبيع',
-                    'عقارات تجارية للبيع', 'أراضي للبيع', 'أراضي استثمارية', 'شاليهات للبيع', 'شقق مفروشة للبيع',
-                    'طرق السداد بالتقسيط', 'عقارات بدون مقدم', 'شقق بالتقسيط المريح', 'عقارات الاستثمار الضماني',
-                    'عقارات مميزة للبيع', 'أفضل أسعار العقارات', 'حاسبة التمويل العقاري', 'مستشار عقاري مجاني'
+                    'عقارات مصر', 'شقق للبيع في مصر', 'فيلا للبيع بالجنيه المصري', 'عقارات فاميلي هوم', 'فاميلي هوم العقارية',
+                    'عقارات للبيع في القاهرة', 'أسعار العقارات بالجنيه', 'استثمار عقاري في مصر', 'شقق للبيع بالتقسيط', 'شقق تمليك مصر',
+                    'فلل للبيع القاهرة', 'محلات للبيع بالتقسيط', 'مكاتب إدارية للبيع', 'شقق للبيع في التجمع الخامس', 'شقق للبيع في الشيخ زايد',
+                    'عقارات العاصمة الإدارية', 'كمبوندات القاهرة الجديدة', 'أحدث العقارات والمشاريع في مصر', 'أدوار كاملة للبيع',
+                    'بنتهاوس للبيع مصر', 'دوبلكس للبيع التجمع', 'شقق للبيع في 6 أكتوبر', 'شقق للبيع في الساحل الشمالي', 'أسعار العقارات اليوم في مصر',
+                    'دليل العقارات المصري', 'مكتب عقارات معتمد في مصر', 'وسيط عقاري موثوق مصر', 'شقق فاخرة للبيع القاهرة', 'فلل مودرن للبيع',
+                    'عقارات تجارية للبيع مصر', 'أراضي للبيع في مصر', 'أراضي استثمارية', 'شاليهات للبيع الساحل', 'شقق مفروشة للبيع بالقاهرة',
+                    'طرق السداد بالتقسيط بالجنيه', 'عقارات بدون مقدم مصر', 'شقق بالتقسيط المريح', 'عقارات الاستثمار في مصر',
+                    'عقارات مميزة للبيع مصر', 'أفضل أسعار العقارات بالجنيه', 'حاسبة التمويل العقاري مصر', 'مستشار عقاري مجاني مصر'
                 ],
                 'en' => [
-                    'family home real estate', 'properties for sale', 'apartments for sale', 'villas for sale', 'real estate investment',
-                    'luxury apartments', 'installment properties', 'real estate egypt', 'real estate saudi arabia', 'cairo properties',
-                    'riyadh real estate', 'commercial properties for sale', 'administrative offices for sale', 'duplex for sale',
-                    'penthouse for sale', 'gated community compounds', 'new cairo apartments', 'sheikh zayed villas', 'chalets for sale',
-                    'prime location properties', 'family home properties', 'buy apartment online', 'best property deals',
-                    'flexible payment plans', 'zero downpayment properties', 'property valuation egypt', 'real estate broker'
+                    'family home real estate egypt', 'properties for sale in egypt', 'apartments for sale cairo', 'villas for sale egypt', 'real estate investment egypt',
+                    'luxury apartments cairo', 'installment properties egp', 'real estate egypt', 'cairo properties', 'new cairo real estate',
+                    'commercial properties for sale egypt', 'administrative offices cairo', 'duplex for sale new cairo',
+                    'penthouse for sale sheikh zayed', 'gated community compounds egypt', 'new cairo apartments', 'sheikh zayed villas', 'north coast chalets for sale',
+                    'prime location properties egypt', 'family home properties', 'buy apartment egypt online', 'best property deals cairo',
+                    'flexible payment plans egp', 'zero downpayment properties egypt', 'property valuation egypt', 'real estate broker cairo'
                 ]
             ],
             'units_index' => [
-                'title_ar' => 'دليل العقارات والوحدات السكنية والتجارية للبيع | فاميلي هوم',
-                'title_en' => 'Real Estate Units Directory | Buy Apartments, Villas & Offices | Family Home',
-                'meta_description_ar' => 'تصفح أكبر دليل للوحدات العقارية السكنية والتجارية والإدارية والطبية. ابحث عن شقق، فلل، بنتهاوس، ومحلات للبيع بالتقسيط المريح أو الكاش.',
-                'meta_description_en' => 'Browse the largest property directory for residential and commercial units. Filter apartments, villas, townhouses, and offices for sale with flexible payment terms.',
+                'title_ar' => 'دليل العقارات والوحدات السكنية والتجارية للبيع في مصر | فاميلي هوم',
+                'title_en' => 'Egypt Real Estate Directory | Buy Apartments & Villas in EGP | Family Home',
+                'meta_description_ar' => 'تصفح أكبر دليل للوحدات العقارية السكنية والتجارية والإدارية والطبية في مصر بالجنيه المصري. ابحث عن شقق، فلل، بنتهاوس، ومحلات للبيع بالتقسيط المريح أو الكاش.',
+                'meta_description_en' => 'Browse the largest property directory for residential and commercial units in Egypt priced in EGP. Filter apartments, villas, townhouses, and offices with flexible payment terms.',
                 'ar' => [
-                    'دليل الوحدات العقارية', 'البحث عن شقة', 'شقق للبيع المباشر', 'فيلا للبيع بالتقسيط', 'عقارات سكنية للبيع',
-                    'شقق مفروشة', 'استوديو للبيع', 'دوبلكس للبيع', 'تاون هاوس للبيع', 'توين هاوس للبيع', 'شقق للبيع بالتجمع',
-                    'شقق للبيع بالشيخ زايد', 'شقق للبيع بالعاصمة الإدارية', 'مكاتب للبيع بالتقسيط', 'عيادات للبيع', 'محلات تجارية للبيع',
-                    'وحدات سكنية للبيع', 'وحدات تجارية للبيع', 'وحدات إدارية للبيع', 'وحدات طبية للبيع', 'أسعار الشقق اليوم',
-                    'ارخص شقق للبيع', 'شقق للبيع من المالك', 'وحدات عقارية بالتقسيط بدون فوائد', 'مشاريع سكنية حديثة'
+                    'دليل الوحدات العقارية بمصر', 'البحث عن شقة بالقاهرة', 'شقق للبيع المباشر مصر', 'فيلا للبيع بالتقسيط مصر', 'عقارات سكنية مصر',
+                    'شقق مفروشة القاهرة', 'استوديو للبيع مصر', 'دوبلكس للبيع مصر', 'تاون هاوس للبيع التجمع', 'توين هاوس للبيع زايد', 'شقق للبيع بالتجمع الخامس',
+                    'شقق للبيع بالشيخ زايد', 'شقق للبيع بالعاصمة الإدارية', 'مكاتب للبيع بالتقسيط مصر', 'عيادات للبيع بالقاهرة', 'محلات تجارية للبيع مصر',
+                    'وحدات سكنية للبيع مصر', 'وحدات تجارية للبيع مصر', 'وحدات إدارية للبيع مصر', 'وحدات طبية للبيع مصر', 'أسعار الشقق اليوم في مصر',
+                    'ارخص شقق للبيع بمصر', 'شقق للبيع من المالك مباشرة مصر', 'وحدات عقارية بالتقسيط بدون فوائد بالجنيه', 'مشاريع سكنية حديثة بمصر'
                 ],
                 'en' => [
-                    'properties directory', 'search apartments', 'villas directory', 'commercial units for sale', 'office space for sale',
-                    'medical clinics for sale', 'retail shops for sale', 'studio apartments for sale', 'townhouse for sale', 'twin house for sale',
-                    'residential units egypt', 'properties by owner', 'cheap apartments for sale', 'luxury units for sale', 'no interest payment plans'
+                    'egypt properties directory', 'search apartments cairo', 'villas directory egypt', 'commercial units for sale cairo', 'office space for sale egp',
+                    'medical clinics for sale egypt', 'retail shops for sale cairo', 'studio apartments for sale egypt', 'townhouse for sale new cairo', 'twin house for sale zayed',
+                    'residential units egypt', 'properties by owner egypt', 'cheap apartments for sale cairo', 'luxury units for sale egypt', 'no interest payment plans egp'
                 ]
             ],
             'projects_index' => [
-                'title_ar' => 'دليل الكمبوندات والمشاريع العقارية الحديثة | فاميلي هوم',
-                'title_en' => 'New Real Estate Projects & Compounds Directory | Family Home',
-                'meta_description_ar' => 'اكتشف أحدث المشروعات والكمبوندات السكنية والتجارية في التجمع الخامس، الشيخ زايد، العاصمة الإدارية، والساحل الشمالي بأفضل العروض وأنظمة السداد.',
-                'meta_description_en' => 'Explore top new residential compounds and commercial malls in New Cairo, Sheikh Zayed, New Capital, and North Coast with verified developers.',
+                'title_ar' => 'دليل الكمبوندات والمشاريع العقارية الحديثة في مصر | فاميلي هوم',
+                'title_en' => 'New Real Estate Compounds & Malls in Egypt | Family Home',
+                'meta_description_ar' => 'اكتشف أحدث المشروعات والكمبوندات السكنية والتجارية في التجمع الخامس، الشيخ زايد، العاصمة الإدارية، والساحل الشمالي بأفضل العروض وأنظمة السداد بالجنيه المصري.',
+                'meta_description_en' => 'Explore top new residential compounds and commercial malls in New Cairo, Sheikh Zayed, New Capital, and North Coast with flexible EGP payment plans.',
                 'ar' => [
-                    'المشاريع العقارية', 'دليل الكمبوندات', 'أحدث المشروعات السكنية', 'كمبوندات التجمع الخامس', 'كمبوندات الشيخ زايد',
+                    'المشاريع العقارية في مصر', 'دليل كمبوندات مصر', 'أحدث المشروعات السكنية بمصر', 'كمبوندات التجمع الخامس', 'كمبوندات الشيخ زايد',
                     'مشاريع العاصمة الإدارية الجديدة', 'مشاريع الساحل الشمالي', 'مشاريع العين السخنة', 'مشاريع 6 أكتوبر',
-                    'مولات تجارية جديدة', 'أبراج إدارية', 'مشاريع الشركات العقارية', 'مشاريع تسليم فوري', 'مشاريع تحت الإنشاء',
-                    'أفضل كمبوند سكني', 'مشاريع فاميلي هوم', 'أسعار الكمبوندات اليوم', 'استثمار في المشاريع العقارية'
+                    'مولات تجارية جديدة بالقاهرة', 'أبراج إدارية العاصمة', 'مشاريع الشركات العقارية المصرية', 'مشاريع تسليم فوري بمصر', 'مشاريع تحت الإنشاء مصر',
+                    'أفضل كمبوند سكني في مصر', 'مشاريع فاميلي هوم', 'أسعار الكمبوندات اليوم في مصر', 'استثمار في المشاريع العقارية بمصر'
                 ],
                 'en' => [
-                    'real estate projects', 'compound directory', 'new residential compounds', 'new cairo compounds', 'sheikh zayed compounds',
-                    'new capital projects', 'north coast projects', 'ain sokhna projects', 'october compounds', 'commercial malls new capital',
-                    'under construction projects', 'ready to move compounds', 'top compound developers', 'family home projects'
+                    'real estate projects egypt', 'compound directory egypt', 'new residential compounds cairo', 'new cairo compounds', 'sheikh zayed compounds',
+                    'new capital projects egypt', 'north coast projects', 'ain sokhna projects', 'october compounds egypt', 'commercial malls new capital',
+                    'under construction projects egypt', 'ready to move compounds cairo', 'top compound developers egypt', 'family home projects'
                 ]
             ],
             'deals' => [
-                'title_ar' => 'أقوى الصفقات والعروض العقارية الحصرية | فاميلي هوم',
-                'title_en' => 'Exclusive Hot Property Deals & Offers | Family Home',
-                'meta_description_ar' => 'احصل على أفضل الصفقات والعروض العقارية الحصرية بأسعار استثنائية وبدون مقدم أو خصومات فورية للسداد النقدي.',
-                'meta_description_en' => 'Unlock hot property deals, zero downpayment offers, and exclusive cash discounts on prime real estate developments.',
+                'title_ar' => 'أقوى الصفقات والعروض العقارية الحصرية في مصر | فاميلي هوم',
+                'title_en' => 'Hot Real Estate Property Deals in Egypt (EGP) | Family Home',
+                'meta_description_ar' => 'احصل على أفضل الصفقات والعروض العقارية الحصرية بمصر بأسعار استثنائية بالجنيه المصري وبدون مقدم أو خصومات فورية للسداد النقدي.',
+                'meta_description_en' => 'Unlock hot property deals in Egypt, zero downpayment offers in EGP, and exclusive cash discounts on prime Egyptian real estate developments.',
                 'ar' => [
-                    'صفقات عقارية حصرياً', 'عروض العقارات', 'تخفيضات الشقق والفلل', 'عروض التقسيط المريح', 'عروض العقارات بدون مقدم',
-                    'صفقات شقق التجمع', 'صفقات الفلل والكمبوندات', 'فرص استثمارية عقارية', 'أقل سعر متر في مصر', 'شقق للبيع بسعر اللقطة',
-                    'عقارات للبيع بسعر الكاش', 'عروض الكريسماس العقارية', 'خصومات السداد النقدي', 'صفقات فاميلي هوم الحصرية'
+                    'صفقات عقارية بمصر', 'عروض العقارات في مصر', 'تخفيضات الشقق والفلل بالقاهرة', 'عروض التقسيط المريح بالجنيه', 'عروض العقارات بدون مقدم مصر',
+                    'صفقات شقق التجمع', 'صفقات الفلل والكمبوندات بمصر', 'فرص استثمارية عقارية بمصر', 'أقل سعر متر في مصر', 'شقق للبيع بسعر اللقطة بالقاهرة',
+                    'عقارات للبيع بسعر الكاش مصر', 'خصومات السداد النقدي بالجنيه', 'صفقات فاميلي هوم الحصرية بمصر'
                 ],
                 'en' => [
-                    'exclusive property deals', 'discounted apartments', 'hot real estate offers', 'zero downpayment deals', 'cash discount properties',
-                    'below market price properties', 'best investment deals', 'family home hot deals', 'limited time property offers'
+                    'exclusive property deals egypt', 'discounted apartments cairo', 'hot real estate offers egypt', 'zero downpayment deals egp', 'cash discount properties cairo',
+                    'below market price properties egypt', 'best investment deals cairo', 'family home hot deals egypt', 'limited time property offers cairo'
                 ]
             ],
             'articles_index' => [
-                'title_ar' => 'مدونة العقارات والاستثمار | نصائح وأخبار العقارات | فاميلي هوم',
-                'title_en' => 'Real Estate Blog & Investment Guides | Family Home',
-                'meta_description_ar' => 'تابِع أحدث المقالات والأخبار العقارية وتحليلات السوق، ونصائح شراء العقار الأول والاستثمار الناجح في مصر والخليج.',
-                'meta_description_en' => 'Stay updated with real estate market trends, property investment advice, and comprehensive buyer guides.',
+                'title_ar' => 'مدونة العقارات والاستثمار في مصر | نصائح وأخبار السوق | فاميلي هوم',
+                'title_en' => 'Egypt Real Estate Blog & Investment Guides | Family Home',
+                'meta_description_ar' => 'تابِع أحدث المقالات والأخبار العقارية وتحليلات السوق المصري، ونصائح شراء العقارات والاستثمار الناجح في مصر بالجنيه المصري.',
+                'meta_description_en' => 'Stay updated with Egyptian real estate market trends, property investment advice in EGP, and comprehensive buyer guides.',
                 'ar' => [
-                    'أخبار العقارات', 'مقالات استثمار عقاري', 'دليل الشراء العقاري', 'نصائح شراء شقة', 'أفضل مناطق الاستثمار العقاري',
-                    'مستقبل العقارات في مصر والسعودية', 'كيف تختار بيتك الأول', 'قوانين التمويل العقاري', 'تحليل أسعار العقارات',
-                    'مدونة فاميلي هوم', 'أخبار التجمع والعاصمة الإدارية', 'مقارنات الكمبوندات العقارية'
+                    'أخبار العقارات في مصر', 'مقالات استثمار عقاري مصر', 'دليل الشراء العقاري في مصر', 'نصائح شراء شقة بالقاهرة', 'أفضل مناطق الاستثمار العقاري بمصر',
+                    'مستقبل العقارات في مصر', 'كيف تختار بيتك الأول بمصر', 'قوانين التمويل العقاري المصري', 'تحليل أسعار العقارات بالجنيه',
+                    'مدونة فاميلي هوم مصر', 'أخبار التجمع والعاصمة الإدارية', 'مقارنات الكمبوندات العقارية بمصر'
                 ],
                 'en' => [
-                    'real estate news', 'property investment blog', 'buying guide egypt', 'real estate market analysis', 'first time home buyer tips',
-                    'cairo real estate trends', 'new capital news', 'family home blog'
+                    'egypt real estate news', 'property investment blog cairo', 'buying guide egypt', 'real estate market analysis cairo', 'first time home buyer tips egypt',
+                    'cairo real estate trends', 'new capital news egypt', 'family home blog'
                 ]
             ],
             'about' => [
-                'title_ar' => 'عن شركة فاميلي هوم العقارية | الرؤية والخبرة',
-                'title_en' => 'About Family Home Real Estate | Our Vision & Expertise',
-                'meta_description_ar' => 'تعرف على شركة فاميلي هوم العقارية، رؤيتنا في تقديم أفضل الحلول والخدمات الاستشارية والتسويقية للعملاء في سوق العقارات.',
-                'meta_description_en' => 'Learn more about Family Home Real Estate, our expertise, values, and commitment to providing top-tier real estate advisory services.',
-                'ar' => ['عن فاميلي هوم', 'شركة فاميلي هوم العقارية', 'رؤية فاميلي هوم', 'خدمات التسويق العقاري', 'خبرائنا العقاريين'],
-                'en' => ['about family home', 'family home real estate company', 'real estate advisory', 'our real estate experts']
+                'title_ar' => 'عن شركة فاميلي هوم العقارية في مصر | الرؤية والخبرة',
+                'title_en' => 'About Family Home Real Estate Egypt | Our Vision & Expertise',
+                'meta_description_ar' => 'تعرف على شركة فاميلي هوم العقارية في مصر، رؤيتنا في تقديم أفضل الحلول والخدمات الاستشارية والتسويقية للعملاء في سوق العقارات المصري.',
+                'meta_description_en' => 'Learn more about Family Home Real Estate Egypt, our expertise, values, and commitment to providing top-tier real estate advisory services in Cairo.',
+                'ar' => ['عن فاميلي هوم بمصر', 'شركة فاميلي هوم العقارية بمصر', 'رؤية فاميلي هوم مصر', 'خدمات التسويق العقاري بمصر', 'خبراء العقارات بمصر'],
+                'en' => ['about family home egypt', 'family home real estate company egypt', 'real estate advisory cairo', 'our real estate experts egypt']
             ],
             'contact' => [
-                'title_ar' => 'تواصل مع فاميلي هوم العقارية | خدمة العملاء وحجز المعاينات',
-                'title_en' => 'Contact Family Home Real Estate | Book a Viewing',
-                'meta_description_ar' => 'تواصل مع مستشارينا العقاريين في فاميلي هوم للاستفسار عن أي وحدة أو مشروع عقاري أو لحجز معاينة موقعية.',
-                'meta_description_en' => 'Get in touch with Family Home real estate consultants for inquiries, property viewings, and personalized assistance.',
-                'ar' => ['تواصل مع فاميلي هوم', 'رقم هاتف فاميلي هوم', 'فرع الشركة العقارية', 'خدمة العملاء العقارية', 'حجز معاينة عقارية'],
-                'en' => ['contact family home', 'family home phone number', 'real estate customer service', 'book property viewing']
+                'title_ar' => 'تواصل مع فاميلي هوم العقارية في مصر | خدمة العملاء وحجز المعاينات',
+                'title_en' => 'Contact Family Home Real Estate Egypt | Book a Property Viewing',
+                'meta_description_ar' => 'تواصل مع مستشارينا العقاريين في فاميلي هوم مصر للاستفسار عن أي وحدة أو مشروع عقاري بالقاهرة والمحافظات أو لحجز معاينة موقعية.',
+                'meta_description_en' => 'Get in touch with Family Home real estate consultants in Egypt for inquiries, property viewings, and personalized assistance.',
+                'ar' => ['تواصل مع فاميلي هوم مصر', 'رقم هاتف فاميلي هوم', 'فرع الشركة العقارية بالقاهرة', 'خدمة العملاء العقارية مصر', 'حجز معاينة عقارية بالقاهرة'],
+                'en' => ['contact family home egypt', 'family home phone number cairo', 'real estate customer service egypt', 'book property viewing cairo']
             ],
         ];
 
