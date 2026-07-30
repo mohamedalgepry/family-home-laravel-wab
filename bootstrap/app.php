@@ -19,6 +19,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // لازم تتظبط حسب توثيق Hostinger الفعلي لو فيه proxy معروف قدامهم
         $middleware->trustProxies(at: env('TRUSTED_PROXIES', '127.0.0.1'));
         $middleware->redirectUsersTo('/admin');
+        $middleware->alias([
+            'role' => \App\Http\Middleware\EnsureUserHasRole::class,
+        ]);
         $middleware->web(append: [
             SetLocale::class,
             HandleInertiaRequests::class,

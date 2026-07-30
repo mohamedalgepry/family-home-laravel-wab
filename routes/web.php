@@ -128,7 +128,7 @@ Route::post('/contact', [MessageController::class, 'storeContact'])
 Route::post('/units/{unit}/contact', [MessageController::class, 'store'])
     ->middleware('throttle:contact-form');
 
-Route::prefix('admin')->middleware('auth')->group(function () {
+Route::prefix('admin')->middleware(['auth', 'role:admin,manager,agent'])->group(function () {
     Route::get('/', DashboardController::class)->name('admin.dashboard');
     Route::post('/media/upload', [MediaController::class, 'upload'])->name('admin.media.upload');
 
@@ -157,14 +157,14 @@ Route::prefix('admin')->middleware('auth')->group(function () {
         Route::delete('/{project}', [App\Http\Controllers\Admin\ProjectController::class, 'destroy'])->name('destroy');
     });
 
-    Route::prefix('points')->name('admin.points.')->group(function () {
+    Route::prefix('points')->name('admin.points.')->middleware('role:admin,manager')->group(function () {
         Route::get('/', [PointsController::class, 'index'])->name('index');
         Route::post('/allocate', [PointsController::class, 'allocate'])->name('allocate');
-        Route::post('/reset', [PointsController::class, 'monthlyReset'])->name('monthly-reset');
-        Route::post('/daily-deduct', [PointsController::class, 'dailyDeduct'])->name('daily-deduct');
+        Route::post('/reset', [PointsController::class, 'monthlyReset'])->middleware('role:admin')->name('monthly-reset');
+        Route::post('/daily-deduct', [PointsController::class, 'dailyDeduct'])->middleware('role:admin')->name('daily-deduct');
     });
 
-    Route::prefix('users')->name('admin.users.')->group(function () {
+    Route::prefix('users')->name('admin.users.')->middleware('role:admin')->group(function () {
         Route::get('/', [UserController::class, 'index'])->name('index');
         Route::get('/create', [UserController::class, 'create'])->name('create');
         Route::post('/', [UserController::class, 'store'])->name('store');
@@ -197,15 +197,15 @@ Route::prefix('admin')->middleware('auth')->group(function () {
     Route::post('/units/{unit}/approve', [NotificationController::class, 'approveUnit'])->name('admin.units.approve');
     Route::post('/projects/{project}/extend', [NotificationController::class, 'extendProject'])->name('admin.projects.extend');
     Route::post('/units/{unit}/extend-expiry', [NotificationController::class, 'extendUnit'])->name('admin.units.extend-expiry');
-    Route::delete('/units/{unit}/force', [NotificationController::class, 'deleteUnit'])->name('admin.units.force-delete');
+    Route::delete('/units/{unit}/force', [NotificationController::class, 'deleteUnit'])->middleware('role:admin')->name('admin.units.force-delete');
     Route::post('/notifications/{id}/dismiss', [NotificationController::class, 'dismissNotification'])->name('admin.notifications.dismiss');
 
-    Route::prefix('settings')->name('admin.settings.')->group(function () {
+    Route::prefix('settings')->name('admin.settings.')->middleware('role:admin')->group(function () {
         Route::get('/', [SettingsController::class, 'index'])->name('index');
         Route::post('/', [SettingsController::class, 'update'])->name('update');
     });
 
-    Route::prefix('articles')->name('admin.articles.')->group(function () {
+    Route::prefix('articles')->name('admin.articles.')->middleware('role:admin')->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\ArticleController::class, 'index'])->name('index');
         Route::get('/create', [App\Http\Controllers\Admin\ArticleController::class, 'create'])->name('create');
         Route::get('/{article}/edit', [App\Http\Controllers\Admin\ArticleController::class, 'edit'])->name('edit');
@@ -215,23 +215,23 @@ Route::prefix('admin')->middleware('auth')->group(function () {
         Route::post('/{article}/publish', [App\Http\Controllers\Admin\ArticleController::class, 'togglePublish'])->name('toggle-publish');
     });
 
-    Route::prefix('categories')->name('admin.categories.')->group(function () {
+    Route::prefix('categories')->name('admin.categories.')->middleware('role:admin')->group(function () {
         Route::get('/', [CategoryController::class, 'index'])->name('index');
         Route::post('/', [CategoryController::class, 'store'])->name('store');
         Route::put('/{category}', [CategoryController::class, 'update'])->name('update');
         Route::delete('/{category}', [CategoryController::class, 'destroy'])->name('destroy');
     });
 
-    Route::prefix('about')->name('admin.about.')->group(function () {
+    Route::prefix('about')->name('admin.about.')->middleware('role:admin')->group(function () {
         Route::get('/', [AboutController::class, 'edit'])->name('edit');
         Route::post('/', [AboutController::class, 'update'])->name('update');
     });
 
-    Route::prefix('activity-log')->name('admin.activity-log.')->group(function () {
+    Route::prefix('activity-log')->name('admin.activity-log.')->middleware('role:admin')->group(function () {
         Route::get('/', [ActivityLogController::class, 'index'])->name('index');
     });
 
-    Route::prefix('areas')->name('admin.areas.')->group(function () {
+    Route::prefix('areas')->name('admin.areas.')->middleware('role:admin')->group(function () {
         Route::get('/', [AreaController::class, 'index'])->name('index');
         Route::post('/', [AreaController::class, 'store'])->name('store');
         Route::put('/{area}', [AreaController::class, 'update'])->name('update');
@@ -243,28 +243,28 @@ Route::prefix('admin')->middleware('auth')->group(function () {
         Route::post('/', [App\Http\Controllers\Admin\ProfileController::class, 'update'])->name('update');
     });
 
-    Route::prefix('unit-types')->name('admin.unit-types.')->group(function () {
+    Route::prefix('unit-types')->name('admin.unit-types.')->middleware('role:admin')->group(function () {
         Route::get('/', [UnitTypeController::class, 'index'])->name('index');
         Route::post('/', [UnitTypeController::class, 'store'])->name('store');
         Route::put('/{unitType}', [UnitTypeController::class, 'update'])->name('update');
         Route::delete('/{unitType}', [UnitTypeController::class, 'destroy'])->name('destroy');
     });
 
-    Route::prefix('features')->name('admin.features.')->group(function () {
+    Route::prefix('features')->name('admin.features.')->middleware('role:admin')->group(function () {
         Route::get('/', [FeatureController::class, 'index'])->name('index');
         Route::post('/', [FeatureController::class, 'store'])->name('store');
         Route::put('/{feature}', [FeatureController::class, 'update'])->name('update');
         Route::delete('/{feature}', [FeatureController::class, 'destroy'])->name('destroy');
     });
 
-    Route::prefix('finishing-types')->name('admin.finishing-types.')->group(function () {
+    Route::prefix('finishing-types')->name('admin.finishing-types.')->middleware('role:admin')->group(function () {
         Route::get('/', [FinishingTypeController::class, 'index'])->name('index');
         Route::post('/', [FinishingTypeController::class, 'store'])->name('store');
         Route::put('/{finishingType}', [FinishingTypeController::class, 'update'])->name('update');
         Route::delete('/{finishingType}', [FinishingTypeController::class, 'destroy'])->name('destroy');
     });
 
-    Route::prefix('seo-pages')->name('admin.seo-pages.')->group(function () {
+    Route::prefix('seo-pages')->name('admin.seo-pages.')->middleware('role:admin')->group(function () {
         Route::get('/', [PageSeoController::class, 'index'])->name('index');
         Route::put('/{pageSeo}', [PageSeoController::class, 'update'])->name('update');
     });
