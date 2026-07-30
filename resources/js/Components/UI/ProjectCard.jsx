@@ -29,7 +29,7 @@ export default function ProjectCard({ project, loading = false }) {
     }
 
     const mainImage = project?.images?.find(img => img.is_main || img.is_primary) || project?.images?.[0]
-    const thumbnail = mainImage?.url || (mainImage?.path ? (mainImage.path.startsWith('http') || mainImage.path.startsWith('/') ? mainImage.path : `/storage/${mainImage.path}`) : PLACEHOLDER)
+    const thumbnail = mainImage?.thumb_url || mainImage?.url || (mainImage?.path ? (mainImage.path.startsWith('http') || mainImage.path.startsWith('/') ? mainImage.path : `/storage/${mainImage.path}`) : PLACEHOLDER)
     const isCompared = compareList.includes(project?.id)
 
     return (

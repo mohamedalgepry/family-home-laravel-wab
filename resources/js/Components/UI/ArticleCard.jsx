@@ -23,7 +23,7 @@ export default function ArticleCard({ article, loading = false }) {
     const isRtl = locale === 'ar'
 
     const headerImg = article?.images?.find(img => img.position === 'header') || article?.images?.[0]
-    const thumbnail = headerImg?.url || (headerImg?.path ? (headerImg.path.startsWith('http') || headerImg.path.startsWith('/') ? headerImg.path : `/storage/${headerImg.path}`) : PLACEHOLDER)
+    const thumbnail = headerImg?.thumb_url || headerImg?.url || (headerImg?.path ? (headerImg.path.startsWith('http') || headerImg.path.startsWith('/') ? headerImg.path : `/storage/${headerImg.path}`) : PLACEHOLDER)
 
     if (loading) {
         return <SkeletonCard />

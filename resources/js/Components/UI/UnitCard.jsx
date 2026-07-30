@@ -34,7 +34,7 @@ export default function UnitCard({ unit, loading = false }) {
     }
 
     const mainImage = unit?.images?.find(img => img.is_main || img.is_primary) || unit?.images?.[0]
-    const thumbnail = mainImage?.url || (mainImage?.path ? (mainImage.path.startsWith('http') || mainImage.path.startsWith('/') ? mainImage.path : `/storage/${mainImage.path}`) : PLACEHOLDER)
+    const thumbnail = mainImage?.thumb_url || mainImage?.url || (mainImage?.path ? (mainImage.path.startsWith('http') || mainImage.path.startsWith('/') ? mainImage.path : `/storage/${mainImage.path}`) : PLACEHOLDER)
     const isFeatured = (unit?.priority_points ?? 0) > 0
     const isCompared = compareList.includes(unit?.id)
 
