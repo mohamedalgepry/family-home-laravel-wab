@@ -1,0 +1,42 @@
+<?php
+
+namespace App\Domain\Listings\Actions;
+
+use App\Domain\Common\Support\Sanitizer;
+use App\Domain\Listings\DTOs\CreateUnitData;
+use App\Domain\Listings\Models\Unit;
+use App\Domain\Users\Models\User;
+
+class UpdateUnitAction
+{
+    public function execute(int $unitId, CreateUnitData $data, User $user): Unit
+    {
+        $unit = Unit::findOrFail($unitId);
+
+        $sanitized = collect($data->toArray())->map(function ($value, $key) {
+            if ($key === 'map_embed_url' && is_string($value) && $value !== '') {
+                return Sanitizer::extractMapSrc($value) ?? '';
+            }
+
+            return is_string($value) ? Sanitizer::text($value) : $value;
+        })->all();
+
+        $sanitized['name'] = $sanitized['name_en'] ?? '';
+        $sanitized['description'] = $sanitized['description_en'] ?? null;
+
+        if ($user->isAgent()) {
+            unset($sanitized['is_active']);
+        }
+
+        $features = $sanitized['features'] ?? [];
+        unset($sanitized['features']);
+
+        $unit->update($sanitized);
+
+        if (isset($data->features)) {
+            $unit->features()->sync($features);
+        }
+
+        return $unit->fresh();
+    }
+}

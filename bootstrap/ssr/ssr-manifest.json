@@ -1,0 +1,13 @@
+{
+  "\u0000rolldown/runtime.js": [],
+  "resources/js/Components/Layout/AuthLayout.jsx": [],
+  "resources/js/Components/UI/Button.jsx": [],
+  "resources/js/Components/UI/InputField.jsx": [],
+  "resources/js/Pages/Shared/ForgotPassword.jsx": [],
+  "resources/js/Pages/Shared/Login.jsx": [],
+  "resources/js/Pages/Shared/Profile.jsx": [],
+  "resources/js/Pages/Shared/ResetPassword.jsx": [],
+  "resources/js/Pages/Shared/Welcome.jsx": [],
+  "resources/js/Utils/trans.js": [],
+  "resources/js/ssr.jsx": []
+}

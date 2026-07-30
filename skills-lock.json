@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "laravel-security-audit": {
+      "source": "sickn33/antigravity-awesome-skills",
+      "sourceType": "github",
+      "skillPath": "skills/laravel-security-audit/SKILL.md",
+      "computedHash": "6cc0dbf736685e39e1c230ea6333fd2b402a0a6f1b48c2ea88ff8964df8be327"
+    }
+  }
+}
