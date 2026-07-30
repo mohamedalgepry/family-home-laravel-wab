@@ -25,6 +25,8 @@ Set `TRUSTED_PROXIES` only to proxy addresses supplied by the host. Do not use `
 
 ## First deploy and every release
 
+> **IMPORTANT:** Never run `php artisan db:seed --class=DemoDataSeeder` on production environments. Seeding demo data will fail by design to prevent security breaches and accidental test data creation. Production deployments only require running standard migrations.
+
 ```bash
 php artisan migrate --force
 php artisan storage:link

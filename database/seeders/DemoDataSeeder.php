@@ -67,12 +67,24 @@ class DemoDataSeeder extends Seeder
 
     public function run(): void
     {
+        if (app()->environment('production')) {
+            if ($this->command) {
+                $this->command->error('DemoDataSeeder ممنوع تشغيله في بيئة production.');
+            }
+
+            return;
+        }
+
         // ===== 1. المستخدمون =====
+        $adminPassword = env('ADMIN_SEED_PASSWORD', Str::random(16));
+        $managerPassword = env('MANAGER_SEED_PASSWORD', Str::random(16));
+        $agentPassword = env('AGENT_SEED_PASSWORD', Str::random(16));
+
         $admin = User::updateOrCreate(
             ['email' => 'admin@admin.com'],
             [
                 'name' => 'محمد الأدمن',
-                'password' => Hash::make('password'),
+                'password' => Hash::make($adminPassword),
                 'role' => 'admin',
                 'is_active' => true,
                 'points_balance' => 0,
@@ -84,7 +96,7 @@ class DemoDataSeeder extends Seeder
             ['email' => 'manager@manager.com'],
             [
                 'name' => 'أحمد المدير',
-                'password' => Hash::make('password'),
+                'password' => Hash::make($managerPassword),
                 'role' => 'manager',
                 'is_active' => true,
                 'points_balance' => 5000,
@@ -96,7 +108,7 @@ class DemoDataSeeder extends Seeder
             ['email' => 'agent@agent.com'],
             [
                 'name' => 'علي الوكيل',
-                'password' => Hash::make('password'),
+                'password' => Hash::make($agentPassword),
                 'role' => 'agent',
                 'is_active' => true,
                 'points_balance' => 300,
@@ -104,6 +116,18 @@ class DemoDataSeeder extends Seeder
                 'manager_id' => $manager->id,
             ]
         );
+
+        if ($this->command) {
+            if (empty(env('ADMIN_SEED_PASSWORD'))) {
+                $this->command->warn("⚠️ ADMIN_SEED_PASSWORD غير معرف — كلمة سر أدمن التجريبي: {$adminPassword}");
+            }
+            if (empty(env('MANAGER_SEED_PASSWORD'))) {
+                $this->command->warn("⚠️ MANAGER_SEED_PASSWORD غير معرف — كلمة سر مدير التجريبي: {$managerPassword}");
+            }
+            if (empty(env('AGENT_SEED_PASSWORD'))) {
+                $this->command->warn("⚠️ AGENT_SEED_PASSWORD غير معرف — كلمة سر وكيل التجريبي: {$agentPassword}");
+            }
+        }
 
         // ===== 2. المناطق =====
         $areas = Area::all()->keyBy('slug');
@@ -520,7 +544,7 @@ class DemoDataSeeder extends Seeder
 
         $this->command->info('✅ تم إضافة البيانات التجريبية بنجاح!');
         $this->command->table(['نوع البيانات', 'التفاصيل'], [
-            ['المستخدمون', 'admin@admin.com / manager@manager.com / agent@agent.com (كلمة المرور: password)'],
+            ['المستخدمون', 'admin@admin.com / manager@manager.com / agent@agent.com (كلمة المرور تولد عشوائياً أو عبر .env)'],
             ['المشاريع', '3 مشاريع في التجمع الخامس، الشيخ زايد، ومدينة نصر'],
             ['الوحدات', '6 وحدات متنوعة (للبيع والإيجار، صفقات مميزة)'],
             ['المقارلات والاخبار', '2 مقال منشور'],
