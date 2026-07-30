@@ -15,6 +15,11 @@
 
       gtag('config', 'G-43HZ7C3CK2');
     </script>
+
+    <!-- Cairo Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     @php
         $siteLogo = app(\App\Domain\Listings\Services\SettingsService::class)->get('site_logo');
         $faviconUrl = $siteLogo ? asset('storage/' . $siteLogo) : asset('icon.png');

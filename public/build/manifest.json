@@ -72,8 +72,8 @@
       "_Button-C0rKzzPt.js"
     ]
   },
-  "_UnitCard-BPc-RFwB.js": {
-    "file": "assets/UnitCard-BPc-RFwB.js",
+  "_UnitCard-1E13l1Si.js": {
+    "file": "assets/UnitCard-1E13l1Si.js",
     "name": "UnitCard",
     "imports": [
       "_vendor-core-GX6QFHOZ.js",
@@ -137,7 +137,7 @@
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-BOaxgA7Y.css",
+    "file": "assets/app-Dih3AYGK.css",
     "name": "app",
     "names": [
       "app.css"
@@ -323,7 +323,7 @@
     ]
   },
   "resources/js/Pages/Admin/Projects/Form.jsx": {
-    "file": "assets/Form-0p-gS5CW.js",
+    "file": "assets/Form-CZqs-U3b.js",
     "name": "Form",
     "src": "resources/js/Pages/Admin/Projects/Form.jsx",
     "isDynamicEntry": true,
@@ -390,7 +390,7 @@
     ]
   },
   "resources/js/Pages/Admin/Units/Form.jsx": {
-    "file": "assets/Form-tMgecB1o.js",
+    "file": "assets/Form-CrbDHJo6.js",
     "name": "Form",
     "src": "resources/js/Pages/Admin/Units/Form.jsx",
     "isDynamicEntry": true,
@@ -456,7 +456,7 @@
     ]
   },
   "resources/js/Pages/Public/Agents/Show.jsx": {
-    "file": "assets/Show-B3C6Eb_A.js",
+    "file": "assets/Show-D8DFq42h.js",
     "name": "Show",
     "src": "resources/js/Pages/Public/Agents/Show.jsx",
     "isDynamicEntry": true,
@@ -464,7 +464,7 @@
       "_vendor-core-GX6QFHOZ.js",
       "_trans-nvkcEkLA.js",
       "_Footer-BAypWXm7.js",
-      "_UnitCard-BPc-RFwB.js",
+      "_UnitCard-1E13l1Si.js",
       "_Pagination-BWst7n-o.js"
     ]
   },
@@ -513,7 +513,7 @@
     ]
   },
   "resources/js/Pages/Public/Contact.jsx": {
-    "file": "assets/Contact-Dw04lZoD.js",
+    "file": "assets/Contact-tYjpoCQl.js",
     "name": "Contact",
     "src": "resources/js/Pages/Public/Contact.jsx",
     "isDynamicEntry": true,
@@ -527,7 +527,7 @@
     ]
   },
   "resources/js/Pages/Public/Home.jsx": {
-    "file": "assets/Home-Dpmle9mS.js",
+    "file": "assets/Home-Bm3QFH2f.js",
     "name": "Home",
     "src": "resources/js/Pages/Public/Home.jsx",
     "isDynamicEntry": true,
@@ -537,7 +537,7 @@
       "_route-ClAlynnE.js",
       "_Footer-BAypWXm7.js",
       "_SeoHead-BW1IqymQ.js",
-      "_UnitCard-BPc-RFwB.js",
+      "_UnitCard-1E13l1Si.js",
       "_Pagination-BWst7n-o.js",
       "_SearchBar-ChmzG9A7.js"
     ]
@@ -560,7 +560,7 @@
     ]
   },
   "resources/js/Pages/Public/Projects/Show.jsx": {
-    "file": "assets/Show-CQOo0vj0.js",
+    "file": "assets/Show-DUGplv4C.js",
     "name": "Show",
     "src": "resources/js/Pages/Public/Projects/Show.jsx",
     "isDynamicEntry": true,
@@ -571,12 +571,12 @@
       "_trans-nvkcEkLA.js",
       "_Footer-BAypWXm7.js",
       "_SeoHead-BW1IqymQ.js",
-      "_UnitCard-BPc-RFwB.js",
+      "_UnitCard-1E13l1Si.js",
       "_youtube-DibaM2Hj.js"
     ]
   },
   "resources/js/Pages/Public/Units/Deals.jsx": {
-    "file": "assets/Deals-BGBcgMJz.js",
+    "file": "assets/Deals-D3iKoF4v.js",
     "name": "Deals",
     "src": "resources/js/Pages/Public/Units/Deals.jsx",
     "isDynamicEntry": true,
@@ -585,13 +585,13 @@
       "_trans-nvkcEkLA.js",
       "_Footer-BAypWXm7.js",
       "_SeoHead-BW1IqymQ.js",
-      "_UnitCard-BPc-RFwB.js",
+      "_UnitCard-1E13l1Si.js",
       "_Pagination-BWst7n-o.js",
       "_SearchBar-ChmzG9A7.js"
     ]
   },
   "resources/js/Pages/Public/Units/Index.jsx": {
-    "file": "assets/Index-BtDaLntF.js",
+    "file": "assets/Index-DFWtWFkF.js",
     "name": "Index",
     "src": "resources/js/Pages/Public/Units/Index.jsx",
     "isDynamicEntry": true,
@@ -600,13 +600,13 @@
       "_trans-nvkcEkLA.js",
       "_Footer-BAypWXm7.js",
       "_SeoHead-BW1IqymQ.js",
-      "_UnitCard-BPc-RFwB.js",
+      "_UnitCard-1E13l1Si.js",
       "_Pagination-BWst7n-o.js",
       "_SearchBar-ChmzG9A7.js"
     ]
   },
   "resources/js/Pages/Public/Units/Show.jsx": {
-    "file": "assets/Show-Bp1CN-X1.js",
+    "file": "assets/Show-yc9Rf_mn.js",
     "name": "Show",
     "src": "resources/js/Pages/Public/Units/Show.jsx",
     "isDynamicEntry": true,
@@ -617,7 +617,7 @@
       "_trans-nvkcEkLA.js",
       "_Footer-BAypWXm7.js",
       "_SeoHead-BW1IqymQ.js",
-      "_UnitCard-BPc-RFwB.js",
+      "_UnitCard-1E13l1Si.js",
       "_youtube-DibaM2Hj.js"
     ]
   },
@@ -683,7 +683,7 @@
     ]
   },
   "resources/js/app.jsx": {
-    "file": "assets/app-C6b-sygl.js",
+    "file": "assets/app-BYX_h6YT.js",
     "name": "app",
     "src": "resources/js/app.jsx",
     "isEntry": true,

@@ -34,7 +34,7 @@ class ListingService
 
         return Cache::remember(self::CACHE_PREFIX."featured_{$limit}_page_{$page}_v{$this->version()}", self::CACHE_TTL, function () use ($limit) {
             return Unit::featured()
-                ->with(['type', 'area', 'images'])
+                ->with(['type', 'area', 'images', 'user.profile'])
                 ->simplePaginate($limit);
         });
     }
@@ -45,7 +45,7 @@ class ListingService
 
         return Cache::remember(self::CACHE_PREFIX."latest_{$limit}_page_{$page}_v{$this->version()}", self::CACHE_TTL, function () use ($limit) {
             return Unit::active()
-                ->with(['type', 'area', 'images'])
+                ->with(['type', 'area', 'images', 'user.profile'])
                 ->orderByDesc('priority_points')
                 ->orderByDesc('is_pinned')
                 ->orderByDesc('created_at')
@@ -59,7 +59,7 @@ class ListingService
         $key = $this->generateCacheKey('units_filters', $filters, $perPage, $page);
 
         return Cache::remember($key, self::CACHE_TTL, function () use ($filters, $perPage) {
-            $query = Unit::active()->with(['type', 'area', 'images']);
+            $query = Unit::active()->with(['type', 'area', 'images', 'user.profile']);
             $this->applyUnitFilters($query, $filters);
 
             return $query->orderByDesc('priority_points')
@@ -203,7 +203,7 @@ class ListingService
                     $q->where('type_id', $unit->type_id)
                         ->orWhere('area_id', $unit->area_id);
                 })
-                ->with(['type', 'area', 'images'])
+                ->with(['type', 'area', 'images', 'user.profile'])
                 ->orderByDesc('priority_points')
                 ->orderByDesc('created_at')
                 ->limit($limit)

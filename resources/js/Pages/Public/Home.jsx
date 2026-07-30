@@ -35,19 +35,22 @@ export default function Home({ featuredUnits, latestUnits, popularSearches, area
 
             <main className="flex-1">
                 {/* Hero Section */}
-                <section className="relative bg-secondary-950 flex flex-col justify-center min-h-[75vh]">
-                    <div className="absolute inset-0 overflow-hidden">
-                        <img src={heroImage} alt="" className="w-full h-full object-cover" fetchPriority="high" />
-                        <div className="absolute inset-0 bg-secondary-950/60"></div>
+                <section className="relative bg-secondary-950 flex flex-col justify-center min-h-[80vh] overflow-hidden">
+                    <div className="absolute inset-0 z-0">
+                        <img src={heroImage} alt="" className="w-full h-full object-cover scale-105 animate-pulse-slow" fetchPriority="high" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-secondary-950 via-secondary-950/70 to-black/40"></div>
                     </div>
-                    <div className="relative z-20 max-w-container mx-auto px-4 py-24 sm:py-32 text-center w-full">
-                        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white mb-4 tracking-tight">
+                    
+                    <div className="relative z-20 max-w-container mx-auto px-4 py-20 sm:py-28 text-center w-full">
+
+                        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white mb-6 tracking-tight leading-tight max-w-4xl mx-auto drop-shadow-md">
                             {heroTitle}
                         </h1>
-                        <p className="text-lg sm:text-xl text-secondary-200 mb-10 max-w-2xl mx-auto font-medium">
+                        <p className="text-base sm:text-lg lg:text-xl text-secondary-200 mb-10 max-w-2xl mx-auto font-medium leading-relaxed">
                             {heroSubtitle}
                         </p>
-                        <div className="max-w-4xl mx-auto">
+                        
+                        <div className="max-w-4xl mx-auto bg-white/95 backdrop-blur-xl p-4 sm:p-6 rounded-3xl shadow-2xl border border-white/40">
                             <SearchBar areas={areas} unitTypes={unitTypes} features={features} finishingTypes={finishingTypes} />
                         </div>
                     </div>
@@ -56,13 +59,18 @@ export default function Home({ featuredUnits, latestUnits, popularSearches, area
                 {/* Popular Searches */}
                 {popularSearches?.length > 0 && (
                     <section className="max-w-container mx-auto px-4 py-8">
-                        <h2 className="text-sm font-semibold text-secondary-950 mb-3">{trans('popular_searches')}</h2>
+                        <div className="flex items-center gap-2 mb-4">
+                            <svg className="w-4 h-4 text-primary-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                            </svg>
+                            <h2 className="text-sm font-bold text-secondary-950 uppercase tracking-wider">{trans('popular_searches')}</h2>
+                        </div>
                         <div className="flex flex-wrap gap-2">
                             {popularSearches.map(ps => (
                                 <Link
                                     key={ps.keyword}
                                     href={localizedPath(`/units?search=${encodeURIComponent(ps.keyword)}`, locale)}
-                                    className="px-3 py-1.5 bg-white text-sm text-secondary-700 rounded-full border border-secondary-200 hover:border-primary-900 hover:text-primary-900 transition-colors"
+                                    className="px-3.5 py-1.5 bg-white text-xs font-semibold text-secondary-700 rounded-full border border-secondary-200 hover:border-primary-900 hover:text-primary-900 hover:shadow-sm transition-all"
                                 >
                                     {ps.keyword}
                                 </Link>
@@ -72,17 +80,29 @@ export default function Home({ featuredUnits, latestUnits, popularSearches, area
                 )}
 
                 {/* Featured Units */}
-                <section className="max-w-container mx-auto px-4 pb-8">
-                    <h2 className="text-xl font-bold text-secondary-950 mb-6">{trans('featured_units')}</h2>
+                <section className="max-w-container mx-auto px-4 py-8">
+                    <div className="flex items-center justify-between mb-6">
+                        <div>
+                            <h2 className="text-2xl font-black text-secondary-950 tracking-tight">{trans('featured_units')}</h2>
+                            <p className="text-xs text-secondary-500 mt-1">{isRtl ? 'أفضل الفرص الاستثمارية والسكنية المختارة خصيصاً لك' : 'Handpicked investment and residential opportunities'}</p>
+                        </div>
+                        <Link href={localizedPath('/units', locale)} className="text-xs font-bold text-primary-900 hover:text-primary-700 flex items-center gap-1">
+                            {isRtl ? 'عرض الكل' : 'View All'}
+                            <svg className="w-3.5 h-3.5 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                            </svg>
+                        </Link>
+                    </div>
+
                     {isLoading ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                             {Array.from({ length: 4 }).map((_, i) => (
                                 <UnitCard key={i} loading={true} />
                             ))}
                         </div>
                     ) : hasFeatured ? (
                         <>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                                 {featuredUnits.data.map(unit => (
                                     <UnitCard key={unit.id} unit={unit} />
                                 ))}
@@ -95,18 +115,30 @@ export default function Home({ featuredUnits, latestUnits, popularSearches, area
                 </section>
 
                 {/* Latest Units */}
-                <section className="bg-white py-8">
+                <section className="bg-surface py-12 border-t border-secondary-100">
                     <div className="max-w-container mx-auto px-4">
-                        <h2 className="text-xl font-bold text-secondary-950 mb-6">{trans('latest_units')}</h2>
+                        <div className="flex items-center justify-between mb-6">
+                            <div>
+                                <h2 className="text-2xl font-black text-secondary-950 tracking-tight">{trans('latest_units')}</h2>
+                                <p className="text-xs text-secondary-500 mt-1">{isRtl ? 'أحدث العقارات المضافة حديثاً في مصر' : 'Recently added real estate properties'}</p>
+                            </div>
+                            <Link href={localizedPath('/units', locale)} className="text-xs font-bold text-primary-900 hover:text-primary-700 flex items-center gap-1">
+                                {isRtl ? 'عرض الكل' : 'View All'}
+                                <svg className="w-3.5 h-3.5 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                                </svg>
+                            </Link>
+                        </div>
+
                         {isLoading ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                                 {Array.from({ length: 4 }).map((_, i) => (
                                     <UnitCard key={i} loading={true} />
                                 ))}
                             </div>
                         ) : hasLatest ? (
                             <>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                                     {latestUnits.data.map(unit => (
                                         <UnitCard key={unit.id} unit={unit} />
                                     ))}
