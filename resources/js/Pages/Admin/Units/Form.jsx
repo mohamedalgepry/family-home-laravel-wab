@@ -346,21 +346,74 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
         setDirty(true)
     }
 
+    // Image Compression Helper for Blazing Fast Uploads
+    async function compressImage(file, maxWidth = 1920, quality = 0.85) {
+        return new Promise(resolve => {
+            if (!file || !file.type.startsWith('image/') || file.type.includes('svg')) {
+                resolve(file)
+                return
+            }
+
+            const img = new Image()
+            const url = URL.createObjectURL(file)
+            img.onload = () => {
+                URL.revokeObjectURL(url)
+                let width = img.width
+                let height = img.height
+
+                if (width <= maxWidth && file.size < 1024 * 1024) {
+                    resolve(file)
+                    return
+                }
+
+                if (width > maxWidth) {
+                    height = Math.round((height * maxWidth) / width)
+                    width = maxWidth
+                }
+
+                const canvas = document.createElement('canvas')
+                canvas.width = width
+                canvas.height = height
+                const ctx = canvas.getContext('2d')
+                ctx.drawImage(img, 0, 0, width, height)
+
+                canvas.toBlob(
+                    blob => {
+                        if (!blob || blob.size >= file.size) {
+                            resolve(file)
+                        } else {
+                            const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, ".jpg"), {
+                                type: 'image/jpeg',
+                                lastModified: Date.now(),
+                            })
+                            resolve(compressedFile)
+                        }
+                    },
+                    'image/jpeg',
+                    quality
+                )
+            }
+            img.onerror = () => resolve(file)
+            img.src = url
+        })
+    }
+
     // Primary image handlers
-    function handlePrimaryChange(e) {
-        const file = e.target.files[0]
-        if (!file) return
-        if (file.size > MAX_SIZE) {
+    async function handlePrimaryChange(e) {
+        const rawFile = e.target.files[0]
+        if (!rawFile) return
+        if (rawFile.size > MAX_SIZE) {
             alert(locale === 'ar' ? 'حجم الصورة كبير جداً. الحد 10 ميجابايت.' : 'Image too large. Max 10MB.')
             return
         }
+        const file = await compressImage(rawFile)
         setPrimaryFile(file)
         setPrimaryPreview(URL.createObjectURL(file))
         setDirty(true)
     }
 
     // More images handlers
-    function handleMoreImages(e) {
+    async function handleMoreImages(e) {
         const files = Array.from(e.target.files || [])
         const valid = []
         let total = 0
@@ -374,7 +427,8 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
                 alert(locale === 'ar' ? 'تجاوز الحد الإجمالي 40 ميجابايت.' : 'Total exceeds 40MB limit.')
                 break
             }
-            valid.push(f)
+            const compressed = await compressImage(f)
+            valid.push(compressed)
         }
         setNewFiles(prev => [...prev, ...valid])
         setNewPreviews(prev => [...prev, ...valid.map(f => URL.createObjectURL(f))])

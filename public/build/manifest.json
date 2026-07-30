@@ -137,7 +137,7 @@
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-Be0S2BJd.css",
+    "file": "assets/app-DmzIAgZq.css",
     "name": "app",
     "names": [
       "app.css"
@@ -270,7 +270,7 @@
     ]
   },
   "resources/js/Pages/Admin/Messages/Index.jsx": {
-    "file": "assets/Index-lyPD8mGk.js",
+    "file": "assets/Index-tyIX3h_4.js",
     "name": "Index",
     "src": "resources/js/Pages/Admin/Messages/Index.jsx",
     "isDynamicEntry": true,
@@ -338,7 +338,7 @@
     ]
   },
   "resources/js/Pages/Admin/Projects/Form.jsx": {
-    "file": "assets/Form-CsbzPyt5.js",
+    "file": "assets/Form-D_8sk3Eo.js",
     "name": "Form",
     "src": "resources/js/Pages/Admin/Projects/Form.jsx",
     "isDynamicEntry": true,
@@ -405,7 +405,7 @@
     ]
   },
   "resources/js/Pages/Admin/Units/Form.jsx": {
-    "file": "assets/Form-DU94A0HY.js",
+    "file": "assets/Form-DqUXRYGW.js",
     "name": "Form",
     "src": "resources/js/Pages/Admin/Units/Form.jsx",
     "isDynamicEntry": true,
@@ -697,7 +697,7 @@
     ]
   },
   "resources/js/app.jsx": {
-    "file": "assets/app-BwHBYKfS.js",
+    "file": "assets/app-B9Aj422L.js",
     "name": "app",
     "src": "resources/js/app.jsx",
     "isEntry": true,

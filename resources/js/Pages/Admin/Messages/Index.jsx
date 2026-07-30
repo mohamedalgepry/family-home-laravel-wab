@@ -27,15 +27,15 @@ export default function AdminMessagesIndex({ messages, agents, filters }) {
     }
 
     function markReplied(messageId) {
-        router.post(`/admin/messages/${messageId}/replied`, {}, { preserveScroll: true })
+        router.post(`/admin/messages/${messageId}/replied`, {}, { preserveScroll: true, only: ['messages'] })
     }
 
     function deleteMessage(messageId) {
         if (!confirm(trans('messages.confirm_delete'))) return
-        setDeleting(true)
+        setSelectedMessage(null)
         router.delete(`/admin/messages/${messageId}`, {
             preserveScroll: true,
-            onFinish: () => { setDeleting(false); setSelectedMessage(null) },
+            only: ['messages'],
         })
     }
 
