@@ -10,6 +10,7 @@ export default function SeoHead({
     ogType = 'website',
     canonical,
     pageKey,
+    jsonLd,
 }) {
     const { locale, seo_pages } = usePage().props
     const { url } = usePage()
@@ -42,7 +43,6 @@ export default function SeoHead({
             : (Array.isArray(pageSeo.meta_keywords_en) && pageSeo.meta_keywords_en.length > 0 ? pageSeo.meta_keywords_en.join(', ') : keywords)
     ) : keywords;
 
-    // We cannot use imported localizedPath if we don't have it, so we calculate it here or import it
     const urlAr = baseUrl + (pathWithoutLocale === '/' ? '/ar' : `/ar${pathWithoutLocale === '/' ? '' : pathWithoutLocale}`);
     const urlEn = baseUrl + (pathWithoutLocale === '/' ? '/en' : `/en${pathWithoutLocale === '/' ? '' : pathWithoutLocale}`);
 
@@ -72,6 +72,13 @@ export default function SeoHead({
             <link rel="alternate" hreflang="ar" href={urlAr} />
             <link rel="alternate" hreflang="en" href={urlEn} />
             <link rel="alternate" hreflang="x-default" href={urlAr} />
+
+            {/* Structured Data (Schema.org) */}
+            {jsonLd && (
+                <script type="application/ld+json">
+                    {JSON.stringify(jsonLd)}
+                </script>
+            )}
         </Head>
     )
 }
