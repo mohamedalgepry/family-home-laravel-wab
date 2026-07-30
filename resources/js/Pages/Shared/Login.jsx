@@ -105,7 +105,7 @@ export default function Login() {
                     )}
                 </div>
 
-                {/* Remember me & Forgot Password */}
+                {/* Remember me */}
                 <div className="flex items-center justify-between text-xs pt-0.5">
                     <label className="flex items-center gap-2 text-secondary-700 cursor-pointer select-none">
                         <input
@@ -117,13 +117,6 @@ export default function Login() {
                         />
                         <span>{isRtl ? 'تذكرني' : 'Remember me'}</span>
                     </label>
-
-                    <Link
-                        href="/forgot-password"
-                        className="text-primary-900 hover:text-primary-950 font-medium transition-colors hover:underline"
-                    >
-                        {isRtl ? 'نسيت كلمة المرور؟' : 'Forgot Password?'}
-                    </Link>
                 </div>
 
                 {/* Submit Button */}

@@ -137,7 +137,7 @@
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-YjKoDxjY.css",
+    "file": "assets/app-C4GSyun-.css",
     "name": "app",
     "names": [
       "app.css"
@@ -650,7 +650,7 @@
     ]
   },
   "resources/js/Pages/Shared/Login.jsx": {
-    "file": "assets/Login-DCD7DPdC.js",
+    "file": "assets/Login-B0cdXBqT.js",
     "name": "Login",
     "src": "resources/js/Pages/Shared/Login.jsx",
     "isDynamicEntry": true,
@@ -698,7 +698,7 @@
     ]
   },
   "resources/js/app.jsx": {
-    "file": "assets/app-DxbEWbqH.js",
+    "file": "assets/app-DteUQ2sN.js",
     "name": "app",
     "src": "resources/js/app.jsx",
     "isEntry": true,
