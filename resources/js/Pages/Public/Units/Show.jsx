@@ -21,6 +21,7 @@ export default function UnitShow({ unit, similarUnits }) {
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
     const [lightboxIndex, setLightboxIndex] = useState(null)
+    const [activeImageIndex, setActiveImageIndex] = useState(0)
     const [sentSuccess, setSentSuccess] = useState(false)
 
     const jsonLd = useMemo(() => {
@@ -65,7 +66,8 @@ export default function UnitShow({ unit, similarUnits }) {
     })
 
     const images = unit?.images ?? []
-    const thumbnail = images[0]?.path ? `/storage/${images[0].path}` : PLACEHOLDER
+    const selectedImage = images[activeImageIndex] || images[0]
+    const thumbnail = selectedImage?.url || (selectedImage?.path ? (selectedImage.path.startsWith('http') || selectedImage.path.startsWith('/') ? selectedImage.path : `/storage/${selectedImage.path}`) : PLACEHOLDER)
 
     function handleSubmit(e) {
         e.preventDefault()
@@ -115,7 +117,7 @@ export default function UnitShow({ unit, similarUnits }) {
                                     src={thumbnail}
                                     alt={unit.alt_text || unit.name}
                                     className="w-full h-64 sm:h-80 lg:h-96 object-cover cursor-pointer"
-                                    onClick={() => setLightboxIndex(0)}
+                                    onClick={() => setLightboxIndex(activeImageIndex)}
                                 />
                                 {images.length > 1 && (
                                     <div className="flex gap-2 p-2 overflow-x-auto">
@@ -125,9 +127,9 @@ export default function UnitShow({ unit, similarUnits }) {
                                                 src={img.url || (img.path?.startsWith('http') || img.path?.startsWith('/') ? img.path : `/storage/${img.path}`)}
                                                 alt={img.alt_text || ''}
                                                 className={`w-20 h-16 object-cover rounded-lg cursor-pointer border-2 transition-colors ${
-                                                    i === lightboxIndex ? 'border-primary-900' : 'border-transparent hover:border-secondary-300'
+                                                    i === activeImageIndex ? 'border-primary-900' : 'border-transparent hover:border-secondary-300'
                                                 }`}
-                                                onClick={() => setLightboxIndex(i)}
+                                                onClick={() => setActiveImageIndex(i)}
                                             />
                                         ))}
                                     </div>
@@ -396,7 +398,7 @@ export default function UnitShow({ unit, similarUnits }) {
                         ✕
                     </button>
                     <img
-                        src={images[lightboxIndex]?.path?.startsWith('http') || images[lightboxIndex]?.path?.startsWith('/') ? images[lightboxIndex]?.path : `/storage/${images[lightboxIndex]?.path}`}
+                        src={images[lightboxIndex]?.url || (images[lightboxIndex]?.path?.startsWith('http') || images[lightboxIndex]?.path?.startsWith('/') ? images[lightboxIndex]?.path : `/storage/${images[lightboxIndex]?.path}`)}
                         alt=""
                         className="max-w-[90vw] max-h-[90vh] object-contain"
                         onClick={e => e.stopPropagation()}

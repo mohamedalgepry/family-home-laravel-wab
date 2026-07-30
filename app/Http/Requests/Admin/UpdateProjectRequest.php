@@ -45,7 +45,7 @@ class UpdateProjectRequest extends FormRequest
             'location_address_ar' => 'nullable|string|max:500',
             'location_address_en' => 'nullable|string|max:500',
             'images' => 'nullable|array|max:20',
-            'images.*' => 'file|image|mimes:jpg,jpeg,png,webp',
+            'images.*' => 'file|image|mimes:jpg,jpeg,png,webp|max:5120',
             'deleted_image_ids' => 'nullable|array',
             'deleted_image_ids.*' => 'integer|exists:project_images,id',
             'image_order' => 'nullable|array',

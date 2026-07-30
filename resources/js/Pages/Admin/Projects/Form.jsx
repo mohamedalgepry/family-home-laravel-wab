@@ -1,7 +1,7 @@
 import { Select } from '../../../Components/UI'
 import { usePage, useForm, Link, Head } from '@inertiajs/react'
 import { useTrans } from '../../../Utils/trans'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import AdminSidebar from '../../../Components/Layout/AdminSidebar'
 
 const STEPS = [
@@ -20,6 +20,9 @@ export default function AdminProjectForm({ project, areas, features, finishingTy
 
     const [step, setStep] = useState(0)
     const [dirty, setDirty] = useState(false)
+    const [newImagePreviews, setNewImagePreviews] = useState([])
+    const previewUrlsRef = useRef([])
+    const imagesInputRef = useRef(null)
     const [existingImages, setExistingImages] = useState(() => {
         if (!isEdit || !project?.images) return []
         return [...project.images].sort((a, b) => a.sort_order - b.sort_order)
@@ -64,6 +67,10 @@ export default function AdminProjectForm({ project, areas, features, finishingTy
         return () => window.removeEventListener('beforeunload', handleBeforeUnload)
     }, [dirty])
 
+    useEffect(() => () => {
+        previewUrlsRef.current.forEach(url => URL.revokeObjectURL(url))
+    }, [])
+
     useEffect(() => {
         if (existingImages.length > 0) {
             setData('image_order', existingImages.map(img => img.id))
@@ -73,6 +80,29 @@ export default function AdminProjectForm({ project, areas, features, finishingTy
     function handleChange(key, value) {
         setData(key, value)
         setDirty(true)
+    }
+
+    function handleNewImages(event) {
+        const files = Array.from(event.target.files || [])
+
+        previewUrlsRef.current.forEach(url => URL.revokeObjectURL(url))
+        const previews = files.map(file => ({ file, url: URL.createObjectURL(file) }))
+        previewUrlsRef.current = previews.map(preview => preview.url)
+
+        setNewImagePreviews(previews)
+        handleChange('images', files)
+    }
+
+    function removeNewImage(index) {
+        const removed = newImagePreviews[index]
+        if (removed) URL.revokeObjectURL(removed.url)
+
+        const previews = newImagePreviews.filter((_, currentIndex) => currentIndex !== index)
+        previewUrlsRef.current = previews.map(preview => preview.url)
+        setNewImagePreviews(previews)
+        handleChange('images', previews.map(preview => preview.file))
+
+        if (imagesInputRef.current) imagesInputRef.current.value = ''
     }
 
     function addKeywordAr() {
@@ -317,9 +347,31 @@ export default function AdminProjectForm({ project, areas, features, finishingTy
                             )}
                             <div>
                                 <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('upload_new_images')}</label>
-                                <input type="file" multiple accept="image/*" onChange={e => handleChange('images', Array.from(e.target.files || []))} className="w-full text-sm" />
+                                <input ref={imagesInputRef} type="file" multiple accept="image/*" onChange={handleNewImages} className="w-full text-sm" />
                                 <p className="text-xs text-muted mt-1">{trans('max_images')}</p>
                             </div>
+                            {newImagePreviews.length > 0 && (
+                                <div>
+                                    <p className="text-sm font-medium text-secondary-950 mb-2">
+                                        {locale === 'ar' ? 'معاينة الصور المختارة' : 'Selected image previews'}
+                                    </p>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                        {newImagePreviews.map((preview, index) => (
+                                            <div key={preview.url} className="relative aspect-video overflow-hidden rounded-lg border border-primary-900/20 bg-surface">
+                                                <img src={preview.url} alt={preview.file.name} className="w-full h-full object-cover" />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeNewImage(index)}
+                                                    className="absolute top-2 end-2 min-w-11 min-h-11 rounded-full bg-black/65 px-2 text-sm text-white transition-colors hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-white"
+                                                    aria-label={locale === 'ar' ? `حذف ${preview.file.name}` : `Remove ${preview.file.name}`}
+                                                >
+                                                    &times;
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                             <div>
                                 <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('video')}</label>
                                 <input type="url" value={data.video_url} onChange={e => handleChange('video_url', e.target.value)} placeholder="https://youtube.com/..." className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900" />

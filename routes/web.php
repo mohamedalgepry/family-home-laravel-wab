@@ -194,6 +194,7 @@ Route::prefix('admin')->middleware('auth')->group(function () {
     });
 
     Route::post('/projects/{project}/approve', [NotificationController::class, 'approveProject'])->name('admin.projects.approve');
+    Route::post('/units/{unit}/approve', [NotificationController::class, 'approveUnit'])->name('admin.units.approve');
     Route::post('/projects/{project}/extend', [NotificationController::class, 'extendProject'])->name('admin.projects.extend');
     Route::post('/units/{unit}/extend-expiry', [NotificationController::class, 'extendUnit'])->name('admin.units.extend-expiry');
     Route::delete('/units/{unit}/force', [NotificationController::class, 'deleteUnit'])->name('admin.units.force-delete');

@@ -117,6 +117,14 @@ export default function NotificationsIndex({ notifications, unreadCount }) {
         router.post(`/admin/units/${unitId}/extend-expiry`, {}, { preserveScroll: true })
     }
 
+    function handleApproveProject(projectId) {
+        router.post(`/admin/projects/${projectId}/approve`, {}, { preserveScroll: true })
+    }
+
+    function handleApproveUnit(unitId) {
+        router.post(`/admin/units/${unitId}/approve`, {}, { preserveScroll: true })
+    }
+
     function handleDeleteUnit(unitId) {
         router.delete(`/admin/units/${unitId}/force`, {}, { preserveScroll: true })
         setConfirmDeleteId(null)
@@ -268,6 +276,8 @@ export default function NotificationsIndex({ notifications, unreadCount }) {
                                         const isUnitExpired = item.type === 'unit_expired'
                                         const isProjectExpiry = item.type === 'project_expiry_warning'
                                         const isNewMessage = item.type === 'new_message'
+                                        const isNewProject = item.type === 'new_project_created'
+                                        const isUnitPendingApproval = item.type === 'unit_pending_approval'
 
                                         return (
                                             <div
@@ -385,7 +395,25 @@ export default function NotificationsIndex({ notifications, unreadCount }) {
                                                                     </button>
                                                                 )}
 
-                                                                {isUnread && isUnitExpiry && item.unit_id && (isAdmin || isManager) && (
+                                                                {isUnread && isNewProject && item.project_id && isAdmin && (
+                                                                    <button
+                                                                        onClick={() => handleApproveProject(item.project_id)}
+                                                                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition-colors"
+                                                                    >
+                                                                        {isRtl ? 'موافقة ونشر' : 'Approve & publish'}
+                                                                    </button>
+                                                                )}
+
+                                                                {isUnread && isUnitPendingApproval && item.unit_id && (isAdmin || isManager) && (
+                                                                    <button
+                                                                        onClick={() => handleApproveUnit(item.unit_id)}
+                                                                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition-colors"
+                                                                    >
+                                                                        {isRtl ? 'موافقة ونشر' : 'Approve & publish'}
+                                                                    </button>
+                                                                )}
+
+                                                                {isUnread && isUnitExpiry && item.unit_id && isAdmin && (
                                                                     <button
                                                                         onClick={() => handleExtendUnit(item.unit_id)}
                                                                         className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1"
@@ -397,7 +425,7 @@ export default function NotificationsIndex({ notifications, unreadCount }) {
                                                                     </button>
                                                                 )}
 
-                                                                {isUnread && isProjectExpiry && item.project_id && (isAdmin || isManager) && (
+                                                                {isUnread && isProjectExpiry && item.project_id && isAdmin && (
                                                                     <button
                                                                         onClick={() => handleExtendProject(item.project_id)}
                                                                         className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1"
@@ -409,7 +437,7 @@ export default function NotificationsIndex({ notifications, unreadCount }) {
                                                                     </button>
                                                                 )}
 
-                                                                {(isUnitExpiry || isUnitExpired) && item.unit_id && (isAdmin || isManager) && (
+                                                                {(isUnitExpiry || isUnitExpired) && item.unit_id && isAdmin && (
                                                                     confirmDeleteId === item.id ? (
                                                                         <div className="flex items-center gap-1">
                                                                             <button

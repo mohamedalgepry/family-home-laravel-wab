@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Domain\Listings\DTOs\UpdateAboutPageData;
 use App\Domain\Listings\Models\AboutPage;
 use App\Domain\Listings\Services\AboutService;
+use App\Domain\Common\Support\Sanitizer;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdateAboutPageRequest;
 use Illuminate\Http\RedirectResponse;
@@ -53,8 +54,8 @@ class AboutController extends Controller
         $mergedImages = array_merge($remainingImages, $newPaths);
 
         $aboutData = UpdateAboutPageData::from([
-            'content_ar' => $data['content_ar'] ?? '',
-            'content_en' => $data['content_en'] ?? '',
+            'content_ar' => Sanitizer::rich($data['content_ar'] ?? ''),
+            'content_en' => Sanitizer::rich($data['content_en'] ?? ''),
             'images' => $mergedImages,
         ]);
 

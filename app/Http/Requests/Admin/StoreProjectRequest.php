@@ -43,7 +43,7 @@ class StoreProjectRequest extends FormRequest
             'location_address_ar' => 'nullable|string|max:500',
             'location_address_en' => 'nullable|string|max:500',
             'images' => 'nullable|array|max:20',
-            'images.*' => 'file|image|mimes:jpg,jpeg,png,webp',
+            'images.*' => 'file|image|mimes:jpg,jpeg,png,webp|max:5120',
             'payment_method' => 'nullable|in:cash,installment,both',
             'down_payment' => 'nullable|string|max:255',
             'installment_years' => 'nullable|integer|min:0',

@@ -6,6 +6,7 @@ use App\Domain\Listings\Models\Project;
 use App\Domain\Listings\Models\Setting;
 use App\Domain\Listings\Models\Unit;
 use App\Domain\Listings\Services\ListingService;
+use App\Domain\Listings\Services\UnitService;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -90,10 +91,36 @@ class NotificationController extends Controller
         return redirect()->back()->with('success', "تم موافقة وتفعيل المشروع \"{$project->name}\" بنجاح!");
     }
 
+    public function approveUnit(Request $request, Unit $unit): RedirectResponse
+    {
+        $this->authorize('toggleActive', $unit);
+
+        if ($unit->is_active) {
+            return redirect()->back()->with('success', __('common.updated_successfully'));
+        }
+
+        app(UnitService::class)->toggleActive($unit->id, $request->user());
+
+        $user = $request->user();
+        $notification = $user->unreadNotifications()
+            ->get()
+            ->first(fn ($item) => ($item->data['unit_id'] ?? null) == $unit->id
+                && ($item->data['type'] ?? '') === 'unit_pending_approval');
+
+        if ($notification) {
+            $notification->markAsRead();
+        }
+
+        Cache::forget("user_{$user->id}_unread_count");
+        Cache::forget("user_{$user->id}_notifications_page");
+
+        return redirect()->back()->with('success', __('admin.activation_success'));
+    }
+
     public function extendProject(Request $request, Project $project): RedirectResponse
     {
         $user = $request->user();
-        abort_unless($user->isAdmin() || $user->isManager(), 403);
+        abort_unless($user->isAdmin(), 403);
 
         $days = (int) Setting::getValue('auto_delete_days', '30');
         $newExpiry = now()->addDays($days > 0 ? $days : 30);
@@ -125,7 +152,7 @@ class NotificationController extends Controller
     public function extendUnit(Request $request, Unit $unit): RedirectResponse
     {
         $user = $request->user();
-        abort_unless($user->isAdmin() || $user->isManager(), 403);
+        abort_unless($user->isAdmin(), 403);
 
         $days = (int) Setting::getValue('auto_delete_days', '30');
         $newExpiry = now()->addDays($days > 0 ? $days : 30);
@@ -157,6 +184,8 @@ class NotificationController extends Controller
     public function deleteUnit(Request $request, Unit $unit): RedirectResponse
     {
         $this->authorize('delete', $unit);
+
+        $user = $request->user();
 
         $unitName = $unit->name_ar ?: $unit->name;
 

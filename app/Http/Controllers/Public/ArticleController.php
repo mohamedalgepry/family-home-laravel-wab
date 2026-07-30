@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Public;
 use App\Domain\Listings\Models\Article;
 use App\Domain\Listings\Models\Category;
 use App\Domain\Listings\Services\PageViewService;
+use App\Domain\Common\Support\Sanitizer;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -80,6 +81,9 @@ class ArticleController
             ->get();
 
         $locale = app()->getLocale();
+        $article->content_ar = Sanitizer::rich($article->content_ar ?? '');
+        $article->content_en = Sanitizer::rich($article->content_en ?? '');
+        $article->content = Sanitizer::rich($article->content ?? '');
         $slug = "slug_{$locale}";
         $currentSlug = $article->$slug ?? $article->slug;
         $arSlug = $article->slug_ar ?? $article->slug;

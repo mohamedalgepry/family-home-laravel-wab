@@ -11,19 +11,99 @@ class Sanitizer
 
     public static function rich(string $value): string
     {
-        $allowed = '<p><br><b><strong><i><em><u><s><sub><sup><ol><li><ul>'
-            .'<h2><h3><h4><h5><h6><blockquote><pre><code><span><div>'
-            .'<hr><figure><img><a><table><thead><tbody><tr><th><td>';
+        $previous = libxml_use_internal_errors(true);
+        $document = new \DOMDocument('1.0', 'UTF-8');
+        $document->loadHTML(
+            '<?xml encoding="utf-8" ?><div id="sanitizer-root">'.$value.'</div>',
+            LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD
+        );
 
-        $stripped = strip_tags($value, $allowed);
+        $root = $document->getElementById('sanitizer-root');
+        if (! $root) {
+            libxml_clear_errors();
+            libxml_use_internal_errors($previous);
 
-        $stripped = preg_replace('/\s+on\w+\s*=\s*"[^"]*"/i', '', $stripped);
-        $stripped = preg_replace('/\s+on\w+\s*=\s*\'[^\']*\'/i', '', $stripped);
-        $stripped = preg_replace('/\s+on\w+\s*=\s*[^\s>"]+(?=\s|>)/i', '', $stripped);
-        $stripped = preg_replace('/<a\s+[^>]*href\s*=\s*"(?:javascript|vbscript|data):[^"]*"[^>]*>/i', '<a href="#">', $stripped);
-        $stripped = preg_replace("/<a\s+[^>]*href\s*=\s*'(?:javascript|vbscript|data):[^']*'[^>]*>/i", "<a href='#'>", $stripped);
+            return '';
+        }
 
-        return trim($stripped);
+        self::sanitizeRichNode($root);
+
+        $html = '';
+        foreach ($root->childNodes as $child) {
+            $html .= $document->saveHTML($child);
+        }
+
+        libxml_clear_errors();
+        libxml_use_internal_errors($previous);
+
+        return trim($html);
+    }
+
+    private static function sanitizeRichNode(\DOMNode $node): void
+    {
+        $allowedTags = [
+            'p', 'br', 'b', 'strong', 'i', 'em', 'u', 's', 'sub', 'sup', 'ol', 'li', 'ul',
+            'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'pre', 'code', 'span', 'div', 'hr',
+            'figure', 'img', 'a', 'table', 'thead', 'tbody', 'tr', 'th', 'td',
+        ];
+
+        foreach (iterator_to_array($node->childNodes) as $child) {
+            if ($child instanceof \DOMElement) {
+                if (! in_array(strtolower($child->tagName), $allowedTags, true)) {
+                    while ($child->firstChild) {
+                        $node->insertBefore($child->firstChild, $child);
+                    }
+                    $node->removeChild($child);
+                    self::sanitizeRichNode($node);
+
+                    return;
+                }
+
+                self::sanitizeRichAttributes($child);
+            }
+
+            self::sanitizeRichNode($child);
+        }
+    }
+
+    private static function sanitizeRichAttributes(\DOMElement $element): void
+    {
+        $tag = strtolower($element->tagName);
+        $allowed = match ($tag) {
+            'a' => ['href', 'title', 'class'],
+            'img' => ['src', 'alt', 'title', 'width', 'height', 'class'],
+            default => ['class'],
+        };
+
+        foreach (iterator_to_array($element->attributes) as $attribute) {
+            $name = strtolower($attribute->name);
+            if (! in_array($name, $allowed, true)) {
+                $element->removeAttribute($attribute->name);
+            }
+        }
+
+        if ($tag === 'a' && $element->hasAttribute('href') && ! self::isSafeLink($element->getAttribute('href'))) {
+            $element->removeAttribute('href');
+        }
+
+        if ($tag === 'img' && $element->hasAttribute('src') && ! self::isSafeImageSource($element->getAttribute('src'))) {
+            $element->removeAttribute('src');
+        }
+    }
+
+    private static function isSafeLink(string $url): bool
+    {
+        return str_starts_with($url, '/')
+            || str_starts_with($url, '#')
+            || (bool) preg_match('#^(https?:|mailto:|tel:)#i', trim($url));
+    }
+
+    private static function isSafeImageSource(string $url): bool
+    {
+        $url = trim($url);
+
+        return str_starts_with($url, '/storage/')
+            || (bool) preg_match('#^https?://#i', $url);
     }
 
     public static function isValidMapEmbed(string $value): bool
