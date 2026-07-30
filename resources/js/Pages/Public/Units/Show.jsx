@@ -112,22 +112,76 @@ export default function UnitShow({ unit, similarUnits }) {
                         {/* Main Content */}
                         <div className="lg:col-span-2 space-y-6">
                             {/* Gallery */}
-                            <div className="bg-white rounded-xl shadow-card overflow-hidden">
-                                <img
-                                    src={thumbnail}
-                                    alt={unit.alt_text || unit.name}
-                                    className="w-full h-64 sm:h-80 lg:h-96 object-cover cursor-pointer"
-                                    onClick={() => setLightboxIndex(activeImageIndex)}
-                                />
+                            <div className="bg-white rounded-xl shadow-card overflow-hidden relative group">
+                                <div className="relative overflow-hidden">
+                                    <img
+                                        src={thumbnail}
+                                        alt={unit.alt_text || unit.name}
+                                        className="w-full h-64 sm:h-80 lg:h-96 object-cover"
+                                    />
+
+                                    {/* Zoom / Expand Button */}
+                                    <button
+                                        type="button"
+                                        onClick={() => setLightboxIndex(activeImageIndex)}
+                                        className="absolute top-4 end-4 bg-black/60 hover:bg-black/85 text-white p-2.5 rounded-xl shadow-lg backdrop-blur-md transition-all flex items-center gap-1.5 text-xs font-medium hover:scale-105 z-10"
+                                        title={trans('zoom') || 'تكبير الصورة'}
+                                        aria-label="Zoom image"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6" />
+                                        </svg>
+                                        <span>{trans('zoom') || (isRtl ? 'تكبير' : 'Zoom')}</span>
+                                    </button>
+
+                                    {/* Navigation Arrows */}
+                                    {images.length > 1 && (
+                                        <>
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setActiveImageIndex(prev => (prev === 0 ? images.length - 1 : prev - 1));
+                                                }}
+                                                className="absolute start-3 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/75 text-white p-2.5 rounded-full shadow-lg backdrop-blur-sm transition-all hover:scale-110 z-10"
+                                                aria-label="Previous image"
+                                            >
+                                                <svg className={`w-5 h-5 ${isRtl ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                                                </svg>
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setActiveImageIndex(prev => (prev === images.length - 1 ? 0 : prev + 1));
+                                                }}
+                                                className="absolute end-3 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/75 text-white p-2.5 rounded-full shadow-lg backdrop-blur-sm transition-all hover:scale-110 z-10"
+                                                aria-label="Next image"
+                                            >
+                                                <svg className={`w-5 h-5 ${isRtl ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                                                </svg>
+                                            </button>
+
+                                            {/* Image Counter Badge */}
+                                            <div className="absolute bottom-4 start-4 bg-black/60 text-white text-xs px-3 py-1 rounded-full backdrop-blur-sm font-medium z-10">
+                                                {activeImageIndex + 1} / {images.length}
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+
                                 {images.length > 1 && (
-                                    <div className="flex gap-2 p-2 overflow-x-auto">
+                                    <div className="flex gap-2 p-3 overflow-x-auto bg-slate-50 border-t border-secondary-100">
                                         {images.map((img, i) => (
                                             <img
                                                 key={i}
-                                                src={img.url || (img.path?.startsWith('http') || img.path?.startsWith('/') ? img.path : `/storage/${img.path}`)}
+                                                src={img.thumb_url || img.url || (img.path?.startsWith('http') || img.path?.startsWith('/') ? img.path : `/storage/${img.path}`)}
                                                 alt={img.alt_text || ''}
-                                                className={`w-20 h-16 object-cover rounded-lg cursor-pointer border-2 transition-colors ${
-                                                    i === activeImageIndex ? 'border-primary-900' : 'border-transparent hover:border-secondary-300'
+                                                className={`w-20 h-16 object-cover rounded-lg cursor-pointer border-2 transition-all shrink-0 ${
+                                                    i === activeImageIndex ? 'border-primary-900 ring-2 ring-primary-900/30 scale-105' : 'border-transparent opacity-70 hover:opacity-100 hover:border-secondary-300'
                                                 }`}
                                                 onClick={() => setActiveImageIndex(i)}
                                             />
