@@ -9,13 +9,8 @@ use App\Domain\Users\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
-use Spatie\Activitylog\LogOptions;
-use Spatie\Activitylog\Traits\LogsActivity;
-
 class Unit extends Model
 {
-    use LogsActivity;
-
     protected $fillable = [
         'project_id', 'user_id', 'name', 'name_ar', 'name_en', 'slug', 'slug_ar', 'slug_en', 'description', 'description_ar', 'description_en', 'type_id',
         'area_id', 'transaction', 'price', 'area_sqm', 'rooms', 'bathrooms',
@@ -89,14 +84,6 @@ class Unit extends Model
         $locale = app()->getLocale();
 
         return $locale === 'ar' ? ($this->keywords_ar ?? []) : ($this->keywords_en ?? []);
-    }
-
-    public function getActivitylogOptions(): LogOptions
-    {
-        return LogOptions::defaults()
-            ->logOnly(['name', 'price', 'area_sqm', 'rooms', 'bathrooms', 'is_active', 'is_pinned', 'is_deal', 'transaction', 'description', 'floor'])
-            ->logOnlyDirty()
-            ->dontLogIfAttributesChangedOnly(['updated_at', 'created_at', 'views_count', 'priority_points']);
     }
 
     protected static function booted(): void

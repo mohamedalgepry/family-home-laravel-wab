@@ -41,7 +41,6 @@ Route::get('/storage/{path}', function ($path) {
 })->where('path', '.*');
 
 use App\Http\Controllers\Admin\AboutController;
-use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\AreaController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\DashboardController;
@@ -225,10 +224,6 @@ Route::prefix('admin')->middleware(['auth', 'role:admin,manager,agent'])->group(
     Route::prefix('about')->name('admin.about.')->middleware('role:admin')->group(function () {
         Route::get('/', [AboutController::class, 'edit'])->name('edit');
         Route::post('/', [AboutController::class, 'update'])->name('update');
-    });
-
-    Route::prefix('activity-log')->name('admin.activity-log.')->middleware('role:admin')->group(function () {
-        Route::get('/', [ActivityLogController::class, 'index'])->name('index');
     });
 
     Route::prefix('areas')->name('admin.areas.')->middleware('role:admin')->group(function () {

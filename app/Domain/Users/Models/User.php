@@ -9,12 +9,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Spatie\Activitylog\LogOptions;
-use Spatie\Activitylog\Traits\LogsActivity;
-
 class User extends Authenticatable
 {
-    use HasFactory, LogsActivity, Notifiable;
+    use HasFactory, Notifiable;
 
     protected $fillable = [
         'name', 'email', 'password', 'manager_id',
@@ -31,14 +28,6 @@ class User extends Authenticatable
             'points_balance' => 'integer',
             'initial_monthly_balance' => 'integer',
         ];
-    }
-
-    public function getActivitylogOptions(): LogOptions
-    {
-        return LogOptions::defaults()
-            ->logOnly(['name', 'email', 'role', 'is_active', 'points_balance'])
-            ->logOnlyDirty()
-            ->dontLogIfAttributesChangedOnly(['updated_at', 'email_verified_at']);
     }
 
     public function manager()

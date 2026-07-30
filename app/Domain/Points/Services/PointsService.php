@@ -50,19 +50,6 @@ class PointsService
 
         $transaction = $action->execute($data, $performedById);
 
-        $activity = activity()
-            ->performedOn(User::find($data->manager_id));
-
-        if ($performedBy) {
-            $activity->causedBy($performedBy);
-        }
-
-        $activity->withProperties([
-            'points' => $data->points,
-            'unit_id' => $data->unit_id,
-            'balance_after' => $transaction->balance_after,
-        ])->log('allocated_points');
-
         return $transaction;
     }
 
@@ -73,12 +60,6 @@ class PointsService
         return DB::transaction(function () use ($performedBy) {
             $updated = User::where('role', 'manager')
                 ->update(['points_balance' => DB::raw('initial_monthly_balance')]);
-
-            $activity = activity();
-            if ($performedBy) {
-                $activity->causedBy($performedBy);
-            }
-            $activity->log('monthly_points_reset');
 
             return $updated;
         });
@@ -130,14 +111,6 @@ class PointsService
 
                 PointsTransaction::insert($transactions);
             });
-
-        if ($processedCount === 0) {
-            return 0;
-        }
-
-        activity()
-            ->withProperties(['units_deducted' => $processedCount, 'deduction_value' => $value])
-            ->log('daily_points_deduction');
 
         return $processedCount;
     }

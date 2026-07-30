@@ -72,7 +72,6 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(FinishingType::class, FinishingTypePolicy::class);
 
         Gate::define('allocate-points', [AllocatePointsPolicy::class, 'allocate']);
-        Gate::define('view-activity-log', fn (User $user) => $user->isAdmin());
 
         RateLimiter::for('login', function (Request $request) {
             $key = $request->input('email').'|'.$request->ip();

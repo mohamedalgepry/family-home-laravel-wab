@@ -6,13 +6,8 @@ use App\Domain\Listings\Services\ListingService;
 use App\Domain\Users\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
-use Spatie\Activitylog\LogOptions;
-use Spatie\Activitylog\Traits\LogsActivity;
-
 class Project extends Model
 {
-    use LogsActivity;
-
     protected $fillable = [
         'user_id', 'area_id', 'name', 'name_ar', 'name_en', 'slug', 'slug_ar', 'slug_en', 'description', 'description_ar', 'description_en', 'alt_text',
         'video_url', 'map_embed_url', 'location_address_ar', 'location_address_en',
@@ -42,14 +37,6 @@ class Project extends Model
             'auto_delete_at' => 'datetime',
             'views_count' => 'integer',
         ];
-    }
-
-    public function getActivitylogOptions(): LogOptions
-    {
-        return LogOptions::defaults()
-            ->logOnly(['name', 'is_active', 'description'])
-            ->logOnlyDirty()
-            ->dontLogIfAttributesChangedOnly(['updated_at', 'created_at', 'views_count']);
     }
 
     protected $appends = ['location_address', 'meta_description', 'keywords'];
