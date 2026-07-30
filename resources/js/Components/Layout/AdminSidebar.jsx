@@ -110,7 +110,14 @@ export default function AdminSidebar({ children }) {
         setNotifOpen(true)
         setLoadingNotifs(true)
         try {
-            const res = await fetch('/admin/notifications/recent')
+            const res = await fetch('/admin/notifications/recent', {
+                credentials: 'same-origin',
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            })
+            if (!res.ok) throw new Error('Unable to load notifications')
             const data = await res.json()
             setRecentNotifs(data.notifications || [])
         } catch {}
@@ -156,9 +163,22 @@ export default function AdminSidebar({ children }) {
     async function pollCounts() {
         try {
             const [notifRes, msgRes] = await Promise.all([
-                fetch('/admin/notifications/unread-count'),
-                fetch('/admin/messages/unread-count'),
+                fetch('/admin/notifications/unread-count', {
+                    credentials: 'same-origin',
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                }),
+                fetch('/admin/messages/unread-count', {
+                    credentials: 'same-origin',
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                }),
             ])
+            if (!notifRes.ok || !msgRes.ok) throw new Error('Unable to refresh counts')
             const notifData = await notifRes.json()
             const msgData = await msgRes.json()
             return { notif: notifData.count, msg: msgData.count }
