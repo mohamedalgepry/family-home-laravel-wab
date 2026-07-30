@@ -48,6 +48,7 @@ export default function SeoHead({
 
     return (
         <Head>
+            <meta name="google-site-verification" content="0KaNSaKJZ4bzZ34V2h1GSuFfSlyUMZVMujKj1F8iwE0" />
             <title>{finalTitle}</title>
             <meta name="description" content={finalDescription} />
             {finalKeywords && <meta name="keywords" content={finalKeywords} />}

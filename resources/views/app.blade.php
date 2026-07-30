@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="google-site-verification" content="0KaNSaKJZ4bzZ34V2h1GSuFfSlyUMZVMujKj1F8iwE0" />
     @php
         $siteLogo = app(\App\Domain\Listings\Services\SettingsService::class)->get('site_logo');
         $faviconUrl = $siteLogo ? asset('storage/' . $siteLogo) : asset('icon.png');
