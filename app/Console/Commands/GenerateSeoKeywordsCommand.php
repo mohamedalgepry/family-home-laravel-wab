@@ -23,6 +23,10 @@ class GenerateSeoKeywordsCommand extends Command
         // 1. Generate for Static Pages (page_seo table)
         $pages = [
             'home' => [
+                'title_ar' => 'فاميلي هوم للعقارات | شقق، فلل، صفقات عقارية بالتقسيط في مصر والسعودية',
+                'title_en' => 'Family Home Real Estate | Luxury Apartments, Villas & Property Deals in Egypt & KSA',
+                'meta_description_ar' => 'ابحث عن شقتك أو فيلتك المستقبلية بأفضل أسعار وأنظمة سداد بالتقسيط مع فاميلي هوم العقارية. اكتشف أحدث الكمبوندات والمشاريع السكنية والتجارية في القاهرة الجديدة والشيخ زايد والعاصمة الإدارية.',
+                'meta_description_en' => 'Find your dream home with Family Home Real Estate. Explore top apartments, luxury villas, and commercial properties for sale with flexible installment payment plans across Egypt and Saudi Arabia.',
                 'ar' => [
                     'عقارات مصر', 'عقارات السعودية', 'شقق للبيع', 'فيلا للبيع', 'عقارات فاميلي هوم', 'فاميلي هوم العقارية',
                     'عقارات للبيع في القاهرة', 'عقارات الرياض', 'استثمار عقاري', 'شقق للبيع بالتقسيط', 'شقق تمليك',
@@ -44,6 +48,10 @@ class GenerateSeoKeywordsCommand extends Command
                 ]
             ],
             'units_index' => [
+                'title_ar' => 'دليل العقارات والوحدات السكنية والتجارية للبيع | فاميلي هوم',
+                'title_en' => 'Real Estate Units Directory | Buy Apartments, Villas & Offices | Family Home',
+                'meta_description_ar' => 'تصفح أكبر دليل للوحدات العقارية السكنية والتجارية والإدارية والطبية. ابحث عن شقق، فلل، بنتهاوس، ومحلات للبيع بالتقسيط المريح أو الكاش.',
+                'meta_description_en' => 'Browse the largest property directory for residential and commercial units. Filter apartments, villas, townhouses, and offices for sale with flexible payment terms.',
                 'ar' => [
                     'دليل الوحدات العقارية', 'البحث عن شقة', 'شقق للبيع المباشر', 'فيلا للبيع بالتقسيط', 'عقارات سكنية للبيع',
                     'شقق مفروشة', 'استوديو للبيع', 'دوبلكس للبيع', 'تاون هاوس للبيع', 'توين هاوس للبيع', 'شقق للبيع بالتجمع',
@@ -58,6 +66,10 @@ class GenerateSeoKeywordsCommand extends Command
                 ]
             ],
             'projects_index' => [
+                'title_ar' => 'دليل الكمبوندات والمشاريع العقارية الحديثة | فاميلي هوم',
+                'title_en' => 'New Real Estate Projects & Compounds Directory | Family Home',
+                'meta_description_ar' => 'اكتشف أحدث المشروعات والكمبوندات السكنية والتجارية في التجمع الخامس، الشيخ زايد، العاصمة الإدارية، والساحل الشمالي بأفضل العروض وأنظمة السداد.',
+                'meta_description_en' => 'Explore top new residential compounds and commercial malls in New Cairo, Sheikh Zayed, New Capital, and North Coast with verified developers.',
                 'ar' => [
                     'المشاريع العقارية', 'دليل الكمبوندات', 'أحدث المشروعات السكنية', 'كمبوندات التجمع الخامس', 'كمبوندات الشيخ زايد',
                     'مشاريع العاصمة الإدارية الجديدة', 'مشاريع الساحل الشمالي', 'مشاريع العين السخنة', 'مشاريع 6 أكتوبر',
@@ -71,6 +83,10 @@ class GenerateSeoKeywordsCommand extends Command
                 ]
             ],
             'deals' => [
+                'title_ar' => 'أقوى الصفقات والعروض العقارية الحصرية | فاميلي هوم',
+                'title_en' => 'Exclusive Hot Property Deals & Offers | Family Home',
+                'meta_description_ar' => 'احصل على أفضل الصفقات والعروض العقارية الحصرية بأسعار استثنائية وبدون مقدم أو خصومات فورية للسداد النقدي.',
+                'meta_description_en' => 'Unlock hot property deals, zero downpayment offers, and exclusive cash discounts on prime real estate developments.',
                 'ar' => [
                     'صفقات عقارية حصرياً', 'عروض العقارات', 'تخفيضات الشقق والفلل', 'عروض التقسيط المريح', 'عروض العقارات بدون مقدم',
                     'صفقات شقق التجمع', 'صفقات الفلل والكمبوندات', 'فرص استثمارية عقارية', 'أقل سعر متر في مصر', 'شقق للبيع بسعر اللقطة',
@@ -82,6 +98,10 @@ class GenerateSeoKeywordsCommand extends Command
                 ]
             ],
             'articles_index' => [
+                'title_ar' => 'مدونة العقارات والاستثمار | نصائح وأخبار العقارات | فاميلي هوم',
+                'title_en' => 'Real Estate Blog & Investment Guides | Family Home',
+                'meta_description_ar' => 'تابِع أحدث المقالات والأخبار العقارية وتحليلات السوق، ونصائح شراء العقار الأول والاستثمار الناجح في مصر والخليج.',
+                'meta_description_en' => 'Stay updated with real estate market trends, property investment advice, and comprehensive buyer guides.',
                 'ar' => [
                     'أخبار العقارات', 'مقالات استثمار عقاري', 'دليل الشراء العقاري', 'نصائح شراء شقة', 'أفضل مناطق الاستثمار العقاري',
                     'مستقبل العقارات في مصر والسعودية', 'كيف تختار بيتك الأول', 'قوانين التمويل العقاري', 'تحليل أسعار العقارات',
@@ -93,10 +113,18 @@ class GenerateSeoKeywordsCommand extends Command
                 ]
             ],
             'about' => [
+                'title_ar' => 'عن شركة فاميلي هوم العقارية | الرؤية والخبرة',
+                'title_en' => 'About Family Home Real Estate | Our Vision & Expertise',
+                'meta_description_ar' => 'تعرف على شركة فاميلي هوم العقارية، رؤيتنا في تقديم أفضل الحلول والخدمات الاستشارية والتسويقية للعملاء في سوق العقارات.',
+                'meta_description_en' => 'Learn more about Family Home Real Estate, our expertise, values, and commitment to providing top-tier real estate advisory services.',
                 'ar' => ['عن فاميلي هوم', 'شركة فاميلي هوم العقارية', 'رؤية فاميلي هوم', 'خدمات التسويق العقاري', 'خبرائنا العقاريين'],
                 'en' => ['about family home', 'family home real estate company', 'real estate advisory', 'our real estate experts']
             ],
             'contact' => [
+                'title_ar' => 'تواصل مع فاميلي هوم العقارية | خدمة العملاء وحجز المعاينات',
+                'title_en' => 'Contact Family Home Real Estate | Book a Viewing',
+                'meta_description_ar' => 'تواصل مع مستشارينا العقاريين في فاميلي هوم للاستفسار عن أي وحدة أو مشروع عقاري أو لحجز معاينة موقعية.',
+                'meta_description_en' => 'Get in touch with Family Home real estate consultants for inquiries, property viewings, and personalized assistance.',
                 'ar' => ['تواصل مع فاميلي هوم', 'رقم هاتف فاميلي هوم', 'فرع الشركة العقارية', 'خدمة العملاء العقارية', 'حجز معاينة عقارية'],
                 'en' => ['contact family home', 'family home phone number', 'real estate customer service', 'book property viewing']
             ],
@@ -112,10 +140,25 @@ class GenerateSeoKeywordsCommand extends Command
             $mergedAr = array_values(array_unique(array_merge($existingAr, $kw['ar'])));
             $mergedEn = array_values(array_unique(array_merge($existingEn, $kw['en'])));
 
-            $record->update([
+            $updateData = [
                 'meta_keywords_ar' => $mergedAr,
                 'meta_keywords_en' => $mergedEn,
-            ]);
+            ];
+
+            if ($force || empty($record->title_ar)) {
+                $updateData['title_ar'] = $kw['title_ar'];
+            }
+            if ($force || empty($record->title_en)) {
+                $updateData['title_en'] = $kw['title_en'];
+            }
+            if ($force || empty($record->meta_description_ar)) {
+                $updateData['meta_description_ar'] = $kw['meta_description_ar'];
+            }
+            if ($force || empty($record->meta_description_en)) {
+                $updateData['meta_description_en'] = $kw['meta_description_en'];
+            }
+
+            $record->update($updateData);
             $pageCount++;
         }
         $this->info("Updated {$pageCount} static page SEO records.");
