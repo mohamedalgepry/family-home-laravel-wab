@@ -228,28 +228,46 @@ class NotificationController extends Controller
 
     public function recent(Request $request): JsonResponse
     {
-        $user = $request->user();
-        $notifications = $user->notifications()
-            ->take(5)
-            ->get()
-            ->map(function ($notification) {
-                $data = $notification->data;
-                $data['id'] = $notification->id;
-                $data['read_at'] = $notification->read_at?->toIso8601String();
-                $data['created_at_human'] = $notification->created_at->diffForHumans();
+        $request->headers->remove('X-Inertia');
+        $request->headers->remove('X-Inertia-Version');
 
-                return $data;
-            });
+        try {
+            $user = $request->user();
+            if (! $user) {
+                return response()->json(['notifications' => []]);
+            }
 
-        return response()->json(['notifications' => $notifications]);
+            $notifications = $user->notifications()
+                ->take(5)
+                ->get()
+                ->map(function ($notification) {
+                    $data = $notification->data;
+                    $data['id'] = $notification->id;
+                    $data['read_at'] = $notification->read_at?->toIso8601String();
+                    $data['created_at_human'] = $notification->created_at->diffForHumans();
+
+                    return $data;
+                });
+
+            return response()->json(['notifications' => $notifications]);
+        } catch (\Throwable $e) {
+            return response()->json(['notifications' => []]);
+        }
     }
 
     public function unreadCount(Request $request): JsonResponse
     {
-        $user = $request->user();
-        $count = $user?->unreadNotifications()->count() ?? 0;
+        $request->headers->remove('X-Inertia');
+        $request->headers->remove('X-Inertia-Version');
 
-        return response()->json(['count' => $count]);
+        try {
+            $user = $request->user();
+            $count = $user?->unreadNotifications()->count() ?? 0;
+
+            return response()->json(['count' => $count]);
+        } catch (\Throwable $e) {
+            return response()->json(['count' => 0]);
+        }
     }
 
     public function destroy(Request $request, string $id): RedirectResponse

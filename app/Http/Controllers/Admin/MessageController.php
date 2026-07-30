@@ -68,22 +68,33 @@ class MessageController extends Controller
 
     public function unreadCount(Request $request): JsonResponse
     {
-        $user = $request->user();
-        $query = Message::where('status', 'pending');
+        $request->headers->remove('X-Inertia');
+        $request->headers->remove('X-Inertia-Version');
 
-        if ($user->isAgent()) {
-            $query->where('agent_id', $user->id);
-        } elseif ($user->isManager()) {
-            $agentIds = $user->agents()->pluck('id');
-            $query->where(function ($q) use ($user, $agentIds) {
-                $q->where('agent_id', $user->id)
-                    ->orWhereIn('agent_id', $agentIds);
-            });
+        try {
+            $user = $request->user();
+            if (! $user) {
+                return response()->json(['count' => 0]);
+            }
+
+            $query = Message::where('status', 'pending');
+
+            if ($user->isAgent()) {
+                $query->where('agent_id', $user->id);
+            } elseif ($user->isManager()) {
+                $agentIds = $user->agents()->pluck('id');
+                $query->where(function ($q) use ($user, $agentIds) {
+                    $q->where('agent_id', $user->id)
+                        ->orWhereIn('agent_id', $agentIds);
+                });
+            }
+
+            $count = $query->count();
+
+            return response()->json(['count' => $count]);
+        } catch (\Throwable $e) {
+            return response()->json(['count' => 0]);
         }
-
-        $count = $query->count();
-
-        return response()->json(['count' => $count]);
     }
 
     public function destroy(Message $message): RedirectResponse
