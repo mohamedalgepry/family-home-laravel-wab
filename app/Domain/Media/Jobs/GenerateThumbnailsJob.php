@@ -53,6 +53,8 @@ class GenerateThumbnailsJob implements ShouldQueue
 
                 $image->save($thumbFullPath);
 
+                \Illuminate\Support\Facades\Cache::forget("thumb_exists:{$thumbRelativePath}");
+
                 Log::info('GenerateThumbnailsJob: generated thumbnail', [
                     'original' => $relativePath,
                     'thumbnail' => $thumbRelativePath,

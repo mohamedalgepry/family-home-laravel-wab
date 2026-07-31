@@ -41,11 +41,13 @@ class ProjectImage extends Model
         $filename = basename($this->path);
         $thumbPath = ($dir !== '.' ? $dir.'/' : '').'thumb_'.$filename;
 
-        if (! \Illuminate\Support\Facades\Storage::disk('public')->exists($thumbPath)) {
-            return $this->url;
-        }
+        $exists = \Illuminate\Support\Facades\Cache::remember(
+            "thumb_exists:{$thumbPath}",
+            now()->addDay(),
+            fn () => \Illuminate\Support\Facades\Storage::disk('public')->exists($thumbPath)
+        );
 
-        return '/storage/'.$thumbPath;
+        return $exists ? '/storage/'.$thumbPath : $this->url;
     }
 
     public function project()

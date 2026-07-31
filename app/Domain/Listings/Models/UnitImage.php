@@ -33,19 +33,21 @@ class UnitImage extends Model
             return '';
         }
 
-        // External or absolute URLs — return as-is (no thumbnail variant)
         if (str_starts_with($this->path, 'http://') || str_starts_with($this->path, 'https://') || str_starts_with($this->path, '/')) {
             return $this->url;
         }
 
-        // Compute thumbnail path by convention (set by GenerateThumbnailsJob)
-        $dir       = dirname($this->path);
-        $filename  = basename($this->path);
-        $thumbPath = ($dir !== '.' ? $dir . '/' : '') . 'thumb_' . $filename;
+        $dir = dirname($this->path);
+        $filename = basename($this->path);
+        $thumbPath = ($dir !== '.' ? $dir.'/' : '').'thumb_'.$filename;
 
-        // Return the expected thumbnail URL — the job guarantees its existence.
-        // Avoids Storage::exists() disk I/O on every image serialization.
-        return '/storage/' . $thumbPath;
+        $exists = \Illuminate\Support\Facades\Cache::remember(
+            "thumb_exists:{$thumbPath}",
+            now()->addDay(),
+            fn () => \Illuminate\Support\Facades\Storage::disk('public')->exists($thumbPath)
+        );
+
+        return $exists ? '/storage/'.$thumbPath : $this->url;
     }
 
     protected function casts(): array
