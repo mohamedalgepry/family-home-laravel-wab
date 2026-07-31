@@ -1,8 +1,9 @@
 import { localizedPath } from '../../Utils/route'
 import { usePage, Link } from '@inertiajs/react'
 import { useTrans } from '../../Utils/trans'
+import OptimizedImage from '../OptimizedImage'
 
-const PLACEHOLDER = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"%3E%3Crect fill="%23F0F0F0" width="400" height="300"/%3E%3C/svg%3E'
+const PLACEHOLDER = '/images/fallback.jpg'
 
 function SkeletonCard() {
     return (
@@ -20,7 +21,6 @@ function SkeletonCard() {
 export default function ArticleCard({ article, loading = false }) {
     const { locale } = usePage().props
     const trans = useTrans(locale)
-    const isRtl = locale === 'ar'
 
     const headerImg = article?.images?.find(img => img.position === 'header') || article?.images?.[0]
     const thumbnail = headerImg?.thumb_url || headerImg?.url || (headerImg?.path ? (headerImg.path.startsWith('http') || headerImg.path.startsWith('/') ? headerImg.path : `/storage/${headerImg.path}`) : PLACEHOLDER)
@@ -29,18 +29,21 @@ export default function ArticleCard({ article, loading = false }) {
         return <SkeletonCard />
     }
 
+    const imageAlt = article.alt_text || `${article.title} - ${trans('app_name')}`;
+
     return (
         <Link
             href={localizedPath(`/articles/${article.slug}`, locale)}
-            className="bg-white rounded-xl shadow-card overflow-hidden hover:shadow-dropdown transition-shadow group"
+            className="bg-white rounded-xl shadow-card overflow-hidden hover:shadow-dropdown transition-shadow group focus:outline-none focus:ring-2 focus:ring-primary-500"
         >
-            <img
+            <OptimizedImage
                 src={thumbnail}
-                alt={article.alt_text || article.title}
+                alt={imageAlt}
+                width={400}
+                height={300}
+                lazy={true}
+                fallbackSrc={PLACEHOLDER}
                 className="w-full h-44 object-cover group-hover:scale-105 transition-transform duration-300"
-                loading="lazy"
-                width="400"
-                height="300"
             />
             <div className="p-4">
                 <p className="text-xs text-muted mb-1">

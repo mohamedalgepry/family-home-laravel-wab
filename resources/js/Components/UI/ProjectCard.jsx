@@ -2,8 +2,9 @@ import { localizedPath } from '../../Utils/route'
 import { usePage, Link } from '@inertiajs/react'
 import { useTrans } from '../../Utils/trans'
 import { useCompare } from '../../Hooks/useCompare'
+import OptimizedImage from '../OptimizedImage'
 
-const PLACEHOLDER = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"%3E%3Crect fill="%23F0F0F0" width="400" height="300"/%3E%3Ctext x="200" y="150" text-anchor="middle" fill="%239A9A9A" font-size="14"%3E%3C/text%3E%3C/svg%3E'
+const PLACEHOLDER = '/images/fallback.jpg'
 
 function SkeletonCard() {
     return (
@@ -32,26 +33,30 @@ export default function ProjectCard({ project, loading = false }) {
     const thumbnail = mainImage?.thumb_url || mainImage?.url || (mainImage?.path ? (mainImage.path.startsWith('http') || mainImage.path.startsWith('/') ? mainImage.path : `/storage/${mainImage.path}`) : PLACEHOLDER)
     const isCompared = compareList.includes(project?.id)
 
+    const areaName = project.area?.name || (isRtl ? 'مصر' : 'Egypt')
+    const imageAlt = project.alt_text || `${project.name || (isRtl ? 'مشروع عقاري' : 'Project')} ${isRtl ? 'في' : 'in'} ${areaName} - ${trans('app_name')}`;
+
     return (
-        <div dir={isRtl ? 'rtl' : 'ltr'} className="bg-white rounded-xl shadow-card overflow-hidden hover:shadow-dropdown transition-shadow group">
+        <article dir={isRtl ? 'rtl' : 'ltr'} className="bg-white rounded-xl shadow-card overflow-hidden hover:shadow-dropdown transition-shadow group border border-secondary-100">
             {/* Image */}
-            <Link href={localizedPath(`/projects/${project.slug}`, locale)} className="block overflow-hidden">
-                <img
+            <Link href={localizedPath(`/projects/${project.slug}`, locale)} className="block overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary-500">
+                <OptimizedImage
                     src={thumbnail}
-                    alt={project.alt_text || project.name}
+                    alt={imageAlt}
+                    width={400}
+                    height={300}
+                    lazy={true}
+                    fallbackSrc={PLACEHOLDER}
                     className="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-300"
-                    loading="lazy"
-                    width="400"
-                    height="300"
                 />
             </Link>
 
             {/* Details */}
             <div className="p-4">
-                <Link href={localizedPath(`/projects/${project.slug}`, locale)}>
-                    <h3 className="text-sm font-semibold text-secondary-950 truncate mb-1 hover:text-primary-900 transition-colors">
+                <Link href={localizedPath(`/projects/${project.slug}`, locale)} className="focus:outline-none focus:ring-2 focus:ring-primary-500 rounded">
+                    <h2 className="text-sm font-semibold text-secondary-950 truncate mb-1 hover:text-primary-900 transition-colors">
                         {project.name}
-                    </h3>
+                    </h2>
                 </Link>
 
                 <p className="text-xs text-muted mb-3">
@@ -67,21 +72,23 @@ export default function ProjectCard({ project, loading = false }) {
                 <div className="flex items-center gap-2 pt-3 border-t border-secondary-100">
                     <button
                         onClick={e => { e.preventDefault(); toggleCompare(project.id); }}
-                        className={`flex items-center gap-1 text-xs transition-colors ${isCompared ? 'text-primary-900 font-bold' : 'text-muted hover:text-primary-900'}`}
+                        className={`flex items-center gap-1 text-xs transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 rounded px-1 ${isCompared ? 'text-primary-900 font-bold' : 'text-muted hover:text-primary-900'}`}
+                        aria-label={`${trans('compare')} ${project.name}`}
+                        aria-pressed={isCompared}
                     >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                         </svg>
                         {trans('compare')}
                     </button>
                     <Link
                         href={localizedPath(`/projects/${project.slug}`, locale)}
-                        className="text-xs text-primary-900 hover:text-primary-950 font-medium ms-auto"
+                        className="text-xs text-primary-900 hover:text-primary-950 font-medium ms-auto focus:outline-none focus:ring-2 focus:ring-primary-500 rounded"
                     >
                         {trans('show_more')}
                     </Link>
                 </div>
             </div>
-        </div>
+        </article>
     )
 }
