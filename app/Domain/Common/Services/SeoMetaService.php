@@ -11,7 +11,7 @@ class SeoMetaService
     public function forListing(Unit|Project $listing, string $section): array
     {
         return $this->build(
-            title: $listing->name.' - '.config('app.name'),
+            title: ($listing->name ? $listing->name.' - ' : '').config('app.name'),
             description: $this->description($listing->meta_description ?? $listing->description),
             section: $section,
             model: $listing,
@@ -22,12 +22,18 @@ class SeoMetaService
     public function forArticle(Article $article): array
     {
         return $this->build(
-            title: $article->title.' - '.config('app.name'),
+            title: ($article->title ? $article->title.' - ' : '').config('app.name'),
             description: $this->description($article->meta_description ?? $article->content),
             section: 'articles',
             model: $article,
             schema: $this->articleSchema($article),
         );
+    }
+
+    public function forPage(string $pageKey, array $customMeta = []): array
+    {
+        $seoService = app(\App\Services\SeoService::class);
+        return $seoService->forPage($pageKey, $customMeta);
     }
 
     private function build(string $title, string $description, string $section, Unit|Project|Article $model, array $schema): array
@@ -37,10 +43,12 @@ class SeoMetaService
         $arSlug = $model->slug_ar ?? $model->slug;
         $enSlug = $model->slug_en ?? $model->slug;
 
+        $relativeImage = $this->imagePath($model->images);
+
         return [
             'title' => $title,
             'description' => $description,
-            'image' => $this->imagePath($model->images),
+            'image' => $relativeImage,
             'canonical' => url("/{$locale}/{$section}/".($model->$slugField ?? $model->slug)),
             'hreflang' => [
                 'ar' => url("/ar/{$section}/{$arSlug}"),
@@ -64,7 +72,7 @@ class SeoMetaService
         if ($listing instanceof Unit) {
             $schema['offers'] = [
                 '@type' => 'Offer',
-                'price' => $listing->price,
+                'price' => (string) $listing->price,
                 'priceCurrency' => 'EGP',
             ];
         }

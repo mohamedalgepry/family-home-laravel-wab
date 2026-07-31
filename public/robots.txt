@@ -1,9 +1,19 @@
 User-agent: *
 Allow: /
+Allow: /ar/
+Allow: /en/
+Allow: /units/
+Allow: /projects/
+Allow: /articles/
+Allow: /about
+Allow: /contact
+
 Disallow: /admin/
 Disallow: /login
+Disallow: /logout
 Disallow: /register
 Disallow: /forgot-password
 Disallow: /reset-password
+Disallow: /storage/temp/
 
 Sitemap: https://familyhome-co.com/sitemap.xml

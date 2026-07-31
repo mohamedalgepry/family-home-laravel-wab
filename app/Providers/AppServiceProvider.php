@@ -101,5 +101,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('search', function (Request $request) {
             return Limit::perMinute(60)->by($request->ip());
         });
+
+        RateLimiter::for('property-search', function (Request $request) {
+            return Limit::perMinute(30)->by($request->ip());
+        });
     }
 }
