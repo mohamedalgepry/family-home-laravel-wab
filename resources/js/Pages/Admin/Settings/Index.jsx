@@ -160,9 +160,10 @@ export default function AdminSettingsIndex({ settings }) {
                                     <div className="w-32 h-32 rounded-xl bg-secondary-50 border-2 border-dashed border-secondary-200 flex items-center justify-center p-4 overflow-hidden relative transition-colors group-hover:border-primary-900/30">
                                         {(logoPreview || settings?.site_logo) ? (
                                             <img
-                                                src={logoPreview || `/storage/${settings.site_logo}`}
+                                                src={logoPreview || (settings?.site_logo?.startsWith('http') || settings?.site_logo?.startsWith('/storage') ? settings.site_logo : `/storage/${settings.site_logo}`)}
                                                 alt="Logo"
                                                 className="w-full h-full object-contain"
+                                                onError={(e) => { e.currentTarget.src = '/icon.png'; }}
                                             />
                                         ) : (
                                             <svg className="w-8 h-8 text-secondary-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
