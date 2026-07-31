@@ -23,7 +23,7 @@ class MessageController extends Controller
         $filters = request()->only(['status', 'agent_id']);
 
         $query = Message::with([
-            'unit:id,name,slug',
+            'unit',
             'agent:id,name',
         ]);
 
@@ -43,13 +43,13 @@ class MessageController extends Controller
             ->where('type', NewMessageNotification::class)
             ->update(['read_at' => now()]);
 
-        if ($user->isManager()) {
+        if ($user->isAdmin()) {
+            $agents = User::where('role', 'agent')->select('id', 'name')->orderBy('name')->get();
+        } elseif ($user->isManager()) {
             $agents = $user->agents()->select('id', 'name')->orderBy('name')->get();
+            $agents->prepend(User::select('id', 'name')->find($user->id));
         } else {
-            $agents = User::agents()
-                ->select('id', 'name')
-                ->orderBy('name')
-                ->get();
+            $agents = User::where('id', $user->id)->select('id', 'name')->get();
         }
 
         return Inertia::render('Admin/Messages/Index', [
