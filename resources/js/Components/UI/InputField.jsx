@@ -1,20 +1,21 @@
 import { usePage } from '@inertiajs/react'
 
-export function InputField({ name, label, type = 'text', value, onChange, placeholder, required = false, autoComplete, dir }) {
+export function InputField({ id, name, label, type = 'text', value, onChange, placeholder, required = false, autoComplete, dir }) {
     const { errors } = usePage().props
     const error = errors[name]
     const inputDir = dir || (type === 'email' || type === 'password' ? 'ltr' : undefined)
+    const inputId = id || name
 
     return (
         <div className="mb-4">
             {label && (
-                <label htmlFor={name} className="block text-sm font-medium text-secondary-950 mb-1">
+                <label htmlFor={inputId} className="block text-sm font-medium text-secondary-950 mb-1">
                     {label}
                     {required && <span className="text-primary-900 me-1">*</span>}
                 </label>
             )}
             <input
-                id={name}
+                id={inputId}
                 name={name}
                 type={type}
                 value={value}

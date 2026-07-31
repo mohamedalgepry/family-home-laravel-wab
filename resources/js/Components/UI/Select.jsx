@@ -7,6 +7,7 @@ export function Select({
     className = '',
     disabled = false,
     required = false,
+    id,
     name,
     defaultValue
 }) {
@@ -81,6 +82,7 @@ export function Select({
         <div ref={wrapperRef} className={`relative w-full ${isOpen ? 'z-[100]' : 'z-10'} ${className}`}>
             {/* Hidden native select for native form submissions and validation */}
             <select 
+                id={id || name}
                 className="absolute inset-0 w-full h-full opacity-0 pointer-events-none -z-10" 
                 value={currentValue} 
                 name={name} 
