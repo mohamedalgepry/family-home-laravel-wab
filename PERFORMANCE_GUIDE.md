@@ -18,14 +18,15 @@
 
 - **اسم القاعدة:** `Cache Public Pages`
 - **الشرط (If matching):**
-  - `URI Path` starts with `/ar` OR `URI Path` equals `/`
+  - `URI Path` equals `/` OR `URI Path` equals `/ar` OR `URI Path` equals `/en` OR `URI Path` in `(/ar/units, /en/units, /ar/projects, /en/projects, /ar/about, /en/about)`
   - AND `URI Path` does NOT start with `/admin`
+  - AND `URI Path` does NOT contain `/contact`
 - **التوجيه (Then Cache):**
   - **Cache Eligibility:** `Eligible for cache`
   - **Edge TTL:** `30 minutes`
   - **Browser TTL:** `5 minutes`
 
-> ⚠️ **ملاحظة أمنية هامّة:** يجب دائماً استثناء مسارات لوحة التحكم `/admin/*` من الكاش التلقائي حتى لا يتم تخزين بيانات الإدارة.
+> ⚠️ **تحذير هائل وحاسم:** لا تفعّل قاعدة "Cache Everything" على `/contact` أو `/units/{slug}` أو `/projects/{slug}` — هذه الصفحات تحتوي على نماذج تفاعلية مرتبطة بـ CSRF token خاص بكل زائر. تفعيل الكاش الكامل عليها سيؤدي إلى فشل إرسال النماذج (خطأ 419 Page Expired) لأي زائر يحصل على نسخة مخزّنة. استثنِ هذه المسارات صراحةً في قواعد الكاش على Cloudflare (Page Rules أو Cache Rules -> Bypass Cache).
 
 ---
 
