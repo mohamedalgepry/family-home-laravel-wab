@@ -63,11 +63,6 @@ export default function AdminCategoriesIndex({ categories }) {
             <div dir={isRtl ? 'rtl' : 'ltr'} className="p-6">
                 <div className="flex items-center justify-between mb-6">
                     <h1 className="text-2xl font-bold text-secondary-950">{trans('sidebar_categories')}</h1>
-                    {!editingId && (
-                        <button onClick={startCreate} className="px-4 py-2 bg-primary-900 text-white rounded-lg text-sm font-medium hover:bg-primary-950 transition-colors">
-                            {trans('add_new')}
-                        </button>
-                    )}
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
