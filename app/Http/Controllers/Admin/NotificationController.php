@@ -6,6 +6,7 @@ use App\Domain\Listings\Models\Project;
 use App\Domain\Listings\Models\Setting;
 use App\Domain\Listings\Models\Unit;
 use App\Domain\Listings\Services\ListingService;
+use App\Domain\Listings\Services\SitemapService;
 use App\Domain\Listings\Services\UnitService;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
@@ -17,6 +18,10 @@ use Inertia\Response;
 
 class NotificationController extends Controller
 {
+    public function __construct(
+        private readonly SitemapService $sitemapService,
+    ) {}
+
     public function index(Request $request): Response
     {
         $user = $request->user();
@@ -71,6 +76,7 @@ class NotificationController extends Controller
         abort_unless($request->user()->isAdmin(), 403);
 
         $project->update(['is_active' => true]);
+        $this->sitemapService->regenerate();
 
         try {
             app(ListingService::class)->clearCache();
@@ -129,6 +135,7 @@ class NotificationController extends Controller
             'is_active' => true,
             'auto_delete_at' => $newExpiry,
         ]);
+        $this->sitemapService->regenerate();
 
         // Clear cached listings
         try {
@@ -161,6 +168,7 @@ class NotificationController extends Controller
             'is_active' => true,
             'auto_delete_at' => $newExpiry,
         ]);
+        $this->sitemapService->regenerate();
 
         try {
             app(ListingService::class)->clearCache();

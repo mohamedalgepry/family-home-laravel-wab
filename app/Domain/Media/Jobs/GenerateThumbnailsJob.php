@@ -27,7 +27,7 @@ class GenerateThumbnailsJob implements ShouldQueue
         $disk = Storage::disk('public');
 
         try {
-            $manager = ImageManager::gd();
+            $manager = new ImageManager(new \Intervention\Image\Drivers\Gd\Driver());
         } catch (\Throwable $e) {
             Log::error('GenerateThumbnailsJob GD initialization failed: '.$e->getMessage());
 

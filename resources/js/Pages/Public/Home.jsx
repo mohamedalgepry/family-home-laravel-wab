@@ -35,8 +35,8 @@ export default function Home({ featuredUnits, latestUnits, popularSearches, area
 
             <main className="flex-1">
                 {/* Hero Section */}
-                <section className="relative bg-secondary-950 flex flex-col justify-center min-h-[80vh] overflow-hidden">
-                    <div className="absolute inset-0 z-0">
+                <section className="relative bg-secondary-950 flex flex-col justify-center min-h-[80vh]">
+                    <div className="absolute inset-0 z-0 overflow-hidden">
                         <img src={heroImage} alt="" className="w-full h-full object-cover scale-105 animate-pulse-slow" fetchPriority="high" />
                         <div className="absolute inset-0 bg-gradient-to-t from-secondary-950 via-secondary-950/70 to-black/40"></div>
                     </div>
@@ -50,9 +50,7 @@ export default function Home({ featuredUnits, latestUnits, popularSearches, area
                             {heroSubtitle}
                         </p>
                         
-                        <div className="max-w-4xl mx-auto bg-white/95 backdrop-blur-xl p-4 sm:p-6 rounded-3xl shadow-2xl border border-white/40">
-                            <SearchBar areas={areas} unitTypes={unitTypes} features={features} finishingTypes={finishingTypes} />
-                        </div>
+                        <SearchBar areas={areas} unitTypes={unitTypes} features={features} finishingTypes={finishingTypes} />
                     </div>
                 </section>
 

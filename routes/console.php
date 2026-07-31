@@ -55,3 +55,7 @@ Schedule::command('backup:run')
 
 Schedule::command('backup:clean')
     ->dailyAt('04:30');
+
+Schedule::command('sitemap:generate')
+    ->hourly()
+    ->withoutOverlapping();

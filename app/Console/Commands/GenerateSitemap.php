@@ -79,6 +79,23 @@ class GenerateSitemap extends Command
             });
         } catch (\Throwable $e) {}
 
+        try {
+            Category::whereHas('articles', fn ($query) => $query->where('is_published', true))
+                ->chunk(500, function ($categories) use ($baseUrl, &$xml) {
+                foreach ($categories as $category) {
+                    $arSlug = $category->slug_ar ?? $category->slug;
+                    $enSlug = $category->slug_en ?? $category->slug;
+                    $xml .= $this->urlEntry(
+                        $baseUrl,
+                        ['ar' => "/articles?category={$arSlug}", 'en' => "/articles?category={$enSlug}"],
+                        $category->updated_at,
+                        '0.5',
+                        'weekly'
+                    );
+                }
+                });
+        } catch (\Throwable $e) {}
+
         $xml .= '</urlset>';
 
         file_put_contents(public_path('sitemap.xml'), $xml);

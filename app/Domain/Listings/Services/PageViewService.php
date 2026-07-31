@@ -8,11 +8,11 @@ use Illuminate\Support\Facades\Cache;
 
 class PageViewService
 {
-    private const DEDUP_CACHE_TTL = 3600;
+    private const DEDUP_CACHE_TTL = 120; // 2 minutes dedup per IP
 
     public function recordView(string $viewableType, int $viewableId, ?string $ip = null, ?string $userAgent = null): void
     {
-        if ($ip) {
+        if ($ip && $ip !== '127.0.0.1' && $ip !== '::1') {
             $cacheKey = "pageview_{$viewableType}_{$viewableId}_{$ip}";
 
             if (Cache::has($cacheKey)) {
@@ -22,7 +22,7 @@ class PageViewService
             Cache::put($cacheKey, true, self::DEDUP_CACHE_TTL);
         }
 
-        dispatch(new RecordPageViewJob($viewableType, $viewableId, $ip, $userAgent));
+        dispatch_sync(new RecordPageViewJob($viewableType, $viewableId, $ip, $userAgent));
     }
 
     public function incrementCounterCache(string $viewableType, int $viewableId): void

@@ -20,6 +20,7 @@ class ProjectService
         private readonly CreateProjectAction $createAction,
         private readonly UpdateProjectAction $updateAction,
         private readonly DeleteProjectAction $deleteAction,
+        private readonly SitemapService $sitemapService,
     ) {}
 
     public function getPaginatedProjects(array $filters = [], ?User $user = null): LengthAwarePaginator
@@ -64,7 +65,7 @@ class ProjectService
 
     public function createProject(CreateProjectData $data, int $userId, array $imagePaths = []): Project
     {
-        return DB::transaction(function () use ($data, $userId, $imagePaths) {
+        $project = DB::transaction(function () use ($data, $userId, $imagePaths) {
             $project = $this->createAction->execute($data, $userId);
 
             if (! empty($imagePaths)) {
@@ -75,17 +76,24 @@ class ProjectService
 
             return $project->load(['area', 'images']);
         });
+
+        // إضافة المشروع فوراً لـ Sitemap
+        $this->regenerateSitemap();
+
+        return $project;
     }
 
     public function updateProject(int $projectId, CreateProjectData $data, array $newImagePaths = [], array $deletedImageIds = [], array $imageOrder = []): Project
     {
-        return DB::transaction(function () use ($projectId, $data, $newImagePaths, $deletedImageIds, $imageOrder) {
+        $project = DB::transaction(function () use ($projectId, $data, $newImagePaths, $deletedImageIds, $imageOrder) {
             $project = $this->updateAction->execute($projectId, $data);
 
             if (! empty($deletedImageIds)) {
                 $images = $project->images()->whereIn('id', $deletedImageIds)->get();
                 foreach ($images as $image) {
+                    // حذف الصورة الأصلية والـ Thumbnail معاً
                     Storage::disk('public')->delete($image->path);
+                    $this->deleteThumbnail($image->path);
                     $image->delete();
                 }
             }
@@ -104,6 +112,10 @@ class ProjectService
 
             return $project->load(['area', 'images']);
         });
+
+        $this->regenerateSitemap();
+
+        return $project;
     }
 
     public function deleteProject(int $projectId): void
@@ -118,14 +130,45 @@ class ProjectService
             $this->clearListingsCache();
         });
 
+        // حذف الصور الأصلية والـ Thumbnails من الـ Storage
         foreach ($imagePaths as $path) {
             Storage::disk('public')->delete($path);
+            $this->deleteThumbnail($path);
         }
+
+        // إعادة توليد ملف sitemap.xml فوراً
+        $this->regenerateSitemap();
     }
 
     private function clearListingsCache(): void
     {
         Cache::increment('listing_cache_version');
+    }
+
+    /**
+     * حذف ملف Thumbnail المرتبط بمسار صورة.
+     */
+    private function deleteThumbnail(string $path): void
+    {
+        if (! $path) {
+            return;
+        }
+        $dir = dirname($path);
+        $filename = basename($path);
+        $thumbPath = ($dir !== '.' ? $dir . '/' : '') . 'thumb_' . $filename;
+        Storage::disk('public')->delete($thumbPath);
+    }
+
+    /**
+     * إعادة توليد sitemap.xml في الخلفية.
+     */
+    private function regenerateSitemap(): void
+    {
+        try {
+            $this->sitemapService->regenerate();
+        } catch (\Throwable $e) {
+            // عدم السماح لخطأ الـ sitemap بإيقاف باقي العملية
+        }
     }
 
     private function persistImagePaths(Project $project, array $paths): void

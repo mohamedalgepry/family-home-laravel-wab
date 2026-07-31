@@ -220,6 +220,8 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
 
     const [step, setStep] = useState(0)
     const [dirty, setDirty] = useState(false)
+    const [uploadProgress, setUploadProgress] = useState(0)  // 0-100
+    const [uploadStatus, setUploadStatus] = useState('')     // نص وصف الحالة
 
     // Image manager state
     const [primaryFile, setPrimaryFile] = useState(null)
@@ -346,47 +348,41 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
         setDirty(true)
     }
 
-    // Image Compression Helper for Blazing Fast Uploads
-    async function compressImage(file, maxWidth = 1920, quality = 0.85) {
+    // ضغط صورة واحدة
+    function compressImage(file, maxWidth = 1920, quality = 0.82) {
         return new Promise(resolve => {
             if (!file || !file.type.startsWith('image/') || file.type.includes('svg')) {
                 resolve(file)
                 return
             }
-
             const img = new Image()
             const url = URL.createObjectURL(file)
             img.onload = () => {
                 URL.revokeObjectURL(url)
                 let width = img.width
                 let height = img.height
-
-                if (width <= maxWidth && file.size < 1024 * 1024) {
+                // صور صغيرة لا تحتاج ضغط
+                if (width <= maxWidth && file.size < 800 * 1024) {
                     resolve(file)
                     return
                 }
-
                 if (width > maxWidth) {
                     height = Math.round((height * maxWidth) / width)
                     width = maxWidth
                 }
-
                 const canvas = document.createElement('canvas')
                 canvas.width = width
                 canvas.height = height
-                const ctx = canvas.getContext('2d')
-                ctx.drawImage(img, 0, 0, width, height)
-
+                canvas.getContext('2d').drawImage(img, 0, 0, width, height)
                 canvas.toBlob(
                     blob => {
                         if (!blob || blob.size >= file.size) {
                             resolve(file)
                         } else {
-                            const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, ".jpg"), {
+                            resolve(new File([blob], file.name.replace(/\.[^/.]+$/, '.jpg'), {
                                 type: 'image/jpeg',
                                 lastModified: Date.now(),
-                            })
-                            resolve(compressedFile)
+                            }))
                         }
                     },
                     'image/jpeg',
@@ -398,7 +394,7 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
         })
     }
 
-    // Primary image handlers
+    // الصورة الرئيسية
     async function handlePrimaryChange(e) {
         const rawFile = e.target.files[0]
         if (!rawFile) return
@@ -406,30 +402,49 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
             alert(locale === 'ar' ? 'حجم الصورة كبير جداً. الحد 10 ميجابايت.' : 'Image too large. Max 10MB.')
             return
         }
+        setUploadStatus(locale === 'ar' ? 'جاري ضغط الصورة...' : 'Compressing...')
         const file = await compressImage(rawFile)
         setPrimaryFile(file)
         setPrimaryPreview(URL.createObjectURL(file))
+        setUploadStatus('')
         setDirty(true)
     }
 
-    // More images handlers
+    // الصور الإضافية — ضغط متوازٍ (Parallel)
     async function handleMoreImages(e) {
         const files = Array.from(e.target.files || [])
-        const valid = []
-        let total = 0
-        for (const f of files) {
+        // تصفية الحجم أولاً
+        const filtered = files.filter(f => {
             if (f.size > MAX_SIZE) {
                 alert(locale === 'ar' ? `${f.name}: حجم كبير جداً.` : `${f.name}: Too large.`)
-                continue
+                return false
             }
+            return true
+        })
+
+        if (filtered.length === 0) return
+
+        setUploadStatus(locale === 'ar'
+            ? `جاري ضغط ${filtered.length} صورة بالتوازي...`
+            : `Compressing ${filtered.length} image(s) in parallel...`
+        )
+
+        // ضغط كل الصور في نفس الوقت (Parallel)
+        const compressed = await Promise.all(filtered.map(f => compressImage(f)))
+
+        // التحقق من الحجم الإجمالي بعد الضغط
+        let total = newFiles.reduce((s, f) => s + f.size, 0)
+        const valid = []
+        for (const f of compressed) {
             total += f.size
             if (total > MAX_TOTAL) {
                 alert(locale === 'ar' ? 'تجاوز الحد الإجمالي 40 ميجابايت.' : 'Total exceeds 40MB limit.')
                 break
             }
-            const compressed = await compressImage(f)
-            valid.push(compressed)
+            valid.push(f)
         }
+
+        setUploadStatus('')
         setNewFiles(prev => [...prev, ...valid])
         setNewPreviews(prev => [...prev, ...valid.map(f => URL.createObjectURL(f))])
         setDirty(true)
@@ -454,13 +469,14 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
     const [isSubmitting, setIsSubmitting] = useState(false)
 
     function handleSubmit() {
-        if (processing || isSubmitting) return;
+        if (processing || isSubmitting) return
 
-        setIsSubmitting(true);
+        setIsSubmitting(true)
         setDirty(false)
+        setUploadProgress(0)
 
-        // Build ordered images: primary first, then secondary
         const allImages = primaryFile ? [primaryFile, ...newFiles] : newFiles
+        const hasImages = allImages.length > 0
 
         const payload = {
             name_ar: data.name_ar ?? '',
@@ -492,20 +508,45 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
             images: allImages,
         }
 
-        if (isEdit) {
-            payload._method = 'PUT'
+        if (isEdit) payload._method = 'PUT'
+
+        // رسالة الحالة الابتدائية
+        if (hasImages) {
+            const totalMB = (allImages.reduce((s, f) => s + f.size, 0) / 1048576).toFixed(1)
+            setUploadStatus(locale === 'ar'
+                ? `جاري رفع ${allImages.length} صورة (${totalMB} MB)...`
+                : `Uploading ${allImages.length} image(s) (${totalMB} MB)...`
+            )
+        } else {
+            setUploadStatus(locale === 'ar' ? 'جاري حفظ البيانات...' : 'Saving...')
         }
 
-        router.post(
-            isEdit ? `/admin/units/${unit.id}` : '/admin/units',
-            payload,
-            { 
-                preserveScroll: true, 
-                forceFormData: true,
-                onFinish: () => setIsSubmitting(false),
-                onError: () => setIsSubmitting(false)
-            }
-        )
+        const url = isEdit ? `/admin/units/${unit.id}` : '/admin/units'
+
+        // Inertia router.post مع onProgress لشريط التقدم — بدون إرسال مزدوج
+        router.post(url, payload, {
+            forceFormData: true,
+            preserveScroll: true,
+            onProgress: (progress) => {
+                if (progress?.percentage !== undefined) {
+                    const pct = Math.round(progress.percentage)
+                    setUploadProgress(pct)
+                    if (pct >= 100) {
+                        setUploadStatus(locale === 'ar' ? 'تم الرفع، جاري المعالجة...' : 'Uploaded, processing...')
+                    }
+                }
+            },
+            onFinish: () => {
+                setIsSubmitting(false)
+                setUploadProgress(0)
+                setUploadStatus('')
+            },
+            onError: () => {
+                setIsSubmitting(false)
+                setUploadProgress(0)
+                setUploadStatus('')
+            },
+        })
     }
 
     function canNext() {
@@ -954,40 +995,80 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
                     )}
 
                     {/* Navigation Buttons */}
-                    <div className="flex items-center justify-between mt-8 pt-6 border-t border-secondary-100">
-                        <button
-                            type="button"
-                            onClick={() => setStep(Math.max(0, step - 1))}
-                            disabled={step === 0}
-                            className="px-4 py-2 bg-surface text-secondary-700 rounded-lg text-sm font-medium hover:bg-secondary-200 disabled:opacity-50"
-                        >
-                            {trans('back')}
-                        </button>
-                        {step < STEPS.length - 1 ? (
-                            <button
-                                type="button"
-                                onClick={() => canNext() && setStep(step + 1)}
-                                disabled={!canNext()}
-                                className="px-4 py-2 bg-primary-900 text-white rounded-lg text-sm font-medium hover:bg-primary-950 disabled:opacity-50"
-                            >
-                                {trans('next')}
-                            </button>
-                        ) : (
-                            <button
-                                type="button"
-                                onClick={handleSubmit}
-                                disabled={processing || isSubmitting}
-                                className="px-4 py-2 bg-primary-900 text-white rounded-lg text-sm font-medium hover:bg-primary-950 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                            >
-                                {(processing || isSubmitting) && (
-                                    <svg className="animate-spin -ms-1 me-1 h-4 w-4 text-white inline-block" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
+                    <div className="mt-8 pt-6 border-t border-secondary-100 space-y-3">
+                        {/* شريط التقدم */}
+                        {isSubmitting && (
+                            <div className="space-y-1.5">
+                                <div className="flex items-center justify-between text-xs text-secondary-600">
+                                    <span className="font-medium">{uploadStatus}</span>
+                                    {uploadProgress > 0 && (
+                                        <span className="font-bold text-primary-900">{uploadProgress}%</span>
+                                    )}
+                                </div>
+                                {uploadProgress > 0 && (
+                                    <div className="w-full bg-secondary-100 rounded-full h-2 overflow-hidden">
+                                        <div
+                                            className="bg-primary-900 h-2 rounded-full transition-all duration-300"
+                                            style={{ width: `${uploadProgress}%` }}
+                                        />
+                                    </div>
                                 )}
-                                {(processing || isSubmitting) ? trans('loading') : (isEdit ? trans('update') : trans('save'))}
-                            </button>
+                                {uploadProgress === 0 && (
+                                    <div className="w-full bg-secondary-100 rounded-full h-2 overflow-hidden">
+                                        <div className="bg-primary-900 h-2 rounded-full animate-pulse w-1/3" />
+                                    </div>
+                                )}
+                            </div>
                         )}
+                        {/* معلومات الصور المختارة */}
+                        {!isSubmitting && (primaryFile || newFiles.length > 0) && (
+                            <div className="text-xs text-secondary-500 flex items-center gap-1.5">
+                                <svg className="w-3.5 h-3.5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                <span>
+                                    {locale === 'ar'
+                                        ? `${(primaryFile ? 1 : 0) + newFiles.length} صورة جاهزة للرفع — ${((primaryFile ? primaryFile.size : 0) + newFiles.reduce((s, f) => s + f.size, 0)) > 0 ? (((primaryFile ? primaryFile.size : 0) + newFiles.reduce((s, f) => s + f.size, 0)) / 1048576).toFixed(1) + ' MB' : ''}`
+                                        : `${(primaryFile ? 1 : 0) + newFiles.length} image(s) ready — ${(((primaryFile ? primaryFile.size : 0) + newFiles.reduce((s, f) => s + f.size, 0)) / 1048576).toFixed(1)} MB`
+                                    }
+                                </span>
+                            </div>
+                        )}
+                        <div className="flex items-center justify-between">
+                            <button
+                                type="button"
+                                onClick={() => setStep(Math.max(0, step - 1))}
+                                disabled={step === 0 || isSubmitting}
+                                className="px-4 py-2 bg-surface text-secondary-700 rounded-lg text-sm font-medium hover:bg-secondary-200 disabled:opacity-50"
+                            >
+                                {trans('back')}
+                            </button>
+                            {step < STEPS.length - 1 ? (
+                                <button
+                                    type="button"
+                                    onClick={() => canNext() && setStep(step + 1)}
+                                    disabled={!canNext()}
+                                    className="px-4 py-2 bg-primary-900 text-white rounded-lg text-sm font-medium hover:bg-primary-950 disabled:opacity-50"
+                                >
+                                    {trans('next')}
+                                </button>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={handleSubmit}
+                                    disabled={processing || isSubmitting}
+                                    className="px-4 py-2 bg-primary-900 text-white rounded-lg text-sm font-medium hover:bg-primary-950 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                >
+                                    {isSubmitting && (
+                                        <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                        </svg>
+                                    )}
+                                    {isSubmitting ? (uploadStatus || trans('loading')) : (isEdit ? trans('update') : trans('save'))}
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </form>
             </div>

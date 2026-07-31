@@ -16,12 +16,16 @@ class DashboardController
     {
         $user = request()->user();
         $stats = $this->statisticsService->getStats($user);
-        $topProjects = $this->statisticsService->getTopProjects(10, $user);
+        $topProjects = $this->statisticsService->getTopProjects(5, $user);
+        $recentUnits = $this->statisticsService->getRecentUnits(5, $user);
+        $recentMessages = $this->statisticsService->getRecentMessages(5, $user);
         $visitsChart = $this->statisticsService->getVisitsChart(30, $user);
 
         return Inertia::render('Admin/Dashboard', [
             'stats' => $stats,
             'topProjects' => $topProjects,
+            'recentUnits' => $recentUnits,
+            'recentMessages' => $recentMessages,
             'visitsChart' => $visitsChart,
         ]);
     }

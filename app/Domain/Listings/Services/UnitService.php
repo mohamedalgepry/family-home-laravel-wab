@@ -22,6 +22,7 @@ class UnitService
         private readonly CreateUnitAction $createUnitAction,
         private readonly UpdateUnitAction $updateUnitAction,
         private readonly DeleteUnitAction $deleteUnitAction,
+        private readonly SitemapService $sitemapService,
     ) {}
 
     public function getPaginatedUnits(array $filters = [], ?User $user = null): LengthAwarePaginator
@@ -98,6 +99,9 @@ class UnitService
 
         $this->notifyPendingApproval($unit, $user);
 
+        // إضافة الوحدة فوراً لـ Sitemap
+        $this->regenerateSitemap();
+
         return $unit;
     }
 
@@ -123,7 +127,7 @@ class UnitService
 
     public function updateUnit(int $unitId, CreateUnitData $data, User $user, array $newImagePaths = [], int $primaryImageIndex = 0): Unit
     {
-        return DB::transaction(function () use ($unitId, $data, $user, $newImagePaths, $primaryImageIndex) {
+        $unit = DB::transaction(function () use ($unitId, $data, $user, $newImagePaths, $primaryImageIndex) {
             $unit = $this->updateUnitAction->execute($unitId, $data, $user);
 
             if (! empty($newImagePaths)) {
@@ -134,6 +138,10 @@ class UnitService
 
             return $unit->load(['type', 'area', 'images']);
         });
+
+        $this->regenerateSitemap();
+
+        return $unit;
     }
 
     public function deleteUnit(int $unitId): void
@@ -148,9 +156,14 @@ class UnitService
             $this->clearListingsCache();
         });
 
+        // حذف الصور الأصلية والـ Thumbnails من الـ Storage
         foreach ($imagePaths as $path) {
             Storage::disk('public')->delete($path);
+            $this->deleteThumbnail($path);
         }
+
+        // إعادة توليد ملف sitemap.xml فوراً
+        $this->regenerateSitemap();
     }
 
     public function togglePin(int $unitId): Unit
@@ -183,6 +196,8 @@ class UnitService
 
         $unit = $unit->fresh();
 
+        $this->regenerateSitemap();
+
         if (!$wasActive && $unit->is_active) {
             $this->notifyApproved($unit, $approver);
         }
@@ -207,6 +222,33 @@ class UnitService
         Cache::increment('listing_cache_version');
     }
 
+    /**
+     * حذف ملف الـ Thumbnail المرتبط بمسار صورة.
+     * يبحث عن thumb_{filename} في نفس المجلد ويحذفه.
+     */
+    private function deleteThumbnail(string $path): void
+    {
+        if (! $path) {
+            return;
+        }
+        $dir = dirname($path);
+        $filename = basename($path);
+        $thumbPath = ($dir !== '.' ? $dir . '/' : '') . 'thumb_' . $filename;
+        Storage::disk('public')->delete($thumbPath);
+    }
+
+    /**
+     * إعادة توليد sitemap.xml فوراً في الخلفية.
+     */
+    private function regenerateSitemap(): void
+    {
+        try {
+            $this->sitemapService->regenerate();
+        } catch (\Throwable $e) {
+            // عدم السماح لخطأ الـ sitemap بإيقاف باقي العملية
+        }
+    }
+
     public function removeImage(int $unitId, int $imageId): void
     {
         $unit = Unit::findOrFail($unitId);
@@ -216,7 +258,9 @@ class UnitService
         $wasPrimary = $image->is_primary;
 
         $image->delete();
+        // حذف الصورة الأصلية والـ Thumbnail معاً
         Storage::disk('public')->delete($path);
+        $this->deleteThumbnail($path);
 
         // إذا كانت الصورة المحذوفة هي الرئيسية، اجعل أول صورة متبقية هي الرئيسية
         if ($wasPrimary) {

@@ -17,6 +17,7 @@ class ArticleService
     public function __construct(
         private readonly CreateArticleAction $createAction,
         private readonly UpdateArticleAction $updateAction,
+        private readonly SitemapService $sitemapService,
     ) {}
 
     public function getPaginatedArticles(array $filters = []): LengthAwarePaginator
@@ -59,7 +60,7 @@ class ArticleService
 
     public function createArticle(CreateArticleData $data, ?string $coverImagePath = null, array $newImagePaths = [], array $newImageAlts = [], array $newImagePositions = []): Article
     {
-        return DB::transaction(function () use ($data, $coverImagePath, $newImagePaths, $newImageAlts, $newImagePositions) {
+        $article = DB::transaction(function () use ($data, $coverImagePath, $newImagePaths, $newImageAlts, $newImagePositions) {
             $article = Article::create($data->toArray());
 
             if ($coverImagePath) {
@@ -78,11 +79,15 @@ class ArticleService
 
             return $article->load(['category', 'images']);
         });
+
+        $this->sitemapService->regenerate();
+
+        return $article;
     }
 
     public function updateArticle(int $articleId, CreateArticleData $data, array $deletedImageIds = [], ?string $coverImagePath = null, array $imageUpdates = [], array $newImagePaths = [], array $newImageAlts = [], array $newImagePositions = []): Article
     {
-        return DB::transaction(function () use ($articleId, $data, $deletedImageIds, $coverImagePath, $imageUpdates, $newImagePaths, $newImageAlts, $newImagePositions) {
+        $article = DB::transaction(function () use ($articleId, $data, $deletedImageIds, $coverImagePath, $imageUpdates, $newImagePaths, $newImageAlts, $newImagePositions) {
             $article = Article::findOrFail($articleId);
 
             $article->update($data->toArray());
@@ -125,6 +130,10 @@ class ArticleService
 
             return $article->load(['category', 'images']);
         });
+
+        $this->sitemapService->regenerate();
+
+        return $article;
     }
 
     public function deleteArticle(int $articleId): void
@@ -141,6 +150,8 @@ class ArticleService
         foreach ($imagePaths as $path) {
             Storage::disk('public')->delete($path);
         }
+
+        $this->sitemapService->regenerate();
     }
 
     public function togglePublish(int $articleId): Article
@@ -150,6 +161,8 @@ class ArticleService
             'is_published' => ! $article->is_published,
             'published_at' => $article->is_published ? null : now(),
         ]);
+
+        $this->sitemapService->regenerate();
 
         return $article->fresh()->load(['category', 'images']);
     }
