@@ -102,7 +102,7 @@ function ComparisonSection({ type, title, items, maxItems, isRtl, locale, trans 
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                         </svg>
-                        {isRtl ? 'تصفح' : 'Browse'}
+                        {trans('browse')}
                     </Link>
                     <CompareSearch type={type} currentIds={items.map(i => i.id)} />
                 </div>
@@ -164,7 +164,7 @@ function ComparisonSection({ type, title, items, maxItems, isRtl, locale, trans 
                                         {item.finishing_type?.name && <DetailRow label={trans('finishing') || 'Finishing'} value={item.finishing_type.name} />}
                                         {item.payment_method && <DetailRow label={trans('payment_method') || 'Payment'} value={item.payment_method} />}
                                         {item.down_payment && <DetailRow label={trans('down_payment') || 'Down'} value={item.down_payment} />}
-                                        {item.installment_years && <DetailRow label={trans('installment_years') || 'Installment'} value={`${item.installment_years} ${isRtl ? 'سنة' : 'yrs'}`} />}
+                                        {item.installment_years && <DetailRow label={trans('installment_years') || 'Installment'} value={`${item.installment_years} ${trans('years')}`} />}
                                     </div>
                                 )}
 
@@ -217,7 +217,7 @@ function ComparisonSection({ type, title, items, maxItems, isRtl, locale, trans 
                             <svg className="w-4 h-4 text-primary-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                             </svg>
-                            {isRtl ? 'مقارنة تفصيلية' : 'Detailed comparison'}
+                            {trans('detailed_comparison')}
                         </h3>
                     </div>
                     <div className="overflow-x-auto">
@@ -326,7 +326,7 @@ export default function Comparison({ items, type, max_items }) {
                             </svg>
                         </div>
                         <h2 className="text-xl font-bold text-secondary-950 mb-2">
-                            {isRtl ? 'قارن بين العقارات' : 'Compare Properties'}
+                            {trans('compare_properties')}
                         </h2>
                         <p className="text-sm text-secondary-500 mb-6 leading-relaxed">
                             {isRtl
@@ -355,7 +355,7 @@ export default function Comparison({ items, type, max_items }) {
                                 <div>
                                     <h1 className="text-xl font-bold text-secondary-950">{trans('compare')}</h1>
                                     <p className="text-xs text-secondary-500">
-                                        {isRtl ? 'قارن بين الخيارات واختر الأفضل' : 'Compare options and pick the best'}
+                                        {trans('compare_options_subtitle')}
                                     </p>
                                 </div>
                             </div>

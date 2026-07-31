@@ -53,7 +53,7 @@ export default function Contact() {
 
                 {(sentSuccess || flash?.success) && (
                     <div className="mb-6 p-4 bg-green-50 border border-green-200 text-green-800 rounded-xl text-sm font-medium">
-                        {flash?.success || (isRtl ? 'تم إرسال رسالتك بنجاح، وسنتواصل معك في أقرب وقت.' : 'Your message has been sent successfully!')}
+                        {flash?.success || trans('contact_message_sent_success')}
                     </div>
                 )}
 

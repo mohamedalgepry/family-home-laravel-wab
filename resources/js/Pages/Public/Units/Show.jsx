@@ -131,7 +131,7 @@ export default function UnitShow({ unit, similarUnits }) {
                                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6" />
                                         </svg>
-                                        <span>{trans('zoom') || (isRtl ? 'تكبير' : 'Zoom')}</span>
+                                        <span>{trans('zoom')}</span>
                                     </button>
 
                                     {/* Navigation Arrows */}
@@ -360,7 +360,7 @@ export default function UnitShow({ unit, similarUnits }) {
                                 
                                 {(sentSuccess || flash?.success) && (
                                     <div className="mb-4 p-4 bg-green-50 border border-green-200 text-green-800 rounded-xl text-sm font-medium transition-all">
-                                        {flash?.success || (isRtl ? 'تم إرسال رسالتك بنجاح، وسيتواصل معك المستشار العقاري قريباً.' : 'Your message has been sent successfully! The agent will contact you soon.')}
+                                        {flash?.success || trans('unit_message_sent_success')}
                                     </div>
                                 )}
 

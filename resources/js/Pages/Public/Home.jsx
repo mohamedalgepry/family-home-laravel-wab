@@ -82,10 +82,10 @@ export default function Home({ featuredUnits, latestUnits, popularSearches, area
                     <div className="flex items-center justify-between mb-6">
                         <div>
                             <h2 className="text-2xl font-black text-secondary-950 tracking-tight">{trans('featured_units')}</h2>
-                            <p className="text-xs text-secondary-500 mt-1">{isRtl ? 'أفضل الفرص الاستثمارية والسكنية المختارة خصيصاً لك' : 'Handpicked investment and residential opportunities'}</p>
+                            <p className="text-xs text-secondary-500 mt-1">{trans('featured_units_subtitle')}</p>
                         </div>
                         <Link href={localizedPath('/units', locale)} className="text-xs font-bold text-primary-900 hover:text-primary-700 flex items-center gap-1">
-                            {isRtl ? 'عرض الكل' : 'View All'}
+                            {trans('show_more')}
                             <svg className="w-3.5 h-3.5 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
                             </svg>
@@ -118,10 +118,10 @@ export default function Home({ featuredUnits, latestUnits, popularSearches, area
                         <div className="flex items-center justify-between mb-6">
                             <div>
                                 <h2 className="text-2xl font-black text-secondary-950 tracking-tight">{trans('latest_units')}</h2>
-                                <p className="text-xs text-secondary-500 mt-1">{isRtl ? 'أحدث العقارات المضافة حديثاً في مصر' : 'Recently added real estate properties'}</p>
+                                <p className="text-xs text-secondary-500 mt-1">{trans('latest_units_subtitle')}</p>
                             </div>
                             <Link href={localizedPath('/units', locale)} className="text-xs font-bold text-primary-900 hover:text-primary-700 flex items-center gap-1">
-                                {isRtl ? 'عرض الكل' : 'View All'}
+                                {trans('show_more')}
                                 <svg className="w-3.5 h-3.5 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
                                 </svg>
