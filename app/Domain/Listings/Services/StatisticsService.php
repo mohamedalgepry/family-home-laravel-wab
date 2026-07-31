@@ -57,7 +57,7 @@ class StatisticsService
         ];
     }
 
-    public function getTopProjects(int $limit = 5, ?User $user = null): Collection
+    public function getTopProjects(int $limit = 10, ?User $user = null): Collection
     {
         $query = Project::active()->with('area');
 
@@ -106,6 +106,23 @@ class StatisticsService
         }
 
         return $query->latest()
+            ->limit($limit)
+            ->get();
+    }
+
+    public function getTopUnits(int $limit = 10, ?User $user = null): Collection
+    {
+        $query = Unit::active()->with(['area', 'type', 'images']);
+
+        if ($user && ! $user->isAdmin()) {
+            $teamUserIds = $user->isManager()
+                ? $user->agents()->pluck('id')->push($user->id)
+                : ($user->manager_id ? User::where('manager_id', $user->manager_id)->pluck('id')->push($user->manager_id) : collect([$user->id]));
+
+            $query->whereIn('user_id', $teamUserIds);
+        }
+
+        return $query->orderByDesc('views_count')
             ->limit($limit)
             ->get();
     }

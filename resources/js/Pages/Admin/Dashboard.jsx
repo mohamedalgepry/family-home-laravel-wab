@@ -58,7 +58,7 @@ function CustomTooltip({ active, payload, label, locale, isRtl }) {
     )
 }
 
-export default function Dashboard({ stats, topProjects, recentUnits, recentMessages, visitsChart = [] }) {
+export default function Dashboard({ stats, topProjects = [], topUnits = [], recentUnits = [], recentMessages = [], visitsChart = [] }) {
     const { locale, auth } = usePage().props
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
@@ -67,10 +67,24 @@ export default function Dashboard({ stats, topProjects, recentUnits, recentMessa
     // Range selector: 7, 14, or 30 days
     const [rangeDays, setRangeDays] = useState(30)
 
+    // Expand/Collapse state for top items
+    const [showAllTopProjects, setShowAllTopProjects] = useState(false)
+    const [showAllTopUnits, setShowAllTopUnits] = useState(false)
+
     const filteredChartData = useMemo(() => {
         if (!visitsChart || visitsChart.length === 0) return []
         return visitsChart.slice(-rangeDays)
     }, [visitsChart, rangeDays])
+
+    const displayedProjects = useMemo(() => {
+        if (!topProjects) return []
+        return showAllTopProjects ? topProjects : topProjects.slice(0, 5)
+    }, [topProjects, showAllTopProjects])
+
+    const displayedUnits = useMemo(() => {
+        if (!topUnits) return []
+        return showAllTopUnits ? topUnits : topUnits.slice(0, 5)
+    }, [topUnits, showAllTopUnits])
 
     // Summary calculations
     const chartSummary = useMemo(() => {
@@ -137,116 +151,116 @@ export default function Dashboard({ stats, topProjects, recentUnits, recentMessa
                     />
                 </div>
 
-                {/* Visits Chart & Top Projects */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Traffic Chart */}
-                    <div className="lg:col-span-2 bg-white rounded-2xl border border-secondary-100 shadow-card p-6 flex flex-col justify-between">
+                {/* Traffic Chart */}
+                <div className="bg-white rounded-2xl border border-secondary-100 shadow-card p-6">
+                    {/* Chart Top Bar & Range Filters */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                         <div>
-                            {/* Chart Top Bar & Range Filters */}
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                                <div>
-                                    <h2 className="text-base font-bold text-secondary-950">
-                                        {isRtl ? 'إحصائيات حركة الزيارات' : 'Website Traffic Analytics'}
-                                    </h2>
-                                    <p className="text-xs text-muted mt-0.5">
-                                        {isRtl ? `معدل الزيارات في آخر ${rangeDays} يوماً` : `Traffic pattern over last ${rangeDays} days`}
-                                    </p>
-                                </div>
-
-                                {/* Range Buttons */}
-                                <div className="flex items-center gap-1 bg-surface p-1 rounded-xl border border-secondary-200/60 shrink-0">
-                                    {[
-                                        { days: 7, label: isRtl ? '7 أيام' : '7 Days' },
-                                        { days: 14, label: isRtl ? '14 يوم' : '14 Days' },
-                                        { days: 30, label: isRtl ? '30 يوم' : '30 Days' },
-                                    ].map(item => (
-                                        <button
-                                            key={item.days}
-                                            type="button"
-                                            onClick={() => setRangeDays(item.days)}
-                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                                                rangeDays === item.days
-                                                    ? 'bg-primary-900 text-white shadow-sm'
-                                                    : 'text-secondary-600 hover:text-secondary-950 hover:bg-white/60'
-                                            }`}
-                                        >
-                                            {item.label}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Summary Chips */}
-                            <div className="grid grid-cols-3 gap-3 mb-6 p-3 bg-surface/60 rounded-xl border border-secondary-100 text-center">
-                                <div>
-                                    <p className="text-[11px] text-muted font-medium">{isRtl ? 'إجمالي زيارات الفترة' : 'Period Total'}</p>
-                                    <p className="text-sm font-black text-secondary-950 mt-0.5">{chartSummary.total}</p>
-                                </div>
-                                <div className="border-x border-secondary-200/60">
-                                    <p className="text-[11px] text-muted font-medium">{isRtl ? 'المتوسط اليومي' : 'Daily Avg'}</p>
-                                    <p className="text-sm font-black text-primary-900 mt-0.5">{chartSummary.avg}</p>
-                                </div>
-                                <div>
-                                    <p className="text-[11px] text-muted font-medium">{isRtl ? 'أعلى زيارة يومية' : 'Peak Day'}</p>
-                                    <p className="text-sm font-black text-emerald-600 mt-0.5">
-                                        {chartSummary.max.count}
-                                    </p>
-                                </div>
-                            </div>
+                            <h2 className="text-base font-bold text-secondary-950">
+                                {isRtl ? 'إحصائيات حركة الزيارات' : 'Website Traffic Analytics'}
+                            </h2>
+                            <p className="text-xs text-muted mt-0.5">
+                                {isRtl ? `معدل الزيارات في آخر ${rangeDays} يوماً` : `Traffic pattern over last ${rangeDays} days`}
+                            </p>
                         </div>
 
-                        {filteredChartData?.length > 0 ? (
-                            <ResponsiveContainer width="100%" height={260}>
-                                <AreaChart data={filteredChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                    <defs>
-                                        <linearGradient id="colorVisits" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#CC0000" stopOpacity={0.3} />
-                                            <stop offset="95%" stopColor="#CC0000" stopOpacity={0.0} />
-                                        </linearGradient>
-                                    </defs>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
-                                    <XAxis
-                                        dataKey="date"
-                                        tick={{ fontSize: 11, fill: '#64748B' }}
-                                        tickFormatter={formatXAxisTick}
-                                        interval={rangeDays === 30 ? 4 : (rangeDays === 14 ? 1 : 0)}
-                                    />
-                                    <YAxis
-                                        allowDecimals={false}
-                                        tick={{ fontSize: 11, fill: '#64748B' }}
-                                    />
-                                    <Tooltip content={<CustomTooltip locale={locale} isRtl={isRtl} />} />
-                                    <Area
-                                        type="monotone"
-                                        dataKey="count"
-                                        stroke="#CC0000"
-                                        strokeWidth={3}
-                                        fillOpacity={1}
-                                        fill="url(#colorVisits)"
-                                        activeDot={{ r: 6, fill: '#CC0000', stroke: '#FFF', strokeWidth: 3 }}
-                                    />
-                                </AreaChart>
-                            </ResponsiveContainer>
-                        ) : (
-                            <p className="text-sm text-muted text-center py-16">{trans('no_data')}</p>
-                        )}
+                        {/* Range Buttons */}
+                        <div className="flex items-center gap-1 bg-surface p-1 rounded-xl border border-secondary-200/60 shrink-0">
+                            {[
+                                { days: 7, label: isRtl ? '7 أيام' : '7 Days' },
+                                { days: 14, label: isRtl ? '14 يوم' : '14 Days' },
+                                { days: 30, label: isRtl ? '30 يوم' : '30 Days' },
+                            ].map(item => (
+                                <button
+                                    key={item.days}
+                                    type="button"
+                                    onClick={() => setRangeDays(item.days)}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                        rangeDays === item.days
+                                            ? 'bg-primary-900 text-white shadow-sm'
+                                            : 'text-secondary-600 hover:text-secondary-950 hover:bg-white/60'
+                                    }`}
+                                >
+                                    {item.label}
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
+                    {/* Summary Chips */}
+                    <div className="grid grid-cols-3 gap-3 mb-6 p-3 bg-surface/60 rounded-xl border border-secondary-100 text-center">
+                        <div>
+                            <p className="text-[11px] text-muted font-medium">{isRtl ? 'إجمالي زيارات الفترة' : 'Period Total'}</p>
+                            <p className="text-sm font-black text-secondary-950 mt-0.5">{chartSummary.total}</p>
+                        </div>
+                        <div className="border-x border-secondary-200/60">
+                            <p className="text-[11px] text-muted font-medium">{isRtl ? 'المتوسط اليومي' : 'Daily Avg'}</p>
+                            <p className="text-sm font-black text-primary-900 mt-0.5">{chartSummary.avg}</p>
+                        </div>
+                        <div>
+                            <p className="text-[11px] text-muted font-medium">{isRtl ? 'أعلى زيارة يومية' : 'Peak Day'}</p>
+                            <p className="text-sm font-black text-emerald-600 mt-0.5">
+                                {chartSummary.max.count}
+                            </p>
+                        </div>
+                    </div>
+
+                    {filteredChartData?.length > 0 ? (
+                        <ResponsiveContainer width="100%" height={280}>
+                            <AreaChart data={filteredChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                <defs>
+                                    <linearGradient id="colorVisits" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#CC0000" stopOpacity={0.3} />
+                                        <stop offset="95%" stopColor="#CC0000" stopOpacity={0.0} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+                                <XAxis
+                                    dataKey="date"
+                                    tick={{ fontSize: 11, fill: '#64748B' }}
+                                    tickFormatter={formatXAxisTick}
+                                    interval={rangeDays === 30 ? 4 : (rangeDays === 14 ? 1 : 0)}
+                                />
+                                <YAxis
+                                    allowDecimals={false}
+                                    tick={{ fontSize: 11, fill: '#64748B' }}
+                                />
+                                <Tooltip content={<CustomTooltip locale={locale} isRtl={isRtl} />} />
+                                <Area
+                                    type="monotone"
+                                    dataKey="count"
+                                    stroke="#CC0000"
+                                    strokeWidth={3}
+                                    fillOpacity={1}
+                                    fill="url(#colorVisits)"
+                                    activeDot={{ r: 6, fill: '#CC0000', stroke: '#FFF', strokeWidth: 3 }}
+                                />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    ) : (
+                        <p className="text-sm text-muted text-center py-16">{trans('no_data')}</p>
+                    )}
+                </div>
+
+                {/* Top Viewed Projects & Top Viewed Units (Side-by-Side) */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    
                     {/* Top Viewed Projects */}
                     <div className="bg-white rounded-2xl border border-secondary-100 shadow-card p-6 flex flex-col justify-between">
                         <div>
                             <div className="flex items-center justify-between mb-4">
-                                <h2 className="text-base font-bold text-secondary-950">
-                                    {isRtl ? 'المشاريع الأكثر مشاهدة' : 'Top Projects'}
+                                <h2 className="text-base font-bold text-secondary-950 flex items-center gap-2">
+                                    <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                                    {isRtl ? 'أعلى المشاريع زيارة' : 'Top Viewed Projects'}
                                 </h2>
                                 <Link href="/admin/projects" className="text-xs text-primary-900 font-bold hover:underline">
                                     {isRtl ? 'عرض الكل' : 'View All'}
                                 </Link>
                             </div>
 
-                            {topProjects?.length > 0 ? (
+                            {displayedProjects?.length > 0 ? (
                                 <div className="space-y-4">
-                                    {topProjects.map((project, i) => {
+                                    {displayedProjects.map((project, i) => {
                                         const projName = isRtl ? (project.name_ar || project.name) : (project.name_en || project.name)
                                         return (
                                             <div key={project.id} className="flex items-center gap-3">
@@ -268,7 +282,88 @@ export default function Dashboard({ stats, topProjects, recentUnits, recentMessa
                                 <p className="text-sm text-muted text-center py-12">{trans('no_data')}</p>
                             )}
                         </div>
+
+                        {/* Show More / Show Less for Top Projects */}
+                        {topProjects?.length > 5 && (
+                            <button
+                                type="button"
+                                onClick={() => setShowAllTopProjects(!showAllTopProjects)}
+                                className="w-full mt-5 py-2.5 bg-surface hover:bg-secondary-100 text-secondary-800 text-xs font-bold rounded-xl border border-secondary-200/80 transition-all flex items-center justify-center gap-1.5 active:scale-[0.99]"
+                            >
+                                <span>
+                                    {showAllTopProjects
+                                        ? (isRtl ? 'عرض أقل' : 'Show Less')
+                                        : (isRtl ? `عرض باقي أعلى ${topProjects.length} مشاريع` : `Show All Top ${topProjects.length} Projects`)}
+                                </span>
+                                <svg className={`w-4 h-4 transition-transform duration-200 ${showAllTopProjects ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                                </svg>
+                            </button>
+                        )}
                     </div>
+
+                    {/* Top Viewed Units */}
+                    <div className="bg-white rounded-2xl border border-secondary-100 shadow-card p-6 flex flex-col justify-between">
+                        <div>
+                            <div className="flex items-center justify-between mb-4">
+                                <h2 className="text-base font-bold text-secondary-950 flex items-center gap-2">
+                                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
+                                    {isRtl ? 'أعلى الوحدات زيارة' : 'Top Viewed Units'}
+                                </h2>
+                                <Link href="/admin/units" className="text-xs text-primary-900 font-bold hover:underline">
+                                    {isRtl ? 'عرض الكل' : 'View All'}
+                                </Link>
+                            </div>
+
+                            {displayedUnits?.length > 0 ? (
+                                <div className="space-y-4">
+                                    {displayedUnits.map((unit, i) => {
+                                        const unitName = isRtl ? (unit.name_ar || unit.name_en) : (unit.name_en || unit.name_ar)
+                                        return (
+                                            <div key={unit.id} className="flex items-center gap-3">
+                                                <span className={`w-7 h-7 rounded-lg text-xs font-black flex items-center justify-center shrink-0 ${i === 0 ? 'bg-amber-100 text-amber-700' : 'bg-surface text-secondary-600'}`}>
+                                                    #{i + 1}
+                                                </span>
+                                                <div className="flex-1 min-w-0">
+                                                    <Link href={`/admin/units/${unit.id}/edit`} className="text-xs font-bold text-secondary-950 truncate hover:text-primary-900 block">
+                                                        {unitName}
+                                                    </Link>
+                                                    <p className="text-[11px] text-muted truncate">
+                                                        {unit.area?.name_ar || unit.area?.name_en || ''} • {unit.price ? Number(unit.price).toLocaleString() + ' EGP' : ''}
+                                                    </p>
+                                                </div>
+                                                <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-2 py-1 rounded-lg shrink-0 flex items-center gap-1">
+                                                    <span>{unit.views_count || 0}</span>
+                                                    <span className="text-[10px] text-emerald-600 font-normal">{isRtl ? 'زيارة' : 'views'}</span>
+                                                </span>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-muted text-center py-12">{trans('no_data')}</p>
+                            )}
+                        </div>
+
+                        {/* Show More / Show Less for Top Units */}
+                        {topUnits?.length > 5 && (
+                            <button
+                                type="button"
+                                onClick={() => setShowAllTopUnits(!showAllTopUnits)}
+                                className="w-full mt-5 py-2.5 bg-surface hover:bg-secondary-100 text-secondary-800 text-xs font-bold rounded-xl border border-secondary-200/80 transition-all flex items-center justify-center gap-1.5 active:scale-[0.99]"
+                            >
+                                <span>
+                                    {showAllTopUnits
+                                        ? (isRtl ? 'عرض أقل' : 'Show Less')
+                                        : (isRtl ? `عرض باقي أعلى ${topUnits.length} وحدات` : `Show All Top ${topUnits.length} Units`)}
+                                </span>
+                                <svg className={`w-4 h-4 transition-transform duration-200 ${showAllTopUnits ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                                </svg>
+                            </button>
+                        )}
+                    </div>
+
                 </div>
 
                 {/* Bottom Row: Recent Units & Recent Inquiries */}
