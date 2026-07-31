@@ -1,3 +1,11 @@
+<IfModule mod_headers.c>
+    <FilesMatch "\.(js|css|xml|gz|html|woff2?|ttf|eot|svg|webp|png|jpg|jpeg|json)$">
+        Header set Access-Control-Allow-Origin "*"
+        Header set Access-Control-Allow-Methods "GET, OPTIONS"
+        Header set Access-Control-Allow-Headers "*"
+    </FilesMatch>
+</IfModule>
+
 <IfModule mod_rewrite.c>
     <IfModule mod_negotiation.c>
         Options -MultiViews -Indexes
