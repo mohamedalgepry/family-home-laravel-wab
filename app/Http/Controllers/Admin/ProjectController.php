@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Domain\Listings\DTOs\CreateProjectData;
+use App\Domain\Listings\Actions\StoreUploadedImagesAction;
 use App\Domain\Listings\Jobs\NotifyNewProjectJob;
 use App\Domain\Listings\Models\Area;
 use App\Domain\Listings\Models\Feature;
@@ -14,7 +15,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreProjectRequest;
 use App\Http\Requests\Admin\UpdateProjectRequest;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\UploadedFile;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -22,6 +22,7 @@ class ProjectController extends Controller
 {
     public function __construct(
         private readonly ProjectService $projectService,
+        private readonly StoreUploadedImagesAction $storeUploadedImagesAction,
     ) {}
 
     public function index(): Response
@@ -87,7 +88,7 @@ class ProjectController extends Controller
             $userId = (int) $request->input('manager_id');
         }
 
-        $imagePaths = $this->storeUploadedImages($request->file('images', []));
+        $imagePaths = $this->storeUploadedImagesAction->execute($request->file('images', []), 'projects');
 
         $project = $this->projectService->createProject(
             data: $data,
@@ -107,7 +108,7 @@ class ProjectController extends Controller
 
         $data = CreateProjectData::from($request->validated());
 
-        $newImagePaths = $this->storeUploadedImages($request->file('images', []));
+        $newImagePaths = $this->storeUploadedImagesAction->execute($request->file('images', []), 'projects');
 
         $this->projectService->updateProject(
             projectId: $project->id,
@@ -129,21 +130,6 @@ class ProjectController extends Controller
 
         return redirect()->route('admin.projects.index')
             ->with('success', __('messages.deleted_successfully'));
-    }
-
-    private function storeUploadedImages(array $images): array
-    {
-        $paths = [];
-        $year = now()->format('Y');
-        $month = now()->format('m');
-
-        foreach ($images as $image) {
-            if ($image instanceof UploadedFile) {
-                $paths[] = $image->store("projects/{$year}/{$month}", 'public');
-            }
-        }
-
-        return $paths;
     }
 
     public function autofill(Project $project)

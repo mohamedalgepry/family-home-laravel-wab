@@ -11,23 +11,6 @@ class Category extends Model
 
     protected $fillable = ['name_ar', 'name_en', 'slug', 'slug_ar', 'slug_en'];
 
-    public function resolveRouteBinding($value, $field = null)
-    {
-        if ($field) {
-            return $this->where($field, $value)->firstOrFail();
-        }
-
-        if (is_numeric($value)) {
-            return $this->where('id', $value)->first()
-                ?? $this->where('slug', $value)->orWhere('slug_ar', $value)->orWhere('slug_en', $value)->firstOrFail();
-        }
-
-        return $this->where('slug', $value)
-            ->orWhere('slug_ar', $value)
-            ->orWhere('slug_en', $value)
-            ->firstOrFail();
-    }
-
     protected static function booted(): void
     {
         static::creating(function (self $category) {

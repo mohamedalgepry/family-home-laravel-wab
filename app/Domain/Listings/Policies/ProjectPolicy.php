@@ -18,12 +18,8 @@ class ProjectPolicy
             return true;
         }
 
-        if ($user->isManager()) {
-            return $project->user_id === $user->id || $project->user_id === null;
-        }
-
-        if ($user->isAgent()) {
-            return $project->user_id === $user->id || $project->user_id === null;
+        if ($user->isManager() || $user->isAgent()) {
+            return $this->isOwnedBy($user, $project);
         }
 
         return false;
@@ -41,7 +37,7 @@ class ProjectPolicy
         }
 
         if ($user->isManager()) {
-            return $project->user_id === $user->id;
+            return $this->isOwnedBy($user, $project);
         }
 
         return false;
@@ -50,5 +46,10 @@ class ProjectPolicy
     public function delete(User $user, Project $project): bool
     {
         return $user->isAdmin();
+    }
+
+    private function isOwnedBy(User $user, Project $project): bool
+    {
+        return $project->user_id === $user->id;
     }
 }

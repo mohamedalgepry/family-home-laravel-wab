@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domain\Common\QueryBuilders\UserScopeQueryBuilder;
 use App\Domain\Listings\DTOs\CreateUnitData;
+use App\Domain\Listings\Actions\StoreUploadedImagesAction;
 use App\Domain\Listings\Models\Area;
 use App\Domain\Listings\Models\Feature;
 use App\Domain\Listings\Models\FinishingType;
@@ -17,7 +19,6 @@ use App\Http\Requests\Admin\AdjustPointsRequest;
 use App\Http\Requests\Admin\StoreUnitRequest;
 use App\Http\Requests\Admin\UpdateUnitRequest;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\UploadedFile;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -25,6 +26,7 @@ class UnitController extends Controller
 {
     public function __construct(
         private readonly UnitService $unitService,
+        private readonly StoreUploadedImagesAction $storeUploadedImagesAction,
     ) {}
 
     public function index(): Response
@@ -71,12 +73,14 @@ class UnitController extends Controller
 
     private function getFormData($user): array
     {
+        $projects = Project::select('id', 'name_ar', 'name_en');
+
+        UserScopeQueryBuilder::applyOwnershipScope($projects, $user);
+
         return [
             'areas' => Area::select('id', 'name_ar', 'name_en')->orderBy('name_ar')->get(),
             'unitTypes' => UnitType::select('id', 'name_ar', 'name_en')->orderBy('name_ar')->get(),
-            'projects' => Project::select('id', 'name_ar', 'name_en')->when(! $user->isAdmin(), function ($q) use ($user) {
-                $q->where('user_id', $user->isManager() ? $user->id : $user->manager_id);
-            })->orderBy('name_en')->get(),
+            'projects' => $projects->orderBy('name_en')->get(),
             'features' => Feature::select('id', 'name_ar', 'name_en')->get(),
             'finishingTypes' => FinishingType::select('id', 'name_ar', 'name_en')->get(),
         ];
@@ -88,7 +92,7 @@ class UnitController extends Controller
         $data = CreateUnitData::from($request->validated());
 
         $primaryImageIndex = (int) $request->input('primary_image_index', 0);
-        $imagePaths = $this->storeUploadedImages($request->file('images', []));
+        $imagePaths = $this->storeUploadedImagesAction->execute($request->file('images', []), 'units');
 
         $this->unitService->createUnit(
             data: $data,
@@ -108,7 +112,7 @@ class UnitController extends Controller
         $data = CreateUnitData::from($request->validated());
 
         $primaryImageIndex = (int) $request->input('primary_image_index', 0);
-        $newImagePaths = $this->storeUploadedImages($request->file('images', []));
+        $newImagePaths = $this->storeUploadedImagesAction->execute($request->file('images', []), 'units');
 
         $this->unitService->updateUnit(
             unitId: $unit->id,
@@ -188,20 +192,5 @@ class UnitController extends Controller
 
         return redirect()->route('admin.units.index')
             ->with('success', __('admin.points_adjusted_successfully'));
-    }
-
-    private function storeUploadedImages(array $images): array
-    {
-        $paths = [];
-        $year = now()->format('Y');
-        $month = now()->format('m');
-
-        foreach ($images as $image) {
-            if ($image instanceof UploadedFile) {
-                $paths[] = $image->store("units/{$year}/{$month}", 'public');
-            }
-        }
-
-        return $paths;
     }
 }

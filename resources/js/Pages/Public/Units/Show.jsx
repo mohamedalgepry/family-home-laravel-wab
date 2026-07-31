@@ -318,14 +318,7 @@ export default function UnitShow({ unit, similarUnits }) {
                                     </div>
                                 )}
 
-                                {/* Keywords */}
-                                {unit.keywords?.length > 0 && (
-                                    <div className="mb-6 flex flex-wrap gap-2">
-                                        {unit.keywords.map((kw, i) => (
-                                            <span key={i} className="px-2 py-0.5 bg-surface text-xs text-secondary-700 rounded-full border border-secondary-200">{kw}</span>
-                                        ))}
-                                    </div>
-                                )}
+
 
                                 {/* Location */}
                                 {unit.map_embed_url && (

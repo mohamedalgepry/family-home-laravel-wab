@@ -19,19 +19,11 @@ class UnitPolicy
         }
 
         if ($user->isManager()) {
-            return $unit->user_id === $user->id
-                || $unit->user_id === null
-                || $user->agents()->where('id', $unit->user_id)->exists();
+            return $this->isOwnedByTeam($user, $unit);
         }
 
         if ($user->isAgent()) {
-            if ($user->manager_id) {
-                return $unit->user_id === $user->id
-                    || $unit->user_id === $user->manager_id
-                    || User::where('id', $unit->user_id)->where('manager_id', $user->manager_id)->exists();
-            }
-
-            return $unit->user_id === $user->id;
+            return $this->isInAgentsTeam($user, $unit);
         }
 
         return false;
@@ -49,13 +41,11 @@ class UnitPolicy
         }
 
         if ($user->isManager()) {
-            return $unit->user_id === $user->id
-                || $unit->user_id === null
-                || $user->agents()->where('id', $unit->user_id)->exists();
+            return $this->isOwnedByTeam($user, $unit);
         }
 
         if ($user->isAgent()) {
-            return $unit->user_id === $user->id;
+            return $this->isOwnedBy($user, $unit);
         }
 
         return false;
@@ -67,12 +57,7 @@ class UnitPolicy
             return true;
         }
 
-        if ($user->isManager()) {
-            return $unit->user_id === $user->id
-                || $user->agents()->where('id', $unit->user_id)->exists();
-        }
-
-        return false;
+        return $user->isManager() && $this->isOwnedByTeam($user, $unit);
     }
 
     public function togglePin(User $user, Unit $unit): bool
@@ -81,12 +66,7 @@ class UnitPolicy
             return true;
         }
 
-        if ($user->isManager()) {
-            return $unit->user_id === $user->id
-                || $user->agents()->where('id', $unit->user_id)->exists();
-        }
-
-        return false;
+        return $user->isManager() && $this->isOwnedByTeam($user, $unit);
     }
 
     public function toggleDeal(User $user, Unit $unit): bool
@@ -95,12 +75,7 @@ class UnitPolicy
             return true;
         }
 
-        if ($user->isManager()) {
-            return $unit->user_id === $user->id
-                || $user->agents()->where('id', $unit->user_id)->exists();
-        }
-
-        return false;
+        return $user->isManager() && $this->isOwnedByTeam($user, $unit);
     }
 
     public function toggleActive(User $user, Unit $unit): bool
@@ -109,11 +84,28 @@ class UnitPolicy
             return true;
         }
 
-        if ($user->isManager()) {
-            return $unit->user_id === $user->id
-                || $user->agents()->where('id', $unit->user_id)->exists();
+        return $user->isManager() && $this->isOwnedByTeam($user, $unit);
+    }
+
+    private function isOwnedByTeam(User $user, Unit $unit): bool
+    {
+        return $this->isOwnedBy($user, $unit)
+            || $user->agents()->where('id', $unit->user_id)->exists();
+    }
+
+    private function isOwnedBy(User $user, Unit $unit): bool
+    {
+        return $unit->user_id === $user->id;
+    }
+
+    private function isInAgentsTeam(User $user, Unit $unit): bool
+    {
+        if (! $user->manager_id) {
+            return $this->isOwnedBy($user, $unit);
         }
 
-        return false;
+        return $this->isOwnedBy($user, $unit)
+            || $unit->user_id === $user->manager_id
+            || User::where('id', $unit->user_id)->where('manager_id', $user->manager_id)->exists();
     }
 }

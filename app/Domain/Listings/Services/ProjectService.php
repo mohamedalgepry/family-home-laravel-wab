@@ -2,17 +2,17 @@
 
 namespace App\Domain\Listings\Services;
 
+use App\Domain\Common\QueryBuilders\ListingQueryBuilder;
+use App\Domain\Common\QueryBuilders\UserScopeQueryBuilder;
 use App\Domain\Listings\Actions\CreateProjectAction;
 use App\Domain\Listings\Actions\DeleteProjectAction;
 use App\Domain\Listings\Actions\UpdateProjectAction;
 use App\Domain\Listings\DTOs\CreateProjectData;
 use App\Domain\Listings\Models\Project;
-use App\Domain\Media\Jobs\GenerateThumbnailsJob;
 use App\Domain\Users\Models\User;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 
 class ProjectService
 {
@@ -21,46 +21,19 @@ class ProjectService
         private readonly UpdateProjectAction $updateAction,
         private readonly DeleteProjectAction $deleteAction,
         private readonly SitemapService $sitemapService,
+        private readonly ListingImageService $listingImageService,
     ) {}
 
     public function getPaginatedProjects(array $filters = [], ?User $user = null): LengthAwarePaginator
     {
         $query = Project::with(['area', 'images'])->withCount('units');
 
-        if ($user !== null && ! $user->isAdmin()) {
-            if ($user->isManager()) {
-                $query->where('user_id', $user->id);
-            } elseif ($user->isAgent()) {
-                $query->where('user_id', $user->manager_id);
-            }
-        }
+        UserScopeQueryBuilder::applyOwnershipScope($query, $user);
+        ListingQueryBuilder::applySearch($query, $filters, ['name_en', 'name_ar', 'slug', 'slug_ar', 'slug_en']);
+        ListingQueryBuilder::applyExactMatches($query, $filters, ['area_id']);
+        ListingQueryBuilder::applySort($query, $filters, ['created_at', 'name', 'units_count'], 'created_at');
 
-        if (! empty($filters['search'])) {
-            $search = $filters['search'];
-            $query->where(function ($q) use ($search) {
-                $q->where('name_en', 'like', "%{$search}%")
-                    ->orWhere('name_ar', 'like', "%{$search}%")
-                    ->orWhere('slug', 'like', "%{$search}%")
-                    ->orWhere('slug_ar', 'like', "%{$search}%")
-                    ->orWhere('slug_en', 'like', "%{$search}%");
-            });
-        }
-
-        if (! empty($filters['area_id'])) {
-            $query->where('area_id', $filters['area_id']);
-        }
-
-        $sortField = $filters['sort'] ?? 'created_at';
-        $sortDir = $filters['direction'] ?? 'desc';
-        $allowedSorts = ['created_at', 'name', 'units_count'];
-
-        if (in_array($sortField, $allowedSorts)) {
-            $query->orderBy($sortField, $sortDir === 'asc' ? 'asc' : 'desc');
-        }
-
-        $perPage = min((int) ($filters['per_page'] ?? 15), 50);
-
-        return $query->paginate($perPage);
+        return $query->paginate(ListingQueryBuilder::perPage($filters));
     }
 
     public function createProject(CreateProjectData $data, int $userId, array $imagePaths = []): Project
@@ -69,7 +42,7 @@ class ProjectService
             $project = $this->createAction->execute($data, $userId);
 
             if (! empty($imagePaths)) {
-                $this->persistImagePaths($project, $imagePaths);
+                $this->listingImageService->persistImages($project, $imagePaths);
             }
 
             $this->clearListingsCache();
@@ -78,7 +51,7 @@ class ProjectService
         });
 
         // إضافة المشروع فوراً لـ Sitemap
-        $this->regenerateSitemap();
+        $this->sitemapService->regenerate();
 
         return $project;
     }
@@ -90,10 +63,8 @@ class ProjectService
 
             if (! empty($deletedImageIds)) {
                 $images = $project->images()->whereIn('id', $deletedImageIds)->get();
+                $this->listingImageService->deleteImageFiles($images->pluck('path')->all());
                 foreach ($images as $image) {
-                    // حذف الصورة الأصلية والـ Thumbnail معاً
-                    Storage::disk('public')->delete($image->path);
-                    $this->deleteThumbnail($image->path);
                     $image->delete();
                 }
             }
@@ -105,7 +76,7 @@ class ProjectService
             }
 
             if (! empty($newImagePaths)) {
-                $this->persistImagePaths($project, $newImagePaths);
+                $this->listingImageService->persistImages($project, $newImagePaths);
             }
 
             $this->clearListingsCache();
@@ -113,7 +84,7 @@ class ProjectService
             return $project->load(['area', 'images']);
         });
 
-        $this->regenerateSitemap();
+        $this->sitemapService->regenerate();
 
         return $project;
     }
@@ -131,61 +102,14 @@ class ProjectService
         });
 
         // حذف الصور الأصلية والـ Thumbnails من الـ Storage
-        foreach ($imagePaths as $path) {
-            Storage::disk('public')->delete($path);
-            $this->deleteThumbnail($path);
-        }
+        $this->listingImageService->deleteImageFiles($imagePaths);
 
         // إعادة توليد ملف sitemap.xml فوراً
-        $this->regenerateSitemap();
+        $this->sitemapService->regenerate();
     }
 
     private function clearListingsCache(): void
     {
-        Cache::increment('listing_cache_version');
-    }
-
-    /**
-     * حذف ملف Thumbnail المرتبط بمسار صورة.
-     */
-    private function deleteThumbnail(string $path): void
-    {
-        if (! $path) {
-            return;
-        }
-        $dir = dirname($path);
-        $filename = basename($path);
-        $thumbPath = ($dir !== '.' ? $dir . '/' : '') . 'thumb_' . $filename;
-        Storage::disk('public')->delete($thumbPath);
-    }
-
-    /**
-     * إعادة توليد sitemap.xml في الخلفية.
-     */
-    private function regenerateSitemap(): void
-    {
-        try {
-            $this->sitemapService->regenerate();
-        } catch (\Throwable $e) {
-            // عدم السماح لخطأ الـ sitemap بإيقاف باقي العملية
-        }
-    }
-
-    private function persistImagePaths(Project $project, array $paths): void
-    {
-        $existingCount = $project->images()->count();
-
-        foreach ($paths as $i => $path) {
-            $project->images()->create([
-                'path' => $path,
-                'sort_order' => $existingCount + $i + 1,
-            ]);
-        }
-
-        dispatch(new GenerateThumbnailsJob(
-            modelType: Project::class,
-            modelId: $project->id,
-            paths: $paths,
-        ))->afterCommit();
+        Cache::increment(ListingService::CACHE_VERSION_KEY);
     }
 }

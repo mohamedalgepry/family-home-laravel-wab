@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -13,7 +14,9 @@ return new class extends Migration
             $table->index('notification_type');
         });
 
-        DB::statement("UPDATE notifications SET notification_type = JSON_UNQUOTE(JSON_EXTRACT(data, '$.type'))");
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("UPDATE notifications SET notification_type = JSON_UNQUOTE(JSON_EXTRACT(data, '$.type'))");
+        }
     }
 
     public function down(): void

@@ -13,22 +13,6 @@ class Article extends Model
         'keywords', 'meta_description', 'is_published', 'published_at', 'views_count',
     ];
 
-    public function resolveRouteBinding($value, $field = null)
-    {
-        if ($field) {
-            return $this->where($field, $value)->firstOrFail();
-        }
-
-        return $this->where(function ($query) use ($value) {
-            if (is_numeric($value)) {
-                $query->where('id', (int) $value);
-            }
-            $query->orWhere('slug', $value)
-                ->orWhere('slug_ar', $value)
-                ->orWhere('slug_en', $value);
-        })->firstOrFail();
-    }
-
     protected function casts(): array
     {
         return [

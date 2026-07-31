@@ -5,6 +5,7 @@ namespace App\Domain\Users\Models;
 use App\Domain\Listings\Models\Project;
 use App\Domain\Listings\Models\Unit;
 use App\Domain\Points\Models\PointsTransaction;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -78,5 +79,15 @@ class User extends Authenticatable
     public function profile(): HasOne
     {
         return $this->hasOne(AgentProfile::class);
+    }
+
+    public function scopeManagers(Builder $query): Builder
+    {
+        return $query->where('role', 'manager');
+    }
+
+    public function scopeAgents(Builder $query): Builder
+    {
+        return $query->where('role', 'agent');
     }
 }

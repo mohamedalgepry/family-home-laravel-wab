@@ -2,31 +2,22 @@
 
 namespace App\Domain\Listings\Models;
 
+use App\Domain\Common\Concerns\ByAnySlug;
 use App\Domain\Listings\Services\ListingService;
 use App\Domain\Users\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 class Project extends Model
 {
+    use ByAnySlug;
+
     protected $fillable = [
         'user_id', 'area_id', 'name', 'name_ar', 'name_en', 'slug', 'slug_ar', 'slug_en', 'description', 'description_ar', 'description_en', 'alt_text',
         'video_url', 'map_embed_url', 'location_address_ar', 'location_address_en',
         'keywords_ar', 'keywords_en', 'meta_description_ar', 'meta_description_en', 'is_active', 'auto_delete_at', 'views_count',
         'payment_method', 'down_payment', 'installment_years', 'finishing_type_id',
     ];
-
-    public function resolveRouteBinding($value, $field = null)
-    {
-        if ($field) {
-            return $this->where($field, $value)->firstOrFail();
-        }
-
-        return $this->where('slug', $value)
-            ->orWhere('slug_ar', $value)
-            ->orWhere('slug_en', $value)
-            ->orWhere('id', (int) $value)
-            ->firstOrFail();
-    }
 
     protected function casts(): array
     {
@@ -121,21 +112,7 @@ class Project extends Model
         });
     }
 
-    protected function ensureUniqueSlugs(): void
-    {
-        foreach (['slug', 'slug_ar', 'slug_en'] as $field) {
-            if (! $this->$field) {
-                continue;
-            }
-            $base = $this->$field;
-            $suffix = 1;
-            while (self::where($field, $this->$field)->where('id', '!=', $this->id)->exists()) {
-                $this->$field = $base.'-'.$suffix++;
-            }
-        }
-    }
-
-    public function scopeActive($query)
+    public function scopeActive(Builder $query)
     {
         return $query->where('is_active', true);
     }

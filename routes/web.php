@@ -118,13 +118,13 @@ Route::prefix('{locale}')->whereIn('locale', ['ar', 'en'])->middleware(SetLocale
     Route::post('/contact', [MessageController::class, 'storeContact'])
         ->middleware('throttle:contact-form');
 
-    Route::post('/units/{unit}/contact', [MessageController::class, 'store'])
+    Route::post('/units/{unit:slug}/contact', [MessageController::class, 'store'])
         ->middleware('throttle:contact-form');
 });
 
 Route::post('/contact', [MessageController::class, 'storeContact'])
     ->middleware('throttle:contact-form');
-Route::post('/units/{unit}/contact', [MessageController::class, 'store'])
+Route::post('/units/{unit:slug}/contact', [MessageController::class, 'store'])
     ->middleware('throttle:contact-form');
 
 Route::prefix('admin')->middleware(['auth', 'role:admin,manager,agent'])->group(function () {

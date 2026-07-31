@@ -2,9 +2,11 @@
 
 namespace App\Domain\Listings\Services;
 
+use App\Domain\Common\QueryBuilders\ListingQueryBuilder;
 use App\Domain\Listings\Models\Project;
 use App\Domain\Listings\Models\Unit;
 use Illuminate\Contracts\Pagination\Paginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cache;
 
@@ -14,11 +16,11 @@ class ListingService
 
     private const CACHE_PREFIX = 'listing_';
 
-    private const VERSION_KEY = 'listing_cache_version';
+    public const CACHE_VERSION_KEY = 'listing_cache_version';
 
     private function version(): int
     {
-        return Cache::rememberForever(self::VERSION_KEY, fn () => 1);
+        return Cache::rememberForever(self::CACHE_VERSION_KEY, fn () => 1);
     }
 
     private function generateCacheKey(string $prefix, array $filters, int $perPage, int $page): string
@@ -44,11 +46,8 @@ class ListingService
         $page = request()->input('page', 1);
 
         return Cache::remember(self::CACHE_PREFIX."latest_{$limit}_page_{$page}_v{$this->version()}", self::CACHE_TTL, function () use ($limit) {
-            return Unit::active()
-                ->with(['type', 'area', 'images', 'user.profile'])
-                ->orderByDesc('priority_points')
-                ->orderByDesc('is_pinned')
-                ->orderByDesc('created_at')
+            return $this->unitBaseQuery()
+                ->orderByFeatured()
                 ->simplePaginate($limit);
         });
     }
@@ -59,25 +58,21 @@ class ListingService
         $key = $this->generateCacheKey('units_filters', $filters, $perPage, $page);
 
         return Cache::remember($key, self::CACHE_TTL, function () use ($filters, $perPage) {
-            $query = Unit::active()->with(['type', 'area', 'images', 'user.profile']);
+            $query = $this->unitBaseQuery();
             $this->applyUnitFilters($query, $filters);
 
-            return $query->orderByDesc('priority_points')
-                ->orderByDesc('is_pinned')
-                ->orderByDesc('created_at')
-                ->simplePaginate($perPage);
+            return $query->orderByFeatured()->simplePaginate($perPage);
         });
+    }
+
+    private function unitBaseQuery(): Builder
+    {
+        return Unit::active()->with(['type', 'area', 'images', 'user.profile']);
     }
 
     private function applyUnitFilters($query, array $filters): void
     {
-        $exactMatches = ['area_id', 'type_id', 'transaction', 'payment_method', 'finishing_type_id'];
-
-        foreach ($exactMatches as $field) {
-            if (! empty($filters[$field])) {
-                $query->where($field, $filters[$field]);
-            }
-        }
+        ListingQueryBuilder::applyExactMatches($query, $filters, ['area_id', 'type_id', 'transaction', 'payment_method', 'finishing_type_id']);
 
         if (! empty($filters['price_min'])) {
             $query->where('price', '>=', $filters['price_min']);
@@ -100,7 +95,7 @@ class ListingService
         }
 
         $this->applyFeaturesFilter($query, $filters);
-        $this->applySearchFilter($query, $filters, true);
+        ListingQueryBuilder::applySearch($query, $filters, ['name_en', 'name_ar', 'description_en', 'description_ar', 'slug', 'slug_ar', 'slug_en'], 'project', 2);
     }
 
     public function getProjectsByFilters(array $filters, int $perPage = 12): Paginator
@@ -123,16 +118,10 @@ class ListingService
 
     private function applyProjectFilters($query, array $filters): void
     {
-        $exactMatches = ['area_id', 'payment_method', 'finishing_type_id'];
-
-        foreach ($exactMatches as $field) {
-            if (! empty($filters[$field])) {
-                $query->where($field, $filters[$field]);
-            }
-        }
+        ListingQueryBuilder::applyExactMatches($query, $filters, ['area_id', 'payment_method', 'finishing_type_id']);
 
         $this->applyFeaturesFilter($query, $filters);
-        $this->applySearchFilter($query, $filters, false);
+        ListingQueryBuilder::applySearch($query, $filters, ['name_en', 'name_ar', 'description_en', 'description_ar', 'slug', 'slug_ar', 'slug_en'], 'units', 2);
     }
 
     private function applyFeaturesFilter($query, array $filters): void
@@ -145,35 +134,10 @@ class ListingService
         }
     }
 
-    private function applySearchFilter($query, array $filters, bool $isUnit): void
-    {
-        if (! empty($filters['search']) && strlen($filters['search']) >= 2) {
-            $query->where(function ($q) use ($filters, $isUnit) {
-                $q->where('name_en', 'like', '%'.$filters['search'].'%')
-                    ->orWhere('name_ar', 'like', '%'.$filters['search'].'%')
-                    ->orWhere('description_en', 'like', '%'.$filters['search'].'%')
-                    ->orWhere('description_ar', 'like', '%'.$filters['search'].'%')
-                    ->orWhere('slug', 'like', '%'.$filters['search'].'%')
-                    ->orWhere('slug_ar', 'like', '%'.$filters['search'].'%')
-                    ->orWhere('slug_en', 'like', '%'.$filters['search'].'%');
-
-                $relation = $isUnit ? 'project' : 'units';
-                $q->orWhereHas($relation, function ($rel) use ($filters) {
-                    $rel->where('name_en', 'like', '%'.$filters['search'].'%')
-                        ->orWhere('name_ar', 'like', '%'.$filters['search'].'%');
-                });
-            });
-        }
-    }
-
     public function getUnitBySlug(string $slug): ?Unit
     {
         return Cache::remember(self::CACHE_PREFIX."unit_{$slug}_v{$this->version()}", self::CACHE_TTL, function () use ($slug) {
-            return Unit::where(function ($query) use ($slug) {
-                $query->where('slug', $slug)
-                    ->orWhere('slug_ar', $slug)
-                    ->orWhere('slug_en', $slug);
-            })
+            return Unit::byAnySlug($slug)
                 ->with(['type', 'area', 'images', 'user.profile', 'project', 'features', 'finishingType'])
                 ->first();
         });
@@ -182,11 +146,7 @@ class ListingService
     public function getProjectBySlug(string $slug): ?Project
     {
         return Cache::remember(self::CACHE_PREFIX."project_{$slug}_v{$this->version()}", self::CACHE_TTL, function () use ($slug) {
-            return Project::where(function ($query) use ($slug) {
-                $query->where('slug', $slug)
-                    ->orWhere('slug_ar', $slug)
-                    ->orWhere('slug_en', $slug);
-            })
+            return Project::byAnySlug($slug)
                 ->with(['area', 'images', 'user.profile', 'features', 'finishingType', 'units' => function ($q) {
                     $q->active()->with(['type', 'area', 'images']);
                 }])
@@ -204,8 +164,7 @@ class ListingService
                         ->orWhere('area_id', $unit->area_id);
                 })
                 ->with(['type', 'area', 'images', 'user.profile'])
-                ->orderByDesc('priority_points')
-                ->orderByDesc('created_at')
+                ->orderByFeatured()
                 ->limit($limit)
                 ->get();
         });
@@ -213,6 +172,6 @@ class ListingService
 
     public function clearCache(): void
     {
-        Cache::increment(self::VERSION_KEY);
+        Cache::increment(self::CACHE_VERSION_KEY);
     }
 }

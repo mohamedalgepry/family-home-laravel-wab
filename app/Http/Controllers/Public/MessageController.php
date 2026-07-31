@@ -14,10 +14,8 @@ class MessageController
         private readonly CreateMessageAction $createMessageAction,
     ) {}
 
-    public function store(StoreMessageRequest $request, string $slug): RedirectResponse
+    public function store(StoreMessageRequest $request, Unit $unit): RedirectResponse
     {
-        $unit = Unit::where('slug', $slug)->orWhere('id', $slug)->firstOrFail();
-
         $data = CreateMessageData::validateAndCreate([
             'unit_id' => $unit->id,
             ...$request->validated(),

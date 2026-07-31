@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Domain\Listings\DTOs\CreateArticleData;
+use App\Domain\Listings\Actions\StoreUploadedImagesAction;
 use App\Domain\Listings\Models\Article;
 use App\Domain\Listings\Models\Category;
 use App\Domain\Listings\Services\ArticleService;
@@ -10,7 +11,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreArticleRequest;
 use App\Http\Requests\Admin\UpdateArticleRequest;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\UploadedFile;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -18,6 +18,7 @@ class ArticleController extends Controller
 {
     public function __construct(
         private readonly ArticleService $articleService,
+        private readonly StoreUploadedImagesAction $storeUploadedImagesAction,
     ) {}
 
     public function index(): Response
@@ -70,10 +71,10 @@ class ArticleController extends Controller
 
         $coverImagePath = null;
         if ($request->hasFile('cover_image')) {
-            $coverImagePath = $this->storeUploadedImages([$request->file('cover_image')])[0];
+            $coverImagePath = $this->storeUploadedImagesAction->execute([$request->file('cover_image')], 'articles')[0];
         }
 
-        $imagePaths = $this->storeUploadedImages($request->file('images', []));
+        $imagePaths = $this->storeUploadedImagesAction->execute($request->file('images', []), 'articles');
         $newImageAlts = $request->input('new_image_alts', []);
         $newImagePositions = $request->input('new_image_positions', []);
 
@@ -97,10 +98,10 @@ class ArticleController extends Controller
 
         $coverImagePath = null;
         if ($request->hasFile('cover_image')) {
-            $coverImagePath = $this->storeUploadedImages([$request->file('cover_image')])[0];
+            $coverImagePath = $this->storeUploadedImagesAction->execute([$request->file('cover_image')], 'articles')[0];
         }
 
-        $newImagePaths = $this->storeUploadedImages($request->file('images', []));
+        $newImagePaths = $this->storeUploadedImagesAction->execute($request->file('images', []), 'articles');
         $newImageAlts = $request->input('new_image_alts', []);
         $newImagePositions = $request->input('new_image_positions', []);
 
@@ -137,20 +138,5 @@ class ArticleController extends Controller
 
         return redirect()->route('admin.articles.index')
             ->with('success', __('articles.publish_toggled'));
-    }
-
-    private function storeUploadedImages(array $images): array
-    {
-        $paths = [];
-        $year = now()->format('Y');
-        $month = now()->format('m');
-
-        foreach ($images as $image) {
-            if ($image instanceof UploadedFile) {
-                $paths[] = $image->store("articles/{$year}/{$month}", 'public');
-            }
-        }
-
-        return $paths;
     }
 }

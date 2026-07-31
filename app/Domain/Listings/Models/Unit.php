@@ -2,6 +2,7 @@
 
 namespace App\Domain\Listings\Models;
 
+use App\Domain\Common\Concerns\ByAnySlug;
 use App\Domain\Listings\Services\ListingService;
 use App\Domain\Points\Models\PointsTransaction;
 use App\Domain\Users\Models\Message;
@@ -11,6 +12,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 class Unit extends Model
 {
+    use ByAnySlug;
+
     protected $fillable = [
         'project_id', 'user_id', 'name', 'name_ar', 'name_en', 'slug', 'slug_ar', 'slug_en', 'description', 'description_ar', 'description_en', 'type_id',
         'area_id', 'transaction', 'price', 'area_sqm', 'rooms', 'bathrooms',
@@ -19,19 +22,6 @@ class Unit extends Model
         'priority_points', 'is_pinned', 'is_deal', 'is_active', 'views_count',
         'auto_delete_at', 'payment_method', 'down_payment', 'installment_years', 'finishing_type_id',
     ];
-
-    public function resolveRouteBinding($value, $field = null)
-    {
-        if ($field) {
-            return $this->where($field, $value)->firstOrFail();
-        }
-
-        return $this->where('slug', $value)
-            ->orWhere('slug_ar', $value)
-            ->orWhere('slug_en', $value)
-            ->orWhere('id', (int) $value)
-            ->firstOrFail();
-    }
 
     protected function casts(): array
     {
@@ -131,20 +121,6 @@ class Unit extends Model
         });
     }
 
-    protected function ensureUniqueSlugs(): void
-    {
-        foreach (['slug', 'slug_ar', 'slug_en'] as $field) {
-            if (! $this->$field) {
-                continue;
-            }
-            $base = $this->$field;
-            $suffix = 1;
-            while (self::where($field, $this->$field)->where('id', '!=', $this->id)->exists()) {
-                $this->$field = $base.'-'.$suffix++;
-            }
-        }
-    }
-
     public function project()
     {
         return $this->belongsTo(Project::class);
@@ -192,8 +168,12 @@ class Unit extends Model
 
     public function scopeFeatured(Builder $query): Builder
     {
-        return $query->where('is_active', true)
-            ->orderByDesc('priority_points')
+        return $query->where('is_active', true)->orderByFeatured();
+    }
+
+    public function scopeOrderByFeatured(Builder $query): Builder
+    {
+        return $query->orderByDesc('priority_points')
             ->orderByDesc('is_pinned')
             ->orderByDesc('created_at');
     }
