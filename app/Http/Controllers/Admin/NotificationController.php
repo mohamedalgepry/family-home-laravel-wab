@@ -8,11 +8,13 @@ use App\Domain\Listings\Models\Unit;
 use App\Domain\Listings\Services\ListingService;
 use App\Domain\Listings\Services\SitemapService;
 use App\Domain\Listings\Services\UnitService;
+use App\Domain\Users\Models\User;
+use App\Domain\Users\Services\NotificationService;
 use App\Http\Controllers\Controller;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -20,53 +22,30 @@ class NotificationController extends Controller
 {
     public function __construct(
         private readonly SitemapService $sitemapService,
+        private readonly NotificationService $notificationService,
+        private readonly UnitService $unitService,
     ) {}
 
     public function index(Request $request): Response
     {
         $user = $request->user();
 
-        $notifications = Cache::remember("user_{$user->id}_notifications_page", 60, function () use ($user) {
-            return $user->notifications()
-                ->paginate(20)
-                ->through(function ($notification) {
-                    $data = $notification->data;
-                    $data['id'] = $notification->id;
-                    $data['read_at'] = $notification->read_at?->toIso8601String();
-                    $data['created_at_human'] = $notification->created_at->diffForHumans();
-
-                    return $data;
-                });
-        });
-
-        $unreadCount = $user->unreadNotifications()->count();
-
         return Inertia::render('Admin/Notifications/Index', [
-            'notifications' => $notifications,
-            'unreadCount' => $unreadCount,
+            'notifications' => $this->notificationService->paginated($user),
+            'unreadCount' => $user->unreadNotifications()->count(),
         ]);
     }
 
     public function markAsRead(Request $request, string $id): RedirectResponse
     {
-        $user = $request->user();
-        $notification = $user->notifications()->where('id', $id)->first();
-
-        if ($notification && ! $notification->read_at) {
-            $notification->markAsRead();
-            Cache::forget("user_{$user->id}_unread_count");
-            Cache::forget("user_{$user->id}_notifications_page");
-        }
+        $this->notificationService->markAsRead($request->user(), $id);
 
         return redirect()->back()->with('success', __('common.updated_successfully'));
     }
 
     public function markAllAsRead(Request $request): RedirectResponse
     {
-        $user = $request->user();
-        $user->unreadNotifications->markAsRead();
-        Cache::forget("user_{$user->id}_unread_count");
-        Cache::forget("user_{$user->id}_notifications_page");
+        $this->notificationService->markAllAsRead($request->user());
 
         return redirect()->back()->with('success', __('common.updated_successfully'));
     }
@@ -77,24 +56,16 @@ class NotificationController extends Controller
 
         $project->update(['is_active' => true]);
         $this->sitemapService->regenerate();
+        $this->clearListingsCache();
 
-        try {
-            app(ListingService::class)->clearCache();
-        } catch (\Throwable) {
-        }
+        $this->notificationService->markEntityNotificationsAsRead(
+            $request->user(),
+            'project_id',
+            $project->id,
+            'new_project_created',
+        );
 
-        $user = $request->user();
-        $notification = $user->unreadNotifications()
-            ->get()
-            ->first(fn ($n) => ($n->data['project_id'] ?? null) == $project->id
-                && ($n->data['type'] ?? '') === 'new_project_created');
-
-        if ($notification) {
-            $notification->markAsRead();
-            Cache::forget("user_{$user->id}_unread_count");
-        }
-
-        return redirect()->back()->with('success', "تم موافقة وتفعيل المشروع \"{$project->name}\" بنجاح!");
+        return redirect()->back()->with('success', __('admin.project_approved', ['name' => $project->name]));
     }
 
     public function approveUnit(Request $request, Unit $unit): RedirectResponse
@@ -105,131 +76,60 @@ class NotificationController extends Controller
             return redirect()->back()->with('success', __('common.updated_successfully'));
         }
 
-        app(UnitService::class)->toggleActive($unit->id, $request->user());
+        $this->unitService->toggleActive($unit->id, $request->user());
 
-        $user = $request->user();
-        $notification = $user->unreadNotifications()
-            ->get()
-            ->first(fn ($item) => ($item->data['unit_id'] ?? null) == $unit->id
-                && ($item->data['type'] ?? '') === 'unit_pending_approval');
-
-        if ($notification) {
-            $notification->markAsRead();
-        }
-
-        Cache::forget("user_{$user->id}_unread_count");
-        Cache::forget("user_{$user->id}_notifications_page");
+        $this->notificationService->markEntityNotificationsAsRead(
+            $request->user(),
+            'unit_id',
+            $unit->id,
+            'unit_pending_approval',
+        );
 
         return redirect()->back()->with('success', __('admin.activation_success'));
     }
 
     public function extendProject(Request $request, Project $project): RedirectResponse
     {
-        $user = $request->user();
-        abort_unless($user->isAdmin(), 403);
+        abort_unless($request->user()->isAdmin(), 403);
 
-        $days = (int) Setting::getValue('auto_delete_days', '30');
-        $newExpiry = now()->addDays($days > 0 ? $days : 30);
+        $this->extendListing($request->user(), $project, 'project_id');
 
-        $project->update([
-            'is_active' => true,
-            'auto_delete_at' => $newExpiry,
-        ]);
-        $this->sitemapService->regenerate();
-
-        // Clear cached listings
-        try {
-            app(ListingService::class)->clearCache();
-        } catch (\Throwable) {
-        }
-
-        // Mark all associated notifications for this project as read
-        $notifications = $user->unreadNotifications()
-            ->get()
-            ->filter(fn ($n) => ($n->data['project_id'] ?? null) == $project->id);
-
-        foreach ($notifications as $n) {
-            $n->markAsRead();
-        }
-        Cache::forget("user_{$user->id}_unread_count");
-
-        return redirect()->back()->with('success', "تم تمديد مدة مشروع \"{$project->name}\" بنجاح لمدة 30 يوماً إضافية!");
+        return redirect()->back()->with('success', __('admin.project_extended', [
+            'name' => $project->name,
+            'days' => $this->extensionDays(),
+        ]));
     }
 
     public function extendUnit(Request $request, Unit $unit): RedirectResponse
     {
-        $user = $request->user();
-        abort_unless($user->isAdmin(), 403);
+        abort_unless($request->user()->isAdmin(), 403);
 
-        $days = (int) Setting::getValue('auto_delete_days', '30');
-        $newExpiry = now()->addDays($days > 0 ? $days : 30);
-
-        $unit->update([
-            'is_active' => true,
-            'auto_delete_at' => $newExpiry,
-        ]);
-        $this->sitemapService->regenerate();
-
-        try {
-            app(ListingService::class)->clearCache();
-        } catch (\Throwable) {
-        }
-
-        $notifications = $user->unreadNotifications()
-            ->get()
-            ->filter(fn ($n) => ($n->data['unit_id'] ?? null) == $unit->id);
-
-        foreach ($notifications as $n) {
-            $n->markAsRead();
-        }
-        Cache::forget("user_{$user->id}_unread_count");
+        $this->extendListing($request->user(), $unit, 'unit_id');
 
         $unitName = $unit->name_ar ?: $unit->name;
 
-        return redirect()->back()->with('success', "تم تمديد مدة الوحدة \"{$unitName}\" بنجاح لمدة {$days} يوماً!");
+        return redirect()->back()->with('success', __('admin.unit_extended', [
+            'name' => $unitName,
+            'days' => $this->extensionDays(),
+        ]));
     }
 
     public function deleteUnit(Request $request, Unit $unit): RedirectResponse
     {
         $this->authorize('delete', $unit);
 
-        $user = $request->user();
-
         $unitName = $unit->name_ar ?: $unit->name;
 
-        $unit->images()->delete();
-        $unit->messages()->delete();
-        $unit->features()->detach();
-        $unit->pointsTransactions()->delete();
-        $unit->delete();
+        $this->unitService->deleteUnit($unit->id);
 
-        try {
-            app(ListingService::class)->clearCache();
-        } catch (\Throwable) {
-        }
+        $this->notificationService->markEntityNotificationsAsRead($request->user(), 'unit_id', $unit->id);
 
-        $notifications = $user->unreadNotifications()
-            ->get()
-            ->filter(fn ($n) => ($n->data['unit_id'] ?? null) == $unit->id);
-
-        foreach ($notifications as $n) {
-            $n->markAsRead();
-        }
-        Cache::forget("user_{$user->id}_unread_count");
-
-        return redirect()->back()->with('success', "تم حذف الوحدة \"{$unitName}\" نهائياً!");
+        return redirect()->back()->with('success', __('admin.unit_deleted', ['name' => $unitName]));
     }
 
     public function dismissNotification(Request $request, string $id): RedirectResponse
     {
-        $user = $request->user();
-        $notification = $user->notifications()->where('id', $id)->first();
-
-        if ($notification) {
-            $notification->markAsRead();
-            Cache::forget("user_{$user->id}_unread_count");
-            Cache::forget("user_{$user->id}_notifications_page");
-        }
+        $this->notificationService->dismiss($request->user(), $id);
 
         return redirect()->back()->with('success', __('common.updated_successfully'));
     }
@@ -241,24 +141,13 @@ class NotificationController extends Controller
 
         try {
             $user = $request->user();
+
             if (! $user) {
                 return response()->json(['notifications' => []]);
             }
 
-            $notifications = $user->notifications()
-                ->take(5)
-                ->get()
-                ->map(function ($notification) {
-                    $data = $notification->data;
-                    $data['id'] = $notification->id;
-                    $data['read_at'] = $notification->read_at?->toIso8601String();
-                    $data['created_at_human'] = $notification->created_at->diffForHumans();
-
-                    return $data;
-                });
-
-            return response()->json(['notifications' => $notifications]);
-        } catch (\Throwable $e) {
+            return response()->json(['notifications' => $this->notificationService->recent($user)]);
+        } catch (\Throwable) {
             return response()->json(['notifications' => []]);
         }
     }
@@ -270,35 +159,56 @@ class NotificationController extends Controller
 
         try {
             $user = $request->user();
-            $count = $user?->unreadNotifications()->count() ?? 0;
 
-            return response()->json(['count' => $count]);
-        } catch (\Throwable $e) {
+            if (! $user) {
+                return response()->json(['count' => 0]);
+            }
+
+            return response()->json(['count' => $this->notificationService->unreadCount($user)]);
+        } catch (\Throwable) {
             return response()->json(['count' => 0]);
         }
     }
 
     public function destroy(Request $request, string $id): RedirectResponse
     {
-        $user = $request->user();
-        $deleted = $user->notifications()->where('id', $id)->delete();
-
-        if ($deleted) {
-            Cache::forget("user_{$user->id}_unread_count");
-            Cache::forget("user_{$user->id}_notifications_page");
-        }
+        $this->notificationService->delete($request->user(), $id);
 
         return redirect()->back()->with('success', __('common.updated_successfully'));
     }
 
     public function clearAll(Request $request): RedirectResponse
     {
-        $user = $request->user();
-        $user->notifications()->delete();
-
-        Cache::forget("user_{$user->id}_unread_count");
-        Cache::forget("user_{$user->id}_notifications_page");
+        $this->notificationService->clearAll($request->user());
 
         return redirect()->back()->with('success', __('common.updated_successfully'));
+    }
+
+    private function extendListing(User $user, Model $listing, string $entityColumn): void
+    {
+        $listing->update([
+            'is_active' => true,
+            'auto_delete_at' => now()->addDays($this->extensionDays()),
+        ]);
+
+        $this->sitemapService->regenerate();
+        $this->clearListingsCache();
+
+        $this->notificationService->markEntityNotificationsAsRead($user, $entityColumn, $listing->id);
+    }
+
+    private function extensionDays(): int
+    {
+        $days = (int) Setting::getValue('auto_delete_days', '30');
+
+        return $days > 0 ? $days : 30;
+    }
+
+    private function clearListingsCache(): void
+    {
+        try {
+            app(ListingService::class)->clearCache();
+        } catch (\Throwable) {
+        }
     }
 }

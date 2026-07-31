@@ -6,12 +6,12 @@ use App\Domain\Users\Models\User;
 use App\Domain\Users\Services\UserService;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AssignAgentsRequest;
+use App\Http\Requests\Admin\ChangeUserPasswordRequest;
 use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Requests\Admin\TransferProjectsRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -36,7 +36,7 @@ class UserController extends Controller
             ->when(! empty($filters['role']), fn ($q) => $q->where('role', $filters['role']))
             ->get();
 
-        $managers = User::where('role', 'manager')
+        $managers = User::managers()
             ->select('id', 'name')
             ->with('agents:id,name,email,manager_id')
             ->orderBy('name')
@@ -53,7 +53,7 @@ class UserController extends Controller
     {
         $this->authorize('create', User::class);
 
-        $managers = User::where('role', 'manager')
+        $managers = User::managers()
             ->select('id', 'name')
             ->orderBy('name')
             ->get();
@@ -142,13 +142,9 @@ class UserController extends Controller
             ->with('success', __('users.user_deleted'));
     }
 
-    public function changePassword(User $user, Request $request): RedirectResponse
+    public function changePassword(User $user, ChangeUserPasswordRequest $request): RedirectResponse
     {
         $this->authorize('update', $user);
-
-        $request->validate([
-            'password' => ['required', 'string', Password::min(8)->mixedCase()->numbers(), 'confirmed'],
-        ]);
 
         $user->update([
             'password' => Hash::make($request->input('password')),

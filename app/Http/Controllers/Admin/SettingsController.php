@@ -38,29 +38,8 @@ class SettingsController extends Controller
             // إزالة الحقول الفارغة أو null (غير المرسلة)
             unset($data['site_logo'], $data['hero_image']);
 
-            // رفع الشعار
-            if ($request->hasFile('site_logo')) {
-                $oldLogo = $this->settingsService->get('site_logo');
-                $path = $request->file('site_logo')->store('settings', 'public');
-                if ($path) {
-                    $data['site_logo'] = $path;
-                    if ($oldLogo && Storage::disk('public')->exists($oldLogo)) {
-                        Storage::disk('public')->delete($oldLogo);
-                    }
-                }
-            }
-
-            // رفع صورة الغلاف
-            if ($request->hasFile('hero_image')) {
-                $oldHero = $this->settingsService->get('hero_image');
-                $path = $request->file('hero_image')->store('settings', 'public');
-                if ($path) {
-                    $data['hero_image'] = $path;
-                    if ($oldHero && Storage::disk('public')->exists($oldHero)) {
-                        Storage::disk('public')->delete($oldHero);
-                    }
-                }
-            }
+            $this->storeSettingImage($request, 'site_logo', $data);
+            $this->storeSettingImage($request, 'hero_image', $data);
 
             $this->settingsService->updateMany($data);
 
@@ -77,6 +56,24 @@ class SettingsController extends Controller
 
             return redirect()->route('admin.settings.index')
                 ->with('error', __('common.error_occurred'));
+        }
+    }
+
+    private function storeSettingImage(UpdateSettingsRequest $request, string $field, array &$data): void
+    {
+        if (! $request->hasFile($field)) {
+            return;
+        }
+
+        $oldPath = $this->settingsService->get($field);
+        $path = $request->file($field)->store('settings', 'public');
+
+        if ($path) {
+            $data[$field] = $path;
+
+            if ($oldPath && Storage::disk('public')->exists($oldPath)) {
+                Storage::disk('public')->delete($oldPath);
+            }
         }
     }
 }

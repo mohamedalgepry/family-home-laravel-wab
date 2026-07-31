@@ -18,7 +18,7 @@ export default function About({ page }) {
                 title={`${trans('about')} - ${trans('site_title')}`}
                 description={trans('about_description')}
                 ogImage={page?.images?.[0]}
-                canonical={window.location.href}
+                canonical={usePage().url}
             />
             <Header />
 

@@ -39,7 +39,7 @@ export default function UnitCard({ unit, loading = false }) {
     const isCompared = compareList.includes(unit?.id)
 
     const whatsappPhone = settings?.whatsapp_number || settings?.phone || '201000000000'
-    const whatsappMsg = encodeURIComponent(isRtl ? `مرحباً فاميلي هوم، أود الاستفسار عن العقار: ${unit?.name}` : `Hello Family Home, I would like to inquire about: ${unit?.name}`)
+    const whatsappMsg = encodeURIComponent(trans('unit_whatsapp_inquiry', { name: unit?.name || '' }))
     const whatsappLink = `https://wa.me/${whatsappPhone.replace(/[^0-9]/g, '')}?text=${whatsappMsg}`
 
     return (

@@ -23,11 +23,11 @@ class PointsController
     {
         $user = request()->user();
 
-        abort_unless(in_array($user->role, ['admin', 'manager'], true), 403);
+        abort_unless($user->isAdmin() || $user->isManager(), 403);
 
         $filters = request()->only(['manager_id', 'type', 'date_from', 'date_to']);
 
-        $managers = User::where('role', 'manager')
+        $managers = User::managers()
             ->select(['id', 'name', 'points_balance', 'initial_monthly_balance', 'updated_at'])
             ->withCount('units')
             ->orderBy('name')
@@ -58,7 +58,7 @@ class PointsController
         $ledger = $query->orderByDesc('created_at')->paginate(15);
 
         if ($user->isManager()) {
-            $agentIds = $user->agents()->pluck('id');
+            $agentIds = \App\Domain\Common\QueryBuilders\UserScopeQueryBuilder::getTeamUserIds($user);
             $units = Unit::active()
                 ->select('id', 'name')
                 ->whereIn('user_id', $agentIds)
@@ -68,13 +68,7 @@ class PointsController
             $units = [];
         }
 
-        $settingsService = app(SettingsService::class);
-        $pointsSettings = [
-            'daily_deduction_enabled' => in_array($settingsService->get('daily_deduction_enabled', 'false'), ['true', '1', true], true),
-            'daily_deduction_value' => (int) $settingsService->get('daily_deduction_value', '10'),
-            'monthly_reset_day' => (int) $settingsService->get('monthly_reset_day', '1'),
-            'monthly_reset_auto' => in_array($settingsService->get('monthly_reset_auto', 'false'), ['true', '1', true], true),
-        ];
+        $pointsSettings = app(SettingsService::class)->getPointsConfig();
 
         return Inertia::render('Admin/Points/Index', [
             'managers' => $managers,

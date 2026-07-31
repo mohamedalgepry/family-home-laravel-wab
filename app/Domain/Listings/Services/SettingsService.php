@@ -56,6 +56,28 @@ class SettingsService
         Cache::forget(self::CACHE_KEY);
     }
 
+    /** Returns typed points configuration values. */
+    public function getPointsConfig(): array
+    {
+        return [
+            'daily_deduction_enabled' => $this->getBool('daily_deduction_enabled'),
+            'daily_deduction_value'   => (int) $this->get('daily_deduction_value', '10'),
+            'monthly_reset_day'       => (int) $this->get('monthly_reset_day', '1'),
+            'monthly_reset_auto'      => $this->getBool('monthly_reset_auto'),
+        ];
+    }
+
+    public function getBool(string $key, bool $default = false): bool
+    {
+        $value = $this->get($key);
+
+        if ($value === null) {
+            return $default;
+        }
+
+        return in_array($value, ['true', '1', true], true);
+    }
+
     private function normalizeValue(string $key, mixed $value): string
     {
         // الحقول البوليانية: تُحفظ كـ true/false

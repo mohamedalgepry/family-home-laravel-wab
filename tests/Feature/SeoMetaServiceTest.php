@@ -88,7 +88,7 @@ it('falls back to the description and first image when meta and primary are miss
 
     expect($meta['description'])->toBe('Description En')
         ->and($meta['image'])->toBe($first->path)
-        ->and($schema['image'])->toBe('')
+        ->and($schema['image'])->toBe(asset('storage/'.$first->path))
         ->and($meta['schema'])->toContain('"offers"');
 });
 
@@ -133,7 +133,7 @@ it('builds an article meta with an Article schema', function () {
         ->and($meta['image'])->toBe('articles/cover.jpg')
         ->and($schema['@type'])->toBe('Article')
         ->and($schema['headline'])->toBe('Article En')
-        ->and($schema['image'])->toBe('');
+        ->and($schema['image'])->toBe(asset('storage/articles/cover.jpg'));
 });
 
 it('switches canonical and hreflang when the locale is Arabic', function () {

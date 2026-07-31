@@ -9,7 +9,7 @@ class AllocatePointsRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user() && in_array($this->user()->role, ['admin', 'manager'], true);
+        return $this->user() && ($this->user()->isAdmin() || $this->user()->isManager());
     }
 
     public function rules(): array

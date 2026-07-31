@@ -115,4 +115,8 @@ return [
     'new_password' => 'New Password',
     'confirm_password' => 'Confirm Password',
     'change_password_hint' => 'Leave password fields blank if you do not wish to change your current password',
+    'project_approved' => 'Project ":name" approved and activated successfully!',
+    'project_extended' => 'Project ":name" has been extended by :days additional days!',
+    'unit_extended' => 'Unit ":name" has been extended by :days days!',
+    'unit_deleted' => 'Unit ":name" has been permanently deleted!',
 ];

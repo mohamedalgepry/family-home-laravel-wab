@@ -50,10 +50,14 @@ export default function ArticleShow({ article, relatedArticles }) {
     let parsedContent = article.content || ''
     
     middleImages.forEach((img, index) => {
-        const shortcode = `[صورة:${index + 1}]`
+        // Support both neutral [image:N] and legacy Arabic [صورة:N] shortcodes
+        const shortcodeEn = `[image:${index + 1}]`
+        const shortcodeAr = `[صورة:${index + 1}]`
         const imgPath = img.url || (img.path.startsWith('http') || img.path.startsWith('/') ? img.path : `/storage/${img.path}`)
-        const imageHtml = `<img src="${imgPath}" alt="${img.alt_text || article.title}" class="w-full h-auto rounded-xl my-6 shadow-sm object-cover" loading="lazy" />`
-        parsedContent = parsedContent.replaceAll(shortcode, imageHtml)
+        const altText = (img.alt_text || article.title || '').replace(/"/g, '&quot;')
+        const imageHtml = `<img src="${imgPath}" alt="${altText}" class="w-full h-auto rounded-xl my-6 shadow-sm object-cover" loading="lazy" />`
+        parsedContent = parsedContent.replaceAll(shortcodeEn, imageHtml)
+        parsedContent = parsedContent.replaceAll(shortcodeAr, imageHtml)
     })
 
     return (

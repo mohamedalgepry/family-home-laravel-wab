@@ -74,4 +74,27 @@ class UserScopeQueryBuilder
 
         return $query;
     }
+
+    /**
+     * يستخرج قائمة معرفات فريق المستخدم (المدير والمسوقين التابعين له).
+     */
+    public static function getTeamUserIds(?User $user): array
+    {
+        if ($user === null) {
+            return [];
+        }
+
+        if ($user->isManager()) {
+            return $user->agents()->pluck('id')->push($user->id)->all();
+        }
+
+        if ($user->manager_id) {
+            return User::where('manager_id', $user->manager_id)
+                ->pluck('id')
+                ->push($user->manager_id)
+                ->all();
+        }
+
+        return [$user->id];
+    }
 }

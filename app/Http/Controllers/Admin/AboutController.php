@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domain\Listings\Actions\StoreUploadedImagesAction;
 use App\Domain\Listings\DTOs\UpdateAboutPageData;
 use App\Domain\Listings\Models\AboutPage;
 use App\Domain\Listings\Services\AboutService;
@@ -9,7 +10,6 @@ use App\Domain\Common\Support\Sanitizer;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdateAboutPageRequest;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -18,6 +18,7 @@ class AboutController extends Controller
 {
     public function __construct(
         private readonly AboutService $aboutService,
+        private readonly StoreUploadedImagesAction $storeUploadedImagesAction,
     ) {}
 
     public function edit(): Response
@@ -50,7 +51,7 @@ class AboutController extends Controller
             Storage::disk('public')->delete($path);
         }
 
-        $newPaths = $this->storeUploadedImages($request->file('images', []));
+        $newPaths = $this->storeUploadedImagesAction->execute($request->file('images', []), 'about');
         $mergedImages = array_merge($remainingImages, $newPaths);
 
         $aboutData = UpdateAboutPageData::from([
@@ -63,18 +64,5 @@ class AboutController extends Controller
 
         return redirect()->route('admin.about.edit')
             ->with('success', __('common.updated_successfully'));
-    }
-
-    private function storeUploadedImages(array $images): array
-    {
-        $paths = [];
-
-        foreach ($images as $image) {
-            if ($image instanceof UploadedFile) {
-                $paths[] = $image->store('about', 'public');
-            }
-        }
-
-        return $paths;
     }
 }

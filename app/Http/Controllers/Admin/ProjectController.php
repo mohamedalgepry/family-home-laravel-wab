@@ -74,7 +74,7 @@ class ProjectController extends Controller
             'areas' => Area::select('id', 'name_ar', 'name_en')->orderBy('name_ar')->get(),
             'features' => Feature::select('id', 'name_ar', 'name_en')->get(),
             'finishingTypes' => FinishingType::select('id', 'name_ar', 'name_en')->get(),
-            'managers' => User::where('role', 'manager')->select('id', 'name')->orderBy('name')->get(),
+            'managers' => User::managers()->select('id', 'name')->orderBy('name')->get(),
         ];
     }
 
@@ -99,7 +99,7 @@ class ProjectController extends Controller
         NotifyNewProjectJob::dispatch($project);
 
         return redirect()->route('admin.projects.index')
-            ->with('success', __('messages.added_successfully'));
+            ->with('success', __('common.added_successfully'));
     }
 
     public function update(UpdateProjectRequest $request, Project $project): RedirectResponse
@@ -119,7 +119,7 @@ class ProjectController extends Controller
         );
 
         return redirect()->route('admin.projects.index')
-            ->with('success', __('messages.updated_successfully'));
+            ->with('success', __('common.updated_successfully'));
     }
 
     public function destroy(Project $project): RedirectResponse
@@ -129,7 +129,7 @@ class ProjectController extends Controller
         $this->projectService->deleteProject($project->id);
 
         return redirect()->route('admin.projects.index')
-            ->with('success', __('messages.deleted_successfully'));
+            ->with('success', __('common.deleted_successfully'));
     }
 
     public function autofill(Project $project)

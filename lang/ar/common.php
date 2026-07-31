@@ -58,6 +58,7 @@ return [
     'hero_subtitle' => 'آلاف العقارات في جميع أنحاء المملكة',
     'popular_searches' => 'عمليات البحث الشائعة',
     'featured_units' => 'وحدات مميزة',
+    'unit_whatsapp_inquiry' => 'مرحباً فاميلي هوم، أود الاستفسار عن العقار: :name',
     'latest_units' => 'أحدث الوحدات',
     'quick_links' => 'روابط سريعة',
     'contact_info' => 'معلومات التواصل',

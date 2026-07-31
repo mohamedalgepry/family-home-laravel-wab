@@ -9,7 +9,7 @@ class MessagePolicy
 {
     public function viewAny(User $user): bool
     {
-        return in_array($user->role, ['admin', 'manager', 'agent'], true);
+        return $user->isAdmin() || $user->isManager() || $user->isAgent();
     }
 
     public function view(User $user, Message $message): bool

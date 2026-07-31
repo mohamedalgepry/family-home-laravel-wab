@@ -58,6 +58,7 @@ return [
     'hero_subtitle' => 'Thousands of properties across the kingdom',
     'popular_searches' => 'Popular Searches',
     'featured_units' => 'Featured Units',
+    'unit_whatsapp_inquiry' => 'Hello Family Home, I would like to inquire about: :name',
     'latest_units' => 'Latest Units',
     'quick_links' => 'Quick Links',
     'contact_info' => 'Contact Info',

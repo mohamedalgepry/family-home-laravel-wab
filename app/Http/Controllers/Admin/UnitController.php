@@ -102,7 +102,7 @@ class UnitController extends Controller
         );
 
         return redirect()->route('admin.units.index')
-            ->with('success', __('messages.added_successfully'));
+            ->with('success', __('common.added_successfully'));
     }
 
     public function update(UpdateUnitRequest $request, Unit $unit): RedirectResponse
@@ -123,7 +123,7 @@ class UnitController extends Controller
         );
 
         return redirect()->route('admin.units.index')
-            ->with('success', __('messages.updated_successfully'));
+            ->with('success', __('common.updated_successfully'));
     }
 
     public function destroy(Unit $unit): RedirectResponse
@@ -133,12 +133,13 @@ class UnitController extends Controller
         $this->unitService->deleteUnit($unit->id);
 
         return redirect()->route('admin.units.index')
-            ->with('success', __('messages.deleted_successfully'));
+            ->with('success', __('common.deleted_successfully'));
     }
 
     public function removeImage(Unit $unit, UnitImage $image): RedirectResponse
     {
         $this->authorize('update', $unit);
+        abort_unless((int) $image->unit_id === (int) $unit->id, 403);
 
         $this->unitService->removeImage($unit->id, $image->id);
 
@@ -148,6 +149,7 @@ class UnitController extends Controller
     public function setPrimaryImage(Unit $unit, UnitImage $image): RedirectResponse
     {
         $this->authorize('update', $unit);
+        abort_unless((int) $image->unit_id === (int) $unit->id, 403);
 
         $this->unitService->setPrimaryImage($unit->id, $image->id);
 

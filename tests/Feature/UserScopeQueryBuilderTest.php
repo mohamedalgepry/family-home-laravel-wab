@@ -82,3 +82,11 @@ it('lets an agent without a manager see no projects', function () {
 
     expect($projects)->toHaveCount(0);
 });
+
+it('returns team user ids for manager and agents', function () {
+    $managerTeam = UserScopeQueryBuilder::getTeamUserIds($this->manager);
+    $agentTeam = UserScopeQueryBuilder::getTeamUserIds($this->agentA);
+
+    expect($managerTeam)->toEqualCanonicalizing([$this->manager->id, $this->agentA->id, $this->agentB->id])
+        ->and($agentTeam)->toEqualCanonicalizing([$this->manager->id, $this->agentA->id, $this->agentB->id]);
+});

@@ -13,6 +13,8 @@ class NotificationService
 
     private const CACHE_KEY_NOTIFICATIONS_PAGE = 'user_{id}_notifications_page';
 
+    private const CACHE_KEY_RECENT = 'user_{id}_recent_notifications';
+
     public function paginated(User $user): LengthAwarePaginator
     {
         return Cache::remember(
@@ -23,6 +25,30 @@ class NotificationService
                     ->paginate(20)
                     ->through(fn (DatabaseNotification $notification) => $this->present($notification));
             }
+        );
+    }
+
+    public function recent(User $user, int $limit = 5): array
+    {
+        return Cache::remember(
+            str_replace('{id}', $user->id, self::CACHE_KEY_RECENT),
+            30,
+            function () use ($user, $limit) {
+                return $user->notifications()
+                    ->take($limit)
+                    ->get()
+                    ->map(fn (DatabaseNotification $n) => $this->present($n))
+                    ->toArray();
+            }
+        );
+    }
+
+    public function unreadCount(User $user): int
+    {
+        return Cache::remember(
+            str_replace('{id}', $user->id, self::CACHE_KEY_UNREAD_COUNT),
+            30,
+            fn () => $user->unreadNotifications()->count()
         );
     }
 
@@ -110,12 +136,10 @@ class NotificationService
         $this->clearUserCache($user);
     }
 
-    private function clearUserCache(User $user, bool $page = true): void
+    private function clearUserCache(User $user): void
     {
         Cache::forget(str_replace('{id}', $user->id, self::CACHE_KEY_UNREAD_COUNT));
-
-        if ($page) {
-            Cache::forget(str_replace('{id}', $user->id, self::CACHE_KEY_NOTIFICATIONS_PAGE));
-        }
+        Cache::forget(str_replace('{id}', $user->id, self::CACHE_KEY_NOTIFICATIONS_PAGE));
+        Cache::forget(str_replace('{id}', $user->id, self::CACHE_KEY_RECENT));
     }
 }

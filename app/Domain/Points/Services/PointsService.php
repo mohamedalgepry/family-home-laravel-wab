@@ -17,7 +17,7 @@ class PointsService
     {
         $user = $user ?? request()?->user();
 
-        $managers = User::where('role', 'manager')
+        $managers = User::managers()
             ->withCount('units')
             ->orderBy('points_balance', 'desc')
             ->paginate(15);
@@ -58,7 +58,7 @@ class PointsService
         $performedBy = $performedBy ?? request()?->user();
 
         return DB::transaction(function () use ($performedBy) {
-            $updated = User::where('role', 'manager')
+            $updated = User::managers()
                 ->update(['points_balance' => DB::raw('initial_monthly_balance')]);
 
             return $updated;
@@ -100,7 +100,7 @@ class PointsService
                         'points' => -$deduction,
                         'type' => 'daily_deduct',
                         'balance_after' => $newPoints,
-                        'notes' => 'خصم يومي تلقائي للنقاط',
+                        'notes' => 'auto_daily_deduction',
                         'performed_by' => $unit->user_id,
                         'created_at' => $now,
                         'updated_at' => $now,

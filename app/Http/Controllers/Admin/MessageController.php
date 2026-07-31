@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domain\Common\QueryBuilders\UserScopeQueryBuilder;
 use App\Domain\Users\Models\Message;
 use App\Domain\Users\Models\User;
 use App\Domain\Users\Notifications\NewMessageNotification;
@@ -26,15 +27,7 @@ class MessageController extends Controller
             'agent:id,name',
         ]);
 
-        if ($user->isAgent()) {
-            $query->where('agent_id', $user->id);
-        } elseif ($user->isManager()) {
-            $agentIds = $user->agents()->pluck('id');
-            $query->where(function ($q) use ($user, $agentIds) {
-                $q->where('agent_id', $user->id)
-                    ->orWhereIn('agent_id', $agentIds);
-            });
-        }
+        UserScopeQueryBuilder::applyTeamScope($query, $user);
 
         if (! empty($filters['status'])) {
             $query->where('status', $filters['status']);
@@ -53,7 +46,7 @@ class MessageController extends Controller
         if ($user->isManager()) {
             $agents = $user->agents()->select('id', 'name')->orderBy('name')->get();
         } else {
-            $agents = User::where('role', 'agent')
+            $agents = User::agents()
                 ->select('id', 'name')
                 ->orderBy('name')
                 ->get();
@@ -79,15 +72,7 @@ class MessageController extends Controller
 
             $query = Message::where('status', 'pending');
 
-            if ($user->isAgent()) {
-                $query->where('agent_id', $user->id);
-            } elseif ($user->isManager()) {
-                $agentIds = $user->agents()->pluck('id');
-                $query->where(function ($q) use ($user, $agentIds) {
-                    $q->where('agent_id', $user->id)
-                        ->orWhereIn('agent_id', $agentIds);
-                });
-            }
+            UserScopeQueryBuilder::applyTeamScope($query, $user);
 
             $count = $query->count();
 
@@ -104,7 +89,7 @@ class MessageController extends Controller
         $message->delete();
 
         return redirect()->route('admin.messages.index')
-            ->with('success', __('messages.deleted_successfully'));
+            ->with('success', __('common.deleted_successfully'));
     }
 
     public function markAsReplied(Message $message): RedirectResponse
