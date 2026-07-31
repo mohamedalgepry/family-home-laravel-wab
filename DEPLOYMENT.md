@@ -1,4 +1,4 @@
-﻿# دليل النشر الإنتاجي — Production Deployment Guide
+# دليل النشر الإنتاجي — Production Deployment Guide
 
 ## قبل الرفع (Before Upload)
 
@@ -54,6 +54,7 @@ php artisan optimize:clear
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
+php artisan sitemap:generate
 `
 
 بعد رفع أصول الواجهة الجديدة، امسح Cache الـ CDN/Hostinger وأعد تحميل المتصفح بالقوة.
