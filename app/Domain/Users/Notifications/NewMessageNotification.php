@@ -4,6 +4,7 @@ namespace App\Domain\Users\Notifications;
 
 use App\Domain\Users\Models\Message;
 use Illuminate\Bus\Queueable;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 class NewMessageNotification extends Notification
@@ -16,7 +17,24 @@ class NewMessageNotification extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return ['database', 'mail'];
+    }
+
+    public function toMail(object $notifiable): MailMessage
+    {
+        $unitName = $this->message->unit?->name;
+        $subject = $unitName
+            ? "استفسار جديد عن عقار: {$unitName}"
+            : "استفسار جديد من عميل عبر فاميلي هوم";
+
+        return (new MailMessage)
+            ->subject($subject)
+            ->greeting("مرحباً {$notifiable->name}،")
+            ->line("لقد استلمت رسالة جديدة من العميل: {$this->message->client_name}")
+            ->line("رقم الهاتف: {$this->message->client_phone}")
+            ->line($unitName ? "العقار المستهدف: {$unitName}" : "")
+            ->line("نص الرسالة: {$this->message->content}")
+            ->action('عرض الرسائل في لوحة التحكم', url('/admin/messages'));
     }
 
     public function toDatabase(object $notifiable): array

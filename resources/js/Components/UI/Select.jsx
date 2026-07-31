@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useId } from 'react'
 
 export function Select({ 
     value, 
@@ -9,11 +9,17 @@ export function Select({
     required = false,
     id,
     name,
-    defaultValue
+    defaultValue,
+    'aria-label': ariaLabel
 }) {
     const [isOpen, setIsOpen] = useState(false)
     const [search, setSearch] = useState('')
+    const [focusedIndex, setFocusedIndex] = useState(-1)
     const wrapperRef = useRef(null)
+    const triggerRef = useRef(null)
+    const searchInputRef = useRef(null)
+    const generatedId = useId()
+    const listboxId = `select-listbox-${id || name || generatedId}`
 
     // Ensure value is a string or number for comparison
     const currentValue = value !== undefined ? value : defaultValue;
@@ -23,18 +29,25 @@ export function Select({
         function handleClickOutside(event) {
             if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
                 setIsOpen(false)
+                setFocusedIndex(-1)
             }
         }
         document.addEventListener('mousedown', handleClickOutside)
         return () => document.removeEventListener('mousedown', handleClickOutside)
     }, [])
 
+    // Focus search input when opened
+    useEffect(() => {
+        if (isOpen && searchInputRef.current) {
+            setTimeout(() => searchInputRef.current?.focus(), 50);
+        }
+    }, [isOpen]);
+
     // Extract options from children
     const options = [];
     React.Children.forEach(children, child => {
         if (!child) return;
         
-        // If it's an array of options (e.g. from map)
         if (Array.isArray(child)) {
             child.forEach(c => {
                 if (c && c.props) {
@@ -44,9 +57,7 @@ export function Select({
                     });
                 }
             });
-        } 
-        // If it's a single option or fragment
-        else if (child.type === 'option' || child.props?.value !== undefined) {
+        } else if (child.type === 'option' || child.props?.value !== undefined) {
             options.push({
                 value: child.props.value,
                 label: child.props.children
@@ -61,13 +72,10 @@ export function Select({
     });
 
     const selectedOption = options.find(opt => String(opt.value) === String(currentValue)) || options[0];
-
-    // Determine if we should show search
     const showSearch = options.length > 10;
 
     const handleSelect = (val) => {
         if (onChange) {
-            // Provide a synthetic event object to maintain compatibility with existing handlers expecting e.target.value
             onChange({
                 target: { value: val, name: name },
                 preventDefault: () => {},
@@ -76,11 +84,68 @@ export function Select({
         }
         setIsOpen(false);
         setSearch('');
+        setFocusedIndex(-1);
+        triggerRef.current?.focus();
+    };
+
+    const handleKeyDown = (e) => {
+        if (disabled) return;
+
+        switch (e.key) {
+            case 'ArrowDown':
+                e.preventDefault();
+                if (!isOpen) {
+                    setIsOpen(true);
+                    setFocusedIndex(0);
+                } else {
+                    setFocusedIndex(prev => (prev < filteredOptions.length - 1 ? prev + 1 : 0));
+                }
+                break;
+            case 'ArrowUp':
+                e.preventDefault();
+                if (!isOpen) {
+                    setIsOpen(true);
+                    setFocusedIndex(filteredOptions.length - 1);
+                } else {
+                    setFocusedIndex(prev => (prev > 0 ? prev - 1 : filteredOptions.length - 1));
+                }
+                break;
+            case 'Enter':
+            case ' ':
+                if (isOpen && focusedIndex >= 0 && focusedIndex < filteredOptions.length) {
+                    e.preventDefault();
+                    handleSelect(filteredOptions[focusedIndex].value);
+                } else if (!isOpen) {
+                    e.preventDefault();
+                    setIsOpen(true);
+                }
+                break;
+            case 'Escape':
+                if (isOpen) {
+                    e.preventDefault();
+                    setIsOpen(false);
+                    setFocusedIndex(-1);
+                    triggerRef.current?.focus();
+                }
+                break;
+            case 'Tab':
+                if (isOpen) {
+                    setIsOpen(false);
+                    setFocusedIndex(-1);
+                }
+                break;
+            default:
+                break;
+        }
     };
 
     return (
-        <div ref={wrapperRef} className={`relative w-full ${isOpen ? 'z-[100]' : 'z-10'} ${className}`}>
-            {/* Hidden native select for native form submissions and validation */}
+        <div 
+            ref={wrapperRef} 
+            className={`relative w-full ${isOpen ? 'z-[100]' : 'z-10'} ${className}`}
+            onKeyDown={handleKeyDown}
+        >
+            {/* Hidden native select for form submissions */}
             <select 
                 id={id || name}
                 className="absolute inset-0 w-full h-full opacity-0 pointer-events-none -z-10" 
@@ -88,7 +153,7 @@ export function Select({
                 name={name} 
                 disabled={disabled}
                 required={required}
-                onChange={() => {}} // React warning suppression
+                onChange={() => {}}
                 tabIndex={-1}
             >
                 <option value=""></option>
@@ -99,10 +164,15 @@ export function Select({
 
             {/* Trigger Button */}
             <button
+                ref={triggerRef}
                 type="button"
                 disabled={disabled}
                 onClick={() => setIsOpen(!isOpen)}
-                className={`w-full h-full min-h-[40px] px-3 py-1.5 bg-surface border border-transparent rounded-xl text-sm transition-all duration-200 outline-none flex items-center justify-between focus:ring-0 focus:border-primary-900 focus:bg-white focus:shadow-[0_0_0_4px_rgba(204,0,0,0.1)] hover:bg-secondary-200 disabled:opacity-50 disabled:cursor-not-allowed ${isOpen ? 'bg-white border-primary-900 shadow-[0_0_0_4px_rgba(204,0,0,0.1)]' : ''}`}
+                aria-haspopup="listbox"
+                aria-expanded={isOpen}
+                aria-controls={listboxId}
+                aria-label={ariaLabel || (typeof selectedOption?.label === 'string' ? selectedOption.label : 'Select option')}
+                className={`w-full h-full min-h-[40px] px-3 py-1.5 bg-surface border border-transparent rounded-xl text-sm transition-all duration-200 outline-none flex items-center justify-between focus:ring-2 focus:ring-primary-500 focus:border-primary-900 focus:bg-white hover:bg-secondary-200 disabled:opacity-50 disabled:cursor-not-allowed ${isOpen ? 'bg-white border-primary-900 ring-2 ring-primary-500' : ''}`}
                 style={{ textAlign: 'start' }}
             >
                 <span className={`truncate text-[14px] ${!selectedOption?.value && selectedOption?.value !== 0 ? 'text-secondary-500' : 'text-secondary-900 font-medium'}`}>
@@ -116,6 +186,7 @@ export function Select({
                     viewBox="0 0 24 24" 
                     stroke="currentColor" 
                     strokeWidth={2}
+                    aria-hidden="true"
                 >
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                 </svg>
@@ -123,24 +194,28 @@ export function Select({
 
             {/* Dropdown Menu */}
             <div 
+                id={listboxId}
+                role="listbox"
+                tabIndex={-1}
+                aria-label={ariaLabel || 'Options'}
                 className={`absolute z-[100] top-full left-0 right-0 w-full mt-2 bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-secondary-200 flex flex-col origin-top transition-all duration-200 ease-out min-w-[160px] ${isOpen ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 -translate-y-1 pointer-events-none'}`}
-                style={{
-                    maxHeight: '300px'
-                }}
+                style={{ maxHeight: '300px' }}
             >
                 {/* Search Box */}
                 {showSearch && (
                     <div className="p-3 border-b border-secondary-100 shrink-0 bg-white rounded-t-2xl">
                         <div className="relative">
-                            <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-secondary-400 pointer-events-none rtl:right-3 rtl:left-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-secondary-400 pointer-events-none rtl:right-3 rtl:left-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
                             <input
+                                ref={searchInputRef}
                                 type="text"
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 placeholder="Search..."
-                                className="w-full pl-9 rtl:pr-9 rtl:pl-3 py-2.5 bg-secondary-50 border border-transparent rounded-xl text-sm text-secondary-900 focus:ring-0 focus:bg-white focus:border-primary-900 transition-all outline-none"
+                                aria-label="Filter options"
+                                className="w-full pl-9 rtl:pr-9 rtl:pl-3 py-2.5 bg-secondary-50 border border-transparent rounded-xl text-sm text-secondary-900 focus:ring-2 focus:ring-primary-500 focus:bg-white focus:border-primary-900 transition-all outline-none"
                                 onClick={(e) => e.stopPropagation()} 
                             />
                         </div>
@@ -150,29 +225,35 @@ export function Select({
                 {/* Options List */}
                 <div className="overflow-y-auto p-2 custom-scrollbar">
                     {filteredOptions.length === 0 ? (
-                        <div className="px-4 py-6 text-sm text-secondary-500 text-center font-medium">
+                        <div className="px-4 py-6 text-sm text-secondary-500 text-center font-medium" role="option" aria-selected="false">
                             No results found
                         </div>
                     ) : (
-                        filteredOptions.map((opt) => {
+                        filteredOptions.map((opt, idx) => {
                             const isSelected = String(opt.value) === String(currentValue)
+                            const isKeyboardFocused = idx === focusedIndex
+
                             return (
                                 <button
                                     key={opt.value}
                                     type="button"
+                                    role="option"
+                                    aria-selected={isSelected}
                                     onClick={(e) => {
                                         e.preventDefault();
                                         handleSelect(opt.value);
                                     }}
-                                    className={`w-full text-start px-4 py-3 rounded-xl text-[15px] transition-colors duration-150 flex items-center justify-between mb-1 last:mb-0 ${
+                                    className={`w-full text-start px-4 py-3 rounded-xl text-[15px] transition-colors duration-150 flex items-center justify-between mb-1 last:mb-0 outline-none focus:ring-2 focus:ring-primary-500 ${
                                         isSelected 
                                             ? 'bg-primary-900/10 text-primary-900 font-semibold' 
-                                            : 'text-secondary-800 hover:bg-secondary-50'
+                                            : isKeyboardFocused 
+                                                ? 'bg-secondary-100 text-secondary-900 font-medium'
+                                                : 'text-secondary-800 hover:bg-secondary-50'
                                     }`}
                                 >
                                     <span className="truncate">{opt.label}</span>
                                     {isSelected && (
-                                        <svg className="w-5 h-5 text-primary-900 shrink-0 ms-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                        <svg className="w-5 h-5 text-primary-900 shrink-0 ms-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                                         </svg>
                                     )}

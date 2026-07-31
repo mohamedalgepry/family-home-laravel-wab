@@ -22,7 +22,7 @@ class PageViewService
             Cache::put($cacheKey, true, self::DEDUP_CACHE_TTL);
         }
 
-        dispatch_sync(new RecordPageViewJob($viewableType, $viewableId, $ip, $userAgent));
+        dispatch(new RecordPageViewJob($viewableType, $viewableId, $ip, $userAgent))->afterCommit();
     }
 
     public function incrementCounterCache(string $viewableType, int $viewableId): void

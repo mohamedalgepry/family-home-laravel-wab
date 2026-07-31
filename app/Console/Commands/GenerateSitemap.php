@@ -7,6 +7,7 @@ use App\Domain\Listings\Models\Category;
 use App\Domain\Listings\Models\Project;
 use App\Domain\Listings\Models\Unit;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 
 class GenerateSitemap extends Command
 {
@@ -16,9 +17,6 @@ class GenerateSitemap extends Command
     public function handle(): int
     {
         $baseUrl = rtrim(config('app.url', 'https://familyhome-co.com'), '/');
-        if (!str_contains($baseUrl, 'familyhome-co.com')) {
-            $baseUrl = 'https://familyhome-co.com';
-        }
 
         $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
         $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">' . "\n";
@@ -45,7 +43,9 @@ class GenerateSitemap extends Command
                     );
                 }
             });
-        } catch (\Throwable $e) {}
+        } catch (\Throwable $e) {
+            Log::error('GenerateSitemap units section failed', ['error' => $e->getMessage()]);
+        }
 
         try {
             Project::where('is_active', true)->chunk(500, function ($projects) use ($baseUrl, &$xml) {
@@ -61,7 +61,9 @@ class GenerateSitemap extends Command
                     );
                 }
             });
-        } catch (\Throwable $e) {}
+        } catch (\Throwable $e) {
+            Log::error('GenerateSitemap projects section failed', ['error' => $e->getMessage()]);
+        }
 
         try {
             Article::where('is_published', true)->chunk(500, function ($articles) use ($baseUrl, &$xml) {
@@ -77,7 +79,9 @@ class GenerateSitemap extends Command
                     );
                 }
             });
-        } catch (\Throwable $e) {}
+        } catch (\Throwable $e) {
+            Log::error('GenerateSitemap articles section failed', ['error' => $e->getMessage()]);
+        }
 
         try {
             Category::whereHas('articles', fn ($query) => $query->where('is_published', true))
@@ -94,7 +98,9 @@ class GenerateSitemap extends Command
                     );
                 }
                 });
-        } catch (\Throwable $e) {}
+        } catch (\Throwable $e) {
+            Log::error('GenerateSitemap categories section failed', ['error' => $e->getMessage()]);
+        }
 
         $xml .= '</urlset>';
 

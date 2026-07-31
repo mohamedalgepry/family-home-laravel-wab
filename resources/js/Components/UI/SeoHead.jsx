@@ -1,4 +1,3 @@
-import { localizedPath } from '../../Utils/route'
 import { Head, usePage } from '@inertiajs/react'
 import { useTrans } from '../../Utils/trans'
 
@@ -11,6 +10,7 @@ export default function SeoHead({
     canonical,
     pageKey,
     jsonLd,
+    hreflang,
 }) {
     const { locale, seo_pages } = usePage().props
     const { url } = usePage()
@@ -18,7 +18,8 @@ export default function SeoHead({
     const siteName = trans('site_title')
     const isRtl = locale === 'ar'
 
-    const pathWithoutLocale = url.split('?')[0].replace(/^\/(ar|en)(\/|$)/, '/');
+    const cleanPath = url.split('?')[0];
+    const pathWithoutLocale = cleanPath.replace(/^\/(ar|en)(\/|$)/, '/');
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
     
     // Auto detect pageKey from path if not provided
@@ -43,31 +44,35 @@ export default function SeoHead({
             : (Array.isArray(pageSeo.meta_keywords_en) && pageSeo.meta_keywords_en.length > 0 ? pageSeo.meta_keywords_en.join(', ') : keywords)
     ) : keywords;
 
-    const urlAr = baseUrl + (pathWithoutLocale === '/' ? '/ar' : `/ar${pathWithoutLocale === '/' ? '' : pathWithoutLocale}`);
-    const urlEn = baseUrl + (pathWithoutLocale === '/' ? '/en' : `/en${pathWithoutLocale === '/' ? '' : pathWithoutLocale}`);
+    // Clean canonical URL without query string
+    const rawCanonical = canonical || (baseUrl ? `${baseUrl}${cleanPath}` : cleanPath);
+    const finalCanonical = rawCanonical.split('?')[0];
+
+    const urlAr = hreflang?.ar || (baseUrl + (pathWithoutLocale === '/' ? '/ar' : `/ar${pathWithoutLocale === '/' ? '' : pathWithoutLocale}`));
+    const urlEn = hreflang?.en || (baseUrl + (pathWithoutLocale === '/' ? '/en' : `/en${pathWithoutLocale === '/' ? '' : pathWithoutLocale}`));
 
     return (
         <Head>
-            <meta name="google-site-verification" content="0KaNSaKJZ4bzZ34V2h1GSuFfSlyUMZVMujKj1F8iwE0" />
-            <title>{finalTitle}</title>
-            <meta name="description" content={finalDescription} />
+            {finalTitle && <title>{finalTitle}</title>}
+            {finalDescription && <meta name="description" content={finalDescription} />}
             {finalKeywords && <meta name="keywords" content={finalKeywords} />}
 
             {/* Open Graph */}
-            <meta property="og:title" content={finalTitle} />
-            <meta property="og:description" content={finalDescription} />
+            {finalTitle && <meta property="og:title" content={finalTitle} />}
+            {finalDescription && <meta property="og:description" content={finalDescription} />}
             <meta property="og:type" content={ogType} />
             <meta property="og:site_name" content={siteName} />
             {ogImage && <meta property="og:image" content={ogImage} />}
+            <meta property="og:url" content={finalCanonical} />
 
             {/* Twitter Card */}
             <meta name="twitter:card" content="summary_large_image" />
-            <meta name="twitter:title" content={finalTitle} />
-            <meta name="twitter:description" content={finalDescription} />
+            {finalTitle && <meta name="twitter:title" content={finalTitle} />}
+            {finalDescription && <meta name="twitter:description" content={finalDescription} />}
             {ogImage && <meta name="twitter:image" content={ogImage} />}
 
             {/* Canonical */}
-            {canonical && <link rel="canonical" href={canonical} />}
+            <link rel="canonical" href={finalCanonical} />
             
             {/* Hreflang */}
             <link rel="alternate" hreflang="ar" href={urlAr} />
