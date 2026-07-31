@@ -61,15 +61,15 @@ const adminNotifsDuration = new Trend('admin_notifications_duration');
 const errorRate = new Rate('error_rate');
 const totalRequests = new Counter('total_requests_custom');
 
-const BASE_URL = __ENV.BASE_URL || 'http://127.0.0.1:8000';
+const BASE_URL = __ENV.BASE_URL || 'https://familyhome-co.com/';
 
 export const options = {
     // 4-Stage Stress Profile simulating up to 6,000 concurrent human visitors (200 active k6 VUs)
     stages: [
-        { duration: '5s',  target: 50 },  // Ramp up to 1,500 visitors equivalent (50 VUs)
+        { duration: '5s', target: 50 },  // Ramp up to 1,500 visitors equivalent (50 VUs)
         { duration: '10s', target: 100 }, // Ramp up to 3,000 visitors equivalent (100 VUs)
         { duration: '15s', target: 200 }, // Peak Stress: 6,000 visitors equivalent (200 VUs)
-        { duration: '5s',  target: 0 },   // Ramp-down
+        { duration: '5s', target: 0 },   // Ramp-down
     ],
     thresholds: {
         http_req_duration: ['p(95)<3000'],
