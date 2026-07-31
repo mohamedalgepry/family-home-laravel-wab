@@ -4,7 +4,6 @@ import { useState, useRef, useEffect } from 'react'
 import AdminSidebar from '../../../Components/Layout/AdminSidebar'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
-import Underline from '@tiptap/extension-underline'
 import TextAlign from '@tiptap/extension-text-align'
 import Image from '@tiptap/extension-image'
 import axios from 'axios'
@@ -148,7 +147,6 @@ export default function AdminAboutEdit({ about }) {
     const editorAr = useEditor({
         extensions: [
             StarterKit,
-            Underline.configure({}),
             TextAlign.configure({ types: ['heading', 'paragraph', 'image'] }),
             CustomImage.configure({ inline: true, HTMLAttributes: { class: 'img-fluid inline-block max-w-full h-auto mx-1' } }),
         ],
@@ -164,7 +162,6 @@ export default function AdminAboutEdit({ about }) {
     const editorEn = useEditor({
         extensions: [
             StarterKit,
-            Underline.configure({}),
             TextAlign.configure({ types: ['heading', 'paragraph', 'image'] }),
             CustomImage.configure({ inline: true, HTMLAttributes: { class: 'img-fluid inline-block max-w-full h-auto mx-1' } }),
         ],

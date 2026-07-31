@@ -5,7 +5,6 @@ import { useCallback, useState } from 'react'
 import AdminSidebar from '../../../Components/Layout/AdminSidebar'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
-import Underline from '@tiptap/extension-underline'
 import TextAlign from '@tiptap/extension-text-align'
 
 function MenuBar({ editor, trans }) {
@@ -91,7 +90,6 @@ export default function AdminArticlesForm({ article, categories }) {
     const editorAr = useEditor({
         extensions: [
             StarterKit,
-            Underline.configure({}),
             TextAlign.configure({ types: ['heading', 'paragraph'] }),
         ],
         content: article?.content_ar || '',
@@ -104,7 +102,6 @@ export default function AdminArticlesForm({ article, categories }) {
     const editorEn = useEditor({
         extensions: [
             StarterKit,
-            Underline.configure({}),
             TextAlign.configure({ types: ['heading', 'paragraph'] }),
         ],
         content: article?.content_en || '',
