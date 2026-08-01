@@ -35,7 +35,8 @@ export default function AdminProjectForm({ project, areas, features, finishingTy
     })
 
     const { data, setData, post, processing, transform } = useForm({
-        manager_id: '',
+        user_id: project?.user_id || '',
+        manager_id: project?.user_id || '',
         name_ar: project?.name_ar || '',
         name_en: project?.name_en || project?.name || '',
         description_ar: project?.description_ar || '',
@@ -437,12 +438,25 @@ export default function AdminProjectForm({ project, areas, features, finishingTy
                                     {areas?.map(a => <option key={a.id} value={a.id}>{locale === 'ar' ? a.name_ar : a.name_en}</option>)}
                                 </Select>
                             </div>
-                            {!isEdit && isAdmin && managers?.length > 0 && (
+                            {isAdmin && managers?.length > 0 && (
                                 <div>
-                                    <label className="block text-sm font-medium text-secondary-950 mb-1">{locale === 'ar' ? 'المننجر المسؤول' : 'Responsible Manager'}</label>
-                                    <Select value={data.manager_id} onChange={e => handleChange('manager_id', e.target.value)} className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white">
-                                        <option value="">—</option>
-                                        {managers?.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                                    <label className="block text-sm font-semibold text-secondary-950 mb-1">
+                                        {locale === 'ar' ? 'الوسيط المختص / صاحب المشروع' : 'Assigned Agent / Manager'}
+                                    </label>
+                                    <Select
+                                        value={data.user_id || data.manager_id || ''}
+                                        onChange={e => {
+                                            handleChange('user_id', e.target.value)
+                                            handleChange('manager_id', e.target.value)
+                                        }}
+                                        className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white"
+                                    >
+                                        <option value="">{locale === 'ar' ? 'اختر الوسيط المختص...' : 'Select Agent...'}</option>
+                                        {managers?.map(m => (
+                                            <option key={m.id} value={m.id}>
+                                                {m.name} ({m.role === 'admin' ? (locale === 'ar' ? 'أدمن' : 'Admin') : m.role === 'manager' ? (locale === 'ar' ? 'مدير' : 'Manager') : (locale === 'ar' ? 'وسيط' : 'Agent')})
+                                            </option>
+                                        ))}
                                     </Select>
                                 </div>
                             )}

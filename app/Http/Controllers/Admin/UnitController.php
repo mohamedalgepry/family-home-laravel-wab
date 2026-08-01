@@ -14,6 +14,7 @@ use App\Domain\Listings\Models\UnitImage;
 use App\Domain\Listings\Models\UnitType;
 use App\Domain\Listings\Services\UnitService;
 use App\Domain\Points\Actions\AdjustUnitPointsAction;
+use App\Domain\Users\Models\User;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AdjustPointsRequest;
 use App\Http\Requests\Admin\StoreUnitRequest;
@@ -83,20 +84,28 @@ class UnitController extends Controller
             'projects' => $projects->orderBy('name_en')->get(),
             'features' => Feature::select('id', 'name_ar', 'name_en')->get(),
             'finishingTypes' => FinishingType::select('id', 'name_ar', 'name_en')->get(),
+            'managers' => User::whereIn('role', ['admin', 'manager', 'agent'])->select('id', 'name', 'role')->orderBy('name')->get(),
         ];
     }
 
     public function store(StoreUnitRequest $request): RedirectResponse
     {
         $this->authorize('create', Unit::class);
-        $data = CreateUnitData::from($request->validated());
+        
+        $validated = $request->validated();
+        $targetUser = $request->user();
+        if ($request->user()->isAdmin() && !empty($validated['user_id'])) {
+            $targetUser = User::find($validated['user_id']) ?? $request->user();
+        }
+        $validated['user_id'] = $targetUser->id;
 
+        $data = CreateUnitData::from($validated);
         $primaryImageIndex = (int) $request->input('primary_image_index', 0);
         $imagePaths = $this->storeUploadedImagesAction->execute($request->file('images', []), 'units');
 
         $this->unitService->createUnit(
             data: $data,
-            user: $request->user(),
+            user: $targetUser,
             imagePaths: $imagePaths,
             primaryImageIndex: $primaryImageIndex,
         );
@@ -109,18 +118,27 @@ class UnitController extends Controller
     {
         $this->authorize('update', $unit);
 
-        $data = CreateUnitData::from($request->validated());
+        $validated = $request->validated();
+        if (! $request->user()->isAdmin()) {
+            unset($validated['user_id']);
+        }
 
+        $data = CreateUnitData::from($validated);
         $primaryImageIndex = (int) $request->input('primary_image_index', 0);
         $newImagePaths = $this->storeUploadedImagesAction->execute($request->file('images', []), 'units');
 
-        $this->unitService->updateUnit(
+        $updatedUnit = $this->unitService->updateUnit(
             unitId: $unit->id,
             data: $data,
             user: $request->user(),
             newImagePaths: $newImagePaths,
             primaryImageIndex: $primaryImageIndex,
         );
+
+        if ($request->user()->isAdmin() && !empty($validated['user_id'])) {
+            $updatedUnit->user_id = (int) $validated['user_id'];
+            $updatedUnit->save();
+        }
 
         return redirect()->route('admin.units.index')
             ->with('success', __('common.updated_successfully'));

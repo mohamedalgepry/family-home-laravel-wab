@@ -26,6 +26,10 @@ class UpdateProjectAction
         $features = $sanitized['features'] ?? [];
         unset($sanitized['features']);
 
+        if (array_key_exists('user_id', $sanitized) && is_null($sanitized['user_id'])) {
+            unset($sanitized['user_id']);
+        }
+
         $project->update($sanitized);
 
         if (isset($data->features)) {

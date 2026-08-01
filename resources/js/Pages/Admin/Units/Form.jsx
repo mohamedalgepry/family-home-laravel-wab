@@ -212,11 +212,12 @@ function ImageManager({ unit, trans, locale }) {
     }
 }
 
-export default function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTypes }) {
-    const { locale, errors } = usePage().props
+export default function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTypes, managers = [] }) {
+    const { locale, errors, auth } = usePage().props
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
     const isEdit = !!unit
+    const isAdmin = auth?.user?.role === 'admin'
 
     const [step, setStep] = useState(0)
     const [dirty, setDirty] = useState(false)
@@ -237,6 +238,7 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
     const existingImages = unit?.images ?? []
 
     const { data, setData, post, processing } = useForm({
+        user_id: unit?.user_id || '',
         name_ar: unit?.name_ar || '',
         name_en: unit?.name_en || unit?.name || '',
         description_ar: unit?.description_ar || '',
@@ -722,13 +724,34 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
                                 </div>
                             </div>
 
-                            {/* Project */}
-                            <div>
-                                <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('project')}</label>
-                                <Select value={data.project_id} onChange={e => handleChange('project_id', e.target.value)} className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white">
-                                    <option value="">—</option>
-                                    {projects?.map(p => <option key={p.id} value={p.id}>{locale === 'ar' ? p.name_ar : p.name_en}</option>)}
-                                </Select>
+                            {/* Project & Agent */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('project')}</label>
+                                    <Select value={data.project_id} onChange={e => handleChange('project_id', e.target.value)} className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white">
+                                        <option value="">—</option>
+                                        {projects?.map(p => <option key={p.id} value={p.id}>{locale === 'ar' ? p.name_ar : p.name_en}</option>)}
+                                    </Select>
+                                </div>
+                                {isAdmin && managers?.length > 0 && (
+                                    <div>
+                                        <label className="block text-sm font-semibold text-secondary-950 mb-1">
+                                            {locale === 'ar' ? 'الوسيط المختص للوحدة' : 'Assigned Agent / Manager'}
+                                        </label>
+                                        <Select
+                                            value={data.user_id || ''}
+                                            onChange={e => handleChange('user_id', e.target.value)}
+                                            className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white"
+                                        >
+                                            <option value="">{locale === 'ar' ? 'اختر الوسيط المختص...' : 'Select Agent...'}</option>
+                                            {managers?.map(m => (
+                                                <option key={m.id} value={m.id}>
+                                                    {m.name} ({m.role === 'admin' ? (locale === 'ar' ? 'أدمن' : 'Admin') : m.role === 'manager' ? (locale === 'ar' ? 'مدير' : 'Manager') : (locale === 'ar' ? 'وسيط' : 'Agent')})
+                                                </option>
+                                            ))}
+                                        </Select>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-secondary-100">

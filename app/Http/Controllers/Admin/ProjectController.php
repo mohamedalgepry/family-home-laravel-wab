@@ -74,20 +74,26 @@ class ProjectController extends Controller
             'areas' => Area::select('id', 'name_ar', 'name_en')->orderBy('name_ar')->get(),
             'features' => Feature::select('id', 'name_ar', 'name_en')->get(),
             'finishingTypes' => FinishingType::select('id', 'name_ar', 'name_en')->get(),
-            'managers' => User::managers()->select('id', 'name')->orderBy('name')->get(),
+            'managers' => User::whereIn('role', ['admin', 'manager', 'agent'])->select('id', 'name', 'role')->orderBy('name')->get(),
         ];
     }
 
     public function store(StoreProjectRequest $request): RedirectResponse
     {
         $this->authorize('create', Project::class);
-        $data = CreateProjectData::from($request->validated());
-
+        
+        $validated = $request->validated();
         $userId = auth()->id();
-        if ($request->user()->isAdmin() && $request->filled('manager_id')) {
-            $userId = (int) $request->input('manager_id');
+        if ($request->user()->isAdmin()) {
+            if (!empty($validated['user_id'])) {
+                $userId = (int) $validated['user_id'];
+            } elseif (!empty($validated['manager_id'])) {
+                $userId = (int) $validated['manager_id'];
+            }
         }
+        $validated['user_id'] = $userId;
 
+        $data = CreateProjectData::from($validated);
         $imagePaths = $this->storeUploadedImagesAction->execute($request->file('images', []), 'projects');
 
         $project = $this->projectService->createProject(
@@ -106,17 +112,30 @@ class ProjectController extends Controller
     {
         $this->authorize('update', $project);
 
-        $data = CreateProjectData::from($request->validated());
+        $validated = $request->validated();
+        if (! $request->user()->isAdmin()) {
+            unset($validated['user_id'], $validated['manager_id']);
+        } else {
+            if (empty($validated['user_id']) && !empty($validated['manager_id'])) {
+                $validated['user_id'] = $validated['manager_id'];
+            }
+        }
 
+        $data = CreateProjectData::from($validated);
         $newImagePaths = $this->storeUploadedImagesAction->execute($request->file('images', []), 'projects');
 
-        $this->projectService->updateProject(
+        $updatedProject = $this->projectService->updateProject(
             projectId: $project->id,
             data: $data,
             newImagePaths: $newImagePaths,
             deletedImageIds: $request->input('deleted_image_ids', []),
             imageOrder: $request->input('image_order', []),
         );
+
+        if ($request->user()->isAdmin() && !empty($validated['user_id'])) {
+            $updatedProject->user_id = (int) $validated['user_id'];
+            $updatedProject->save();
+        }
 
         return redirect()->route('admin.projects.index')
             ->with('success', __('common.updated_successfully'));

@@ -27,5 +27,6 @@ class CreateProjectData extends Data
         public readonly ?int $installment_years = null,
         public readonly ?int $finishing_type_id = null,
         public readonly ?array $features = [],
+        public readonly ?int $user_id = null,
     ) {}
 }

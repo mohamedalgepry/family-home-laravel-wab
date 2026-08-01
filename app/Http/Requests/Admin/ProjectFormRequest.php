@@ -17,6 +17,8 @@ abstract class ProjectFormRequest extends FormRequest
     protected function baseRules(): array
     {
         return [
+            'user_id' => 'nullable|integer|exists:users,id',
+            'manager_id' => 'nullable|integer|exists:users,id',
             'name_ar' => 'required|string|max:255',
             'name_en' => 'required|string|max:255',
             'description_ar' => 'nullable|string',
