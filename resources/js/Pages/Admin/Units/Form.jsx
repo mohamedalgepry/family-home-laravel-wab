@@ -539,12 +539,14 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
             onFinish: () => {
                 setIsSubmitting(false)
                 setUploadProgress(0)
-                setUploadStatus('')
             },
-            onError: () => {
+            onError: (errs) => {
                 setIsSubmitting(false)
                 setUploadProgress(0)
-                setUploadStatus('')
+                setUploadStatus(locale === 'ar' ? 'عفواً، تعذر الحفظ. يرجى مراجعة الأخطاء في أعلى الصفحة.' : 'Error saving data. Please check errors above.')
+                if (errs && (errs.name_ar || errs.name_en || errs.type_id || errs.area_id || errs.price)) {
+                    setStep(0)
+                }
             },
         })
     }
@@ -555,6 +557,7 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
     }
 
     const primaryImage = existingImages.find(img => img.is_primary) || existingImages[0] || null
+    const hasErrors = errors && Object.keys(errors).length > 0
 
     return (
         <AdminSidebar>
@@ -566,6 +569,22 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
                         {isEdit ? trans('edit_unit', {}, 'units') : trans('add_unit', {}, 'units')}
                     </h1>
                 </div>
+
+                {hasErrors && (
+                    <div className="mb-6 p-4 bg-red-50 border-s-4 border-red-500 text-red-800 rounded-xl text-sm space-y-1.5 shadow-sm">
+                        <p className="font-bold flex items-center gap-2 text-base">
+                            <svg className="w-5 h-5 text-red-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            {locale === 'ar' ? 'تعذر حفظ البيانات بسبب الأخطاء التالية:' : 'Could not save data due to errors:'}
+                        </p>
+                        <ul className="list-disc list-inside text-xs text-red-700 space-y-1 mt-1 font-medium">
+                            {Object.entries(errors).map(([key, msg]) => (
+                                <li key={key}>{msg}</li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
 
                 {/* Step Indicator */}
                 <div className="flex items-center gap-2 mb-8">

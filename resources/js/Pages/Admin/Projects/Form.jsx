@@ -88,7 +88,7 @@ export default function AdminProjectForm({ project, areas, features, finishingTy
         setDirty(true)
     }
 
-    function compressImage(file, maxWidth = 1920, quality = 0.82) {
+    function compressImage(file, maxWidth = 1600, quality = 0.78) {
         return new Promise(resolve => {
             if (!file || !file.type.startsWith('image/') || file.type.includes('svg')) {
                 resolve(file)
@@ -100,7 +100,7 @@ export default function AdminProjectForm({ project, areas, features, finishingTy
                 URL.revokeObjectURL(url)
                 let width = img.width
                 let height = img.height
-                if (width <= maxWidth && file.size < 800 * 1024) {
+                if (width <= maxWidth && file.size < 400 * 1024) {
                     resolve(file)
                     return
                 }
@@ -304,19 +304,21 @@ export default function AdminProjectForm({ project, areas, features, finishingTy
                     const pct = Math.round(progress.percentage)
                     setUploadProgress(pct)
                     if (pct >= 100) {
-                        setUploadStatus(locale === 'ar' ? 'تم الرفع، جاري المعالجة...' : 'Uploaded, processing...')
+                        setUploadStatus(locale === 'ar' ? 'تم الرفع بنجاح، جاري الحفظ والتوجيه...' : 'Uploaded, saving...')
                     }
                 }
             },
             onFinish: () => {
                 setIsSubmitting(false)
                 setUploadProgress(0)
-                setUploadStatus('')
             },
-            onError: () => {
+            onError: (errs) => {
                 setIsSubmitting(false)
                 setUploadProgress(0)
-                setUploadStatus('')
+                setUploadStatus(locale === 'ar' ? 'عفواً، تعذر الحفظ. يرجى مراجعة الأخطاء في أعلى الصفحة.' : 'Error saving data. Please check errors above.')
+                if (errs && (errs.name_ar || errs.name_en || errs.area_id)) {
+                    setStep(0)
+                }
             },
         })
     }
@@ -325,6 +327,8 @@ export default function AdminProjectForm({ project, areas, features, finishingTy
         if (step === 0) return data.name_ar || data.name_en
         return true
     }
+
+    const hasErrors = errors && Object.keys(errors).length > 0
 
     return (
         <AdminSidebar>
@@ -358,6 +362,22 @@ export default function AdminProjectForm({ project, areas, features, finishingTy
                         </div>
                     ))}
                 </div>
+
+                {hasErrors && (
+                    <div className="mb-6 p-4 bg-red-50 border-s-4 border-red-500 text-red-800 rounded-xl text-sm space-y-1.5 shadow-sm">
+                        <p className="font-bold flex items-center gap-2 text-base">
+                            <svg className="w-5 h-5 text-red-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            {locale === 'ar' ? 'تعذر حفظ البيانات بسبب الأخطاء التالية:' : 'Could not save data due to errors:'}
+                        </p>
+                        <ul className="list-disc list-inside text-xs text-red-700 space-y-1 mt-1 font-medium">
+                            {Object.entries(errors).map(([key, msg]) => (
+                                <li key={key}>{msg}</li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
 
                 <form onSubmit={e => e.preventDefault()} className="bg-white rounded-xl shadow-card p-6">
                     {step === 0 && (
