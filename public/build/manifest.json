@@ -9,6 +9,16 @@
       "_trans-B3CP3SHq.js"
     ]
   },
+  "_ArticleCard-B_bga8xt.js": {
+    "file": "assets/ArticleCard-B_bga8xt.js",
+    "name": "ArticleCard",
+    "imports": [
+      "_vendor-core-GX6QFHOZ.js",
+      "_trans-B3CP3SHq.js",
+      "_route-ClAlynnE.js",
+      "_Footer-D-Q_wAQS.js"
+    ]
+  },
   "_AuthLayout-Dm9DrInx.js": {
     "file": "assets/AuthLayout-Dm9DrInx.js",
     "name": "AuthLayout",
@@ -138,7 +148,7 @@
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-BhA_CgQp.css",
+    "file": "assets/app-BBAu3oKG.css",
     "name": "app",
     "names": [
       "app.css"
@@ -470,7 +480,7 @@
     ]
   },
   "resources/js/Pages/Public/Articles/Index.jsx": {
-    "file": "assets/Index-BMwZF9Zj2.js",
+    "file": "assets/Index-Wq2Y-PyD.js",
     "name": "Index",
     "src": "resources/js/Pages/Public/Articles/Index.jsx",
     "isDynamicEntry": true,
@@ -480,11 +490,12 @@
       "_route-ClAlynnE.js",
       "_Footer-D-Q_wAQS.js",
       "_SeoHead-0DmLFafO.js",
-      "_Pagination-BC_8GF--.js"
+      "_Pagination-BC_8GF--.js",
+      "_ArticleCard-B_bga8xt.js"
     ]
   },
   "resources/js/Pages/Public/Articles/Show.jsx": {
-    "file": "assets/Show-DsMqIVs0.js",
+    "file": "assets/Show-GzjvKdHc.js",
     "name": "Show",
     "src": "resources/js/Pages/Public/Articles/Show.jsx",
     "isDynamicEntry": true,
@@ -495,7 +506,8 @@
       "_trans-B3CP3SHq.js",
       "_route-ClAlynnE.js",
       "_Footer-D-Q_wAQS.js",
-      "_SeoHead-0DmLFafO.js"
+      "_SeoHead-0DmLFafO.js",
+      "_ArticleCard-B_bga8xt.js"
     ]
   },
   "resources/js/Pages/Public/Comparison.jsx": {
@@ -544,7 +556,7 @@
     ]
   },
   "resources/js/Pages/Public/Projects/Index.jsx": {
-    "file": "assets/Index-CCOPqK0J.js",
+    "file": "assets/Index-CCOPqK0J2.js",
     "name": "Index",
     "src": "resources/js/Pages/Public/Projects/Index.jsx",
     "isDynamicEntry": true,
@@ -684,7 +696,7 @@
     ]
   },
   "resources/js/app.jsx": {
-    "file": "assets/app-BfTrG9fB.js",
+    "file": "assets/app-BfINj5XE.js",
     "name": "app",
     "src": "resources/js/app.jsx",
     "isEntry": true,

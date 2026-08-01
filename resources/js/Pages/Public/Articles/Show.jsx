@@ -4,9 +4,10 @@ import { useTrans } from '../../../Utils/trans'
 import Header from '../../../Components/Layout/Header'
 import Footer from '../../../Components/Layout/Footer'
 import SeoHead from '../../../Components/UI/SeoHead'
+import ArticleCard from '../../../Components/UI/ArticleCard'
 import { useMemo } from 'react'
 
-const PLACEHOLDER = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600"%3E%3Crect fill="%23F0F0F0" width="800" height="600"/%3E%3C/svg%3E'
+const PLACEHOLDER = '/images/fallback.jpg'
 
 export default function ArticleShow({ article, relatedArticles }) {
     const { locale } = usePage().props
@@ -18,6 +19,17 @@ export default function ArticleShow({ article, relatedArticles }) {
     const middleImages = article?.images?.filter(img => img.position === 'middle') || []
     const bottomImages = article?.images?.filter(img => img.position === 'bottom') || []
 
+    const headerImgUrl = headerImage?.url || (headerImage?.path ? (headerImage.path.startsWith('http') || headerImage.path.startsWith('/') ? headerImage.path : `/storage/${headerImage.path}`) : null)
+    const categoryName = article?.category ? (isRtl ? article.category.name_ar : article.category.name_en) : null
+
+    const formattedDate = article?.published_at
+        ? new Date(article.published_at).toLocaleDateString(isRtl ? 'ar-EG' : 'en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+        })
+        : ''
+
     const jsonLd = useMemo(() => {
         if (!article) return null
         return {
@@ -25,7 +37,7 @@ export default function ArticleShow({ article, relatedArticles }) {
             '@type': 'Article',
             headline: article.title,
             description: article.excerpt || article.meta_description,
-            image: headerImage?.url || (headerImage?.path ? `/storage/${headerImage.path}` : null),
+            image: headerImgUrl,
             datePublished: article.published_at,
             dateModified: article.updated_at,
             author: {
@@ -33,14 +45,14 @@ export default function ArticleShow({ article, relatedArticles }) {
                 name: 'Family Home',
             },
         }
-    }, [article, headerImage])
+    }, [article, headerImgUrl])
 
     if (!article) {
         return (
-            <div dir={isRtl ? 'rtl' : 'ltr'} className="min-h-screen bg-surface flex flex-col">
+            <div dir={isRtl ? 'rtl' : 'ltr'} className="min-h-screen bg-surface flex flex-col font-sans">
                 <Header />
-                <main className="flex-1 flex items-center justify-center">
-                    <p className="text-muted text-sm">{trans('no_results')}</p>
+                <main className="flex-1 flex items-center justify-center py-16">
+                    <p className="text-secondary-600 text-sm mb-4">{trans('no_results')}</p>
                 </main>
                 <Footer />
             </div>
@@ -50,23 +62,22 @@ export default function ArticleShow({ article, relatedArticles }) {
     let parsedContent = article.content || ''
     
     middleImages.forEach((img, index) => {
-        // Support both neutral [image:N] and legacy Arabic [صورة:N] shortcodes
         const shortcodeEn = `[image:${index + 1}]`
         const shortcodeAr = `[صورة:${index + 1}]`
         const imgPath = img.url || (img.path.startsWith('http') || img.path.startsWith('/') ? img.path : `/storage/${img.path}`)
         const altText = (img.alt_text || article.title || '').replace(/"/g, '&quot;')
-        const imageHtml = `<img src="${imgPath}" alt="${altText}" class="w-full h-auto rounded-xl my-6 shadow-sm object-cover" loading="lazy" />`
+        const imageHtml = `<img src="${imgPath}" alt="${altText}" class="w-full h-auto rounded-2xl my-6 border border-secondary-200/60 object-cover" loading="lazy" />`
         parsedContent = parsedContent.replaceAll(shortcodeEn, imageHtml)
         parsedContent = parsedContent.replaceAll(shortcodeAr, imageHtml)
     })
 
     return (
-        <div dir={isRtl ? 'rtl' : 'ltr'} className="min-h-screen bg-surface flex flex-col">
+        <div dir={isRtl ? 'rtl' : 'ltr'} className="min-h-screen bg-surface flex flex-col font-sans">
             <SeoHead
                 title={`${article?.title || ''} - ${trans('site_title')}`}
                 description={article?.meta_description || article?.excerpt || ''}
                 keywords={article?.keywords || ''}
-                ogImage={headerImage?.url || (headerImage?.path ? `/storage/${headerImage.path}` : null)}
+                ogImage={headerImgUrl}
                 ogType="article"
                 canonical={window.location.href}
             />
@@ -78,27 +89,33 @@ export default function ArticleShow({ article, relatedArticles }) {
             )}
             <Header />
 
-            <main className="flex-1 max-w-container mx-auto px-4 py-8 w-full">
-                <article className="max-w-4xl mx-auto pt-8">
+            <main className="flex-1 max-w-container mx-auto px-4 py-8 sm:py-10 w-full">
+                <article className="max-w-3xl mx-auto">
                     {/* Back link */}
-                    <Link href={localizedPath('/articles', locale)} className="text-sm text-primary-900 hover:text-primary-950 mb-4 inline-block">
+                    <Link
+                        href={localizedPath('/articles', locale)}
+                        className="text-xs sm:text-sm font-medium text-secondary-600 hover:text-primary-900 transition-colors mb-6 inline-block"
+                    >
                         &larr; {trans('articles')}
                     </Link>
 
-                    {/* Meta */}
-                    <p className="text-sm text-muted mb-2">
-                        {article.category && (
-                            <span>{locale === 'ar' ? article.category.name_ar : article.category.name_en} · </span>
+                    {/* Meta & Category */}
+                    <div className="flex items-center gap-2 text-xs text-secondary-500 mb-3">
+                        {categoryName && (
+                            <span className="font-semibold text-primary-900 bg-primary-50 px-2.5 py-0.5 rounded-full border border-primary-100">
+                                {categoryName}
+                            </span>
                         )}
-                        {article.published_at && new Date(article.published_at).toLocaleDateString(locale === 'ar' ? 'ar-SA' : 'en-US', {
-                            year: 'numeric', month: 'long', day: 'numeric',
-                        })}
-                    </p>
+                        {categoryName && formattedDate && <span>•</span>}
+                        {formattedDate && <span>{formattedDate}</span>}
+                    </div>
 
                     {/* Title */}
-                    <h1 className="text-3xl sm:text-4xl font-bold text-secondary-950 mb-6 leading-tight">
+                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-secondary-950 leading-snug mb-6">
                         {article.title}
                     </h1>
+
+
 
                     {/* Top Images */}
                     {topImages.length > 0 && (
@@ -108,16 +125,21 @@ export default function ArticleShow({ article, relatedArticles }) {
                                     key={img.id}
                                     src={img.path.startsWith('http') || img.path.startsWith('/') ? img.path : `/storage/${img.path}`}
                                     alt={img.alt_text || article.title}
-                                    className="w-full h-auto rounded-xl object-cover shadow-sm"
+                                    className="w-full h-56 rounded-2xl object-cover border border-secondary-200/60"
                                     loading="lazy"
                                 />
                             ))}
                         </div>
                     )}
 
-                    {/* Content */}
+                    {/* Main Article Body */}
                     <div
-                        className="prose prose-sm sm:prose-base max-w-none text-secondary-800 leading-relaxed"
+                        className="prose prose-base sm:prose-lg max-w-none text-secondary-800 leading-relaxed
+                            prose-headings:font-bold prose-headings:text-secondary-950 prose-headings:mt-8 prose-headings:mb-3
+                            prose-p:text-secondary-800 prose-p:leading-relaxed prose-p:mb-5
+                            prose-img:rounded-2xl prose-img:my-6 prose-img:w-full prose-img:object-cover
+                            prose-blockquote:border-s-4 prose-blockquote:border-primary-900 prose-blockquote:bg-secondary-50 prose-blockquote:p-4 prose-blockquote:rounded-e-xl prose-blockquote:text-secondary-900 prose-blockquote:not-italic
+                            prose-a:text-primary-900 prose-a:underline hover:prose-a:text-primary-950"
                         dangerouslySetInnerHTML={{ __html: parsedContent }}
                     />
 
@@ -129,7 +151,7 @@ export default function ArticleShow({ article, relatedArticles }) {
                                     key={img.id}
                                     src={img.path.startsWith('http') || img.path.startsWith('/') ? img.path : `/storage/${img.path}`}
                                     alt={img.alt_text || article.title}
-                                    className="w-full h-auto rounded-xl object-cover shadow-sm"
+                                    className="w-full h-56 rounded-2xl object-cover border border-secondary-200/60"
                                     loading="lazy"
                                 />
                             ))}
@@ -137,24 +159,15 @@ export default function ArticleShow({ article, relatedArticles }) {
                     )}
                 </article>
 
-                {/* Related Articles */}
+                {/* Related Articles Cards */}
                 {relatedArticles?.length > 0 && (
-                    <section className="max-w-5xl mx-auto mt-12 pt-8 border-t border-secondary-200">
-                        <h2 className="text-xl font-bold text-secondary-950 mb-6">{trans('read_more')}</h2>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {relatedArticles.map(related => (
-                                <Link
-                                    key={related.id}
-                                    href={localizedPath(`/articles/${related.slug}`, locale)}
-                                    className="bg-white rounded-xl shadow-card p-4 hover:shadow-dropdown transition-shadow"
-                                >
-                                    <h3 className="text-sm font-semibold text-secondary-950 mb-1 line-clamp-2 hover:text-primary-900 transition-colors">
-                                        {related.title}
-                                    </h3>
-                                    {related.excerpt && (
-                                        <p className="text-xs text-muted line-clamp-2">{related.excerpt}</p>
-                                    )}
-                                </Link>
+                    <section className="max-w-5xl mx-auto mt-16 pt-10 border-t border-secondary-200/80">
+                        <h2 className="text-xl font-bold text-secondary-950 mb-6">
+                            {trans('read_more') || (isRtl ? 'مقالات ذات صلة' : 'Related Articles')}
+                        </h2>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {relatedArticles.slice(0, 3).map(related => (
+                                <ArticleCard key={related.id} article={related} />
                             ))}
                         </div>
                     </section>

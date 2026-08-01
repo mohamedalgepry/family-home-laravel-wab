@@ -16,47 +16,59 @@ export default function ArticlesIndex({ articles, categories, currentCategory })
     const hasArticles = articles?.data?.length > 0
 
     return (
-        <div dir={isRtl ? 'rtl' : 'ltr'} className="min-h-screen bg-surface flex flex-col">
+        <div dir={isRtl ? 'rtl' : 'ltr'} className="min-h-screen bg-surface flex flex-col font-sans">
             <SeoHead
-                title={`${trans('articles')} - ${trans('site_title')}`}
+                title={`${currentCategory ? (isRtl ? currentCategory.name_ar : currentCategory.name_en) + ' - ' : ''}${trans('articles')} - ${trans('site_title')}`}
                 description={trans('articles_description')}
                 canonical={window.location.href}
             />
             <Header />
 
-            <main className="flex-1 max-w-container mx-auto px-4 py-8 w-full">
-                <h1 className="text-2xl font-bold text-secondary-950 mb-6">{trans('articles')}</h1>
+            <main className="flex-1 max-w-container mx-auto px-4 py-8 sm:py-10 w-full">
+                {/* Header */}
+                <div className="mb-6">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-secondary-950">
+                        {currentCategory
+                            ? (isRtl ? currentCategory.name_ar : currentCategory.name_en)
+                            : trans('articles')}
+                    </h1>
+                </div>
 
-                {/* Categories */}
+                {/* Categories Bar */}
                 {categories?.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mb-8">
-                        <Link
-                            href={localizedPath('/articles', locale)}
-                            className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
-                                !currentCategory
-                                    ? 'bg-primary-900 text-white'
-                                    : 'bg-white text-secondary-700 border border-secondary-200 hover:border-primary-900'
-                            }`}
-                        >
-                            {trans('all')}
-                        </Link>
-                        {categories.map(cat => (
+                    <div className="mb-8 overflow-x-auto pb-2 scrollbar-none">
+                        <div className="flex items-center gap-2 min-w-max">
                             <Link
-                                key={cat.id}
-                                href={localizedPath(`/articles?category=${cat.slug}`, locale)}
-                                className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
-                                    currentCategory?.id === cat.id
+                                href={localizedPath('/articles', locale)}
+                                className={`px-3.5 py-1.5 text-sm font-medium rounded-full transition-colors ${
+                                    !currentCategory
                                         ? 'bg-primary-900 text-white'
-                                        : 'bg-white text-secondary-700 border border-secondary-200 hover:border-primary-900'
-                                    }`}
+                                        : 'bg-white text-secondary-700 border border-secondary-200 hover:border-primary-900/40'
+                                }`}
                             >
-                                {locale === 'ar' ? cat.name_ar : cat.name_en}
+                                {trans('all')}
                             </Link>
-                        ))}
+                            {categories.map(cat => {
+                                const isActive = currentCategory?.id === cat.id
+                                return (
+                                    <Link
+                                        key={cat.id}
+                                        href={localizedPath(`/articles?category=${cat.slug}`, locale)}
+                                        className={`px-3.5 py-1.5 text-sm font-medium rounded-full transition-colors ${
+                                            isActive
+                                                ? 'bg-primary-900 text-white'
+                                                : 'bg-white text-secondary-700 border border-secondary-200 hover:border-primary-900/40'
+                                        }`}
+                                    >
+                                        {isRtl ? cat.name_ar : cat.name_en}
+                                    </Link>
+                                )
+                            })}
+                        </div>
                     </div>
                 )}
 
-                {/* Grid */}
+                {/* Articles Uniform Grid */}
                 {isLoading ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         {Array.from({ length: 6 }).map((_, i) => (
@@ -70,11 +82,20 @@ export default function ArticlesIndex({ articles, categories, currentCategory })
                                 <ArticleCard key={article.id} article={article} />
                             ))}
                         </div>
-                        <Pagination meta={articles} links={articles.links} />
+
+                        <div className="mt-10 flex justify-center">
+                            <Pagination meta={articles} links={articles.links} />
+                        </div>
                     </>
                 ) : (
-                    <div className="text-center py-16">
-                        <p className="text-muted text-sm">{trans('no_results')}</p>
+                    <div className="text-center py-16 bg-white rounded-2xl border border-secondary-200/60 p-6 max-w-md mx-auto">
+                        <p className="text-secondary-600 text-sm mb-4">{trans('no_results')}</p>
+                        <Link
+                            href={localizedPath('/articles', locale)}
+                            className="inline-flex items-center px-4 py-2 bg-primary-900 text-white rounded-xl text-sm font-medium hover:bg-primary-950 transition-colors"
+                        >
+                            {isRtl ? 'عرض كل المقالات' : 'View All Articles'}
+                        </Link>
                     </div>
                 )}
             </main>
