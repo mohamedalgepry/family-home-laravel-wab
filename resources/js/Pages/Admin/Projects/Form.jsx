@@ -194,11 +194,24 @@ export default function AdminProjectForm({ project, areas, features, finishingTy
         if (imagesInputRef.current) imagesInputRef.current.value = ''
     }
 
+    function parseKeywords(text) {
+        if (!text) return []
+        return text
+            .split(/[,،;.\n]+/)
+            .map(s => s.trim())
+            .filter(s => s.length > 0)
+    }
+
     function addKeywordAr() {
-        const kw = keywordInputAr.trim()
-        if (kw && !data.keywords_ar.includes(kw)) {
-            setData('keywords_ar', [...data.keywords_ar, kw])
-            setDirty(true)
+        if (!keywordInputAr) return
+        const parsed = parseKeywords(keywordInputAr)
+        if (parsed.length > 0) {
+            const existing = new Set(data.keywords_ar)
+            const toAdd = parsed.filter(k => !existing.has(k))
+            if (toAdd.length > 0) {
+                setData('keywords_ar', [...data.keywords_ar, ...toAdd])
+                setDirty(true)
+            }
         }
         setKeywordInputAr('')
     }
@@ -208,17 +221,32 @@ export default function AdminProjectForm({ project, areas, features, finishingTy
         setDirty(true)
     }
 
+    function clearKeywordsAr() {
+        setData('keywords_ar', [])
+        setDirty(true)
+    }
+
     function addKeywordEn() {
-        const kw = keywordInputEn.trim()
-        if (kw && !data.keywords_en.includes(kw)) {
-            setData('keywords_en', [...data.keywords_en, kw])
-            setDirty(true)
+        if (!keywordInputEn) return
+        const parsed = parseKeywords(keywordInputEn)
+        if (parsed.length > 0) {
+            const existing = new Set(data.keywords_en)
+            const toAdd = parsed.filter(k => !existing.has(k))
+            if (toAdd.length > 0) {
+                setData('keywords_en', [...data.keywords_en, ...toAdd])
+                setDirty(true)
+            }
         }
         setKeywordInputEn('')
     }
 
     function removeKeywordEn(kw) {
         setData('keywords_en', data.keywords_en.filter(k => k !== kw))
+        setDirty(true)
+    }
+
+    function clearKeywordsEn() {
+        setData('keywords_en', [])
         setDirty(true)
     }
 
@@ -628,37 +656,108 @@ export default function AdminProjectForm({ project, areas, features, finishingTy
                     )}
 
                     {step === 2 && (
-                        <div className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
-                                    <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('keywords')} ({trans('ar')})</label>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <label className="block text-sm font-semibold text-secondary-950">
+                                            {trans('keywords')} ({trans('ar')})
+                                            <span className="text-xs text-muted font-normal ms-1">({data.keywords_ar.length})</span>
+                                        </label>
+                                        {data.keywords_ar.length > 0 && (
+                                            <button
+                                                type="button"
+                                                onClick={clearKeywordsAr}
+                                                className="text-xs text-red-600 hover:text-red-700 font-medium transition-colors"
+                                            >
+                                                {locale === 'ar' ? 'تفريغ الكل' : 'Clear All'}
+                                            </button>
+                                        )}
+                                    </div>
                                     <div className="flex gap-2 mb-2">
-                                        <input type="text" value={keywordInputAr} onChange={e => setKeywordInputAr(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addKeywordAr())} dir="rtl" className="flex-1 px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900" />
-                                        <button type="button" onClick={addKeywordAr} className="px-3 py-2 bg-surface text-secondary-700 rounded-lg text-sm font-medium hover:bg-secondary-200">{trans('add')}</button>
+                                        <textarea
+                                            value={keywordInputAr}
+                                            onChange={e => setKeywordInputAr(e.target.value)}
+                                            onKeyDown={e => {
+                                                if (e.key === 'Enter' && !e.shiftKey) {
+                                                    e.preventDefault()
+                                                    addKeywordAr()
+                                                }
+                                            }}
+                                            rows={2}
+                                            dir="rtl"
+                                            placeholder={locale === 'ar' ? 'الصق النص أو الكلمات مفصولة بفاصلة (، أو .) أو سطر جديد...' : 'Paste text or keywords separated by commas or newlines...'}
+                                            className="flex-1 px-3 py-2 border border-secondary-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 resize-y"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={addKeywordAr}
+                                            className="px-4 py-2 bg-primary-900 text-white rounded-xl text-sm font-medium hover:bg-primary-800 transition-colors self-end h-10 shrink-0"
+                                        >
+                                            {trans('add')}
+                                        </button>
                                     </div>
-                                    <div className="flex flex-wrap gap-1.5">
-                                        {data.keywords_ar.map(kw => (
-                                            <span key={kw} className="inline-flex items-center gap-1 px-2 py-0.5 bg-surface text-xs text-secondary-700 rounded-full border border-secondary-200">
-                                                {kw}
-                                                <button type="button" onClick={() => removeKeywordAr(kw)} className="text-muted hover:text-red-500 text-base leading-none">&times;</button>
-                                            </span>
-                                        ))}
-                                    </div>
+                                    {data.keywords_ar.length > 0 && (
+                                        <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto p-2.5 border border-secondary-200 rounded-xl bg-surface">
+                                            {data.keywords_ar.map(kw => (
+                                                <span key={kw} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white text-xs font-medium text-secondary-800 rounded-lg border border-secondary-200 shadow-2xs group hover:border-red-300 transition-colors">
+                                                    {kw}
+                                                    <button type="button" onClick={() => removeKeywordAr(kw)} className="text-secondary-400 group-hover:text-red-600 text-sm font-bold leading-none">&times;</button>
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
+
                                 <div>
-                                    <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('keywords')} ({trans('en')})</label>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <label className="block text-sm font-semibold text-secondary-950">
+                                            {trans('keywords')} ({trans('en')})
+                                            <span className="text-xs text-muted font-normal ms-1">({data.keywords_en.length})</span>
+                                        </label>
+                                        {data.keywords_en.length > 0 && (
+                                            <button
+                                                type="button"
+                                                onClick={clearKeywordsEn}
+                                                className="text-xs text-red-600 hover:text-red-700 font-medium transition-colors"
+                                            >
+                                                {locale === 'ar' ? 'تفريغ الكل' : 'Clear All'}
+                                            </button>
+                                        )}
+                                    </div>
                                     <div className="flex gap-2 mb-2">
-                                        <input type="text" value={keywordInputEn} onChange={e => setKeywordInputEn(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addKeywordEn())} dir="ltr" className="flex-1 px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900" />
-                                        <button type="button" onClick={addKeywordEn} className="px-3 py-2 bg-surface text-secondary-700 rounded-lg text-sm font-medium hover:bg-secondary-200">{trans('add')}</button>
+                                        <textarea
+                                            value={keywordInputEn}
+                                            onChange={e => setKeywordInputEn(e.target.value)}
+                                            onKeyDown={e => {
+                                                if (e.key === 'Enter' && !e.shiftKey) {
+                                                    e.preventDefault()
+                                                    addKeywordEn()
+                                                }
+                                            }}
+                                            rows={2}
+                                            dir="ltr"
+                                            placeholder="Paste English keywords separated by commas or newlines..."
+                                            className="flex-1 px-3 py-2 border border-secondary-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 resize-y"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={addKeywordEn}
+                                            className="px-4 py-2 bg-primary-900 text-white rounded-xl text-sm font-medium hover:bg-primary-800 transition-colors self-end h-10 shrink-0"
+                                        >
+                                            {trans('add')}
+                                        </button>
                                     </div>
-                                    <div className="flex flex-wrap gap-1.5">
-                                        {data.keywords_en.map(kw => (
-                                            <span key={kw} className="inline-flex items-center gap-1 px-2 py-0.5 bg-surface text-xs text-secondary-700 rounded-full border border-secondary-200">
-                                                {kw}
-                                                <button type="button" onClick={() => removeKeywordEn(kw)} className="text-muted hover:text-red-500 text-base leading-none">&times;</button>
-                                            </span>
-                                        ))}
-                                    </div>
+                                    {data.keywords_en.length > 0 && (
+                                        <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto p-2.5 border border-secondary-200 rounded-xl bg-surface">
+                                            {data.keywords_en.map(kw => (
+                                                <span key={kw} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white text-xs font-medium text-secondary-800 rounded-lg border border-secondary-200 shadow-2xs group hover:border-red-300 transition-colors">
+                                                    {kw}
+                                                    <button type="button" onClick={() => removeKeywordEn(kw)} className="text-secondary-400 group-hover:text-red-600 text-sm font-bold leading-none">&times;</button>
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
