@@ -8,8 +8,8 @@ class CreateArticleData extends Data
 {
     public function __construct(
         public readonly int $category_id,
-        public readonly string $title_en,
-        public readonly string $content_en,
+        public readonly ?string $title_en = null,
+        public readonly ?string $content_en = null,
         public readonly ?string $title_ar = null,
         public readonly ?string $content_ar = null,
         public readonly ?string $excerpt_ar = null,

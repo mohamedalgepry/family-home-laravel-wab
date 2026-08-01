@@ -35,7 +35,7 @@ class ArticleService
     public function createArticle(CreateArticleData $data, ?string $coverImagePath = null, array $newImagePaths = [], array $newImageAlts = [], array $newImagePositions = []): Article
     {
         $article = DB::transaction(function () use ($data, $coverImagePath, $newImagePaths, $newImageAlts, $newImagePositions) {
-            $article = Article::create($data->toArray());
+            $article = $this->createAction->execute($data);
 
             if ($coverImagePath) {
                 $this->listingImageService->persistImages($article, [$coverImagePath], ['position' => 'header', 'size' => 'medium']);
@@ -59,9 +59,7 @@ class ArticleService
     public function updateArticle(int $articleId, CreateArticleData $data, array $deletedImageIds = [], ?string $coverImagePath = null, array $imageUpdates = [], array $newImagePaths = [], array $newImageAlts = [], array $newImagePositions = []): Article
     {
         $article = DB::transaction(function () use ($articleId, $data, $deletedImageIds, $coverImagePath, $imageUpdates, $newImagePaths, $newImageAlts, $newImagePositions) {
-            $article = Article::findOrFail($articleId);
-
-            $article->update($data->toArray());
+            $article = $this->updateAction->execute($articleId, $data);
 
             if (! empty($deletedImageIds)) {
                 $images = ArticleImage::whereIn('id', $deletedImageIds)->where('article_id', $articleId)->get();

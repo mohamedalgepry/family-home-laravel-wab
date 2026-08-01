@@ -16,10 +16,10 @@ class StoreArticleRequest extends FormRequest
     {
         return [
             'category_id' => 'required|exists:categories,id',
-            'title_ar' => 'required|string|max:255',
-            'title_en' => 'required|string|max:255',
-            'content_ar' => 'nullable|string',
-            'content_en' => 'required|string',
+            'title_ar' => 'required_without:title_en|nullable|string|max:255',
+            'title_en' => 'required_without:title_ar|nullable|string|max:255',
+            'content_ar' => 'required_without:content_en|nullable|string',
+            'content_en' => 'required_without:content_ar|nullable|string',
             'excerpt_ar' => 'nullable|string|max:500',
             'excerpt_en' => 'nullable|string|max:500',
             'alt_text' => 'nullable|string|max:500',

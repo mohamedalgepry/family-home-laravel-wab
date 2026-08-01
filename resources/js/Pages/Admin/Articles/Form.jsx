@@ -111,19 +111,35 @@ export default function AdminArticlesForm({ article, categories }) {
         onUpdate: ({ editor }) => setData('content_en', editor.getHTML()),
     })
 
-    const handleKeywordInput = useCallback((e) => {
-        if (e.key === 'Enter' || e.key === ',') {
-            e.preventDefault()
-            const value = e.target.value.trim()
-            if (value && !data.keywords.includes(value)) {
-                setData('keywords', [...data.keywords, value])
-            }
-            e.target.value = ''
-        }
-    }, [data.keywords, setData])
+    const [keywordInput, setKeywordInput] = useState('')
 
-    function removeKeyword(keyword) {
-        setData('keywords', data.keywords.filter(k => k !== keyword))
+    function parseKeywords(text) {
+        if (!text) return []
+        return text
+            .split(/[,،;.\n]+/)
+            .map(s => s.trim())
+            .filter(s => s.length > 0)
+    }
+
+    function addKeyword() {
+        if (!keywordInput) return
+        const parsed = parseKeywords(keywordInput)
+        if (parsed.length > 0) {
+            const existing = new Set(data.keywords || [])
+            const toAdd = parsed.filter(k => !existing.has(k))
+            if (toAdd.length > 0) {
+                setData('keywords', [...(data.keywords || []), ...toAdd])
+            }
+        }
+        setKeywordInput('')
+    }
+
+    function removeKeyword(kw) {
+        setData('keywords', (data.keywords || []).filter(k => k !== kw))
+    }
+
+    function clearKeywords() {
+        setData('keywords', [])
     }
 
     function handleImageDelete(imageId) {
@@ -137,12 +153,28 @@ export default function AdminArticlesForm({ article, categories }) {
     function handleSubmit(e) {
         e.preventDefault()
 
+        let currentKeywords = data.keywords || []
+        if (keywordInput.trim()) {
+            const parsed = parseKeywords(keywordInput)
+            if (parsed.length > 0) {
+                const existing = new Set(currentKeywords)
+                const toAdd = parsed.filter(k => !existing.has(k))
+                currentKeywords = [...currentKeywords, ...toAdd]
+            }
+        }
+
+        const payload = {
+            ...data,
+            keywords: currentKeywords,
+        }
+
         if (isEditing) {
-            transform((data) => ({ ...data, _method: 'put' }))
+            transform(() => ({ ...payload, _method: 'put' }))
             post(`/admin/articles/${article.id}`, {
                 preserveScroll: true,
             })
         } else {
+            transform(() => payload)
             post('/admin/articles', {
                 preserveScroll: true,
             })
@@ -351,16 +383,56 @@ export default function AdminArticlesForm({ article, categories }) {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('keywords')}</label>
-                            <div className="flex flex-wrap gap-2 mb-2">
-                                {(data.keywords || []).map(kw => (
-                                    <span key={kw} className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary-50 text-primary-900 text-xs rounded-full">
-                                        {kw}
-                                        <button type="button" onClick={() => removeKeyword(kw)} className="text-primary-900/60 hover:text-primary-900">&times;</button>
-                                    </span>
-                                ))}
+                            <div className="flex items-center justify-between mb-2">
+                                <label className="block text-sm font-semibold text-secondary-950">
+                                    {trans('keywords')}
+                                    <span className="text-xs text-muted font-normal ms-1">({(data.keywords || []).length})</span>
+                                </label>
+                                {(data.keywords || []).length > 0 && (
+                                    <button
+                                        type="button"
+                                        onClick={clearKeywords}
+                                        className="text-xs text-red-600 hover:text-red-700 font-medium transition-colors"
+                                    >
+                                        {isRtl ? 'تفريغ الكل' : 'Clear All'}
+                                    </button>
+                                )}
                             </div>
-                            <input type="text" placeholder={trans('keywords_hint')} onKeyDown={handleKeywordInput} className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900" />
+
+                            <div className="flex gap-2 mb-2">
+                                <textarea
+                                    value={keywordInput}
+                                    onChange={e => setKeywordInput(e.target.value)}
+                                    onKeyDown={e => {
+                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                            e.preventDefault()
+                                            addKeyword()
+                                        }
+                                    }}
+                                    rows={2}
+                                    dir={isRtl ? 'rtl' : 'ltr'}
+                                    placeholder={isRtl ? 'الصق النص أو الكلمات مفصولة بفاصلة (، أو .) أو سطر جديد...' : 'Paste text or keywords separated by commas or newlines...'}
+                                    className="flex-1 px-3 py-2 border border-secondary-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 resize-y"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={addKeyword}
+                                    className="px-4 py-2 bg-primary-900 text-white rounded-xl text-sm font-medium hover:bg-primary-800 transition-colors self-end h-10 shrink-0"
+                                >
+                                    {trans('add')}
+                                </button>
+                            </div>
+
+                            {(data.keywords || []).length > 0 && (
+                                <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto p-2.5 border border-secondary-200 rounded-xl bg-surface">
+                                    {data.keywords.map(kw => (
+                                        <span key={kw} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white text-xs font-medium text-secondary-800 rounded-lg border border-secondary-200 shadow-2xs group hover:border-red-300 transition-colors">
+                                            {kw}
+                                            <button type="button" onClick={() => removeKeyword(kw)} className="text-secondary-400 group-hover:text-red-600 text-sm font-bold leading-none">&times;</button>
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
                             {errors.keywords && <p className="text-xs text-error mt-1">{errors.keywords}</p>}
                         </div>
                     </div>

@@ -47,8 +47,17 @@ class Article extends Model
     protected static function booted(): void
     {
         static::creating(function (self $article) {
+            if (empty($article->title)) {
+                $article->title = $article->title_ar ?: ($article->title_en ?: '');
+            }
+            if (empty($article->content)) {
+                $article->content = $article->content_ar ?: ($article->content_en ?: '');
+            }
+            if (empty($article->excerpt)) {
+                $article->excerpt = $article->excerpt_ar ?: ($article->excerpt_en ?: null);
+            }
             if (! $article->slug) {
-                $article->slug = Str::slug($article->title_en ?: $article->title);
+                $article->slug = Str::slug($article->title_en ?: $article->title) ?: 'article-'.Str::random(6);
             }
             if (! $article->slug_ar) {
                 $article->slug_ar = Str::slug($article->title_ar ?: $article->title) ?: $article->slug.'-ar';

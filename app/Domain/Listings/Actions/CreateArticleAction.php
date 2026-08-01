@@ -13,7 +13,23 @@ class CreateArticleAction
     {
         $raw = $data->toArray();
 
-        $slug = Str::slug($data->title_en);
+        $title_ar = isset($raw['title_ar']) ? Sanitizer::text($raw['title_ar']) : null;
+        $title_en = isset($raw['title_en']) ? Sanitizer::text($raw['title_en']) : null;
+        $title = $title_ar ?: ($title_en ?: '');
+
+        $content_ar = isset($raw['content_ar']) ? Sanitizer::rich($raw['content_ar']) : null;
+        $content_en = isset($raw['content_en']) ? Sanitizer::rich($raw['content_en']) : null;
+        $content = $content_ar ?: ($content_en ?: '');
+
+        $excerpt_ar = isset($raw['excerpt_ar']) ? Sanitizer::text($raw['excerpt_ar']) : null;
+        $excerpt_en = isset($raw['excerpt_en']) ? Sanitizer::text($raw['excerpt_en']) : null;
+        $excerpt = $excerpt_ar ?: ($excerpt_en ?: null);
+
+        $slugBase = $title_en ?: ($title_ar ?: 'article');
+        $slug = Str::slug($slugBase);
+        if (! $slug) {
+            $slug = 'article-'.Str::random(6);
+        }
         $base = $slug;
         $suffix = 1;
 
@@ -23,21 +39,23 @@ class CreateArticleAction
 
         return Article::create([
             'category_id' => $raw['category_id'] ?? null,
-            'title' => Sanitizer::text($raw['title_en'] ?? ''),
-            'title_en' => Sanitizer::text($raw['title_en'] ?? ''),
-            'title_ar' => isset($raw['title_ar']) ? Sanitizer::text($raw['title_ar']) : null,
+            'title' => $title,
+            'title_en' => $title_en,
+            'title_ar' => $title_ar,
             'slug' => $slug,
-            'content' => Sanitizer::rich($raw['content_en'] ?? ''),
-            'content_en' => Sanitizer::rich($raw['content_en'] ?? ''),
-            'content_ar' => isset($raw['content_ar']) ? Sanitizer::rich($raw['content_ar']) : null,
-            'excerpt_en' => isset($raw['excerpt_en']) ? Sanitizer::text($raw['excerpt_en']) : null,
-            'excerpt_ar' => isset($raw['excerpt_ar']) ? Sanitizer::text($raw['excerpt_ar']) : null,
-            'excerpt' => isset($raw['excerpt_en']) ? Sanitizer::text($raw['excerpt_en']) : null,
+            'slug_ar' => Str::slug($title_ar) ?: $slug.'-ar',
+            'slug_en' => Str::slug($title_en) ?: $slug,
+            'content' => $content,
+            'content_en' => $content_en,
+            'content_ar' => $content_ar,
+            'excerpt' => $excerpt,
+            'excerpt_en' => $excerpt_en,
+            'excerpt_ar' => $excerpt_ar,
             'alt_text' => isset($raw['alt_text']) ? Sanitizer::text($raw['alt_text']) : null,
             'keywords' => $raw['keywords'] ?? null,
             'meta_description' => isset($raw['meta_description']) ? Sanitizer::text($raw['meta_description']) : null,
             'is_published' => $raw['is_published'] ?? false,
-            'published_at' => $raw['published_at'] ?? null,
+            'published_at' => ($raw['is_published'] ?? false) ? now() : null,
         ]);
     }
 }

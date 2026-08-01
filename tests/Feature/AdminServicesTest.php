@@ -204,3 +204,43 @@ it('does not search when the term is shorter than the minimum length', function 
     expect($service->getPaginatedUnits(['search' => 'u'])->pluck('id')->all())->toHaveCount(1)
         ->and($service->getPaginatedUnits(['search' => ''])->pluck('id')->all())->toHaveCount(1);
 });
+
+it('creates and updates articles through article service', function () {
+    $category = Category::create(['name_ar' => 'عقارات', 'name_en' => 'Real Estate', 'slug' => 'real-estate']);
+    $service = app(ArticleService::class);
+
+    $data = \App\Domain\Listings\DTOs\CreateArticleData::from([
+        'category_id' => $category->id,
+        'title_ar' => 'مقال جديد',
+        'title_en' => 'New Article',
+        'content_ar' => '<p>محتوى المقال</p>',
+        'content_en' => '<p>Article content</p>',
+        'keywords' => ['عقارات', 'شقق'],
+        'meta_description' => 'وصف المقال',
+        'is_published' => true,
+    ]);
+
+    $article = $service->createArticle($data);
+
+    expect($article)->not->toBeNull()
+        ->and($article->title_ar)->toBe('مقال جديد')
+        ->and($article->title_en)->toBe('New Article')
+        ->and($article->slug)->not->toBeEmpty()
+        ->and($article->keywords)->toBe(['عقارات', 'شقق']);
+
+    $updateData = \App\Domain\Listings\DTOs\CreateArticleData::from([
+        'category_id' => $category->id,
+        'title_ar' => 'مقال معدل',
+        'title_en' => 'Updated Article',
+        'content_ar' => '<p>محتوى معدل</p>',
+        'content_en' => '<p>Updated content</p>',
+        'keywords' => ['عقارات', 'فيلا'],
+        'meta_description' => 'وصف معدل',
+        'is_published' => true,
+    ]);
+
+    $updatedArticle = $service->updateArticle($article->id, $updateData);
+
+    expect($updatedArticle->title_ar)->toBe('مقال معدل')
+        ->and($updatedArticle->keywords)->toBe(['عقارات', 'فيلا']);
+});
