@@ -4,18 +4,21 @@ import { useTrans } from '../../Utils/trans'
 import OptimizedImage from '../OptimizedImage'
 
 export default function AgentCard({ agent }) {
-    const { locale } = usePage().props
+    const { locale, settings } = usePage().props
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
 
     if (!agent) return null
+
+    const defaultWhatsapp = settings?.company_whatsapp || settings?.whatsapp_number || settings?.phone
+    const targetWhatsapp = agent.whatsapp || defaultWhatsapp
 
     const avatarSrc = agent.avatar ? (agent.avatar.startsWith('http') || agent.avatar.startsWith('/storage') ? agent.avatar : `/storage/${agent.avatar}`) : null
     const agentAlt = isRtl ? `الوكيل العقاري ${agent.name}` : `Real Estate Agent ${agent.name}`;
 
     const channels = [
         { key: 'phone', url: agent.phone ? `tel:${agent.phone}` : null, label: agent.phone },
-        { key: 'whatsapp', url: agent.whatsapp ? `https://wa.me/${agent.whatsapp.replace(/[^0-9]/g, '')}` : null, label: agent.whatsapp },
+        { key: 'whatsapp', url: targetWhatsapp ? `https://wa.me/${targetWhatsapp.replace(/[^0-9]/g, '')}` : null, label: targetWhatsapp },
         { key: 'facebook', url: agent.facebook || null, label: trans('facebook') },
         { key: 'linkedin', url: agent.linkedin || null, label: trans('social_linkedin', {}, 'admin') },
     ].filter(c => c.url)

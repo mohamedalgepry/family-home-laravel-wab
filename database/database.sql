@@ -1,11 +1,4 @@
--- ============================================================
--- Family Home Platform — Full Database Schema (MySQL 8+)
--- Generated from 41 migrations (26 July 2026)
--- ============================================================
 
--- -----------------------------------------------------------
--- 1. users + password_reset_tokens + sessions
--- -----------------------------------------------------------
 CREATE TABLE `users` (
     `id`                    BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     `name`                  VARCHAR(255) NOT NULL,

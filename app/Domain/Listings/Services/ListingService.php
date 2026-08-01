@@ -67,7 +67,7 @@ class ListingService
 
     private function unitBaseQuery(): Builder
     {
-        return Unit::active()->with(['type', 'area', 'images', 'user.profile']);
+        return Unit::active()->with(['type', 'area', 'images', 'user.profile', 'project.user.profile']);
     }
 
     private function applyUnitFilters($query, array $filters): void

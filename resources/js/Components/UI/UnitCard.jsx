@@ -39,7 +39,14 @@ export default function UnitCard({ unit, loading = false }) {
     const isFeatured = (unit?.priority_points ?? 0) > 0
     const isCompared = compareList.includes(unit?.id)
 
-    const whatsappPhone = settings?.whatsapp_number || settings?.phone || '201000000000'
+    const uploaderWhatsapp =
+        unit?.project?.user?.profile?.whatsapp ||
+        unit?.project?.user?.whatsapp ||
+        unit?.user?.profile?.whatsapp ||
+        unit?.user?.whatsapp
+
+    const defaultWhatsapp = settings?.company_whatsapp || settings?.whatsapp_number || settings?.phone || '201000000000'
+    const whatsappPhone = uploaderWhatsapp || defaultWhatsapp
     const whatsappMsg = encodeURIComponent(trans('unit_whatsapp_inquiry', { name: unit?.name || '' }))
     const whatsappLink = `https://wa.me/${whatsappPhone.replace(/[^0-9]/g, '')}?text=${whatsappMsg}`
 
