@@ -1,5 +1,5 @@
 import { Select } from '../../../Components/UI'
-import { usePage, useForm, Link, Head } from '@inertiajs/react'
+import { usePage, useForm, Link, Head, router } from '@inertiajs/react'
 import { useTrans } from '../../../Utils/trans'
 import { useState, useEffect, useRef } from 'react'
 import AdminSidebar from '../../../Components/Layout/AdminSidebar'
@@ -22,6 +22,10 @@ export default function AdminProjectForm({ project, areas, features, finishingTy
     const [dirty, setDirty] = useState(false)
     const [uploadProgress, setUploadProgress] = useState(0)
     const [uploadStatus, setUploadStatus] = useState('')
+    const [primaryImageFile, setPrimaryImageFile] = useState(null)
+    const [primaryImagePreview, setPrimaryImagePreview] = useState(null)
+    const primaryInputRef = useRef(null)
+
     const [newImagePreviews, setNewImagePreviews] = useState([])
     const previewUrlsRef = useRef([])
     const imagesInputRef = useRef(null)
@@ -128,6 +132,31 @@ export default function AdminProjectForm({ project, areas, features, finishingTy
         })
     }
 
+    async function handlePrimaryImageChange(event) {
+        const file = event.target.files?.[0]
+        if (!file) return
+
+        setUploadStatus(locale === 'ar' ? 'جاري ضغط الصورة الرئيسية...' : 'Compressing primary image...')
+        const compressed = await compressImage(file)
+        setUploadStatus('')
+        setPrimaryImageFile(compressed)
+        if (primaryImagePreview) URL.revokeObjectURL(primaryImagePreview)
+        setPrimaryImagePreview(URL.createObjectURL(compressed))
+        setDirty(true)
+
+        const secondaryFiles = newImagePreviews.map(p => p.file)
+        handleChange('images', [compressed, ...secondaryFiles])
+    }
+
+    function removePrimaryImage() {
+        if (primaryImagePreview) URL.revokeObjectURL(primaryImagePreview)
+        setPrimaryImageFile(null)
+        setPrimaryImagePreview(null)
+        if (primaryInputRef.current) primaryInputRef.current.value = ''
+        const secondaryFiles = newImagePreviews.map(p => p.file)
+        handleChange('images', secondaryFiles)
+    }
+
     async function handleNewImages(event) {
         const rawFiles = Array.from(event.target.files || [])
         if (rawFiles.length === 0) return
@@ -145,7 +174,9 @@ export default function AdminProjectForm({ project, areas, features, finishingTy
 
         setUploadStatus('')
         setNewImagePreviews(previews)
-        handleChange('images', files)
+
+        const allNewFiles = primaryImageFile ? [primaryImageFile, ...files] : files
+        handleChange('images', allNewFiles)
     }
 
     function removeNewImage(index) {
@@ -155,7 +186,10 @@ export default function AdminProjectForm({ project, areas, features, finishingTy
         const previews = newImagePreviews.filter((_, currentIndex) => currentIndex !== index)
         previewUrlsRef.current = previews.map(preview => preview.url)
         setNewImagePreviews(previews)
-        handleChange('images', previews.map(preview => preview.file))
+
+        const secondaryFiles = previews.map(preview => preview.file)
+        const allNewFiles = primaryImageFile ? [primaryImageFile, ...secondaryFiles] : secondaryFiles
+        handleChange('images', allNewFiles)
 
         if (imagesInputRef.current) imagesInputRef.current.value = ''
     }
@@ -192,6 +226,19 @@ export default function AdminProjectForm({ project, areas, features, finishingTy
         setExistingImages(prev => prev.filter(img => img.id !== imageId))
         setData('deleted_image_ids', [...data.deleted_image_ids, imageId])
         setData('image_order', data.image_order.filter(id => id !== imageId))
+        setDirty(true)
+    }
+
+    function setExistingAsPrimary(imageId) {
+        const idx = existingImages.findIndex(img => img.id === imageId)
+        if (idx <= 0) return
+
+        const newOrder = [...existingImages]
+        const [selected] = newOrder.splice(idx, 1)
+        newOrder.unshift(selected)
+
+        setExistingImages(newOrder)
+        setData('image_order', newOrder.map(img => img.id))
         setDirty(true)
     }
 
@@ -406,64 +453,154 @@ export default function AdminProjectForm({ project, areas, features, finishingTy
                     )}
 
                     {step === 1 && (
-                        <div className="space-y-4">
-                            {isEdit && existingImages.length > 0 && (
-                                <div>
-                                    <label className="block text-sm font-medium text-secondary-950 mb-2">{trans('current_images')}</label>
-                                    <div className="grid grid-cols-3 gap-3">
-                                        {existingImages.map((img, idx) => (
-                                            <div key={img.id} className="relative group aspect-video bg-surface rounded-lg overflow-hidden">
-                                                <img src={img.url} alt={trans('project_image')} className="w-full h-full object-cover" />
+                        <div className="space-y-6">
+                            {/* الصورة الرئيسية */}
+                            <div>
+                                <label className="block text-sm font-semibold text-secondary-950 mb-2">
+                                    {locale === 'ar' ? 'الصورة الرئيسية للمشروع *' : 'Primary Project Image *'}
+                                </label>
+                                <div className="border-2 border-dashed border-secondary-200 rounded-xl overflow-hidden bg-surface transition-all hover:border-primary-900/40">
+                                    {(primaryImagePreview || (existingImages.length > 0 && !primaryImageFile)) ? (
+                                        <div className="relative group">
+                                            <img
+                                                src={primaryImagePreview || existingImages[0]?.url}
+                                                alt=""
+                                                className="w-full h-56 object-cover"
+                                            />
+                                            <span className="absolute top-3 start-3 bg-primary-900 text-white text-xs px-3 py-1 rounded-full font-medium shadow-md flex items-center gap-1.5">
+                                                <svg className="w-3.5 h-3.5 fill-amber-400" viewBox="0 0 20 20">
+                                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                                </svg>
+                                                {locale === 'ar' ? 'الصورة الرئيسية' : 'Primary Image'}
+                                            </span>
+                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                                                 <button
                                                     type="button"
-                                                    onClick={() => handleDeleteImage(img.id)}
-                                                    className="absolute top-1 end-1 w-6 h-6 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    title={trans('delete')}
+                                                    onClick={() => primaryInputRef.current?.click()}
+                                                    className="px-4 py-2 bg-white text-secondary-950 rounded-lg text-xs font-semibold hover:bg-secondary-100 shadow-md transition-colors"
                                                 >
-                                                    &times;
+                                                    {locale === 'ar' ? 'تغيير الصورة الرئيسية' : 'Change Primary Image'}
                                                 </button>
-                                                <div className="absolute bottom-1 start-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    {idx > 0 && (
-                                                        <button type="button" onClick={() => handleMoveImage(img.id, 'up')} className="w-6 h-6 bg-white/80 text-secondary-700 rounded text-xs leading-none">&#8593;</button>
+                                                {primaryImagePreview && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={removePrimaryImage}
+                                                        className="px-4 py-2 bg-red-600 text-white rounded-lg text-xs font-semibold hover:bg-red-700 shadow-md transition-colors"
+                                                    >
+                                                        {locale === 'ar' ? 'إلغاء' : 'Cancel'}
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            onClick={() => primaryInputRef.current?.click()}
+                                            className="w-full h-44 flex flex-col items-center justify-center gap-2 text-muted hover:text-primary-900 transition-colors focus-visible:ring-2 focus-visible:ring-primary-900 focus-visible:outline-none rounded-xl"
+                                        >
+                                            <svg className="w-9 h-9 text-secondary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                                            </svg>
+                                            <span className="text-sm font-medium">{locale === 'ar' ? 'اضغط لرفع الصورة الرئيسية للمشروع' : 'Upload Primary Project Image'}</span>
+                                            <span className="text-xs text-muted">{locale === 'ar' ? 'اختر صورة بارزة بدقة عالية' : 'Choose a clear cover image'}</span>
+                                        </button>
+                                    )}
+                                    <input ref={primaryInputRef} type="file" accept="image/*" onChange={handlePrimaryImageChange} className="hidden" />
+                                </div>
+                            </div>
+
+                            {/* الصور الحالية للمشروع (في حالة التعديل) */}
+                            {isEdit && existingImages.length > 0 && (
+                                <div>
+                                    <label className="block text-sm font-semibold text-secondary-950 mb-2">
+                                        {locale === 'ar' ? 'معرض صور المشروع الحالية' : 'Current Project Gallery'}
+                                    </label>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                                        {existingImages.map((img, idx) => (
+                                            <div key={img.id} className="relative group rounded-xl overflow-hidden border-2 border-secondary-100 bg-surface">
+                                                <img src={img.url} alt="" className="w-full h-28 object-cover" />
+                                                {idx === 0 && !primaryImageFile && (
+                                                    <span className="absolute top-1.5 start-1.5 bg-primary-900 text-white text-xs px-2 py-0.5 rounded-full font-medium shadow-sm">
+                                                        {locale === 'ar' ? 'رئيسية' : 'Primary'}
+                                                    </span>
+                                                )}
+                                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5 p-1.5">
+                                                    {idx !== 0 && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setExistingAsPrimary(img.id)}
+                                                            className="w-full py-1.5 bg-primary-900 text-white rounded-lg text-xs font-medium hover:bg-primary-800 transition-colors"
+                                                        >
+                                                            {locale === 'ar' ? 'تعيين كصورة رئيسية' : 'Set as Primary'}
+                                                        </button>
                                                     )}
-                                                    {idx < existingImages.length - 1 && (
-                                                        <button type="button" onClick={() => handleMoveImage(img.id, 'down')} className="w-6 h-6 bg-white/80 text-secondary-700 rounded text-xs leading-none">&#8595;</button>
-                                                    )}
+                                                    <div className="flex gap-1 w-full justify-center">
+                                                        {idx > 0 && (
+                                                            <button type="button" onClick={() => handleMoveImage(img.id, 'up')} className="px-2 py-1 bg-white/90 text-secondary-950 rounded text-xs font-bold hover:bg-white" title={locale === 'ar' ? 'تقديم' : 'Move Up'}>&#8594;</button>
+                                                        )}
+                                                        {idx < existingImages.length - 1 && (
+                                                            <button type="button" onClick={() => handleMoveImage(img.id, 'down')} className="px-2 py-1 bg-white/90 text-secondary-950 rounded text-xs font-bold hover:bg-white" title={locale === 'ar' ? 'تأخير' : 'Move Down'}>&#8592;</button>
+                                                        )}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleDeleteImage(img.id)}
+                                                            className="px-2 py-1 bg-red-600 text-white rounded text-xs font-medium hover:bg-red-700 transition-colors"
+                                                            title={locale === 'ar' ? 'حذف' : 'Delete'}
+                                                        >
+                                                            &times;
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
                             )}
+
+                            {/* المعرض والإضافات الجديدة */}
                             <div>
-                                <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('upload_new_images')}</label>
-                                <input ref={imagesInputRef} type="file" multiple accept="image/*" onChange={handleNewImages} className="w-full text-sm" />
-                                <p className="text-xs text-muted mt-1">{trans('max_images')}</p>
-                            </div>
-                            {newImagePreviews.length > 0 && (
-                                <div>
-                                    <p className="text-sm font-medium text-secondary-950 mb-2">
-                                        {locale === 'ar' ? 'معاينة الصور المختارة' : 'Selected image previews'}
-                                    </p>
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                <label className="block text-sm font-semibold text-secondary-950 mb-2">
+                                    {locale === 'ar' ? 'صور إضافية للمشروع (المعرض)' : 'Additional Gallery Images'}
+                                </label>
+
+                                {newImagePreviews.length > 0 && (
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-3">
                                         {newImagePreviews.map((preview, index) => (
-                                            <div key={preview.url} className="relative aspect-video overflow-hidden rounded-lg border border-primary-900/20 bg-surface">
-                                                <img src={preview.url} alt={preview.file.name} className="w-full h-full object-cover" />
-                                                <button
-                                                    type="button"
-                                                    onClick={() => removeNewImage(index)}
-                                                    className="absolute top-2 end-2 min-w-11 min-h-11 rounded-full bg-black/65 px-2 text-sm text-white transition-colors hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-white"
-                                                    aria-label={locale === 'ar' ? `حذف ${preview.file.name}` : `Remove ${preview.file.name}`}
-                                                >
-                                                    &times;
-                                                </button>
+                                            <div key={preview.url} className="relative group rounded-xl overflow-hidden border-2 border-primary-900/20 bg-surface">
+                                                <img src={preview.url} alt={preview.file.name} className="w-full h-28 object-cover" />
+                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeNewImage(index)}
+                                                        className="p-1.5 bg-red-600 text-white rounded-full hover:bg-red-700 focus:outline-none"
+                                                        aria-label="Remove image"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
-                                </div>
-                            )}
+                                )}
+
+                                <button
+                                    type="button"
+                                    onClick={() => imagesInputRef.current?.click()}
+                                    className="w-full py-3 border-2 border-dashed border-secondary-200 rounded-xl text-sm text-muted hover:text-primary-900 hover:border-primary-900/40 transition-colors flex items-center justify-center gap-2"
+                                >
+                                    <svg className="w-5 h-5 text-secondary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.5v15m7.5-7.5h-15" />
+                                    </svg>
+                                    <span>{locale === 'ar' ? '+ إضافة المزيد من الصور للمعرض' : '+ Add More Gallery Images'}</span>
+                                </button>
+                                <input ref={imagesInputRef} type="file" multiple accept="image/*" onChange={handleNewImages} className="hidden" />
+                            </div>
+
+                            {/* الفيديو */}
                             <div>
-                                <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('video')}</label>
+                                <label className="block text-sm font-semibold text-secondary-950 mb-1">{trans('video')}</label>
                                 <input type="url" value={data.video_url} onChange={e => handleChange('video_url', e.target.value)} placeholder="https://youtube.com/..." className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900" />
                                 <p className="text-xs text-muted mt-1">{trans('video_url_help')}</p>
                             </div>

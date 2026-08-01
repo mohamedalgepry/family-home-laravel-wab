@@ -138,7 +138,7 @@
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-C1OwwNMq.css",
+    "file": "assets/app-D5rEDWMo.css",
     "name": "app",
     "names": [
       "app.css"
@@ -324,7 +324,7 @@
     ]
   },
   "resources/js/Pages/Admin/Projects/Form.jsx": {
-    "file": "assets/Form-DhQb9vTo.js",
+    "file": "assets/Form-Ca6ZqxxI.js",
     "name": "Form",
     "src": "resources/js/Pages/Admin/Projects/Form.jsx",
     "isDynamicEntry": true,
@@ -684,7 +684,7 @@
     ]
   },
   "resources/js/app.jsx": {
-    "file": "assets/app-BtFEesLI.js",
+    "file": "assets/app-Dhwy2-6t.js",
     "name": "app",
     "src": "resources/js/app.jsx",
     "isEntry": true,
