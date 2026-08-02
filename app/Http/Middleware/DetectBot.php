@@ -13,6 +13,7 @@ class DetectBot
         'yandexbot', 'sogou', 'exabot', 'facebot', 'facebookexternalhit',
         'twitterbot', 'linkedinbot', 'whatsapp', 'telegrambot', 'pinterest',
         'applebot', 'semrushbot', 'ahrefsbot', 'mj12bot',
+        'chrome-lighthouse', 'lighthouse', 'pagespeed', 'gtmetrix',
     ];
 
     public function handle(Request $request, Closure $next): Response

@@ -11687,12 +11687,7 @@ function OptimizedImage({ src, alt = "", width, height, className = "", lazy = t
 		}
 	};
 	const finalAlt = alt !== void 0 ? alt : "";
-	let computedSrcSet = srcSet;
-	if (!computedSrcSet && typeof imgSrc === "string" && imgSrc.includes("/storage/") && !imgSrc.includes("thumb_")) {
-		const parts = imgSrc.split("/");
-		const filename = parts.pop();
-		computedSrcSet = `${[...parts, `thumb_${filename}`].join("/")} 400w, ${imgSrc} 1200w`;
-	}
+	const computedSrcSet = srcSet;
 	return /* @__PURE__ */ jsx("img", {
 		src: imgSrc,
 		srcSet: computedSrcSet,

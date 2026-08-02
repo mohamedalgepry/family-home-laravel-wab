@@ -25,14 +25,8 @@ export default function OptimizedImage({
 
     const finalAlt = alt !== undefined ? alt : '';
 
-    // Auto generate srcSet if src is in storage and no custom srcSet passed
-    let computedSrcSet = srcSet;
-    if (!computedSrcSet && typeof imgSrc === 'string' && imgSrc.includes('/storage/') && !imgSrc.includes('thumb_')) {
-        const parts = imgSrc.split('/');
-        const filename = parts.pop();
-        const thumbSrc = [...parts, `thumb_${filename}`].join('/');
-        computedSrcSet = `${thumbSrc} 400w, ${imgSrc} 1200w`;
-    }
+    // Use explicit srcSet if passed, otherwise fall back to standard src to avoid 404 thumbnail errors
+    const computedSrcSet = srcSet;
 
     return (
         <img

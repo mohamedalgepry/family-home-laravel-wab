@@ -39,8 +39,8 @@
     <FilesMatch "\.(js|css|xml|gz|html)$">
         Header append Vary: Accept-Encoding
     </FilesMatch>
-    <FilesMatch "\.(ico|jpe?g|png|gif|webp|swf|woff2)$">
-        Header set Cache-Control "max-age=31536000, public"
+    <FilesMatch "\.(ico|jpe?g|png|gif|webp|swf|woff2?|ttf|eot|svg|js|css)$">
+        Header set Cache-Control "max-age=31536000, public, immutable"
     </FilesMatch>
 </IfModule>
 
