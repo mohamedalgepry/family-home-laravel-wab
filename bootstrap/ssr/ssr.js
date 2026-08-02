@@ -12177,7 +12177,7 @@ function Footer() {
 			/* @__PURE__ */ jsx("div", {
 				className: "border-t border-secondary-800 py-4",
 				children: /* @__PURE__ */ jsxs("p", {
-					className: "text-center text-xs text-secondary-500",
+					className: "text-center text-xs text-secondary-300",
 					children: [
 						"© ",
 						(/* @__PURE__ */ new Date()).getFullYear(),
@@ -12449,13 +12449,13 @@ function UnitCard({ unit, loading = false }) {
 					})
 				}),
 				/* @__PURE__ */ jsxs("p", {
-					className: "text-xs font-medium text-secondary-500 mb-3 flex items-center gap-1.5",
+					className: "text-xs font-medium text-secondary-700 mb-3 flex items-center gap-1.5",
 					children: [/* @__PURE__ */ jsx("span", { children: unit.type?.name || unit.type_name || "" }), unit.finishing_type && /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("span", {
-						className: "text-secondary-300",
+						className: "text-secondary-400",
 						"aria-hidden": "true",
 						children: "•"
 					}), /* @__PURE__ */ jsx("span", {
-						className: "text-secondary-600",
+						className: "text-secondary-700",
 						children: unit.finishing_type.name || unit.finishing_type
 					})] })]
 				}),
@@ -12470,7 +12470,7 @@ function UnitCard({ unit, loading = false }) {
 					})]
 				}),
 				/* @__PURE__ */ jsxs("div", {
-					className: "grid grid-cols-2 gap-2 text-xs font-medium text-secondary-600 bg-surface/70 p-2.5 rounded-xl border border-secondary-100",
+					className: "grid grid-cols-2 gap-2 text-xs font-medium text-secondary-800 bg-surface/70 p-2.5 rounded-xl border border-secondary-100",
 					children: [unit.area_sqm && /* @__PURE__ */ jsxs("div", {
 						className: "flex items-center gap-1.5",
 						children: [/* @__PURE__ */ jsx("svg", {

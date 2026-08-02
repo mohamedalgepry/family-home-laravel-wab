@@ -104,12 +104,12 @@ export default function UnitCard({ unit, loading = false }) {
                         </h2>
                     </Link>
 
-                    <p className="text-xs font-medium text-secondary-500 mb-3 flex items-center gap-1.5">
+                    <p className="text-xs font-medium text-secondary-700 mb-3 flex items-center gap-1.5">
                         <span>{unit.type?.name || unit.type_name || ''}</span>
                         {unit.finishing_type && (
                             <>
-                                <span className="text-secondary-300" aria-hidden="true">•</span>
-                                <span className="text-secondary-600">{unit.finishing_type.name || unit.finishing_type}</span>
+                                <span className="text-secondary-400" aria-hidden="true">•</span>
+                                <span className="text-secondary-700">{unit.finishing_type.name || unit.finishing_type}</span>
                             </>
                         )}
                     </p>
@@ -124,7 +124,7 @@ export default function UnitCard({ unit, loading = false }) {
                     </div>
 
                     {/* Meta Specs */}
-                    <div className="grid grid-cols-2 gap-2 text-xs font-medium text-secondary-600 bg-surface/70 p-2.5 rounded-xl border border-secondary-100">
+                    <div className="grid grid-cols-2 gap-2 text-xs font-medium text-secondary-800 bg-surface/70 p-2.5 rounded-xl border border-secondary-100">
                         {unit.area_sqm && (
                             <div className="flex items-center gap-1.5">
                                 <svg className="w-4 h-4 text-primary-700 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} aria-hidden="true">

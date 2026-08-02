@@ -146,7 +146,7 @@ export default function Footer() {
 
             {/* Copyright */}
             <div className="border-t border-secondary-800 py-4">
-                <p className="text-center text-xs text-secondary-500">
+                <p className="text-center text-xs text-secondary-300">
                     &copy; {new Date().getFullYear()} {trans('app_name')}. {trans('all_rights_reserved')}
                 </p>
             </div>

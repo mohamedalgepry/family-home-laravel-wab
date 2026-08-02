@@ -30,8 +30,17 @@ export default defineConfig({
                         if (id.includes('@tiptap')) {
                             return 'vendor-tiptap';
                         }
-                        if (id.includes('react') || id.includes('@inertiajs')) {
-                            return 'vendor-core';
+                        if (id.includes('react-dom')) {
+                            return 'vendor-react-dom';
+                        }
+                        if (id.includes('react')) {
+                            return 'vendor-react';
+                        }
+                        if (id.includes('@inertiajs')) {
+                            return 'vendor-inertia';
+                        }
+                        if (id.includes('axios')) {
+                            return 'vendor-axios';
                         }
                         return 'vendor';
                     }
