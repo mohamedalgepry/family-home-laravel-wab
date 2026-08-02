@@ -38,6 +38,14 @@ class ArticleController
 
         $categories = Category::orderBy('name_ar')->get(['id', 'name_ar', 'name_en', 'slug']);
 
+        $customMeta = [];
+        if ($currentCategory) {
+            $catName = app()->getLocale() === 'ar' ? ($currentCategory->name_ar ?? $currentCategory->name) : ($currentCategory->name_en ?? $currentCategory->name);
+            $customMeta['title'] = (app()->getLocale() === 'ar' ? 'مقالات ' : 'Articles in ').$catName.' - '.config('app.name');
+        }
+
+        $meta = app(\App\Services\SeoService::class)->forPage('articles_index', $customMeta);
+
         return Inertia::render('Public/Articles/Index', [
             'articles' => $articles,
             'categories' => $categories,
@@ -47,7 +55,7 @@ class ArticleController
                 'name_en' => $currentCategory->name_en,
                 'slug' => $currentCategory->slug,
             ] : null,
-        ]);
+        ])->withViewData(['meta' => $meta]);
     }
 
     public function show(string $slug): Response

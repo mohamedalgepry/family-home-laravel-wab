@@ -9,6 +9,7 @@ import Pagination from '../../Components/UI/Pagination'
 import SeoHead from '../../Components/UI/SeoHead'
 
 const HERO_BG = '/images/hero.webp'
+const HERO_BG_MOBILE = '/images/hero-mobile.webp'
 
 export default function Home({ featuredUnits, latestUnits, popularSearches, areas, unitTypes, features, finishingTypes }) {
     const { locale, settings } = usePage().props
@@ -18,6 +19,7 @@ export default function Home({ featuredUnits, latestUnits, popularSearches, area
     const heroTitle = isRtl ? (settings?.hero_title_ar || trans('hero_title')) : (settings?.hero_title_en || trans('hero_title'))
     const heroSubtitle = isRtl ? (settings?.hero_subtitle_ar || trans('hero_subtitle')) : (settings?.hero_subtitle_en || trans('hero_subtitle'))
     const heroImage = settings?.hero_image ? `/storage/${settings.hero_image}` : HERO_BG
+    const heroImageMobile = settings?.hero_image ? `/storage/${settings.hero_image}` : HERO_BG_MOBILE
 
     const isLoading = !featuredUnits && !latestUnits
     const hasFeatured = featuredUnits?.data?.length > 0
@@ -29,7 +31,7 @@ export default function Home({ featuredUnits, latestUnits, popularSearches, area
                 title={trans('site_title')}
                 description={trans('home_description')}
                 ogImage={featuredUnits?.data?.[0]?.images?.[0]?.url || (featuredUnits?.data?.[0]?.images?.[0]?.path ? `/storage/${featuredUnits.data[0].images[0].path}` : null)}
-                canonical={window.location.href}
+                canonical={typeof window !== 'undefined' ? window.location.href : null}
             />
             <Header />
 
@@ -37,7 +39,16 @@ export default function Home({ featuredUnits, latestUnits, popularSearches, area
                 {/* Hero Section */}
                 <section className="relative bg-secondary-950 flex flex-col justify-center min-h-[80vh]">
                     <div className="absolute inset-0 z-0 overflow-hidden">
-                        <img src={heroImage} alt="" className="w-full h-full object-cover scale-105" fetchPriority="high" loading="eager" decoding="sync" />
+                        <img 
+                            src={heroImage} 
+                            srcSet={`${heroImageMobile} 640w, ${heroImage} 1400w`}
+                            sizes="100vw"
+                            alt="" 
+                            className="w-full h-full object-cover scale-105" 
+                            fetchPriority="high" 
+                            loading="eager" 
+                            decoding="sync" 
+                        />
                         <div className="absolute inset-0 bg-gradient-to-t from-secondary-950 via-secondary-950/85 to-black/60"></div>
                     </div>
                     

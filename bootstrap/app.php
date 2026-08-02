@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\DetectBot;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\HttpCacheControl;
 use App\Http\Middleware\SecurityHeadersMiddleware;
@@ -24,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \App\Http\Middleware\EnsureUserHasRole::class,
         ]);
         $middleware->web(append: [
+            DetectBot::class,
             SetLocale::class,
             HandleInertiaRequests::class,
             SecurityHeadersMiddleware::class,

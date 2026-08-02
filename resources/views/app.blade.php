@@ -6,8 +6,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="google-site-verification" content="0KaNSaKJZ4bzZ34V2h1GSuFfSlyUMZVMujKj1F8iwE0" />
 
-    <!-- Preload LCP Hero Image -->
-    <link rel="preload" as="image" href="/images/hero.webp" type="image/webp" fetchpriority="high">
+    <!-- Preload LCP Hero Image (Responsive) -->
+    <link rel="preload" as="image" imagesrcset="/images/hero-mobile.webp 640w, /images/hero.webp 1400w" imagesizes="100vw" fetchpriority="high">
 
     <!-- Cairo Font (Optimized & Non-blocking) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

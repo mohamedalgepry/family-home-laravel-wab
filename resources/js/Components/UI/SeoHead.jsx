@@ -12,7 +12,7 @@ export default function SeoHead({
     jsonLd,
     hreflang,
 }) {
-    const { locale, seo_pages } = usePage().props
+    const { locale, seo_pages, appUrl } = usePage().props
     const { url } = usePage()
     const trans = useTrans(locale)
     const siteName = trans('site_title')
@@ -20,7 +20,7 @@ export default function SeoHead({
 
     const cleanPath = url.split('?')[0];
     const pathWithoutLocale = cleanPath.replace(/^\/(ar|en)(\/|$)/, '/');
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+    const baseUrl = appUrl || (typeof window !== 'undefined' ? window.location.origin : '');
     
     // Auto detect pageKey from path if not provided
     const routeToKeyMap = {

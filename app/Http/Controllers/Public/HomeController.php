@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Public;
 use App\Domain\Listings\Services\ListingLookupService;
 use App\Domain\Listings\Services\ListingService;
 use App\Domain\Listings\Services\SearchService;
+use App\Services\SeoService;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -14,6 +15,7 @@ class HomeController
         private readonly ListingService $listingService,
         private readonly ListingLookupService $lookupService,
         private readonly SearchService $searchService,
+        private readonly SeoService $seoService,
     ) {}
 
     public function __invoke(): Response
@@ -21,6 +23,8 @@ class HomeController
         $featuredUnits = $this->listingService->getFeaturedUnits(8);
         $latestUnits = $this->listingService->getLatestUnits(12);
         $popularSearches = $this->searchService->getPopularSearches();
+
+        $meta = $this->seoService->forPage('home');
 
         return Inertia::render('Public/Home', [
             'featuredUnits' => $featuredUnits,
@@ -30,6 +34,6 @@ class HomeController
             'unitTypes' => $this->lookupService->unitTypes(),
             'features' => $this->lookupService->features(),
             'finishingTypes' => $this->lookupService->finishingTypes(),
-        ]);
+        ])->withViewData(['meta' => $meta]);
     }
 }

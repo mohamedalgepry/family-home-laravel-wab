@@ -25,13 +25,25 @@ class ProjectController
 
         $projects = $this->listingService->getProjectsByFilters($filters);
 
+        $customMeta = [];
+        if (! empty($filters['area_id'])) {
+            $areas = $this->lookupService->areas();
+            $area = collect($areas)->firstWhere('id', (int) $filters['area_id']);
+            if ($area) {
+                $areaName = app()->getLocale() === 'ar' ? ($area->name_ar ?? $area->name) : ($area->name_en ?? $area->name);
+                $customMeta['title'] = (app()->getLocale() === 'ar' ? 'مشاريع سكنية وتجارية في ' : 'Real Estate Projects in ').$areaName.' - '.config('app.name');
+            }
+        }
+
+        $meta = app(\App\Services\SeoService::class)->forPage('projects_index', $customMeta);
+
         return Inertia::render('Public/Projects/Index', [
             'projects' => $projects,
             'filters' => $filters,
             'areas' => $this->lookupService->areas(),
             'features' => $this->lookupService->features(),
             'finishingTypes' => $this->lookupService->finishingTypes(),
-        ]);
+        ])->withViewData(['meta' => $meta]);
     }
 
     public function show(string $slug): Response

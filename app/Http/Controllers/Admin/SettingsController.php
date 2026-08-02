@@ -66,14 +66,54 @@ class SettingsController extends Controller
         }
 
         $oldPath = $this->settingsService->get($field);
-        $path = $request->file($field)->store('settings', 'public');
+        $file = $request->file($field);
 
-        if ($path) {
-            $data[$field] = $path;
+        $disk = Storage::disk('public');
+        $filename = uniqid($field.'_').'.webp';
+        $relativeWebpPath = 'settings/'.$filename;
+        $fullWebpPath = $disk->path($relativeWebpPath);
 
-            if ($oldPath && Storage::disk('public')->exists($oldPath)) {
-                Storage::disk('public')->delete($oldPath);
+        if (! $disk->exists('settings')) {
+            $disk->makeDirectory('settings');
+        }
+
+        $processed = false;
+        try {
+            $raw = file_get_contents($file->getRealPath());
+            if ($raw && function_exists('imagecreatefromstring') && function_exists('imagewebp')) {
+                $srcImg = @imagecreatefromstring($raw);
+                if ($srcImg) {
+                    $w = imagesx($srcImg);
+                    $h = imagesy($srcImg);
+
+                    $maxW = $field === 'hero_image' ? 1400 : 800;
+                    if ($w > $maxW) {
+                        $targetW = $maxW;
+                        $targetH = (int) round(($h / $w) * $targetW);
+                        $dstImg = imagecreatetruecolor($targetW, $targetH);
+                        imagecopyresampled($dstImg, $srcImg, 0, 0, 0, 0, $targetW, $targetH, $w, $h);
+                        imagewebp($dstImg, $fullWebpPath, 82);
+                    } else {
+                        imagewebp($srcImg, $fullWebpPath, 82);
+                    }
+                    $processed = true;
+                }
             }
+        } catch (\Throwable $e) {
+            Log::warning("Failed to optimize setting image {$field}: ".$e->getMessage());
+        }
+
+        if (! $processed) {
+            $path = $file->store('settings', 'public');
+            if ($path) {
+                $data[$field] = $path;
+            }
+        } else {
+            $data[$field] = $relativeWebpPath;
+        }
+
+        if (isset($data[$field]) && $oldPath && $oldPath !== $data[$field] && $disk->exists($oldPath)) {
+            $disk->delete($oldPath);
         }
     }
 }
