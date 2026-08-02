@@ -41,21 +41,45 @@ class GenerateThumbnailsJob implements ShouldQueue
                 }
 
                 $fullPath = $disk->path($relativePath);
-                $image = $manager->read($fullPath);
-
-                // Scale image down for thumbnail (max 300px width)
-                $image->scale(width: 300);
-
                 $dir = dirname($relativePath);
                 $filename = basename($relativePath);
+                $filenameNoExt = pathinfo($filename, PATHINFO_FILENAME);
+                $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+
                 $thumbRelativePath = ($dir !== '.' ? $dir.'/' : '').'thumb_'.$filename;
                 $thumbFullPath = $disk->path($thumbRelativePath);
 
-                $image->save($thumbFullPath);
+                $raw = @file_get_contents($fullPath);
+                if ($raw && function_exists('imagecreatefromstring') && function_exists('imagewebp')) {
+                    $srcImg = @imagecreatefromstring($raw);
+                    if ($srcImg) {
+                        $w = imagesx($srcImg);
+                        $h = imagesy($srcImg);
+                        $thumbW = min(400, $w);
+                        $thumbH = (int) round(($h / $w) * $thumbW);
+
+                        $thumbImg = imagecreatetruecolor($thumbW, $thumbH);
+                        imagecopyresampled($thumbImg, $srcImg, 0, 0, 0, 0, $thumbW, $thumbH, $w, $h);
+
+                        // Save thumbnail
+                        imagewebp($thumbImg, $thumbFullPath, 80);
+
+                        // Convert original image to webp if it's jpg/png
+                        if (in_array($ext, ['jpg', 'jpeg', 'png'])) {
+                            $webpRelativePath = ($dir !== '.' ? $dir.'/' : '').$filenameNoExt.'.webp';
+                            $webpFullPath = $disk->path($webpRelativePath);
+                            imagewebp($srcImg, $webpFullPath, 82);
+                        }
+                    }
+                } else {
+                    $image = $manager->read($fullPath);
+                    $image->scale(width: 400);
+                    $image->save($thumbFullPath);
+                }
 
                 \Illuminate\Support\Facades\Cache::forget("thumb_exists:{$thumbRelativePath}");
 
-                Log::info('GenerateThumbnailsJob: generated thumbnail', [
+                Log::info('GenerateThumbnailsJob: generated thumbnail & webp optimization', [
                     'original' => $relativePath,
                     'thumbnail' => $thumbRelativePath,
                 ]);

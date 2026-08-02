@@ -147,7 +147,7 @@ export function Select({
         >
             {/* Hidden native select for form submissions */}
             <select 
-                id={id || name}
+                id={id ? `${id}-native` : (name ? `${name}-native` : undefined)}
                 className="absolute inset-0 w-full h-full opacity-0 pointer-events-none -z-10" 
                 value={currentValue} 
                 name={name} 
@@ -155,6 +155,7 @@ export function Select({
                 required={required}
                 onChange={() => {}}
                 tabIndex={-1}
+                aria-hidden="true"
             >
                 <option value=""></option>
                 {options.map(o => (
@@ -164,6 +165,7 @@ export function Select({
 
             {/* Trigger Button */}
             <button
+                id={id || name}
                 ref={triggerRef}
                 type="button"
                 disabled={disabled}
@@ -194,10 +196,6 @@ export function Select({
 
             {/* Dropdown Menu */}
             <div 
-                id={listboxId}
-                role="listbox"
-                tabIndex={-1}
-                aria-label={ariaLabel || 'Options'}
                 className={`absolute z-[100] top-full left-0 right-0 w-full mt-2 bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-secondary-200 flex flex-col origin-top transition-all duration-200 ease-out min-w-[160px] ${isOpen ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 -translate-y-1 pointer-events-none'}`}
                 style={{ maxHeight: '300px' }}
             >
@@ -222,8 +220,14 @@ export function Select({
                     </div>
                 )}
 
-                {/* Options List */}
-                <div className="overflow-y-auto p-2 custom-scrollbar">
+                {/* Options List with role="listbox" */}
+                <div 
+                    id={listboxId}
+                    role="listbox"
+                    tabIndex={-1}
+                    aria-label={ariaLabel || 'Options'}
+                    className="overflow-y-auto p-2 custom-scrollbar"
+                >
                     {filteredOptions.length === 0 ? (
                         <div className="px-4 py-6 text-sm text-secondary-500 text-center font-medium" role="option" aria-selected="false">
                             No results found

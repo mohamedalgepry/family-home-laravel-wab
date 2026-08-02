@@ -84,10 +84,11 @@ export default function SearchBar({ areas = [], unitTypes = [], features = [], f
                     
                     {/* Keyword */}
                     <div className="flex-1 w-full px-5 py-3 hover:bg-surface/60 transition-colors cursor-text group rounded-2xl md:rounded-s-3xl md:rounded-e-none">
-                        <label className="block text-[10px] font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors">
+                        <label htmlFor="search-input" className="block text-[10px] font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors">
                             {trans('search')}
                         </label>
                         <input
+                            id="search-input"
                             type="text"
                             value={local.search}
                             onChange={e => update('search', e.target.value)}
@@ -98,10 +99,11 @@ export default function SearchBar({ areas = [], unitTypes = [], features = [], f
 
                     {/* Transaction Type */}
                     <div className="flex-1 w-full px-5 py-3 hover:bg-surface/60 transition-colors cursor-pointer group rounded-2xl md:rounded-none">
-                        <label className="block text-[10px] font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors">
+                        <label htmlFor="transaction-filter" className="block text-[10px] font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors">
                             {trans('transaction')}
                         </label>
                         <Select
+                            id="transaction-filter"
                             value={local.transaction}
                             onChange={e => update('transaction', e.target.value)}
                             className="w-full text-secondary-800 outline-none cursor-pointer"
@@ -117,10 +119,11 @@ export default function SearchBar({ areas = [], unitTypes = [], features = [], f
 
                     {/* Area */}
                     <div className="flex-1 w-full px-5 py-3 hover:bg-surface/60 transition-colors cursor-pointer group rounded-2xl md:rounded-none">
-                        <label className="block text-[10px] font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors">
+                        <label htmlFor="area-filter" className="block text-[10px] font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors">
                             {trans('area')}
                         </label>
                         <Select
+                            id="area-filter"
                             value={local.area_id}
                             onChange={e => update('area_id', e.target.value)}
                             className="w-full text-secondary-800 outline-none cursor-pointer"
@@ -136,10 +139,11 @@ export default function SearchBar({ areas = [], unitTypes = [], features = [], f
 
                     {/* Unit Type */}
                     <div className="flex-1 w-full px-5 py-3 hover:bg-surface/60 transition-colors cursor-pointer group rounded-2xl md:rounded-none">
-                        <label className="block text-[10px] font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors">
+                        <label htmlFor="type-filter" className="block text-[10px] font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors">
                             {trans('type')}
                         </label>
                         <Select
+                            id="type-filter"
                             value={local.type_id}
                             onChange={e => update('type_id', e.target.value)}
                             className="w-full text-secondary-800 outline-none cursor-pointer"
@@ -197,10 +201,11 @@ export default function SearchBar({ areas = [], unitTypes = [], features = [], f
                     <div className="px-4 py-4 bg-surface/30 border-t border-secondary-100 flex flex-col gap-4">
                         <div className="flex flex-col sm:flex-row gap-4 w-full">
                             <div className="flex-1 w-full">
-                                <label className="block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-1">
+                                <label htmlFor="price-min-input" className="block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-1">
                                     {locale === 'ar' ? 'الحد الأدنى للسعر' : 'Minimum Price'}
                                 </label>
                                 <input
+                                    id="price-min-input"
                                     type="number"
                                     min="0"
                                     value={local.price_min}
@@ -210,10 +215,11 @@ export default function SearchBar({ areas = [], unitTypes = [], features = [], f
                                 />
                             </div>
                             <div className="flex-1 w-full">
-                                <label className="block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-1">
+                                <label htmlFor="price-max-input" className="block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-1">
                                     {locale === 'ar' ? 'الحد الأقصى للسعر' : 'Maximum Price'}
                                 </label>
                                 <input
+                                    id="price-max-input"
                                     type="number"
                                     min="0"
                                     value={local.price_max}
@@ -225,10 +231,11 @@ export default function SearchBar({ areas = [], unitTypes = [], features = [], f
                         </div>
                         <div className="flex flex-col sm:flex-row gap-4 w-full">
                             <div className="flex-1 w-full">
-                                <label className="block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-1">
+                                <label htmlFor="size-min-input" className="block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-1">
                                     {locale === 'ar' ? 'الحد الأدنى للمساحة' : 'Minimum Size'}
                                 </label>
                                 <input
+                                    id="size-min-input"
                                     type="number"
                                     min="0"
                                     value={local.size_min}
@@ -238,10 +245,11 @@ export default function SearchBar({ areas = [], unitTypes = [], features = [], f
                                 />
                             </div>
                             <div className="flex-1 w-full">
-                                <label className="block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-1">
+                                <label htmlFor="size-max-input" className="block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-1">
                                     {locale === 'ar' ? 'الحد الأقصى للمساحة' : 'Maximum Size'}
                                 </label>
                                 <input
+                                    id="size-max-input"
                                     type="number"
                                     min="0"
                                     value={local.size_max}
@@ -253,10 +261,11 @@ export default function SearchBar({ areas = [], unitTypes = [], features = [], f
                         </div>
                         <div className="flex flex-col sm:flex-row gap-4 w-full">
                             <div className="flex-1 w-full">
-                                <label className="block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-1">
+                                <label htmlFor="payment-method-filter" className="block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-1">
                                     {trans('payment_method') || 'Payment Method'}
                                 </label>
                                 <Select
+                                    id="payment-method-filter"
                                     value={local.payment_method}
                                     onChange={e => update('payment_method', e.target.value)}
                                     className="w-full"
@@ -268,10 +277,11 @@ export default function SearchBar({ areas = [], unitTypes = [], features = [], f
                                 </Select>
                             </div>
                             <div className="flex-1 w-full">
-                                <label className="block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-1">
+                                <label htmlFor="finishing-type-filter" className="block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-1">
                                     {trans('finishing_type') || 'Finishing Type'}
                                 </label>
                                 <Select
+                                    id="finishing-type-filter"
                                     value={local.finishing_type_id}
                                     onChange={e => update('finishing_type_id', e.target.value)}
                                     className="w-full"

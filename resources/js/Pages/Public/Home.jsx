@@ -8,7 +8,7 @@ import UnitCard from '../../Components/UI/UnitCard'
 import Pagination from '../../Components/UI/Pagination'
 import SeoHead from '../../Components/UI/SeoHead'
 
-const HERO_BG = 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1600&q=80'
+const HERO_BG = '/images/hero.webp'
 
 export default function Home({ featuredUnits, latestUnits, popularSearches, areas, unitTypes, features, finishingTypes }) {
     const { locale, settings } = usePage().props
@@ -37,8 +37,8 @@ export default function Home({ featuredUnits, latestUnits, popularSearches, area
                 {/* Hero Section */}
                 <section className="relative bg-secondary-950 flex flex-col justify-center min-h-[80vh]">
                     <div className="absolute inset-0 z-0 overflow-hidden">
-                        <img src={heroImage} alt="" className="w-full h-full object-cover scale-105 animate-pulse-slow" fetchPriority="high" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-secondary-950 via-secondary-950/70 to-black/40"></div>
+                        <img src={heroImage} alt="" className="w-full h-full object-cover scale-105" fetchPriority="high" loading="eager" decoding="sync" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-secondary-950 via-secondary-950/85 to-black/60"></div>
                     </div>
                     
                     <div className="relative z-20 max-w-container mx-auto px-4 py-20 sm:py-28 text-center w-full">

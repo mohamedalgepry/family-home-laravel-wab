@@ -28,7 +28,7 @@ export default function Pagination({ meta, links: routeLinks }) {
     }
 
     return (
-        <nav dir={isRtl ? 'rtl' : 'ltr'} className="flex items-center justify-center gap-1 mt-8">
+        <nav dir={isRtl ? 'rtl' : 'ltr'} className="flex items-center justify-center gap-1 mt-8" aria-label={isRtl ? 'صفحات النتائج' : 'Pagination'}>
             {/* Previous */}
             {current_page > 1 ? (
                 <Link
