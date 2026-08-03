@@ -35,6 +35,7 @@ class DetectBot
             return response(file_get_contents($filePath), 200, [
                 'Content-Type' => 'text/html; charset=UTF-8',
                 'X-Prerendered-By' => 'FamilyHome-StaticPrerender',
+                'Cache-Control' => 'public, max-age=3600, stale-while-revalidate=86400',
             ]);
         }
 

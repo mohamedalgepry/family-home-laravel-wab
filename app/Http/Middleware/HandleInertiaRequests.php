@@ -33,7 +33,7 @@ class HandleInertiaRequests extends Middleware
 
         $settingKeys = [
             'site_logo', 'hero_title_ar', 'hero_title_en', 'hero_subtitle_ar',
-            'hero_subtitle_en', 'hero_image', 'company_phone', 'company_whatsapp', 'company_email',
+            'hero_subtitle_en', 'hero_image', 'hero_image_mobile', 'company_phone', 'company_whatsapp', 'company_email',
             'company_address', 'social_facebook', 'social_instagram', 'social_twitter', 'social_linkedin',
         ];
 

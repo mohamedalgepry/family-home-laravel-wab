@@ -25,21 +25,26 @@
     ExpiresByType image/png "access plus 1 year"
     ExpiresByType image/webp "access plus 1 year"
     ExpiresByType image/svg+xml "access plus 1 year"
-    ExpiresByType text/css "access plus 1 month"
-    ExpiresByType application/javascript "access plus 1 month"
+    ExpiresByType text/css "access plus 1 year"
+    ExpiresByType text/javascript "access plus 1 year"
+    ExpiresByType application/javascript "access plus 1 year"
+    ExpiresByType application/x-javascript "access plus 1 year"
+    ExpiresByType application/json "access plus 1 year"
     ExpiresByType font/woff2 "access plus 1 year"
+    ExpiresByType font/woff "access plus 1 year"
+    ExpiresByType font/ttf "access plus 1 year"
 </IfModule>
 
 <IfModule mod_headers.c>
-    <FilesMatch "\.(js|css|xml|gz|html|woff2?|ttf|eot|svg|webp|png|jpg|jpeg|json)$">
+    <FilesMatch "\.(js|mjs|css|xml|gz|html|woff2?|ttf|eot|svg|webp|png|jpg|jpeg|json)$">
         Header set Access-Control-Allow-Origin "*"
         Header set Access-Control-Allow-Methods "GET, OPTIONS"
         Header set Access-Control-Allow-Headers "*"
     </FilesMatch>
-    <FilesMatch "\.(js|css|xml|gz|html)$">
+    <FilesMatch "\.(js|mjs|css|xml|gz|html)$">
         Header append Vary: Accept-Encoding
     </FilesMatch>
-    <FilesMatch "\.(ico|jpe?g|png|gif|webp|swf|woff2?|ttf|eot|svg|js|css)$">
+    <FilesMatch "\.(ico|jpe?g|png|gif|webp|swf|woff2?|ttf|eot|svg|js|mjs|css|json)$">
         Header set Cache-Control "max-age=31536000, public, immutable"
     </FilesMatch>
 </IfModule>

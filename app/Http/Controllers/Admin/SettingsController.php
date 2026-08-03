@@ -36,7 +36,7 @@ class SettingsController extends Controller
             $data = $request->validated();
 
             // إزالة الحقول الفارغة أو null (غير المرسلة)
-            unset($data['site_logo'], $data['hero_image']);
+            unset($data['site_logo'], $data['hero_image'], $data['hero_image_mobile']);
 
             $this->storeSettingImage($request, 'site_logo', $data);
             $this->storeSettingImage($request, 'hero_image', $data);
@@ -93,9 +93,32 @@ class SettingsController extends Controller
                         $dstImg = imagecreatetruecolor($targetW, $targetH);
                         imagecopyresampled($dstImg, $srcImg, 0, 0, 0, 0, $targetW, $targetH, $w, $h);
                         imagewebp($dstImg, $fullWebpPath, 82);
+                        imagedestroy($dstImg);
                     } else {
                         imagewebp($srcImg, $fullWebpPath, 82);
                     }
+
+                    // إذا كانت الصورة الرئيسية للهيرو، ننشئ نسخة مخصصة للموبايل أيضاً
+                    if ($field === 'hero_image') {
+                        $oldMobilePath = $this->settingsService->get('hero_image_mobile');
+                        $mobileFilename = uniqid('hero_mobile_').'.webp';
+                        $relativeMobilePath = 'settings/'.$mobileFilename;
+                        $fullMobilePath = $disk->path($relativeMobilePath);
+
+                        $targetMobileW = min($w, 640);
+                        $targetMobileH = (int) round(($h / $w) * $targetMobileW);
+                        $dstMobile = imagecreatetruecolor($targetMobileW, $targetMobileH);
+                        imagecopyresampled($dstMobile, $srcImg, 0, 0, 0, 0, $targetMobileW, $targetMobileH, $w, $h);
+                        imagewebp($dstMobile, $fullMobilePath, 80);
+                        imagedestroy($dstMobile);
+
+                        $data['hero_image_mobile'] = $relativeMobilePath;
+                        if ($oldMobilePath && $oldMobilePath !== $relativeMobilePath && $disk->exists($oldMobilePath)) {
+                            $disk->delete($oldMobilePath);
+                        }
+                    }
+
+                    imagedestroy($srcImg);
                     $processed = true;
                 }
             }

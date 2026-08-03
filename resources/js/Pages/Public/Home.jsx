@@ -19,7 +19,7 @@ export default function Home({ featuredUnits, latestUnits, popularSearches, area
     const heroTitle = isRtl ? (settings?.hero_title_ar || trans('hero_title')) : (settings?.hero_title_en || trans('hero_title'))
     const heroSubtitle = isRtl ? (settings?.hero_subtitle_ar || trans('hero_subtitle')) : (settings?.hero_subtitle_en || trans('hero_subtitle'))
     const heroImage = settings?.hero_image ? `/storage/${settings.hero_image}` : HERO_BG
-    const heroImageMobile = settings?.hero_image ? `/storage/${settings.hero_image}` : HERO_BG_MOBILE
+    const heroImageMobile = settings?.hero_image_mobile ? `/storage/${settings.hero_image_mobile}` : (settings?.hero_image ? `/storage/${settings.hero_image}` : HERO_BG_MOBILE)
 
     const isLoading = !featuredUnits && !latestUnits
     const hasFeatured = featuredUnits?.data?.length > 0
