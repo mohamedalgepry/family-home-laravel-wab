@@ -50,7 +50,13 @@ class ListingImageService
     {
         $dir = dirname($path);
         $filename = basename($path);
-        $thumbPath = ($dir !== '.' ? $dir.'/' : '').'thumb_'.$filename;
-        Storage::disk('public')->delete($thumbPath);
+        $filenameNoExt = pathinfo($filename, PATHINFO_FILENAME);
+        $directory = $dir !== '.' ? $dir.'/' : '';
+
+        Storage::disk('public')->delete([
+            $directory.'thumb_'.$filenameNoExt.'.webp',
+            // Remove legacy thumbnails generated with the original extension.
+            $directory.'thumb_'.$filename,
+        ]);
     }
 }

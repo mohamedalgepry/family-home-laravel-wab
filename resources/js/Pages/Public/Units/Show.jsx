@@ -1,4 +1,5 @@
 import { usePage, useForm, Link } from '@inertiajs/react'
+import { localizedPath } from '../../../Utils/route'
 import { useTrans } from '../../../Utils/trans'
 import Header from '../../../Components/Layout/Header'
 import Footer from '../../../Components/Layout/Footer'
@@ -17,7 +18,8 @@ function extractEmbedSrc(value) {
 }
 
 export default function UnitShow({ unit, similarUnits }) {
-    const { locale, flash } = usePage().props
+    const page = usePage()
+    const { locale, flash, appUrl } = page.props
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
     const [lightboxIndex, setLightboxIndex] = useState(null)
@@ -31,7 +33,7 @@ export default function UnitShow({ unit, similarUnits }) {
             '@type': 'RealEstateListing',
             name: unit.name,
             description: unit.description,
-            url: window.location.href,
+            url: `${appUrl || ''}${page.url.split('?')[0]}`,
             image: unit.images?.[0]?.url || (unit.images?.[0]?.path ? `/storage/${unit.images[0].path}` : null),
             offers: {
                 '@type': 'Offer',
@@ -56,7 +58,7 @@ export default function UnitShow({ unit, similarUnits }) {
                 },
             } : {}),
         }
-    }, [unit])
+    }, [unit, appUrl, page.url])
 
     const { data, setData, post, processing, errors } = useForm({
         client_name: '',
@@ -71,7 +73,7 @@ export default function UnitShow({ unit, similarUnits }) {
 
     function handleSubmit(e) {
         e.preventDefault()
-        const submitUrl = window.location.pathname.startsWith('/en') ? `/en/units/${unit.slug}/contact` : `/units/${unit.slug}/contact`
+        const submitUrl = localizedPath(`/units/${unit.slug}/contact`, locale)
         post(submitUrl, {
             preserveScroll: true,
             onSuccess: () => {
@@ -92,7 +94,6 @@ export default function UnitShow({ unit, similarUnits }) {
                 keywords={unit?.keywords || ''}
                 ogImage={unit?.images?.[0]?.path ? `/storage/${unit.images[0].path}` : null}
                 ogType="website"
-                canonical={window.location.href}
             />
             {jsonLd && (
                 <script

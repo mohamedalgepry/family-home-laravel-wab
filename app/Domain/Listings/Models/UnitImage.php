@@ -39,7 +39,10 @@ class UnitImage extends Model
 
         $dir = dirname($this->path);
         $filename = basename($this->path);
-        $thumbPath = ($dir !== '.' ? $dir.'/' : '').'thumb_'.$filename;
+        $filenameNoExt = pathinfo($filename, PATHINFO_FILENAME);
+        $directory = $dir !== '.' ? $dir.'/' : '';
+        $thumbPath = $directory.'thumb_'.$filenameNoExt.'.webp';
+        $legacyThumbPath = $directory.'thumb_'.$filename;
 
         $exists = \Illuminate\Support\Facades\Cache::remember(
             "thumb_exists:{$thumbPath}",
@@ -47,7 +50,13 @@ class UnitImage extends Model
             fn () => \Illuminate\Support\Facades\Storage::disk('public')->exists($thumbPath)
         );
 
-        return $exists ? '/storage/'.$thumbPath : $this->url;
+        if ($exists) {
+            return '/storage/'.$thumbPath;
+        }
+
+        return \Illuminate\Support\Facades\Storage::disk('public')->exists($legacyThumbPath)
+            ? '/storage/'.$legacyThumbPath
+            : $this->url;
     }
 
     protected function casts(): array

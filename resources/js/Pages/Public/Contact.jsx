@@ -43,7 +43,6 @@ export default function Contact() {
             <SeoHead
                 title={`${trans('contact')} - ${trans('site_title')}`}
                 description={trans('contact_description')}
-                canonical={window.location.href}
             />
             <Header />
 

@@ -24,7 +24,6 @@ export default function UnitsIndex({ units, filters, areas, unitTypes, features,
             <SeoHead
                 title={`${trans('page_title')} - ${trans('site_title')}`}
                 description={trans('page_description')}
-                canonical={window.location.href}
             />
             <Header />
 

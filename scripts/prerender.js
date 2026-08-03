@@ -37,6 +37,7 @@ async function main() {
         console.log(`[Prerender] Found ${pages.length} pages to prerender.`)
 
         let count = 0
+        const failures = []
         for (const item of pages) {
             try {
                 const ssrResult = await renderPage(item.page)
@@ -47,13 +48,19 @@ async function main() {
                 fs.writeFileSync(targetFile, fullHtml, 'utf-8')
                 count++
             } catch (err) {
+                failures.push({ url: item.url, error: err.message })
                 console.warn(`[Prerender] Failed to render ${item.url}:`, err.message)
             }
         }
 
         console.log(`[Prerender] Successfully generated ${count}/${pages.length} static HTML pages in storage/app/prerendered/`)
+
+        if (failures.length > 0) {
+            throw new Error(`Prerendering failed for ${failures.length} page(s): ${failures.map(({ url }) => url).join(', ')}`)
+        }
     } catch (err) {
         console.error('[Prerender] Error during prerender process:', err)
+        process.exitCode = 1
     } finally {
         console.log('[Prerender] Terminating SSR server...')
         ssrProcess.kill('SIGTERM')

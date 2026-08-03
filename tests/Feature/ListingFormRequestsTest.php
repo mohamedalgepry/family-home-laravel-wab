@@ -160,5 +160,6 @@ it('stores uploaded images under the given folder', function () {
 
     expect($paths)->toHaveCount(1)
         ->and($paths[0])->toContain('units/'.now()->format('Y/m'))
+        ->and($paths[0])->toEndWith('.webp')
         ->and(Storage::disk('public')->exists($paths[0]))->toBeTrue();
 });

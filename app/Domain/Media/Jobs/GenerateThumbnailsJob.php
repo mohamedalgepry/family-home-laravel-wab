@@ -6,6 +6,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Intervention\Image\Encoders\WebpEncoder;
 use Intervention\Image\ImageManager;
 
 class GenerateThumbnailsJob implements ShouldQueue
@@ -46,7 +47,7 @@ class GenerateThumbnailsJob implements ShouldQueue
                 $filenameNoExt = pathinfo($filename, PATHINFO_FILENAME);
                 $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
 
-                $thumbRelativePath = ($dir !== '.' ? $dir.'/' : '').'thumb_'.$filename;
+                $thumbRelativePath = ($dir !== '.' ? $dir.'/' : '').'thumb_'.$filenameNoExt.'.webp';
                 $thumbFullPath = $disk->path($thumbRelativePath);
 
                 $raw = @file_get_contents($fullPath);
@@ -72,9 +73,9 @@ class GenerateThumbnailsJob implements ShouldQueue
                         }
                     }
                 } else {
-                    $image = $manager->read($fullPath);
-                    $image->scale(width: 400);
-                    $image->save($thumbFullPath);
+                    $image = $manager->decodePath($fullPath);
+                    $image->scaleDown(width: 400);
+                    file_put_contents($thumbFullPath, (string) $image->encode(new WebpEncoder(quality: 80)));
                 }
 
                 \Illuminate\Support\Facades\Cache::forget("thumb_exists:{$thumbRelativePath}");

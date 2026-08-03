@@ -20,7 +20,6 @@ export default function ArticlesIndex({ articles, categories, currentCategory })
             <SeoHead
                 title={`${currentCategory ? (isRtl ? currentCategory.name_ar : currentCategory.name_en) + ' - ' : ''}${trans('articles')} - ${trans('site_title')}`}
                 description={trans('articles_description')}
-                canonical={window.location.href}
             />
             <Header />
 

@@ -94,7 +94,8 @@ class BackfillThumbnailsCommand extends Command
 
         $dir = dirname($path);
         $filename = basename($path);
-        $thumbPath = ($dir !== '.' ? $dir . '/' : '') . 'thumb_' . $filename;
+        $filenameNoExt = pathinfo($filename, PATHINFO_FILENAME);
+        $thumbPath = ($dir !== '.' ? $dir . '/' : '') . 'thumb_' . $filenameNoExt . '.webp';
 
         return !$disk->exists($thumbPath);
     }

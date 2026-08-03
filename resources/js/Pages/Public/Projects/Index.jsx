@@ -57,7 +57,6 @@ export default function ProjectsIndex({ projects, filters, areas, features, fini
             <SeoHead
                 title={`${trans('projects_page_title') || (isRtl ? 'المشاريع العقارية' : 'Real Estate Projects')} - ${trans('site_title')}`}
                 description={trans('projects_description')}
-                canonical={window.location.href}
             />
             <Header />
 

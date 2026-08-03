@@ -79,7 +79,6 @@ export default function ArticleShow({ article, relatedArticles }) {
                 keywords={article?.keywords || ''}
                 ogImage={headerImgUrl}
                 ogType="article"
-                canonical={window.location.href}
             />
             {jsonLd && (
                 <script

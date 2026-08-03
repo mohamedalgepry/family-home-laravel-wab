@@ -17,7 +17,8 @@ import { useState, useMemo } from 'react'
 const PLACEHOLDER = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600"%3E%3Crect fill="%23F0F0F0" width="800" height="600"/%3E%3C/svg%3E'
 
 export default function ProjectShow({ project }) {
-    const { locale } = usePage().props
+    const page = usePage()
+    const { locale, appUrl } = page.props
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
     const [lightboxIndex, setLightboxIndex] = useState(null)
@@ -38,7 +39,7 @@ export default function ProjectShow({ project }) {
             '@type': 'RealEstateListing',
             name: project.name,
             description: project.description,
-            url: window.location.href,
+            url: `${appUrl || ''}${page.url.split('?')[0]}`,
             image: mainImage?.url || (mainImage?.path ? `/storage/${mainImage.path}` : null),
             numberOfUnits: project.units?.length || 0,
             ...(project.location_address ? {
@@ -48,7 +49,7 @@ export default function ProjectShow({ project }) {
                 },
             } : {}),
         }
-    }, [project, mainImage])
+    }, [project, mainImage, appUrl, page.url])
 
     if (!project) {
         return (
@@ -70,7 +71,6 @@ export default function ProjectShow({ project }) {
                 keywords={project?.keywords || ''}
                 ogImage={mainImage?.url || (mainImage?.path ? `/storage/${mainImage.path}` : null)}
                 ogType="website"
-                canonical={window.location.href}
             />
             {jsonLd && (
                 <script

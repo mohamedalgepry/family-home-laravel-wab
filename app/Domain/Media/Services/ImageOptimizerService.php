@@ -4,6 +4,7 @@ namespace App\Domain\Media\Services;
 
 use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\Encoders\WebpEncoder;
 
 class ImageOptimizerService
 {
@@ -21,8 +22,9 @@ class ImageOptimizerService
                 return false;
             }
 
-            $image = $this->manager->read($sourcePath);
-            $encoded = $image->toWebp($quality);
+            $image = $this->manager->decodePath($sourcePath);
+            $image->scaleDown(width: 1600);
+            $encoded = $image->encode(new WebpEncoder(quality: $quality));
 
             $dir = dirname($outputPath);
             if (!is_dir($dir)) {

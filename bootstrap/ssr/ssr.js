@@ -12865,8 +12865,7 @@ function ArticlesIndex({ articles, categories, currentCategory }) {
 		children: [
 			/* @__PURE__ */ jsx(SeoHead, {
 				title: `${currentCategory ? (isRtl ? currentCategory.name_ar : currentCategory.name_en) + " - " : ""}${trans("articles")} - ${trans("site_title")}`,
-				description: trans("articles_description"),
-				canonical: window.location.href
+				description: trans("articles_description")
 			}),
 			/* @__PURE__ */ jsx(Header, {}),
 			/* @__PURE__ */ jsxs("main", {
@@ -12992,8 +12991,7 @@ function ArticleShow({ article, relatedArticles }) {
 				description: article?.meta_description || article?.excerpt || "",
 				keywords: article?.keywords || "",
 				ogImage: headerImgUrl,
-				ogType: "article",
-				canonical: window.location.href
+				ogType: "article"
 			}),
 			jsonLd && /* @__PURE__ */ jsx("script", {
 				type: "application/ld+json",
@@ -13614,8 +13612,7 @@ function Comparison({ items, type, max_items }) {
 		children: [
 			/* @__PURE__ */ jsx(SeoHead, {
 				title: `${trans("compare")} - ${trans("site_title")}`,
-				description: trans("comparison_description"),
-				canonical: window.location.href
+				description: trans("comparison_description")
 			}),
 			/* @__PURE__ */ jsx(Header, {}),
 			/* @__PURE__ */ jsx("main", {
@@ -13778,8 +13775,7 @@ function Contact() {
 		children: [
 			/* @__PURE__ */ jsx(SeoHead, {
 				title: `${trans("contact")} - ${trans("site_title")}`,
-				description: trans("contact_description"),
-				canonical: window.location.href
+				description: trans("contact_description")
 			}),
 			/* @__PURE__ */ jsx(Header, {}),
 			/* @__PURE__ */ jsxs("main", {
@@ -14640,8 +14636,7 @@ function ProjectsIndex({ projects, filters, areas, features, finishingTypes }) {
 		children: [
 			/* @__PURE__ */ jsx(SeoHead, {
 				title: `${trans("projects_page_title") || (isRtl ? "المشاريع العقارية" : "Real Estate Projects")} - ${trans("site_title")}`,
-				description: trans("projects_description"),
-				canonical: window.location.href
+				description: trans("projects_description")
 			}),
 			/* @__PURE__ */ jsx(Header, {}),
 			/* @__PURE__ */ jsxs("main", {
@@ -14964,7 +14959,8 @@ function extractEmbedSrc$1(value) {
 }
 var PLACEHOLDER$1 = "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 600\"%3E%3Crect fill=\"%23F0F0F0\" width=\"800\" height=\"600\"/%3E%3C/svg%3E";
 function ProjectShow({ project }) {
-	const { locale } = usePage().props;
+	const page = usePage();
+	const { locale, appUrl } = page.props;
 	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
 	const [lightboxIndex, setLightboxIndex] = useState(null);
@@ -14983,7 +14979,7 @@ function ProjectShow({ project }) {
 			"@type": "RealEstateListing",
 			name: project.name,
 			description: project.description,
-			url: window.location.href,
+			url: `${appUrl || ""}${page.url.split("?")[0]}`,
 			image: mainImage?.url || (mainImage?.path ? `/storage/${mainImage.path}` : null),
 			numberOfUnits: project.units?.length || 0,
 			...project.location_address ? { address: {
@@ -14991,7 +14987,12 @@ function ProjectShow({ project }) {
 				addressLocality: project.location_address
 			} } : {}
 		};
-	}, [project, mainImage]);
+	}, [
+		project,
+		mainImage,
+		appUrl,
+		page.url
+	]);
 	if (!project) return /* @__PURE__ */ jsxs("div", {
 		dir: isRtl ? "rtl" : "ltr",
 		className: "min-h-screen bg-surface flex flex-col",
@@ -15016,8 +15017,7 @@ function ProjectShow({ project }) {
 				description: project?.meta_description || project?.description || "",
 				keywords: project?.keywords || "",
 				ogImage: mainImage?.url || (mainImage?.path ? `/storage/${mainImage.path}` : null),
-				ogType: "website",
-				canonical: window.location.href
+				ogType: "website"
 			}),
 			jsonLd && /* @__PURE__ */ jsx("script", {
 				type: "application/ld+json",
@@ -15431,8 +15431,7 @@ function UnitsIndex({ units, filters, areas, unitTypes, features, finishingTypes
 		children: [
 			/* @__PURE__ */ jsx(SeoHead, {
 				title: `${trans("page_title")} - ${trans("site_title")}`,
-				description: trans("page_description"),
-				canonical: window.location.href
+				description: trans("page_description")
 			}),
 			/* @__PURE__ */ jsx(Header, {}),
 			/* @__PURE__ */ jsxs("main", {
@@ -15488,7 +15487,8 @@ function extractEmbedSrc(value) {
 	return match ? match[1] : value;
 }
 function UnitShow({ unit, similarUnits }) {
-	const { locale, flash } = usePage().props;
+	const page = usePage();
+	const { locale, flash, appUrl } = page.props;
 	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
 	const [lightboxIndex, setLightboxIndex] = useState(null);
@@ -15501,7 +15501,7 @@ function UnitShow({ unit, similarUnits }) {
 			"@type": "RealEstateListing",
 			name: unit.name,
 			description: unit.description,
-			url: window.location.href,
+			url: `${appUrl || ""}${page.url.split("?")[0]}`,
 			image: unit.images?.[0]?.url || (unit.images?.[0]?.path ? `/storage/${unit.images[0].path}` : null),
 			offers: {
 				"@type": "Offer",
@@ -15522,7 +15522,11 @@ function UnitShow({ unit, similarUnits }) {
 				addressLocality: unit.location_address
 			} } : {}
 		};
-	}, [unit]);
+	}, [
+		unit,
+		appUrl,
+		page.url
+	]);
 	const { data, setData, post, processing, errors } = useForm({
 		client_name: "",
 		client_phone: "",
@@ -15534,7 +15538,7 @@ function UnitShow({ unit, similarUnits }) {
 	const thumbnail = selectedImage?.url || (selectedImage?.path ? selectedImage.path.startsWith("http") || selectedImage.path.startsWith("/") ? selectedImage.path : `/storage/${selectedImage.path}` : PLACEHOLDER);
 	function handleSubmit(e) {
 		e.preventDefault();
-		const submitUrl = window.location.pathname.startsWith("/en") ? `/en/units/${unit.slug}/contact` : `/units/${unit.slug}/contact`;
+		const submitUrl = localizedPath(`/units/${unit.slug}/contact`, locale);
 		post(submitUrl, {
 			preserveScroll: true,
 			onSuccess: () => {
@@ -15559,8 +15563,7 @@ function UnitShow({ unit, similarUnits }) {
 				description: unit?.meta_description || unit?.description || "",
 				keywords: unit?.keywords || "",
 				ogImage: unit?.images?.[0]?.path ? `/storage/${unit.images[0].path}` : null,
-				ogType: "website",
-				canonical: window.location.href
+				ogType: "website"
 			}),
 			jsonLd && /* @__PURE__ */ jsx("script", {
 				type: "application/ld+json",

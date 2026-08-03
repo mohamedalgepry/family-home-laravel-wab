@@ -313,7 +313,6 @@ export default function Comparison({ items, type, max_items }) {
             <SeoHead
                 title={`${trans('compare')} - ${trans('site_title')}`}
                 description={trans('comparison_description')}
-                canonical={window.location.href}
             />
             <Header />
 
