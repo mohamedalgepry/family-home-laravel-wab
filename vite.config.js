@@ -42,7 +42,9 @@ export default defineConfig({
                         if (id.includes('axios')) {
                             return 'vendor-axios';
                         }
-                        return 'vendor';
+                        if (id.includes('@tailwindcss')) {
+                            return 'vendor-tailwindcss';
+                        }
                     }
                 },
             },

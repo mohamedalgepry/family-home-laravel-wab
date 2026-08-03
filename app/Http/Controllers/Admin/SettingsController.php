@@ -43,6 +43,9 @@ class SettingsController extends Controller
 
             $this->settingsService->updateMany($data);
 
+            // Surgically patch pre-rendered Home HTML files immediately
+            app(\App\Services\PrerenderService::class)->patchHomeHtml();
+
             Log::info('Settings updated successfully.', ['keys' => array_keys($data)]);
 
             return redirect()->route('admin.settings.index')
