@@ -1,1 +1,0 @@
-function e(e,t){if(!e)return`/`;if(e.startsWith(`http`)||e.startsWith(`//`)||e.startsWith(`/admin`)||e.startsWith(`/logout`))return e;let[n,...r]=e.split(`?`),i=r.length>0?`?`+r.join(`?`):``,a=n;return(a.startsWith(`/ar/`)||a===`/ar`||a.startsWith(`/en/`)||a===`/en`)&&(a=a.substring(3)),a.startsWith(`/`)||(a=`/`+a),a===`/`?`/${t}${i}`:`/${t}${a}${i}`}export{e as t};

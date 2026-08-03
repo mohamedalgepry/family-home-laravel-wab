@@ -6,6 +6,7 @@ import StarterKit from "@tiptap/starter-kit";
 import TextAlign from "@tiptap/extension-text-align";
 import Image$1 from "@tiptap/extension-image";
 import axios from "axios";
+import Underline from "@tiptap/extension-underline";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { renderToString } from "react-dom/server";
 import createServer from "@inertiajs/react/server";
@@ -2667,10 +2668,26 @@ function Select({ value, onChange, children, className = "", disabled = false, r
 //#endregion
 //#region resources/js/Pages/Admin/Articles/Form.jsx
 var Form_exports$2 = /* @__PURE__ */ __exportAll({ default: () => AdminArticlesForm });
-function MenuBar({ editor, trans }) {
+function MenuBar({ editor, trans, articleTitle }) {
 	if (!editor) return null;
+	const handleImageUpload = async (e) => {
+		const file = e.target.files?.[0];
+		if (!file) return;
+		const formData = new FormData();
+		formData.append("image", file);
+		try {
+			const res = await window.axios.post("/admin/media/upload", formData, { headers: { "Content-Type": "multipart/form-data" } });
+			if (res.data?.url) editor.chain().focus().setImage({
+				src: res.data.url,
+				alt: articleTitle || ""
+			}).run();
+		} catch (err) {
+			console.error("Image upload failed", err);
+		}
+		e.target.value = "";
+	};
 	return /* @__PURE__ */ jsxs("div", {
-		className: "flex flex-wrap gap-1 p-2 border-b border-secondary-200 bg-surface/50",
+		className: "flex flex-wrap gap-1 p-2 border-b border-secondary-200 bg-surface/50 items-center",
 		children: [
 			/* @__PURE__ */ jsx("button", {
 				type: "button",
@@ -2690,7 +2707,7 @@ function MenuBar({ editor, trans }) {
 				className: `px-2 py-1 text-xs rounded ${editor.isActive("underline") ? "bg-primary-900 text-white" : "bg-white text-secondary-700 hover:bg-secondary-100"}`,
 				children: /* @__PURE__ */ jsx("u", { children: "U" })
 			}),
-			/* @__PURE__ */ jsx("span", { className: "w-px bg-secondary-200 mx-1" }),
+			/* @__PURE__ */ jsx("span", { className: "w-px bg-secondary-200 mx-1 h-4" }),
 			/* @__PURE__ */ jsx("button", {
 				type: "button",
 				onClick: () => editor.chain().focus().toggleBulletList().run(),
@@ -2703,7 +2720,7 @@ function MenuBar({ editor, trans }) {
 				className: `px-2 py-1 text-xs rounded ${editor.isActive("orderedList") ? "bg-primary-900 text-white" : "bg-white text-secondary-700 hover:bg-secondary-100"}`,
 				children: trans("ordered_list")
 			}),
-			/* @__PURE__ */ jsx("span", { className: "w-px bg-secondary-200 mx-1" }),
+			/* @__PURE__ */ jsx("span", { className: "w-px bg-secondary-200 mx-1 h-4" }),
 			/* @__PURE__ */ jsx("button", {
 				type: "button",
 				onClick: () => editor.chain().focus().setTextAlign("left").run(),
@@ -2722,7 +2739,7 @@ function MenuBar({ editor, trans }) {
 				className: `px-2 py-1 text-xs rounded ${editor.isActive({ textAlign: "right" }) ? "bg-primary-900 text-white" : "bg-white text-secondary-700 hover:bg-secondary-100"}`,
 				children: "R"
 			}),
-			/* @__PURE__ */ jsx("span", { className: "w-px bg-secondary-200 mx-1" }),
+			/* @__PURE__ */ jsx("span", { className: "w-px bg-secondary-200 mx-1 h-4" }),
 			/* @__PURE__ */ jsx("button", {
 				type: "button",
 				onClick: () => editor.chain().focus().toggleHeading({ level: 2 }).run(),
@@ -2734,6 +2751,16 @@ function MenuBar({ editor, trans }) {
 				onClick: () => editor.chain().focus().toggleHeading({ level: 3 }).run(),
 				className: `px-2 py-1 text-xs rounded ${editor.isActive("heading", { level: 3 }) ? "bg-primary-900 text-white" : "bg-white text-secondary-700 hover:bg-secondary-100"}`,
 				children: "H3"
+			}),
+			/* @__PURE__ */ jsx("span", { className: "w-px bg-secondary-200 mx-1 h-4" }),
+			/* @__PURE__ */ jsxs("label", {
+				className: "px-2 py-1 text-xs rounded bg-white text-secondary-700 hover:bg-secondary-100 cursor-pointer flex items-center gap-1 border border-secondary-200",
+				children: [/* @__PURE__ */ jsxs("span", { children: ["🖼️ ", trans("add_image") || "إدراج صورة"] }), /* @__PURE__ */ jsx("input", {
+					type: "file",
+					accept: "image/*",
+					className: "hidden",
+					onChange: handleImageUpload
+				})]
 			})
 		]
 	});
@@ -2777,7 +2804,12 @@ function AdminArticlesForm({ article, categories }) {
 		return middleImages.findIndex((m) => imgType === "existing" ? m.id === identifier : m.index === identifier) + 1;
 	};
 	const editorAr = useEditor({
-		extensions: [StarterKit, TextAlign.configure({ types: ["heading", "paragraph"] })],
+		extensions: [
+			StarterKit,
+			Underline,
+			Image$1.configure({ inline: true }),
+			TextAlign.configure({ types: ["heading", "paragraph"] })
+		],
 		content: article?.content_ar || "",
 		editorProps: { attributes: {
 			class: "prose prose-sm max-w-none focus:outline-none min-h-[500px] px-4 py-3",
@@ -2786,7 +2818,12 @@ function AdminArticlesForm({ article, categories }) {
 		onUpdate: ({ editor }) => setData("content_ar", editor.getHTML())
 	});
 	const editorEn = useEditor({
-		extensions: [StarterKit, TextAlign.configure({ types: ["heading", "paragraph"] })],
+		extensions: [
+			StarterKit,
+			Underline,
+			Image$1.configure({ inline: true }),
+			TextAlign.configure({ types: ["heading", "paragraph"] })
+		],
 		content: article?.content_en || "",
 		editorProps: { attributes: { class: "prose prose-sm max-w-none focus:outline-none min-h-[500px] px-4 py-3" } },
 		onUpdate: ({ editor }) => setData("content_en", editor.getHTML())
@@ -4924,6 +4961,7 @@ function AdminMessagesIndex({ messages, agents, filters }) {
 //#region resources/js/Utils/route.js
 function localizedPath(path, locale) {
 	if (!path) return "/";
+	locale = locale || "ar";
 	if (path.startsWith("http") || path.startsWith("//") || path.startsWith("/admin") || path.startsWith("/logout")) return path;
 	const [pathPart, ...queryParts] = path.split("?");
 	const queryString = queryParts.length > 0 ? "?" + queryParts.join("?") : "";
@@ -12975,13 +13013,18 @@ function ArticleShow({ article, relatedArticles }) {
 		]
 	});
 	let parsedContent = article.content || "";
+	const usedMiddleIndices = /* @__PURE__ */ new Set();
 	middleImages.forEach((img, index) => {
 		const shortcodeEn = `[image:${index + 1}]`;
 		const shortcodeAr = `[صورة:${index + 1}]`;
-		const imageHtml = `<img src="${img.url || (img.path.startsWith("http") || img.path.startsWith("/") ? img.path : `/storage/${img.path}`)}" alt="${(img.alt_text || article.title || "").replace(/"/g, "&quot;")}" class="w-full h-auto rounded-2xl my-6 border border-secondary-200/60 object-cover" loading="lazy" />`;
-		parsedContent = parsedContent.replaceAll(shortcodeEn, imageHtml);
-		parsedContent = parsedContent.replaceAll(shortcodeAr, imageHtml);
+		if (parsedContent.includes(shortcodeEn) || parsedContent.includes(shortcodeAr)) {
+			usedMiddleIndices.add(index);
+			const imageHtml = `<img src="${img.url || (img.path.startsWith("http") || img.path.startsWith("/") ? img.path : `/storage/${img.path}`)}" alt="${(img.alt_text || article.title || "").replace(/"/g, "&quot;")}" class="w-full h-auto rounded-2xl my-6 border border-secondary-200/60 object-cover" loading="lazy" />`;
+			parsedContent = parsedContent.replaceAll(shortcodeEn, imageHtml);
+			parsedContent = parsedContent.replaceAll(shortcodeAr, imageHtml);
+		}
 	});
+	const unusedMiddleImages = middleImages.filter((_, idx) => !usedMiddleIndices.has(idx));
 	return /* @__PURE__ */ jsxs("div", {
 		dir: isRtl ? "rtl" : "ltr",
 		className: "min-h-screen bg-surface flex flex-col font-sans",
@@ -13023,23 +13066,40 @@ function ArticleShow({ article, relatedArticles }) {
 							className: "text-2xl sm:text-3xl lg:text-4xl font-bold text-secondary-950 leading-snug mb-6",
 							children: article.title
 						}),
+						headerImgUrl && /* @__PURE__ */ jsx("div", {
+							className: "mb-8 rounded-2xl overflow-hidden shadow-sm border border-secondary-200/60 max-h-[480px] bg-secondary-100",
+							children: /* @__PURE__ */ jsx("img", {
+								src: headerImgUrl,
+								alt: article.title,
+								className: "w-full h-full object-cover max-h-[480px]"
+							})
+						}),
 						topImages.length > 0 && /* @__PURE__ */ jsx("div", {
 							className: "grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8",
 							children: topImages.map((img) => /* @__PURE__ */ jsx("img", {
-								src: img.path.startsWith("http") || img.path.startsWith("/") ? img.path : `/storage/${img.path}`,
+								src: img.url || (img.path.startsWith("http") || img.path.startsWith("/") ? img.path : `/storage/${img.path}`),
 								alt: img.alt_text || article.title,
 								className: "w-full h-56 rounded-2xl object-cover border border-secondary-200/60",
 								loading: "lazy"
 							}, img.id))
 						}),
 						/* @__PURE__ */ jsx("div", {
-							className: "prose prose-base sm:prose-lg max-w-none text-secondary-800 leading-relaxed\n                            prose-headings:font-bold prose-headings:text-secondary-950 prose-headings:mt-8 prose-headings:mb-3\n                            prose-p:text-secondary-800 prose-p:leading-relaxed prose-p:mb-5\n                            prose-img:rounded-2xl prose-img:my-6 prose-img:w-full prose-img:object-cover\n                            prose-blockquote:border-s-4 prose-blockquote:border-primary-900 prose-blockquote:bg-secondary-50 prose-blockquote:p-4 prose-blockquote:rounded-e-xl prose-blockquote:text-secondary-900 prose-blockquote:not-italic\n                            prose-a:text-primary-900 prose-a:underline hover:prose-a:text-primary-950",
+							className: "prose prose-base sm:prose-lg max-w-none text-secondary-800 leading-relaxed\r\n                            prose-headings:font-bold prose-headings:text-secondary-950 prose-headings:mt-8 prose-headings:mb-3\r\n                            prose-p:text-secondary-800 prose-p:leading-relaxed prose-p:mb-5\r\n                            prose-img:rounded-2xl prose-img:my-6 prose-img:w-full prose-img:object-cover\r\n                            prose-blockquote:border-s-4 prose-blockquote:border-primary-900 prose-blockquote:bg-secondary-50 prose-blockquote:p-4 prose-blockquote:rounded-e-xl prose-blockquote:text-secondary-900 prose-blockquote:not-italic\r\n                            prose-a:text-primary-900 prose-a:underline hover:prose-a:text-primary-950",
 							dangerouslySetInnerHTML: { __html: parsedContent }
+						}),
+						unusedMiddleImages.length > 0 && /* @__PURE__ */ jsx("div", {
+							className: "grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8",
+							children: unusedMiddleImages.map((img) => /* @__PURE__ */ jsx("img", {
+								src: img.url || (img.path.startsWith("http") || img.path.startsWith("/") ? img.path : `/storage/${img.path}`),
+								alt: img.alt_text || article.title,
+								className: "w-full h-56 rounded-2xl object-cover border border-secondary-200/60",
+								loading: "lazy"
+							}, img.id))
 						}),
 						bottomImages.length > 0 && /* @__PURE__ */ jsx("div", {
 							className: "grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8",
 							children: bottomImages.map((img) => /* @__PURE__ */ jsx("img", {
-								src: img.path.startsWith("http") || img.path.startsWith("/") ? img.path : `/storage/${img.path}`,
+								src: img.url || (img.path.startsWith("http") || img.path.startsWith("/") ? img.path : `/storage/${img.path}`),
 								alt: img.alt_text || article.title,
 								className: "w-full h-56 rounded-2xl object-cover border border-secondary-200/60",
 								loading: "lazy"

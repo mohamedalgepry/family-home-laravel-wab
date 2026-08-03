@@ -61,15 +61,20 @@ export default function ArticleShow({ article, relatedArticles }) {
 
     let parsedContent = article.content || ''
     
+    const usedMiddleIndices = new Set()
     middleImages.forEach((img, index) => {
         const shortcodeEn = `[image:${index + 1}]`
         const shortcodeAr = `[صورة:${index + 1}]`
-        const imgPath = img.url || (img.path.startsWith('http') || img.path.startsWith('/') ? img.path : `/storage/${img.path}`)
-        const altText = (img.alt_text || article.title || '').replace(/"/g, '&quot;')
-        const imageHtml = `<img src="${imgPath}" alt="${altText}" class="w-full h-auto rounded-2xl my-6 border border-secondary-200/60 object-cover" loading="lazy" />`
-        parsedContent = parsedContent.replaceAll(shortcodeEn, imageHtml)
-        parsedContent = parsedContent.replaceAll(shortcodeAr, imageHtml)
+        if (parsedContent.includes(shortcodeEn) || parsedContent.includes(shortcodeAr)) {
+            usedMiddleIndices.add(index)
+            const imgPath = img.url || (img.path.startsWith('http') || img.path.startsWith('/') ? img.path : `/storage/${img.path}`)
+            const altText = (img.alt_text || article.title || '').replace(/"/g, '&quot;')
+            const imageHtml = `<img src="${imgPath}" alt="${altText}" class="w-full h-auto rounded-2xl my-6 border border-secondary-200/60 object-cover" loading="lazy" />`
+            parsedContent = parsedContent.replaceAll(shortcodeEn, imageHtml)
+            parsedContent = parsedContent.replaceAll(shortcodeAr, imageHtml)
+        }
     })
+    const unusedMiddleImages = middleImages.filter((_, idx) => !usedMiddleIndices.has(idx))
 
     return (
         <div dir={isRtl ? 'rtl' : 'ltr'} className="min-h-screen bg-surface flex flex-col font-sans">
@@ -114,7 +119,16 @@ export default function ArticleShow({ article, relatedArticles }) {
                         {article.title}
                     </h1>
 
-
+                    {/* Featured Cover Image */}
+                    {headerImgUrl && (
+                        <div className="mb-8 rounded-2xl overflow-hidden shadow-sm border border-secondary-200/60 max-h-[480px] bg-secondary-100">
+                            <img
+                                src={headerImgUrl}
+                                alt={article.title}
+                                className="w-full h-full object-cover max-h-[480px]"
+                            />
+                        </div>
+                    )}
 
                     {/* Top Images */}
                     {topImages.length > 0 && (
@@ -122,7 +136,7 @@ export default function ArticleShow({ article, relatedArticles }) {
                             {topImages.map(img => (
                                 <img
                                     key={img.id}
-                                    src={img.path.startsWith('http') || img.path.startsWith('/') ? img.path : `/storage/${img.path}`}
+                                    src={img.url || (img.path.startsWith('http') || img.path.startsWith('/') ? img.path : `/storage/${img.path}`)}
                                     alt={img.alt_text || article.title}
                                     className="w-full h-56 rounded-2xl object-cover border border-secondary-200/60"
                                     loading="lazy"
@@ -142,13 +156,28 @@ export default function ArticleShow({ article, relatedArticles }) {
                         dangerouslySetInnerHTML={{ __html: parsedContent }}
                     />
 
+                    {/* Unused Middle Images */}
+                    {unusedMiddleImages.length > 0 && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8">
+                            {unusedMiddleImages.map(img => (
+                                <img
+                                    key={img.id}
+                                    src={img.url || (img.path.startsWith('http') || img.path.startsWith('/') ? img.path : `/storage/${img.path}`)}
+                                    alt={img.alt_text || article.title}
+                                    className="w-full h-56 rounded-2xl object-cover border border-secondary-200/60"
+                                    loading="lazy"
+                                />
+                            ))}
+                        </div>
+                    )}
+
                     {/* Bottom Images */}
                     {bottomImages.length > 0 && (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8">
                             {bottomImages.map(img => (
                                 <img
                                     key={img.id}
-                                    src={img.path.startsWith('http') || img.path.startsWith('/') ? img.path : `/storage/${img.path}`}
+                                    src={img.url || (img.path.startsWith('http') || img.path.startsWith('/') ? img.path : `/storage/${img.path}`)}
                                     alt={img.alt_text || article.title}
                                     className="w-full h-56 rounded-2xl object-cover border border-secondary-200/60"
                                     loading="lazy"

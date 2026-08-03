@@ -76,10 +76,10 @@ Route::middleware('auth')->group(function () {
     Route::put('/password', [ProfileController::class, 'changePassword'])->name('password.change');
 });
 
-Route::get('/', [PageController::class, 'rootRedirect']);
+Route::get('/', [PageController::class, 'rootRedirect'])->name('root');
 
 Route::prefix('{locale}')->whereIn('locale', ['ar', 'en'])->middleware(SetLocale::class)->group(function () {
-    Route::get('/', HomeController::class);
+    Route::get('/', HomeController::class)->name('home');
 
     Route::middleware('guest')->group(function () {
         Route::get('/login', [LoginController::class, 'create']);

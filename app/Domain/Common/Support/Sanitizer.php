@@ -103,6 +103,8 @@ class Sanitizer
         $url = trim($url);
 
         return str_starts_with($url, '/storage/')
+            || str_starts_with($url, 'storage/')
+            || str_starts_with($url, '/')
             || (bool) preg_match('#^https?://#i', $url);
     }
 

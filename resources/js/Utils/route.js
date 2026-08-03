@@ -1,5 +1,6 @@
 export function localizedPath(path, locale) {
     if (!path) return '/';
+    locale = locale || 'ar';
     if (path.startsWith('http') || path.startsWith('//') || path.startsWith('/admin') || path.startsWith('/logout')) {
         return path;
     }

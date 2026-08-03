@@ -6,12 +6,34 @@ import AdminSidebar from '../../../Components/Layout/AdminSidebar'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import TextAlign from '@tiptap/extension-text-align'
+import Underline from '@tiptap/extension-underline'
+import Image from '@tiptap/extension-image'
 
-function MenuBar({ editor, trans }) {
+function MenuBar({ editor, trans, articleTitle }) {
     if (!editor) return null
 
+    const handleImageUpload = async (e) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        const formData = new FormData()
+        formData.append('image', file)
+
+        try {
+            const res = await window.axios.post('/admin/media/upload', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            })
+            if (res.data?.url) {
+                editor.chain().focus().setImage({ src: res.data.url, alt: articleTitle || '' }).run()
+            }
+        } catch (err) {
+            console.error('Image upload failed', err)
+        }
+        e.target.value = ''
+    }
+
     return (
-        <div className="flex flex-wrap gap-1 p-2 border-b border-secondary-200 bg-surface/50">
+        <div className="flex flex-wrap gap-1 p-2 border-b border-secondary-200 bg-surface/50 items-center">
             <button type="button" onClick={() => editor.chain().focus().toggleBold().run()} className={`px-2 py-1 text-xs rounded ${editor.isActive('bold') ? 'bg-primary-900 text-white' : 'bg-white text-secondary-700 hover:bg-secondary-100'}`}>
                 <strong>B</strong>
             </button>
@@ -21,14 +43,14 @@ function MenuBar({ editor, trans }) {
             <button type="button" onClick={() => editor.chain().focus().toggleUnderline().run()} className={`px-2 py-1 text-xs rounded ${editor.isActive('underline') ? 'bg-primary-900 text-white' : 'bg-white text-secondary-700 hover:bg-secondary-100'}`}>
                 <u>U</u>
             </button>
-            <span className="w-px bg-secondary-200 mx-1" />
+            <span className="w-px bg-secondary-200 mx-1 h-4" />
             <button type="button" onClick={() => editor.chain().focus().toggleBulletList().run()} className={`px-2 py-1 text-xs rounded ${editor.isActive('bulletList') ? 'bg-primary-900 text-white' : 'bg-white text-secondary-700 hover:bg-secondary-100'}`}>
                 {trans('list')}
             </button>
             <button type="button" onClick={() => editor.chain().focus().toggleOrderedList().run()} className={`px-2 py-1 text-xs rounded ${editor.isActive('orderedList') ? 'bg-primary-900 text-white' : 'bg-white text-secondary-700 hover:bg-secondary-100'}`}>
                 {trans('ordered_list')}
             </button>
-            <span className="w-px bg-secondary-200 mx-1" />
+            <span className="w-px bg-secondary-200 mx-1 h-4" />
             <button type="button" onClick={() => editor.chain().focus().setTextAlign('left').run()} className={`px-2 py-1 text-xs rounded ${editor.isActive({ textAlign: 'left' }) ? 'bg-primary-900 text-white' : 'bg-white text-secondary-700 hover:bg-secondary-100'}`}>
                 L
             </button>
@@ -38,13 +60,18 @@ function MenuBar({ editor, trans }) {
             <button type="button" onClick={() => editor.chain().focus().setTextAlign('right').run()} className={`px-2 py-1 text-xs rounded ${editor.isActive({ textAlign: 'right' }) ? 'bg-primary-900 text-white' : 'bg-white text-secondary-700 hover:bg-secondary-100'}`}>
                 R
             </button>
-            <span className="w-px bg-secondary-200 mx-1" />
+            <span className="w-px bg-secondary-200 mx-1 h-4" />
             <button type="button" onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} className={`px-2 py-1 text-xs rounded ${editor.isActive('heading', { level: 2 }) ? 'bg-primary-900 text-white' : 'bg-white text-secondary-700 hover:bg-secondary-100'}`}>
                 H2
             </button>
             <button type="button" onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} className={`px-2 py-1 text-xs rounded ${editor.isActive('heading', { level: 3 }) ? 'bg-primary-900 text-white' : 'bg-white text-secondary-700 hover:bg-secondary-100'}`}>
                 H3
             </button>
+            <span className="w-px bg-secondary-200 mx-1 h-4" />
+            <label className="px-2 py-1 text-xs rounded bg-white text-secondary-700 hover:bg-secondary-100 cursor-pointer flex items-center gap-1 border border-secondary-200">
+                <span>🖼️ {trans('add_image') || 'إدراج صورة'}</span>
+                <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+            </label>
         </div>
     )
 }
@@ -90,6 +117,8 @@ export default function AdminArticlesForm({ article, categories }) {
     const editorAr = useEditor({
         extensions: [
             StarterKit,
+            Underline,
+            Image.configure({ inline: true }),
             TextAlign.configure({ types: ['heading', 'paragraph'] }),
         ],
         content: article?.content_ar || '',
@@ -102,6 +131,8 @@ export default function AdminArticlesForm({ article, categories }) {
     const editorEn = useEditor({
         extensions: [
             StarterKit,
+            Underline,
+            Image.configure({ inline: true }),
             TextAlign.configure({ types: ['heading', 'paragraph'] }),
         ],
         content: article?.content_en || '',
