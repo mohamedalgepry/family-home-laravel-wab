@@ -906,6 +906,21 @@ function useTrans(locale) {
 	};
 }
 //#endregion
+//#region resources/js/Utils/route.js
+function localizedPath(path, locale) {
+	if (!path) return "/";
+	locale = locale || "ar";
+	if (path.startsWith("http") || path.startsWith("//") || path.startsWith("/admin") || path.startsWith("/logout")) return path;
+	const [pathPart, ...queryParts] = path.split("?");
+	const queryString = queryParts.length > 0 ? "?" + queryParts.join("?") : "";
+	let normalizedPath = pathPart;
+	if (normalizedPath.startsWith("/ar/") || normalizedPath === "/ar") normalizedPath = normalizedPath.substring(3);
+	else if (normalizedPath.startsWith("/en/") || normalizedPath === "/en") normalizedPath = normalizedPath.substring(3);
+	if (!normalizedPath.startsWith("/")) normalizedPath = "/" + normalizedPath;
+	if (normalizedPath === "/") return `/${locale}${queryString}`;
+	return `/${locale}${normalizedPath}${queryString}`;
+}
+//#endregion
 //#region resources/js/Components/Layout/AdminSidebar.jsx
 var NAV_GROUPS = [
 	{
@@ -1306,7 +1321,7 @@ function AdminSidebar({ children }) {
 					/* @__PURE__ */ jsx("div", {
 						className: "p-3 border-t border-secondary-800/80 bg-secondary-950/50",
 						children: /* @__PURE__ */ jsxs(Link, {
-							href: "/",
+							href: localizedPath("/", locale),
 							className: "flex items-center gap-2 px-3 py-2 text-xs text-secondary-400 hover:text-white hover:bg-secondary-900 rounded-lg transition-colors",
 							children: [/* @__PURE__ */ jsx("span", { children: "←" }), /* @__PURE__ */ jsx("span", { children: trans("home") })]
 						})
@@ -1344,7 +1359,7 @@ function AdminSidebar({ children }) {
 						/* @__PURE__ */ jsx("div", {
 							className: "p-3 border-t border-secondary-800",
 							children: /* @__PURE__ */ jsxs(Link, {
-								href: "/",
+								href: localizedPath("/", locale),
 								className: "block px-3 py-2 text-xs text-secondary-400 hover:text-white rounded-lg",
 								children: ["← ", trans("home")]
 							})
@@ -4956,21 +4971,6 @@ function AdminMessagesIndex({ messages, agents, filters }) {
 			})
 		})
 	] });
-}
-//#endregion
-//#region resources/js/Utils/route.js
-function localizedPath(path, locale) {
-	if (!path) return "/";
-	locale = locale || "ar";
-	if (path.startsWith("http") || path.startsWith("//") || path.startsWith("/admin") || path.startsWith("/logout")) return path;
-	const [pathPart, ...queryParts] = path.split("?");
-	const queryString = queryParts.length > 0 ? "?" + queryParts.join("?") : "";
-	let normalizedPath = pathPart;
-	if (normalizedPath.startsWith("/ar/") || normalizedPath === "/ar") normalizedPath = normalizedPath.substring(3);
-	else if (normalizedPath.startsWith("/en/") || normalizedPath === "/en") normalizedPath = normalizedPath.substring(3);
-	if (!normalizedPath.startsWith("/")) normalizedPath = "/" + normalizedPath;
-	if (normalizedPath === "/") return `/${locale}${queryString}`;
-	return `/${locale}${normalizedPath}${queryString}`;
 }
 //#endregion
 //#region resources/js/Pages/Admin/Notifications/Index.jsx
@@ -11801,6 +11801,7 @@ function Header({ compareCount = 0 }) {
 			children: [
 				/* @__PURE__ */ jsxs(Link, {
 					href: localizedPath("/", locale),
+					onClick: () => setMenuOpen(false),
 					className: "flex items-center gap-2 shrink-0 group focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-md",
 					children: [/* @__PURE__ */ jsx(OptimizedImage, {
 						src: logoSrc,
@@ -16106,7 +16107,7 @@ function AuthLayout({ children, title, subtitle }) {
 			/* @__PURE__ */ jsxs("header", {
 				className: "relative z-10 w-full max-w-5xl mx-auto px-6 pt-6 pb-2 flex items-center justify-between",
 				children: [/* @__PURE__ */ jsxs(Link, {
-					href: "/",
+					href: localizedPath("/", locale),
 					className: "flex items-center gap-3 group transition-transform duration-200 hover:opacity-90",
 					children: [/* @__PURE__ */ jsx("img", {
 						src: logoUrl,
@@ -16120,7 +16121,7 @@ function AuthLayout({ children, title, subtitle }) {
 						children: trans("app_name") || "فاميلي هوم"
 					}) })]
 				}), /* @__PURE__ */ jsxs(Link, {
-					href: "/",
+					href: localizedPath("/", locale),
 					className: "inline-flex items-center gap-1.5 text-xs font-medium text-secondary-600 hover:text-primary-900 bg-white shadow-xs hover:shadow border border-secondary-200 px-3.5 py-2 rounded-lg transition-all",
 					children: [/* @__PURE__ */ jsx("svg", {
 						className: `w-3.5 h-3.5 ${isRtl ? "rotate-180" : ""}`,

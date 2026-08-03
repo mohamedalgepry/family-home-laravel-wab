@@ -1,5 +1,6 @@
 import { usePage, Link } from '@inertiajs/react'
 import { useTrans } from '../../Utils/trans'
+import { localizedPath } from '../../Utils/route'
 
 export default function AuthLayout({ children, title, subtitle }) {
     const { locale, settings } = usePage().props
@@ -18,7 +19,7 @@ export default function AuthLayout({ children, title, subtitle }) {
             {/* Header */}
             <header className="relative z-10 w-full max-w-5xl mx-auto px-6 pt-6 pb-2 flex items-center justify-between">
                 <Link
-                    href="/"
+                    href={localizedPath('/', locale)}
                     className="flex items-center gap-3 group transition-transform duration-200 hover:opacity-90"
                 >
                     <img
@@ -35,7 +36,7 @@ export default function AuthLayout({ children, title, subtitle }) {
                 </Link>
 
                 <Link
-                    href="/"
+                    href={localizedPath('/', locale)}
                     className="inline-flex items-center gap-1.5 text-xs font-medium text-secondary-600 hover:text-primary-900 bg-white shadow-xs hover:shadow border border-secondary-200 px-3.5 py-2 rounded-lg transition-all"
                 >
                     <svg className={`w-3.5 h-3.5 ${isRtl ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">

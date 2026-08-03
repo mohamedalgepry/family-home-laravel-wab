@@ -1,5 +1,6 @@
 import { usePage, Link, router } from '@inertiajs/react'
 import { useTrans } from '../../Utils/trans'
+import { localizedPath } from '../../Utils/route'
 import { useState, useEffect, useRef } from 'react'
 
 const NAV_GROUPS = [
@@ -326,7 +327,7 @@ export default function AdminSidebar({ children }) {
                 {renderNavContent()}
 
                 <div className="p-3 border-t border-secondary-800/80 bg-secondary-950/50">
-                    <Link href="/" className="flex items-center gap-2 px-3 py-2 text-xs text-secondary-400 hover:text-white hover:bg-secondary-900 rounded-lg transition-colors">
+                    <Link href={localizedPath('/', locale)} className="flex items-center gap-2 px-3 py-2 text-xs text-secondary-400 hover:text-white hover:bg-secondary-900 rounded-lg transition-colors">
                         <span>&larr;</span>
                         <span>{trans('home')}</span>
                     </Link>
@@ -351,7 +352,7 @@ export default function AdminSidebar({ children }) {
                         {renderNavContent()}
 
                         <div className="p-3 border-t border-secondary-800">
-                            <Link href="/" className="block px-3 py-2 text-xs text-secondary-400 hover:text-white rounded-lg">
+                            <Link href={localizedPath('/', locale)} className="block px-3 py-2 text-xs text-secondary-400 hover:text-white rounded-lg">
                                 &larr; {trans('home')}
                             </Link>
                         </div>

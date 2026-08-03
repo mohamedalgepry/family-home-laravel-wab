@@ -36,7 +36,12 @@ class PageController extends Controller
 
     public function rootRedirect()
     {
-        return redirect('/'.session('locale', 'ar'));
+        $locale = session('locale', 'ar');
+        if (! in_array($locale, ['ar', 'en'])) {
+            $locale = 'ar';
+        }
+
+        return redirect()->route('home', ['locale' => $locale]);
     }
 
     public function about()

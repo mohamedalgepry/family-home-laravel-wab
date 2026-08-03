@@ -44,7 +44,11 @@ export default function Header({ compareCount = 0 }) {
         >
             <div className="max-w-container mx-auto px-4 flex items-center justify-between h-16">
                 {/* Logo / Brand */}
-                <Link href={localizedPath('/', locale)} className="flex items-center gap-2 shrink-0 group focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-md">
+                <Link
+                    href={localizedPath('/', locale)}
+                    onClick={() => setMenuOpen(false)}
+                    className="flex items-center gap-2 shrink-0 group focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-md"
+                >
                     <OptimizedImage 
                         src={logoSrc} 
                         alt={logoAlt} 
