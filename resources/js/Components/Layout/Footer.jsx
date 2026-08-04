@@ -40,6 +40,17 @@ export default function Footer() {
         { key: 'social_linkedin', url: settings?.social_linkedin, label: trans('social_linkedin') },
     ].filter(s => s.url)
 
+    const handleNavClick = (e, href) => {
+        const locHref = localizedPath(href, locale);
+        if (typeof window !== 'undefined') {
+            const currentPath = window.location.pathname;
+            if (currentPath === locHref || currentPath === `${locHref}/`) {
+                e.preventDefault();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+    }
+
     return (
         <footer dir={isRtl ? 'rtl' : 'ltr'} className="bg-secondary-950 text-white">
             <div className="max-w-container mx-auto px-4 py-12">
@@ -54,6 +65,7 @@ export default function Footer() {
                                 <li key={item.key}>
                                     <Link
                                         href={localizedPath(item.href, locale)}
+                                        onClick={(e) => handleNavClick(e, item.href)}
                                         className="text-sm text-secondary-400 hover:text-white transition-colors"
                                     >
                                         {trans(item.key)}

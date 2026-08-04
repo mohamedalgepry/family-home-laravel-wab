@@ -11792,6 +11792,20 @@ function Header({ compareCount = 0 }) {
 		if (href === "/units" && url.startsWith(localizedPath("/units/deals", locale))) return false;
 		return url.startsWith(locHref);
 	};
+	const handleNavClick = (e, href) => {
+		setMenuOpen(false);
+		const locHref = localizedPath(href, locale);
+		if (typeof window !== "undefined") {
+			const currentPath = window.location.pathname;
+			if (currentPath === locHref || currentPath === `${locHref}/`) {
+				e.preventDefault();
+				window.scrollTo({
+					top: 0,
+					behavior: "smooth"
+				});
+			}
+		}
+	};
 	return /* @__PURE__ */ jsxs("header", {
 		dir: isRtl ? "rtl" : "ltr",
 		className: "sticky top-0 z-50 bg-white/90 backdrop-blur-md shadow-sticky transition-all duration-300",
@@ -11801,7 +11815,7 @@ function Header({ compareCount = 0 }) {
 			children: [
 				/* @__PURE__ */ jsxs(Link, {
 					href: localizedPath("/", locale),
-					onClick: () => setMenuOpen(false),
+					onClick: (e) => handleNavClick(e, "/"),
 					className: "flex items-center gap-2 shrink-0 group focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-md",
 					children: [/* @__PURE__ */ jsx(OptimizedImage, {
 						src: logoSrc,
@@ -11823,6 +11837,7 @@ function Header({ compareCount = 0 }) {
 						const active = isActive(item.href);
 						return /* @__PURE__ */ jsxs(Link, {
 							href: localizedPath(item.href, locale),
+							onClick: (e) => handleNavClick(e, item.href),
 							className: `text-sm transition-colors py-1 border-b-2 flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded ${active ? "text-primary-900 border-primary-900 font-semibold" : "text-secondary-800 border-transparent hover:text-primary-900 hover:border-primary-900/50"}`,
 							children: [trans(item.key), item.key === "compare" && compareCount > 0 && /* @__PURE__ */ jsx("span", {
 								className: "bg-primary-900 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center mb-0.5",
@@ -11876,7 +11891,7 @@ function Header({ compareCount = 0 }) {
 				return /* @__PURE__ */ jsxs(Link, {
 					href: localizedPath(item.href, locale),
 					className: `block py-2 px-3 text-base rounded-lg transition-colors flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-primary-500 ${active ? "text-primary-900 bg-primary-50 font-medium" : "text-secondary-800 hover:text-primary-900 hover:bg-secondary-50"}`,
-					onClick: () => setMenuOpen(false),
+					onClick: (e) => handleNavClick(e, item.href),
 					children: [trans(item.key), item.key === "compare" && compareCount > 0 && /* @__PURE__ */ jsx("span", {
 						className: "bg-primary-900 text-white text-xs font-bold rounded-full px-2 py-0.5",
 						children: compareCount
@@ -12090,6 +12105,19 @@ function Footer() {
 			label: trans("social_linkedin")
 		}
 	].filter((s) => s.url);
+	const handleNavClick = (e, href) => {
+		const locHref = localizedPath(href, locale);
+		if (typeof window !== "undefined") {
+			const currentPath = window.location.pathname;
+			if (currentPath === locHref || currentPath === `${locHref}/`) {
+				e.preventDefault();
+				window.scrollTo({
+					top: 0,
+					behavior: "smooth"
+				});
+			}
+		}
+	};
 	return /* @__PURE__ */ jsxs("footer", {
 		dir: isRtl ? "rtl" : "ltr",
 		className: "bg-secondary-950 text-white",
@@ -12106,6 +12134,7 @@ function Footer() {
 							className: "space-y-2.5",
 							children: QUICK_LINKS.map((item) => /* @__PURE__ */ jsx("li", { children: /* @__PURE__ */ jsx(Link, {
 								href: localizedPath(item.href, locale),
+								onClick: (e) => handleNavClick(e, item.href),
 								className: "text-sm text-secondary-400 hover:text-white transition-colors",
 								children: trans(item.key)
 							}) }, item.key))

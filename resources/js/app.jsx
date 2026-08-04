@@ -1,4 +1,4 @@
-import { createInertiaApp } from '@inertiajs/react'
+import { createInertiaApp, router } from '@inertiajs/react'
 import { createRoot } from 'react-dom/client'
 
 if (typeof window !== 'undefined') {
@@ -10,6 +10,10 @@ if (typeof window !== 'undefined') {
         '%cهذه الشاشة مخصصة للمطورين. لا تقم بنسخ أو تنفيذ أي أكواد هنا للحفاظ على أمان حسابك وموقعك.',
         'font-size: 14px; color: #333;'
     );
+
+    router.on('invalid', (event) => {
+        event.preventDefault();
+    });
 }
 
 createInertiaApp({

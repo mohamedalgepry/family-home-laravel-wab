@@ -36,6 +36,18 @@ export default function Header({ compareCount = 0 }) {
         return url.startsWith(locHref)
     }
 
+    const handleNavClick = (e, href) => {
+        setMenuOpen(false);
+        const locHref = localizedPath(href, locale);
+        if (typeof window !== 'undefined') {
+            const currentPath = window.location.pathname;
+            if (currentPath === locHref || currentPath === `${locHref}/`) {
+                e.preventDefault();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+    }
+
     return (
         <header
             dir={isRtl ? 'rtl' : 'ltr'}
@@ -46,7 +58,7 @@ export default function Header({ compareCount = 0 }) {
                 {/* Logo / Brand */}
                 <Link
                     href={localizedPath('/', locale)}
-                    onClick={() => setMenuOpen(false)}
+                    onClick={(e) => handleNavClick(e, '/')}
                     className="flex items-center gap-2 shrink-0 group focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-md"
                 >
                     <OptimizedImage 
@@ -69,6 +81,7 @@ export default function Header({ compareCount = 0 }) {
                             <Link
                                 key={item.key}
                                 href={localizedPath(item.href, locale)}
+                                onClick={(e) => handleNavClick(e, item.href)}
                                 className={`text-sm transition-colors py-1 border-b-2 flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded ${
                                     active 
                                         ? 'text-primary-900 border-primary-900 font-semibold' 
@@ -132,7 +145,7 @@ export default function Header({ compareCount = 0 }) {
                                         ? 'text-primary-900 bg-primary-50 font-medium'
                                         : 'text-secondary-800 hover:text-primary-900 hover:bg-secondary-50'
                                 }`}
-                                onClick={() => setMenuOpen(false)}
+                                onClick={(e) => handleNavClick(e, item.href)}
                             >
                                 {trans(item.key)}
                                 {item.key === 'compare' && compareCount > 0 && (
