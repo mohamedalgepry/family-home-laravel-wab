@@ -64,7 +64,7 @@ export default function UnitCard({ unit, loading = false }) {
         <article dir={isRtl ? 'rtl' : 'ltr'} className="bg-white rounded-2xl shadow-card overflow-hidden hover:shadow-2xl transition-all duration-300 group border border-secondary-100/70 hover:-translate-y-1.5 flex flex-col justify-between">
             <div>
                 {/* Image */}
-                <Link href={localizedPath(`/units/${unit.slug}`, locale)} className="block relative overflow-hidden aspect-[4/3] focus:outline-none focus:ring-2 focus:ring-primary-500">
+                <Link href={localizedPath(`/units/${unit.slug}`, locale)} className="block relative overflow-hidden aspect-[4/3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
                     <OptimizedImage
                         src={thumbnail}
                         srcSet={imageSrcSet}
@@ -106,7 +106,7 @@ export default function UnitCard({ unit, loading = false }) {
 
                 {/* Details */}
                 <div className="p-5">
-                    <Link href={localizedPath(`/units/${unit.slug}`, locale)} className="focus:outline-none focus:ring-2 focus:ring-primary-500 rounded">
+                    <Link href={localizedPath(`/units/${unit.slug}`, locale)} className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded">
                         <h2 className="text-base font-bold text-secondary-950 truncate mb-1.5 group-hover:text-primary-900 transition-colors">
                             {unit.name}
                         </h2>
@@ -166,7 +166,7 @@ export default function UnitCard({ unit, loading = false }) {
                     }}
                     aria-label={`${trans('compare')} ${unit.name}`}
                     aria-pressed={isCompared}
-                    className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-primary-500 ${isCompared ? 'text-primary-900 bg-primary-50 border border-primary-200' : 'text-secondary-600 bg-secondary-50 hover:bg-secondary-100 hover:text-secondary-900'}`}
+                    className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${isCompared ? 'text-primary-900 bg-primary-50 border border-primary-200' : 'text-secondary-600 bg-secondary-50 hover:bg-secondary-100 hover:text-secondary-900'}`}
                 >
                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
@@ -180,7 +180,7 @@ export default function UnitCard({ unit, loading = false }) {
                     rel="noopener noreferrer"
                     onClick={e => e.stopPropagation()}
                     aria-label={`${trans('inquire')} ${unit.name} ${trans('contact_via_whatsapp')}`}
-                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-600 hover:text-white rounded-xl transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-600 hover:text-white rounded-xl transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                     title={trans('contact_via_whatsapp')}
                 >
                     <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24" aria-hidden="true">

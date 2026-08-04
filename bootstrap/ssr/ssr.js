@@ -11954,7 +11954,7 @@ function Header({ compareCount = 0 }) {
 				/* @__PURE__ */ jsxs(Link, {
 					href: localizedPath("/", locale),
 					onClick: (e) => handleNavClick(e, "/"),
-					className: "flex items-center gap-2 shrink-0 group focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-md",
+					className: "flex items-center gap-2 shrink-0 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded-md",
 					children: [/* @__PURE__ */ jsx(OptimizedImage, {
 						src: logoSrc,
 						alt: logoAlt,
@@ -11976,7 +11976,7 @@ function Header({ compareCount = 0 }) {
 						return /* @__PURE__ */ jsxs(Link, {
 							href: localizedPath(item.href, locale),
 							onClick: (e) => handleNavClick(e, item.href),
-							className: `text-sm transition-colors py-1 border-b-2 flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded ${active ? "text-primary-900 border-primary-900 font-semibold" : "text-secondary-800 border-transparent hover:text-primary-900 hover:border-primary-900/50"}`,
+							className: `text-sm transition-colors py-1 border-b-2 flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded ${active ? "text-primary-900 border-primary-900 font-semibold" : "text-secondary-800 border-transparent hover:text-primary-900 hover:border-primary-900/50"}`,
 							children: [trans(item.key), item.key === "compare" && compareCount > 0 && /* @__PURE__ */ jsx("span", {
 								className: "bg-primary-900 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center mb-0.5",
 								"aria-label": `${compareCount} ${isRtl ? "عناصر للمقارنة" : "items to compare"}`,
@@ -11989,12 +11989,12 @@ function Header({ compareCount = 0 }) {
 					className: "flex items-center gap-3",
 					children: [/* @__PURE__ */ jsx(Link, {
 						href: localizedPath(url, isRtl ? "en" : "ar"),
-						className: "text-xs font-medium text-secondary-700 hover:text-primary-900 border border-secondary-200 rounded-lg px-2.5 py-1.5 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500",
+						className: "text-xs font-medium text-secondary-700 hover:text-primary-900 border border-secondary-200 rounded-lg px-2.5 py-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
 						"aria-label": isRtl ? "تغيير اللغة إلى الإنجليزية" : "Switch language to Arabic",
 						children: isRtl ? trans("lang_en") : trans("lang_ar")
 					}), /* @__PURE__ */ jsx("button", {
 						onClick: () => setMenuOpen((prev) => !prev),
-						className: "md:hidden text-secondary-700 hover:text-primary-900 p-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500",
+						className: "md:hidden text-secondary-700 hover:text-primary-900 p-1 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
 						"aria-label": trans("toggle_menu"),
 						"aria-expanded": menuOpen,
 						"aria-controls": "mobile-navigation",
@@ -12026,7 +12026,7 @@ function Header({ compareCount = 0 }) {
 				const active = isActive(item.href);
 				return /* @__PURE__ */ jsxs(Link, {
 					href: localizedPath(item.href, locale),
-					className: `block py-2 px-3 text-base rounded-lg transition-colors flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-primary-500 ${active ? "text-primary-900 bg-primary-50 font-medium" : "text-secondary-800 hover:text-primary-900 hover:bg-secondary-50"}`,
+					className: `block py-2 px-3 text-base rounded-lg transition-colors flex items-center justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${active ? "text-primary-900 bg-primary-50 font-medium" : "text-secondary-800 hover:text-primary-900 hover:bg-secondary-50"}`,
 					onClick: (e) => handleNavClick(e, item.href),
 					children: [trans(item.key), item.key === "compare" && compareCount > 0 && /* @__PURE__ */ jsx("span", {
 						className: "bg-primary-900 text-white text-xs font-bold rounded-full px-2 py-0.5",
@@ -12595,7 +12595,7 @@ function UnitCard({ unit, loading = false }) {
 		className: "bg-white rounded-2xl shadow-card overflow-hidden hover:shadow-2xl transition-all duration-300 group border border-secondary-100/70 hover:-translate-y-1.5 flex flex-col justify-between",
 		children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsxs(Link, {
 			href: localizedPath(`/units/${unit.slug}`, locale),
-			className: "block relative overflow-hidden aspect-[4/3] focus:outline-none focus:ring-2 focus:ring-primary-500",
+			className: "block relative overflow-hidden aspect-[4/3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
 			children: [
 				/* @__PURE__ */ jsx(OptimizedImage, {
 					src: thumbnail,
@@ -12649,7 +12649,7 @@ function UnitCard({ unit, loading = false }) {
 			children: [
 				/* @__PURE__ */ jsx(Link, {
 					href: localizedPath(`/units/${unit.slug}`, locale),
-					className: "focus:outline-none focus:ring-2 focus:ring-primary-500 rounded",
+					className: "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded",
 					children: /* @__PURE__ */ jsx("h2", {
 						className: "text-base font-bold text-secondary-950 truncate mb-1.5 group-hover:text-primary-900 transition-colors",
 						children: unit.name
@@ -12732,7 +12732,7 @@ function UnitCard({ unit, loading = false }) {
 				},
 				"aria-label": `${trans("compare")} ${unit.name}`,
 				"aria-pressed": isCompared,
-				className: `flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-primary-500 ${isCompared ? "text-primary-900 bg-primary-50 border border-primary-200" : "text-secondary-600 bg-secondary-50 hover:bg-secondary-100 hover:text-secondary-900"}`,
+				className: `flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${isCompared ? "text-primary-900 bg-primary-50 border border-primary-200" : "text-secondary-600 bg-secondary-50 hover:bg-secondary-100 hover:text-secondary-900"}`,
 				children: [/* @__PURE__ */ jsx("svg", {
 					className: "w-3.5 h-3.5",
 					fill: "none",
@@ -12752,7 +12752,7 @@ function UnitCard({ unit, loading = false }) {
 				rel: "noopener noreferrer",
 				onClick: (e) => e.stopPropagation(),
 				"aria-label": `${trans("inquire")} ${unit.name} ${trans("contact_via_whatsapp")}`,
-				className: "flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-600 hover:text-white rounded-xl transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500",
+				className: "flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-600 hover:text-white rounded-xl transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500",
 				title: trans("contact_via_whatsapp"),
 				children: [/* @__PURE__ */ jsx("svg", {
 					className: "w-4 h-4 fill-current",
@@ -14794,7 +14794,7 @@ function ProjectCard({ project, loading = false }) {
 			className: "relative overflow-hidden aspect-[4/3] bg-secondary-100",
 			children: [/* @__PURE__ */ jsx(Link, {
 				href: localizedPath(`/projects/${project.slug}`, locale),
-				className: "block w-full h-full focus:outline-none focus:ring-2 focus:ring-primary-500",
+				className: "block w-full h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
 				children: /* @__PURE__ */ jsx(OptimizedImage, {
 					src: thumbnail,
 					srcSet: imageSrcSet,
@@ -14820,7 +14820,7 @@ function ProjectCard({ project, loading = false }) {
 			children: [/* @__PURE__ */ jsxs("div", { children: [
 				/* @__PURE__ */ jsx(Link, {
 					href: localizedPath(`/projects/${project.slug}`, locale),
-					className: "block focus:outline-none focus:ring-2 focus:ring-primary-500 rounded",
+					className: "block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded",
 					children: /* @__PURE__ */ jsx("h2", {
 						className: "text-base font-bold text-secondary-950 group-hover:text-primary-900 transition-colors line-clamp-1 mb-1.5",
 						children: project.name

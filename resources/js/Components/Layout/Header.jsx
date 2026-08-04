@@ -59,7 +59,7 @@ export default function Header({ compareCount = 0 }) {
                 <Link
                     href={localizedPath('/', locale)}
                     onClick={(e) => handleNavClick(e, '/')}
-                    className="flex items-center gap-2 shrink-0 group focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-md"
+                    className="flex items-center gap-2 shrink-0 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded-md"
                 >
                     <OptimizedImage 
                         src={logoSrc} 
@@ -82,7 +82,7 @@ export default function Header({ compareCount = 0 }) {
                                 key={item.key}
                                 href={localizedPath(item.href, locale)}
                                 onClick={(e) => handleNavClick(e, item.href)}
-                                className={`text-sm transition-colors py-1 border-b-2 flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded ${
+                                className={`text-sm transition-colors py-1 border-b-2 flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded ${
                                     active 
                                         ? 'text-primary-900 border-primary-900 font-semibold' 
                                         : 'text-secondary-800 border-transparent hover:text-primary-900 hover:border-primary-900/50'
@@ -104,7 +104,7 @@ export default function Header({ compareCount = 0 }) {
                     {/* Language Toggle */}
                     <Link
                         href={localizedPath(url, isRtl ? 'en' : 'ar')}
-                        className="text-xs font-medium text-secondary-700 hover:text-primary-900 border border-secondary-200 rounded-lg px-2.5 py-1.5 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        className="text-xs font-medium text-secondary-700 hover:text-primary-900 border border-secondary-200 rounded-lg px-2.5 py-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                         aria-label={isRtl ? 'تغيير اللغة إلى الإنجليزية' : 'Switch language to Arabic'}
                     >
                         {isRtl ? trans('lang_en') : trans('lang_ar')}
@@ -113,7 +113,7 @@ export default function Header({ compareCount = 0 }) {
                     {/* Mobile Menu Toggle */}
                     <button
                         onClick={() => setMenuOpen(prev => !prev)}
-                        className="md:hidden text-secondary-700 hover:text-primary-900 p-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        className="md:hidden text-secondary-700 hover:text-primary-900 p-1 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                         aria-label={trans('toggle_menu')}
                         aria-expanded={menuOpen}
                         aria-controls="mobile-navigation"
@@ -138,7 +138,7 @@ export default function Header({ compareCount = 0 }) {
                             <Link
                                 key={item.key}
                                 href={localizedPath(item.href, locale)}
-                                className={`block py-2 px-3 text-base rounded-lg transition-colors flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+                                className={`block py-2 px-3 text-base rounded-lg transition-colors flex items-center justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${
                                     active
                                         ? 'text-primary-900 bg-primary-50 font-medium'
                                         : 'text-secondary-800 hover:text-primary-900 hover:bg-secondary-50'

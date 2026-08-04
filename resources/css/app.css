@@ -364,11 +364,12 @@
 }
 
 @layer base {
-    html {
-        -webkit-tap-highlight-color: transparent;
+    * {
+        -webkit-tap-highlight-color: transparent !important;
     }
-    a, button, [role="button"], input, select, textarea {
-        -webkit-tap-highlight-color: transparent;
+
+    a:focus, button:focus, [role="button"]:focus, input:focus, select:focus, textarea:focus {
+        outline: none;
     }
 
     @media (hover: hover) and (pointer: fine) {

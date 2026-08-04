@@ -56,7 +56,7 @@ export default function ProjectCard({ project, loading = false }) {
             <div className="relative overflow-hidden aspect-[4/3] bg-secondary-100">
                 <Link 
                     href={localizedPath(`/projects/${project.slug}`, locale)} 
-                    className="block w-full h-full focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="block w-full h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                 >
                     <OptimizedImage
                         src={thumbnail}
@@ -93,7 +93,7 @@ export default function ProjectCard({ project, loading = false }) {
                 <div>
                     <Link 
                         href={localizedPath(`/projects/${project.slug}`, locale)} 
-                        className="block focus:outline-none focus:ring-2 focus:ring-primary-500 rounded"
+                        className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded"
                     >
                         <h2 className="text-base font-bold text-secondary-950 group-hover:text-primary-900 transition-colors line-clamp-1 mb-1.5">
                             {project.name}
