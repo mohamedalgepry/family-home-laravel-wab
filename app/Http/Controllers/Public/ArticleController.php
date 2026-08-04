@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\Public;
 
 use App\Domain\Common\Services\SeoMetaService;
+use App\Domain\Common\Support\Sanitizer;
 use App\Domain\Listings\Models\Article;
 use App\Domain\Listings\Models\Category;
 use App\Domain\Listings\Services\PageViewService;
-use App\Domain\Common\Support\Sanitizer;
+use App\Services\SeoService;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -44,7 +45,7 @@ class ArticleController
             $customMeta['title'] = (app()->getLocale() === 'ar' ? 'مقالات ' : 'Articles in ').$catName.' - '.config('app.name');
         }
 
-        $meta = app(\App\Services\SeoService::class)->forPage('articles_index', $customMeta);
+        $meta = app(SeoService::class)->forPage('articles_index', $customMeta);
 
         return Inertia::render('Public/Articles/Index', [
             'articles' => $articles,

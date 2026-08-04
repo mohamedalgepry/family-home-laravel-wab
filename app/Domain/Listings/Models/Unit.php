@@ -10,6 +10,7 @@ use App\Domain\Users\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
+
 class Unit extends Model
 {
     use ByAnySlug;

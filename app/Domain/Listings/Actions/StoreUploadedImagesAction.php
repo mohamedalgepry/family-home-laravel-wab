@@ -19,26 +19,40 @@ class StoreUploadedImagesAction
         $month = now()->format('m');
 
         foreach ($images as $image) {
-            if ($image instanceof UploadedFile) {
-                $originalPath = $image->store("{$folder}/{$year}/{$month}", 'public');
-                $optimizedPath = preg_replace('/\.[^.]+$/', '.webp', $originalPath);
-                $disk = Storage::disk('public');
-
-                if (
-                    $optimizedPath !== $originalPath
-                    && $this->imageOptimizer->convertToWebp(
-                        $disk->path($originalPath),
-                        $disk->path($optimizedPath),
-                    )
-                ) {
-                    $disk->delete($originalPath);
-                    $paths[] = $optimizedPath;
-                    continue;
-                }
-
-                // Preserve the upload if the server cannot encode WebP.
-                $paths[] = $originalPath;
+            if (! $image instanceof UploadedFile) {
+                continue;
             }
+
+            $originalPath = $image->store("{$folder}/{$year}/{$month}", 'public');
+
+            if ($originalPath === false) {
+                \Log::error('StoreUploadedImagesAction: filesystem write failed', [
+                    'folder' => $folder,
+                    'original_name' => $image->getClientOriginalName(),
+                    'size' => $image->getSize(),
+                ]);
+
+                continue;
+            }
+
+            $optimizedPath = preg_replace('/\.[^.]+$/', '.webp', $originalPath);
+            $disk = Storage::disk('public');
+
+            if (
+                $optimizedPath !== $originalPath
+                && $this->imageOptimizer->convertToWebp(
+                    $disk->path($originalPath),
+                    $disk->path($optimizedPath),
+                )
+            ) {
+                $disk->delete($originalPath);
+                $paths[] = $optimizedPath;
+
+                continue;
+            }
+
+            // Preserve the upload if the server cannot encode WebP.
+            $paths[] = $originalPath;
         }
 
         return $paths;

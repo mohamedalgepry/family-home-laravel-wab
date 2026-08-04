@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domain\Common\QueryBuilders\UserScopeQueryBuilder;
 use App\Domain\Listings\Models\Unit;
 use App\Domain\Listings\Services\SettingsService;
 use App\Domain\Points\DTOs\AllocatePointsData;
@@ -58,7 +59,7 @@ class PointsController
         $ledger = $query->orderByDesc('created_at')->paginate(15);
 
         if ($user->isManager()) {
-            $agentIds = \App\Domain\Common\QueryBuilders\UserScopeQueryBuilder::getTeamUserIds($user);
+            $agentIds = UserScopeQueryBuilder::getTeamUserIds($user);
             $units = Unit::active()
                 ->select('id', 'name')
                 ->whereIn('user_id', $agentIds)

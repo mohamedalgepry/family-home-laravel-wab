@@ -1,11 +1,41 @@
 {
   "version": 1,
   "skills": {
+    "e2e-ui-fix": {
+      "source": "kubrickcode/ai-config-toolkit",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/e2e-ui-fix/SKILL.md",
+      "computedHash": "e3b4246c85a182c556521061715a4c915fec178bc7c6058deb219384c0c987b7"
+    },
+    "fix-errors": {
+      "source": "microsoft/vscode",
+      "sourceType": "github",
+      "skillPath": ".github/skills/fix-errors/SKILL.md",
+      "computedHash": "356d24d2637dd0db3a783381929755dcf7ae563564cd62032bbc0a6d69eb404c"
+    },
     "laravel-security-audit": {
       "source": "sickn33/antigravity-awesome-skills",
       "sourceType": "github",
       "skillPath": "skills/laravel-security-audit/SKILL.md",
       "computedHash": "6cc0dbf736685e39e1c230ea6333fd2b402a0a6f1b48c2ea88ff8964df8be327"
+    },
+    "laravel-testing": {
+      "source": "asyrafhussin/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/laravel-testing/SKILL.md",
+      "computedHash": "1e827d6ea94dff65484bd2e8ed0f67547941ae288b47c2fe8e075179aca520b6"
+    },
+    "performance-engineer": {
+      "source": "sickn33/antigravity-awesome-skills",
+      "sourceType": "github",
+      "skillPath": "skills/performance-engineer/SKILL.md",
+      "computedHash": "7b8752fa5b2326a05d4092e8611bb071ec772e06cd5a2903ad7b34471c9cddd5"
+    },
+    "security-review": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "skillPath": "skills/security-review/SKILL.md",
+      "computedHash": "9b1791054c648b84ca424fc1342dede2e04759dc73436bb91d21675d5a4c13ea"
     }
   }
 }

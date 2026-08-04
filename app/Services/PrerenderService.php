@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Domain\Listings\Services\SettingsService;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 
 class PrerenderService
 {
@@ -52,28 +51,28 @@ class PrerenderService
                 // 1. Surgical patch for max-width: 640px hero mobile link preload
                 $html = preg_replace(
                     '/(<link[^>]*media=["\']\(max-width:\s*640px\)["\'][^>]*href=["\'])[^"\']*(["\'][^>]*>)/i',
-                    '${1}' . $mobileUrl . '${2}',
+                    '${1}'.$mobileUrl.'${2}',
                     $html
                 );
 
                 // 2. Surgical patch for min-width: 641px hero desktop link preload
                 $html = preg_replace(
                     '/(<link[^>]*media=["\']\(min-width:\s*641px\)["\'][^>]*href=["\'])[^"\']*(["\'][^>]*>)/i',
-                    '${1}' . $desktopUrl . '${2}',
+                    '${1}'.$desktopUrl.'${2}',
                     $html
                 );
 
                 // 3. Surgical patch for imageSrcSet link preload
                 $html = preg_replace(
                     '/(<link[^>]*imageSrcSet=["\'])[^"\']*(["\'][^>]*>)/i',
-                    '${1}' . "{$mobileRelative} 640w, {$desktopRelative} 1400w" . '${2}',
+                    '${1}'."{$mobileRelative} 640w, {$desktopRelative} 1400w".'${2}',
                     $html
                 );
 
                 // 4. Surgical patch for hero img tag inside <body>
                 $html = preg_replace(
                     '/(<img[^>]*fetchPriority=["\']high["\'][^>]*src=["\'])[^"\']*(["\'][^>]*srcSet=["\'])[^"\']*(["\'][^>]*>)/i',
-                    '${1}' . $desktopRelative . '${2}' . "{$mobileRelative} 640w, {$desktopRelative} 1400w" . '${3}',
+                    '${1}'.$desktopRelative.'${2}'."{$mobileRelative} 640w, {$desktopRelative} 1400w".'${3}',
                     $html
                 );
 

@@ -132,8 +132,8 @@
       "_vendor-react-CCapwFDC.js"
     ]
   },
-  "_vendor-tiptap-Ckdgfeqn.js": {
-    "file": "assets/vendor-tiptap-Ckdgfeqn.js",
+  "_vendor-tiptap-Bk2U84sX.js": {
+    "file": "assets/vendor-tiptap-Bk2U84sX.js",
     "name": "vendor-tiptap",
     "imports": [
       "_rolldown-runtime-QTnfLwEv.js",
@@ -152,7 +152,7 @@
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-fQG524l_.css",
+    "file": "assets/app-DvmW2WHJ.css",
     "name": "app",
     "names": [
       "app.css"
@@ -161,7 +161,7 @@
     "isEntry": true
   },
   "resources/js/Pages/Admin/About/Edit.jsx": {
-    "file": "assets/Edit-BSwfVpHD.js",
+    "file": "assets/Edit-BHus3xQw.js",
     "name": "Edit",
     "src": "resources/js/Pages/Admin/About/Edit.jsx",
     "isDynamicEntry": true,
@@ -171,7 +171,7 @@
       "_vendor-axios-BGmZl9Qd.js",
       "_trans-B3CP3SHq.js",
       "_AdminSidebar-CjO7eUm-.js",
-      "_vendor-tiptap-Ckdgfeqn.js"
+      "_vendor-tiptap-Bk2U84sX.js"
     ]
   },
   "resources/js/Pages/Admin/Areas/Index.jsx": {
@@ -187,7 +187,7 @@
     ]
   },
   "resources/js/Pages/Admin/Articles/Form.jsx": {
-    "file": "assets/Form-C0U0A9Pd.js",
+    "file": "assets/Form-CXMMm4jh.js",
     "name": "Form",
     "src": "resources/js/Pages/Admin/Articles/Form.jsx",
     "isDynamicEntry": true,
@@ -196,7 +196,7 @@
       "_vendor-react-CCapwFDC.js",
       "_trans-B3CP3SHq.js",
       "_AdminSidebar-CjO7eUm-.js",
-      "_vendor-tiptap-Ckdgfeqn.js",
+      "_vendor-tiptap-Bk2U84sX.js",
       "_UI-CH2sY55c.js"
     ]
   },
@@ -491,7 +491,7 @@
     ]
   },
   "resources/js/Pages/Public/Articles/Show.jsx": {
-    "file": "assets/Show-CZ81i0qb.js",
+    "file": "assets/Show-CNR-OGDc.js",
     "name": "Show",
     "src": "resources/js/Pages/Public/Articles/Show.jsx",
     "isDynamicEntry": true,
@@ -692,7 +692,7 @@
     ]
   },
   "resources/js/app.jsx": {
-    "file": "assets/app-B4o3TmFB.js",
+    "file": "assets/app-DGpj45HO.js",
     "name": "app",
     "src": "resources/js/app.jsx",
     "isEntry": true,

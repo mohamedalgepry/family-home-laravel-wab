@@ -69,7 +69,11 @@ export default function ArticleShow({ article, relatedArticles }) {
             usedMiddleIndices.add(index)
             const imgPath = img.url || (img.path.startsWith('http') || img.path.startsWith('/') ? img.path : `/storage/${img.path}`)
             const altText = (img.alt_text || article.title || '').replace(/"/g, '&quot;')
-            const imageHtml = `<img src="${imgPath}" alt="${altText}" class="w-full h-auto rounded-2xl my-6 border border-secondary-200/60 object-cover" loading="lazy" />`
+            let imageHtml = `<img src="${imgPath}" alt="${altText}" class="w-full h-auto rounded-2xl my-6 border border-secondary-200/60 object-cover" loading="lazy" />`
+            if (img.link_url) {
+                const safeLink = img.link_url.replace(/"/g, '&quot;')
+                imageHtml = `<a href="${safeLink}" target="_blank" rel="noopener noreferrer" class="block hover:opacity-95 transition-opacity">${imageHtml}</a>`
+            }
             parsedContent = parsedContent.replaceAll(shortcodeEn, imageHtml)
             parsedContent = parsedContent.replaceAll(shortcodeAr, imageHtml)
         }
@@ -122,26 +126,45 @@ export default function ArticleShow({ article, relatedArticles }) {
                     {/* Featured Cover Image */}
                     {headerImgUrl && (
                         <div className="mb-8 rounded-2xl overflow-hidden shadow-sm border border-secondary-200/60 max-h-[480px] bg-secondary-100">
-                            <img
-                                src={headerImgUrl}
-                                alt={article.title}
-                                className="w-full h-full object-cover max-h-[480px]"
-                            />
+                            {headerImage?.link_url ? (
+                                <a href={headerImage.link_url} target="_blank" rel="noopener noreferrer" className="block hover:opacity-95 transition-opacity">
+                                    <img
+                                        src={headerImgUrl}
+                                        alt={article.title}
+                                        className="w-full h-full object-cover max-h-[480px]"
+                                    />
+                                </a>
+                            ) : (
+                                <img
+                                    src={headerImgUrl}
+                                    alt={article.title}
+                                    className="w-full h-full object-cover max-h-[480px]"
+                                />
+                            )}
                         </div>
                     )}
 
                     {/* Top Images */}
                     {topImages.length > 0 && (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-                            {topImages.map(img => (
-                                <img
-                                    key={img.id}
-                                    src={img.url || (img.path.startsWith('http') || img.path.startsWith('/') ? img.path : `/storage/${img.path}`)}
-                                    alt={img.alt_text || article.title}
-                                    className="w-full h-56 rounded-2xl object-cover border border-secondary-200/60"
-                                    loading="lazy"
-                                />
-                            ))}
+                            {topImages.map(img => {
+                                const imgSrc = img.url || (img.path.startsWith('http') || img.path.startsWith('/') ? img.path : `/storage/${img.path}`);
+                                const imgTag = (
+                                    <img
+                                        src={imgSrc}
+                                        alt={img.alt_text || article.title}
+                                        className="w-full h-56 rounded-2xl object-cover border border-secondary-200/60"
+                                        loading="lazy"
+                                    />
+                                );
+                                return img.link_url ? (
+                                    <a key={img.id} href={img.link_url} target="_blank" rel="noopener noreferrer" className="block hover:opacity-95 transition-opacity">
+                                        {imgTag}
+                                    </a>
+                                ) : (
+                                    <div key={img.id}>{imgTag}</div>
+                                );
+                            })}
                         </div>
                     )}
 
@@ -159,30 +182,48 @@ export default function ArticleShow({ article, relatedArticles }) {
                     {/* Unused Middle Images */}
                     {unusedMiddleImages.length > 0 && (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8">
-                            {unusedMiddleImages.map(img => (
-                                <img
-                                    key={img.id}
-                                    src={img.url || (img.path.startsWith('http') || img.path.startsWith('/') ? img.path : `/storage/${img.path}`)}
-                                    alt={img.alt_text || article.title}
-                                    className="w-full h-56 rounded-2xl object-cover border border-secondary-200/60"
-                                    loading="lazy"
-                                />
-                            ))}
+                            {unusedMiddleImages.map(img => {
+                                const imgSrc = img.url || (img.path.startsWith('http') || img.path.startsWith('/') ? img.path : `/storage/${img.path}`);
+                                const imgTag = (
+                                    <img
+                                        src={imgSrc}
+                                        alt={img.alt_text || article.title}
+                                        className="w-full h-56 rounded-2xl object-cover border border-secondary-200/60"
+                                        loading="lazy"
+                                    />
+                                );
+                                return img.link_url ? (
+                                    <a key={img.id} href={img.link_url} target="_blank" rel="noopener noreferrer" className="block hover:opacity-95 transition-opacity">
+                                        {imgTag}
+                                    </a>
+                                ) : (
+                                    <div key={img.id}>{imgTag}</div>
+                                );
+                            })}
                         </div>
                     )}
 
                     {/* Bottom Images */}
                     {bottomImages.length > 0 && (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8">
-                            {bottomImages.map(img => (
-                                <img
-                                    key={img.id}
-                                    src={img.url || (img.path.startsWith('http') || img.path.startsWith('/') ? img.path : `/storage/${img.path}`)}
-                                    alt={img.alt_text || article.title}
-                                    className="w-full h-56 rounded-2xl object-cover border border-secondary-200/60"
-                                    loading="lazy"
-                                />
-                            ))}
+                            {bottomImages.map(img => {
+                                const imgSrc = img.url || (img.path.startsWith('http') || img.path.startsWith('/') ? img.path : `/storage/${img.path}`);
+                                const imgTag = (
+                                    <img
+                                        src={imgSrc}
+                                        alt={img.alt_text || article.title}
+                                        className="w-full h-56 rounded-2xl object-cover border border-secondary-200/60"
+                                        loading="lazy"
+                                    />
+                                );
+                                return img.link_url ? (
+                                    <a key={img.id} href={img.link_url} target="_blank" rel="noopener noreferrer" className="block hover:opacity-95 transition-opacity">
+                                        {imgTag}
+                                    </a>
+                                ) : (
+                                    <div key={img.id}>{imgTag}</div>
+                                );
+                            })}
                         </div>
                     )}
                 </article>

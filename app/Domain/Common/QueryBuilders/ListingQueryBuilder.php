@@ -25,6 +25,17 @@ class ListingQueryBuilder
         $query->where($field, $value === 'true' || $value === true);
     }
 
+    public static function applyRange(Builder $query, array $filters, string $column, string $minKey, string $maxKey): void
+    {
+        if (! empty($filters[$minKey])) {
+            $query->where($column, '>=', $filters[$minKey]);
+        }
+
+        if (! empty($filters[$maxKey])) {
+            $query->where($column, '<=', $filters[$maxKey]);
+        }
+    }
+
     public static function applySearch(Builder $query, array $filters, array $fields, ?string $relation = null, int $minLength = 0): void
     {
         $search = $filters['search'] ?? null;

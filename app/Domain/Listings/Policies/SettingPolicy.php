@@ -2,7 +2,6 @@
 
 namespace App\Domain\Listings\Policies;
 
-use App\Domain\Listings\Models\Setting;
 use App\Domain\Users\Models\User;
 
 class SettingPolicy

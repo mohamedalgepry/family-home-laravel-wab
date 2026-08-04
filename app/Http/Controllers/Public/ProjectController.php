@@ -7,6 +7,7 @@ use App\Domain\Listings\Models\Project;
 use App\Domain\Listings\Services\ListingLookupService;
 use App\Domain\Listings\Services\ListingService;
 use App\Domain\Listings\Services\PageViewService;
+use App\Services\SeoService;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -35,7 +36,7 @@ class ProjectController
             }
         }
 
-        $meta = app(\App\Services\SeoService::class)->forPage('projects_index', $customMeta);
+        $meta = app(SeoService::class)->forPage('projects_index', $customMeta);
 
         return Inertia::render('Public/Projects/Index', [
             'projects' => $projects,

@@ -16,9 +16,10 @@ class DailyDeductionJob implements ShouldQueue
 
     public function handle(PointsService $pointsService): void
     {
-        $lockKey = 'daily_deduction_' . now()->format('Y-m-d');
+        $lockKey = 'daily_deduction_'.now()->format('Y-m-d');
         if (! Cache::add($lockKey, true, now()->endOfDay())) {
             Log::info('DailyDeductionJob already ran today, skipping.');
+
             return;
         }
 

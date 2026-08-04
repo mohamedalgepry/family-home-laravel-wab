@@ -33,7 +33,7 @@ class OptimizeSettingImagesCommand extends Command
                 $dstDesktop = imagecreatetruecolor($targetW, $targetH);
                 imagecopyresampled($dstDesktop, $srcImg, 0, 0, 0, 0, $targetW, $targetH, $w, $h);
 
-                $desktopWebpPath = 'settings/hero_' . uniqid() . '.webp';
+                $desktopWebpPath = 'settings/hero_'.uniqid().'.webp';
                 $fullDesktopPath = $disk->path($desktopWebpPath);
                 imagewebp($dstDesktop, $fullDesktopPath, 82);
                 imagedestroy($dstDesktop);
@@ -44,7 +44,7 @@ class OptimizeSettingImagesCommand extends Command
                 $dstMobile = imagecreatetruecolor($targetMobileW, $targetMobileH);
                 imagecopyresampled($dstMobile, $srcImg, 0, 0, 0, 0, $targetMobileW, $targetMobileH, $w, $h);
 
-                $mobileWebpPath = 'settings/hero_mobile_' . uniqid() . '.webp';
+                $mobileWebpPath = 'settings/hero_mobile_'.uniqid().'.webp';
                 $fullMobilePath = $disk->path($mobileWebpPath);
                 imagewebp($dstMobile, $fullMobilePath, 80);
                 imagedestroy($dstMobile);
@@ -52,8 +52,8 @@ class OptimizeSettingImagesCommand extends Command
 
                 $settingsService->set('hero_image', $desktopWebpPath);
                 $settingsService->set('hero_image_mobile', $mobileWebpPath);
-                $this->info(" -> Created Desktop WebP: {$desktopWebpPath} (" . round(filesize($fullDesktopPath) / 1024, 2) . " KB)");
-                $this->info(" -> Created Mobile WebP: {$mobileWebpPath} (" . round(filesize($fullMobilePath) / 1024, 2) . " KB)");
+                $this->info(" -> Created Desktop WebP: {$desktopWebpPath} (".round(filesize($fullDesktopPath) / 1024, 2).' KB)');
+                $this->info(" -> Created Mobile WebP: {$mobileWebpPath} (".round(filesize($fullMobilePath) / 1024, 2).' KB)');
 
                 if ($heroPath !== $desktopWebpPath && $disk->exists($heroPath)) {
                     $disk->delete($heroPath);
@@ -63,7 +63,7 @@ class OptimizeSettingImagesCommand extends Command
 
         // 2. Optimize site_logo
         $logoPath = $settingsService->get('site_logo');
-        if ($logoPath && !str_ends_with(strtolower($logoPath), '.webp') && $disk->exists($logoPath)) {
+        if ($logoPath && ! str_ends_with(strtolower($logoPath), '.webp') && $disk->exists($logoPath)) {
             $this->info("Optimizing site_logo: {$logoPath}");
             $raw = $disk->get($logoPath);
             $srcImg = @imagecreatefromstring($raw);
@@ -77,7 +77,7 @@ class OptimizeSettingImagesCommand extends Command
                 imagesavealpha($dstImg, true);
                 imagecopyresampled($dstImg, $srcImg, 0, 0, 0, 0, $targetW, $targetH, $w, $h);
 
-                $logoWebpPath = 'settings/logo_' . uniqid() . '.webp';
+                $logoWebpPath = 'settings/logo_'.uniqid().'.webp';
                 $fullLogoPath = $disk->path($logoWebpPath);
                 imagewebp($dstImg, $fullLogoPath, 85);
                 imagedestroy($dstImg);

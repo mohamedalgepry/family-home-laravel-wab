@@ -5,6 +5,7 @@ namespace App\Domain\Listings\Services;
 use App\Domain\Common\QueryBuilders\ListingQueryBuilder;
 use App\Domain\Listings\Actions\CreateArticleAction;
 use App\Domain\Listings\Actions\UpdateArticleAction;
+use App\Domain\Listings\DTOs\ArticleImageData;
 use App\Domain\Listings\DTOs\CreateArticleData;
 use App\Domain\Listings\Models\Article;
 use App\Domain\Listings\Models\ArticleImage;
@@ -32,20 +33,20 @@ class ArticleService
         return $query->paginate(ListingQueryBuilder::perPage($filters));
     }
 
-    public function createArticle(CreateArticleData $data, ?string $coverImagePath = null, array $newImagePaths = [], array $newImageAlts = [], array $newImagePositions = []): Article
-    {
-        $article = DB::transaction(function () use ($data, $coverImagePath, $newImagePaths, $newImageAlts, $newImagePositions) {
+    public function createArticle(
+        CreateArticleData $data,
+        ?string $coverImagePath = null,
+        ArticleImageData $newImages = new ArticleImageData(paths: []),
+    ): Article {
+        $article = DB::transaction(function () use ($data, $coverImagePath, $newImages) {
             $article = $this->createAction->execute($data);
 
             if ($coverImagePath) {
-                $this->listingImageService->persistImages($article, [$coverImagePath], ['position' => 'header', 'size' => 'medium']);
+                $this->persistCoverImage($article, $coverImagePath);
             }
 
-            if (! empty($newImagePaths)) {
-                $this->listingImageService->persistImages($article, $newImagePaths, fn ($index) => [
-                    'alt_text' => $newImageAlts[$index] ?? null,
-                    'position' => $newImagePositions[$index] ?? 'middle',
-                ]);
+            if ($newImages->hasImages()) {
+                $this->persistNewImages($article, $newImages);
             }
 
             return $article->load(['category', 'images']);
@@ -56,42 +57,26 @@ class ArticleService
         return $article;
     }
 
-    public function updateArticle(int $articleId, CreateArticleData $data, array $deletedImageIds = [], ?string $coverImagePath = null, array $imageUpdates = [], array $newImagePaths = [], array $newImageAlts = [], array $newImagePositions = []): Article
-    {
-        $article = DB::transaction(function () use ($articleId, $data, $deletedImageIds, $coverImagePath, $imageUpdates, $newImagePaths, $newImageAlts, $newImagePositions) {
+    public function updateArticle(
+        int $articleId,
+        CreateArticleData $data,
+        array $deletedImageIds = [],
+        ?string $coverImagePath = null,
+        array $imageUpdates = [],
+        ArticleImageData $newImages = new ArticleImageData(paths: []),
+    ): Article {
+        $article = DB::transaction(function () use ($articleId, $data, $deletedImageIds, $coverImagePath, $imageUpdates, $newImages) {
             $article = $this->updateAction->execute($articleId, $data);
 
-            if (! empty($deletedImageIds)) {
-                $images = ArticleImage::whereIn('id', $deletedImageIds)->where('article_id', $articleId)->get();
-                $this->listingImageService->deleteImageFiles($images->pluck('path')->all());
-                foreach ($images as $image) {
-                    $image->delete();
-                }
-            }
-
-            if (! empty($imageUpdates)) {
-                foreach ($imageUpdates as $imageId => $update) {
-                    ArticleImage::where('id', $imageId)->where('article_id', $articleId)->update(
-                        collect($update)->only(['alt_text', 'position', 'sort_order'])->toArray()
-                    );
-                }
-            }
+            $this->deleteRequestedImages($articleId, $deletedImageIds);
+            $this->applyImageUpdates($articleId, $imageUpdates);
 
             if ($coverImagePath) {
-                // Remove existing header images if setting a new cover
-                $oldCovers = ArticleImage::where('article_id', $articleId)->where('position', 'header')->get();
-                $this->listingImageService->deleteImageFiles($oldCovers->pluck('path')->all());
-                foreach ($oldCovers as $oldCover) {
-                    $oldCover->delete();
-                }
-                $this->listingImageService->persistImages($article, [$coverImagePath], ['position' => 'header', 'size' => 'medium']);
+                $this->replaceCoverImage($articleId, $article, $coverImagePath);
             }
 
-            if (! empty($newImagePaths)) {
-                $this->listingImageService->persistImages($article, $newImagePaths, fn ($index) => [
-                    'alt_text' => $newImageAlts[$index] ?? null,
-                    'position' => $newImagePositions[$index] ?? 'middle',
-                ]);
+            if ($newImages->hasImages()) {
+                $this->persistNewImages($article, $newImages);
             }
 
             return $article->load(['category', 'images']);
@@ -106,22 +91,21 @@ class ArticleService
     {
         $article = Article::with('images')->findOrFail($articleId);
 
-        $imagePaths = $article->images->pluck('path')->toArray();
+        $imagePaths = $article->images->pluck('path')->all();
 
         DB::transaction(function () use ($article) {
             $article->images()->delete();
             $article->delete();
         });
 
-        // حذف الصور الأصلية والـ Thumbnails من الـ Storage
         $this->listingImageService->deleteImageFiles($imagePaths);
-
         $this->sitemapService->regenerate();
     }
 
     public function togglePublish(int $articleId): Article
     {
         $article = Article::findOrFail($articleId);
+
         $article->update([
             'is_published' => ! $article->is_published,
             'published_at' => $article->is_published ? null : now(),
@@ -130,5 +114,56 @@ class ArticleService
         $this->sitemapService->regenerate();
 
         return $article->fresh()->load(['category', 'images']);
+    }
+
+    private function persistCoverImage(Article $article, string $path): void
+    {
+        $this->listingImageService->persistImages($article, [$path], ['position' => 'header', 'size' => 'medium']);
+    }
+
+    private function persistNewImages(Article $article, ArticleImageData $images): void
+    {
+        $this->listingImageService->persistImages(
+            $article,
+            $images->paths,
+            fn (int $index) => $images->metaForIndex($index),
+        );
+    }
+
+    private function deleteRequestedImages(int $articleId, array $imageIds): void
+    {
+        if (empty($imageIds)) {
+            return;
+        }
+
+        $images = ArticleImage::whereIn('id', $imageIds)->where('article_id', $articleId)->get();
+        $this->listingImageService->deleteImageFiles($images->pluck('path')->all());
+        foreach ($images as $image) {
+            $image->delete();
+        }
+    }
+
+    private function applyImageUpdates(int $articleId, array $imageUpdates): void
+    {
+        if (empty($imageUpdates)) {
+            return;
+        }
+
+        foreach ($imageUpdates as $imageId => $update) {
+            ArticleImage::where('id', $imageId)
+                ->where('article_id', $articleId)
+                ->update(collect($update)->only(['alt_text', 'link_url', 'position', 'sort_order'])->toArray());
+        }
+    }
+
+    private function replaceCoverImage(int $articleId, Article $article, string $newCoverPath): void
+    {
+        $existingCovers = ArticleImage::where('article_id', $articleId)->where('position', 'header')->get();
+        $this->listingImageService->deleteImageFiles($existingCovers->pluck('path')->all());
+        foreach ($existingCovers as $cover) {
+            $cover->delete();
+        }
+
+        $this->persistCoverImage($article, $newCoverPath);
     }
 }

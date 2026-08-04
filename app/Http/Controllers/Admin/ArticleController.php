@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Domain\Listings\DTOs\CreateArticleData;
 use App\Domain\Listings\Actions\StoreUploadedImagesAction;
+use App\Domain\Listings\DTOs\ArticleImageData;
+use App\Domain\Listings\DTOs\CreateArticleData;
 use App\Domain\Listings\Models\Article;
 use App\Domain\Listings\Models\Category;
 use App\Domain\Listings\Services\ArticleService;
@@ -11,6 +12,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreArticleRequest;
 use App\Http\Requests\Admin\UpdateArticleRequest;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -26,9 +28,7 @@ class ArticleController extends Controller
         $this->authorize('viewAny', Article::class);
 
         $filters = request()->only(['search', 'category_id', 'is_published', 'sort', 'direction', 'per_page']);
-
         $articles = $this->articleService->getPaginatedArticles($filters);
-
         $categories = Category::orderBy('name_ar')->get(['id', 'name_ar', 'name_en']);
 
         return Inertia::render('Admin/Articles/Index', [
@@ -63,57 +63,31 @@ class ArticleController extends Controller
         ]);
     }
 
-    public function store(StoreArticleRequest $request)
+    public function store(StoreArticleRequest $request): RedirectResponse
     {
         $this->authorize('create', Article::class);
 
-        $data = CreateArticleData::from($request->validated());
-
-        $coverImagePath = null;
-        if ($request->hasFile('cover_image')) {
-            $coverImagePath = $this->storeUploadedImagesAction->execute([$request->file('cover_image')], 'articles')[0];
-        }
-
-        $imagePaths = $this->storeUploadedImagesAction->execute($request->file('images', []), 'articles');
-        $newImageAlts = $request->input('new_image_alts', []);
-        $newImagePositions = $request->input('new_image_positions', []);
-
         $this->articleService->createArticle(
-            data: $data,
-            coverImagePath: $coverImagePath,
-            newImagePaths: $imagePaths,
-            newImageAlts: $newImageAlts,
-            newImagePositions: $newImagePositions
+            data: CreateArticleData::from($request->validated()),
+            coverImagePath: $this->storeCoverImageIfPresent($request),
+            newImages: $this->buildNewImageData($request),
         );
 
         return redirect()->route('admin.articles.index')
             ->with('success', __('common.added_successfully'));
     }
 
-    public function update(UpdateArticleRequest $request, Article $article)
+    public function update(UpdateArticleRequest $request, Article $article): RedirectResponse
     {
         $this->authorize('update', $article);
 
-        $data = CreateArticleData::from($request->validated());
-
-        $coverImagePath = null;
-        if ($request->hasFile('cover_image')) {
-            $coverImagePath = $this->storeUploadedImagesAction->execute([$request->file('cover_image')], 'articles')[0];
-        }
-
-        $newImagePaths = $this->storeUploadedImagesAction->execute($request->file('images', []), 'articles');
-        $newImageAlts = $request->input('new_image_alts', []);
-        $newImagePositions = $request->input('new_image_positions', []);
-
         $this->articleService->updateArticle(
             articleId: $article->id,
-            data: $data,
+            data: CreateArticleData::from($request->validated()),
             deletedImageIds: $request->input('deleted_image_ids', []),
-            coverImagePath: $coverImagePath,
+            coverImagePath: $this->storeCoverImageIfPresent($request),
             imageUpdates: $request->input('image_updates', []),
-            newImagePaths: $newImagePaths,
-            newImageAlts: $newImageAlts,
-            newImagePositions: $newImagePositions
+            newImages: $this->buildNewImageData($request),
         );
 
         return redirect()->route('admin.articles.index')
@@ -138,5 +112,26 @@ class ArticleController extends Controller
 
         return redirect()->route('admin.articles.index')
             ->with('success', __('articles.publish_toggled'));
+    }
+
+    private function storeCoverImageIfPresent(Request $request): ?string
+    {
+        if (! $request->hasFile('cover_image')) {
+            return null;
+        }
+
+        return $this->storeUploadedImagesAction->execute([$request->file('cover_image')], 'articles')[0];
+    }
+
+    private function buildNewImageData(Request $request): ArticleImageData
+    {
+        $paths = $this->storeUploadedImagesAction->execute($request->file('images', []), 'articles');
+
+        return new ArticleImageData(
+            paths: $paths,
+            alts: $request->input('new_image_alts', []),
+            positions: $request->input('new_image_positions', []),
+            links: $request->input('new_image_links', []),
+        );
     }
 }

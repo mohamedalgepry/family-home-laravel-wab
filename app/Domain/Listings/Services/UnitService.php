@@ -65,7 +65,7 @@ class UnitService
 
     private function notifyPendingApproval(Unit $unit, User $user): void
     {
-        if (!$user->isAgent()) {
+        if (! $user->isAgent()) {
             return;
         }
 
@@ -153,7 +153,7 @@ class UnitService
 
         $this->sitemapService->regenerate();
 
-        if (!$wasActive && $unit->is_active) {
+        if (! $wasActive && $unit->is_active) {
             $this->notifyApproved($unit, $approver);
         }
 
@@ -164,7 +164,7 @@ class UnitService
     {
         $owner = $unit->user;
 
-        if (!$owner || !$owner->isAgent()) {
+        if (! $owner || ! $owner->isAgent()) {
             return;
         }
 

@@ -6,6 +6,7 @@ use App\Domain\Listings\Models\Setting;
 use App\Domain\Listings\Services\SettingsService;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdateSettingsRequest;
+use App\Services\PrerenderService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -44,7 +45,7 @@ class SettingsController extends Controller
             $this->settingsService->updateMany($data);
 
             // Surgically patch pre-rendered Home HTML files immediately
-            app(\App\Services\PrerenderService::class)->patchHomeHtml();
+            app(PrerenderService::class)->patchHomeHtml();
 
             Log::info('Settings updated successfully.', ['keys' => array_keys($data)]);
 

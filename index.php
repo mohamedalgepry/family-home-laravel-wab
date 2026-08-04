@@ -7,7 +7,6 @@
  * to the `public` directory is not possible.
  * It is highly recommended to change the Document Root to `public` in your hosting control panel instead of using this file.
  */
-
 $uri = urldecode(
     parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH)
 );

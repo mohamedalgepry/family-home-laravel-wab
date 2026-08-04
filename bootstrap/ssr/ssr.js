@@ -1,5 +1,5 @@
 import { Head, Link, createInertiaApp, router, useForm, usePage } from "@inertiajs/react";
-import React, { useEffect, useId, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { Fragment, jsx, jsxs } from "react/jsx-runtime";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -7,6 +7,7 @@ import TextAlign from "@tiptap/extension-text-align";
 import Image$1 from "@tiptap/extension-image";
 import axios from "axios";
 import Underline from "@tiptap/extension-underline";
+import LinkExtension from "@tiptap/extension-link";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { renderToString } from "react-dom/server";
 import createServer from "@inertiajs/react/server";
@@ -2689,24 +2690,22 @@ function Select({ value, onChange, children, className = "", disabled = false, r
 //#endregion
 //#region resources/js/Pages/Admin/Articles/Form.jsx
 var Form_exports$2 = /* @__PURE__ */ __exportAll({ default: () => AdminArticlesForm });
-function MenuBar({ editor, trans, articleTitle }) {
+function MenuBar({ editor, trans }) {
 	if (!editor) return null;
-	const handleImageUpload = async (e) => {
-		const file = e.target.files?.[0];
-		if (!file) return;
-		const formData = new FormData();
-		formData.append("image", file);
-		try {
-			const res = await window.axios.post("/admin/media/upload", formData, { headers: { "Content-Type": "multipart/form-data" } });
-			if (res.data?.url) editor.chain().focus().setImage({
-				src: res.data.url,
-				alt: articleTitle || ""
-			}).run();
-		} catch (err) {
-			console.error("Image upload failed", err);
+	const setLink = useCallback(() => {
+		const previousUrl = editor.getAttributes("link").href;
+		const url = window.prompt(trans("enter_url") || "أدخل الرابط (URL):", previousUrl || "https://");
+		if (url === null) return;
+		if (url === "") {
+			editor.chain().focus().extendMarkRange("link").unsetLink().run();
+			return;
 		}
-		e.target.value = "";
-	};
+		editor.chain().focus().extendMarkRange("link").setLink({
+			href: url,
+			target: "_blank",
+			rel: "noopener noreferrer"
+		}).run();
+	}, [editor, trans]);
 	return /* @__PURE__ */ jsxs("div", {
 		className: "flex flex-wrap gap-1 p-2 border-b border-secondary-200 bg-surface/50 items-center",
 		children: [
@@ -2727,6 +2726,31 @@ function MenuBar({ editor, trans, articleTitle }) {
 				onClick: () => editor.chain().focus().toggleUnderline().run(),
 				className: `px-2 py-1 text-xs rounded ${editor.isActive("underline") ? "bg-primary-900 text-white" : "bg-white text-secondary-700 hover:bg-secondary-100"}`,
 				children: /* @__PURE__ */ jsx("u", { children: "U" })
+			}),
+			/* @__PURE__ */ jsxs("button", {
+				type: "button",
+				onClick: setLink,
+				className: `px-2 py-1 text-xs rounded flex items-center gap-1 ${editor.isActive("link") ? "bg-primary-900 text-white" : "bg-white text-secondary-700 hover:bg-secondary-100"}`,
+				title: trans("link") || "إدراج / تعديل رابط",
+				children: [/* @__PURE__ */ jsx("svg", {
+					className: "w-3.5 h-3.5",
+					fill: "none",
+					viewBox: "0 0 24 24",
+					stroke: "currentColor",
+					strokeWidth: 2,
+					children: /* @__PURE__ */ jsx("path", {
+						strokeLinecap: "round",
+						strokeLinejoin: "round",
+						d: "M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244"
+					})
+				}), /* @__PURE__ */ jsx("span", { children: trans("link") || "رابط" })]
+			}),
+			editor.isActive("link") && /* @__PURE__ */ jsx("button", {
+				type: "button",
+				onClick: () => editor.chain().focus().unsetLink().run(),
+				className: "px-2 py-1 text-xs rounded bg-red-50 text-red-600 hover:bg-red-100",
+				title: "إزالة الرابط",
+				children: "✕"
 			}),
 			/* @__PURE__ */ jsx("span", { className: "w-px bg-secondary-200 mx-1 h-4" }),
 			/* @__PURE__ */ jsx("button", {
@@ -2772,16 +2796,6 @@ function MenuBar({ editor, trans, articleTitle }) {
 				onClick: () => editor.chain().focus().toggleHeading({ level: 3 }).run(),
 				className: `px-2 py-1 text-xs rounded ${editor.isActive("heading", { level: 3 }) ? "bg-primary-900 text-white" : "bg-white text-secondary-700 hover:bg-secondary-100"}`,
 				children: "H3"
-			}),
-			/* @__PURE__ */ jsx("span", { className: "w-px bg-secondary-200 mx-1 h-4" }),
-			/* @__PURE__ */ jsxs("label", {
-				className: "px-2 py-1 text-xs rounded bg-white text-secondary-700 hover:bg-secondary-100 cursor-pointer flex items-center gap-1 border border-secondary-200",
-				children: [/* @__PURE__ */ jsxs("span", { children: ["🖼️ ", trans("add_image") || "إدراج صورة"] }), /* @__PURE__ */ jsx("input", {
-					type: "file",
-					accept: "image/*",
-					className: "hidden",
-					onChange: handleImageUpload
-				})]
 			})
 		]
 	});
@@ -2808,6 +2822,7 @@ function AdminArticlesForm({ article, categories }) {
 		images: [],
 		new_image_alts: {},
 		new_image_positions: {},
+		new_image_links: {},
 		deleted_image_ids: [],
 		image_updates: {}
 	});
@@ -2828,7 +2843,13 @@ function AdminArticlesForm({ article, categories }) {
 		extensions: [
 			StarterKit,
 			Underline,
-			Image$1.configure({ inline: true }),
+			LinkExtension.configure({
+				openOnClick: false,
+				HTMLAttributes: {
+					target: "_blank",
+					rel: "noopener noreferrer"
+				}
+			}),
 			TextAlign.configure({ types: ["heading", "paragraph"] })
 		],
 		content: article?.content_ar || "",
@@ -2842,7 +2863,13 @@ function AdminArticlesForm({ article, categories }) {
 		extensions: [
 			StarterKit,
 			Underline,
-			Image$1.configure({ inline: true }),
+			LinkExtension.configure({
+				openOnClick: false,
+				HTMLAttributes: {
+					target: "_blank",
+					rel: "noopener noreferrer"
+				}
+			}),
 			TextAlign.configure({ types: ["heading", "paragraph"] })
 		],
 		content: article?.content_en || "",
@@ -3159,6 +3186,13 @@ function AdminArticlesForm({ article, categories }) {
 										onChange: (e) => handleImageUpdate(img.id, "alt_text", e.target.value),
 										className: "w-full px-2 py-1 border border-secondary-200 rounded text-xs"
 									}),
+									/* @__PURE__ */ jsx("input", {
+										type: "url",
+										placeholder: isRtl ? "رابط الصورة (اختياري: https://...)" : "Image Link URL (Optional)",
+										value: data.image_updates[img.id]?.link_url ?? (img.link_url || ""),
+										onChange: (e) => handleImageUpdate(img.id, "link_url", e.target.value),
+										className: "w-full px-2 py-1 border border-secondary-200 rounded text-xs"
+									}),
 									/* @__PURE__ */ jsxs("select", {
 										value: data.image_updates[img.id]?.position ?? (img.position || "middle"),
 										onChange: (e) => handleImageUpdate(img.id, "position", e.target.value),
@@ -3238,6 +3272,18 @@ function AdminArticlesForm({ article, categories }) {
 												const alts = data.new_image_alts || {};
 												setData("new_image_alts", {
 													...alts,
+													[fileIndex]: e.target.value
+												});
+											},
+											className: "w-full px-2 py-1 border border-secondary-200 rounded text-xs"
+										}),
+										/* @__PURE__ */ jsx("input", {
+											type: "url",
+											placeholder: isRtl ? "رابط الصورة (اختياري: https://...)" : "Image Link URL (Optional)",
+											onChange: (e) => {
+												const links = data.new_image_links || {};
+												setData("new_image_links", {
+													...links,
 													[fileIndex]: e.target.value
 												});
 											},
@@ -13103,7 +13149,8 @@ function ArticleShow({ article, relatedArticles }) {
 		const shortcodeAr = `[صورة:${index + 1}]`;
 		if (parsedContent.includes(shortcodeEn) || parsedContent.includes(shortcodeAr)) {
 			usedMiddleIndices.add(index);
-			const imageHtml = `<img src="${img.url || (img.path.startsWith("http") || img.path.startsWith("/") ? img.path : `/storage/${img.path}`)}" alt="${(img.alt_text || article.title || "").replace(/"/g, "&quot;")}" class="w-full h-auto rounded-2xl my-6 border border-secondary-200/60 object-cover" loading="lazy" />`;
+			let imageHtml = `<img src="${img.url || (img.path.startsWith("http") || img.path.startsWith("/") ? img.path : `/storage/${img.path}`)}" alt="${(img.alt_text || article.title || "").replace(/"/g, "&quot;")}" class="w-full h-auto rounded-2xl my-6 border border-secondary-200/60 object-cover" loading="lazy" />`;
+			if (img.link_url) imageHtml = `<a href="${img.link_url.replace(/"/g, "&quot;")}" target="_blank" rel="noopener noreferrer" class="block hover:opacity-95 transition-opacity">${imageHtml}</a>`;
 			parsedContent = parsedContent.replaceAll(shortcodeEn, imageHtml);
 			parsedContent = parsedContent.replaceAll(shortcodeAr, imageHtml);
 		}
@@ -13152,7 +13199,17 @@ function ArticleShow({ article, relatedArticles }) {
 						}),
 						headerImgUrl && /* @__PURE__ */ jsx("div", {
 							className: "mb-8 rounded-2xl overflow-hidden shadow-sm border border-secondary-200/60 max-h-[480px] bg-secondary-100",
-							children: /* @__PURE__ */ jsx("img", {
+							children: headerImage?.link_url ? /* @__PURE__ */ jsx("a", {
+								href: headerImage.link_url,
+								target: "_blank",
+								rel: "noopener noreferrer",
+								className: "block hover:opacity-95 transition-opacity",
+								children: /* @__PURE__ */ jsx("img", {
+									src: headerImgUrl,
+									alt: article.title,
+									className: "w-full h-full object-cover max-h-[480px]"
+								})
+							}) : /* @__PURE__ */ jsx("img", {
 								src: headerImgUrl,
 								alt: article.title,
 								className: "w-full h-full object-cover max-h-[480px]"
@@ -13160,12 +13217,21 @@ function ArticleShow({ article, relatedArticles }) {
 						}),
 						topImages.length > 0 && /* @__PURE__ */ jsx("div", {
 							className: "grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8",
-							children: topImages.map((img) => /* @__PURE__ */ jsx("img", {
-								src: img.url || (img.path.startsWith("http") || img.path.startsWith("/") ? img.path : `/storage/${img.path}`),
-								alt: img.alt_text || article.title,
-								className: "w-full h-56 rounded-2xl object-cover border border-secondary-200/60",
-								loading: "lazy"
-							}, img.id))
+							children: topImages.map((img) => {
+								const imgTag = /* @__PURE__ */ jsx("img", {
+									src: img.url || (img.path.startsWith("http") || img.path.startsWith("/") ? img.path : `/storage/${img.path}`),
+									alt: img.alt_text || article.title,
+									className: "w-full h-56 rounded-2xl object-cover border border-secondary-200/60",
+									loading: "lazy"
+								});
+								return img.link_url ? /* @__PURE__ */ jsx("a", {
+									href: img.link_url,
+									target: "_blank",
+									rel: "noopener noreferrer",
+									className: "block hover:opacity-95 transition-opacity",
+									children: imgTag
+								}, img.id) : /* @__PURE__ */ jsx("div", { children: imgTag }, img.id);
+							})
 						}),
 						/* @__PURE__ */ jsx("div", {
 							className: "prose prose-base sm:prose-lg max-w-none text-secondary-800 leading-relaxed\r\n                            prose-headings:font-bold prose-headings:text-secondary-950 prose-headings:mt-8 prose-headings:mb-3\r\n                            prose-p:text-secondary-800 prose-p:leading-relaxed prose-p:mb-5\r\n                            prose-img:rounded-2xl prose-img:my-6 prose-img:w-full prose-img:object-cover\r\n                            prose-blockquote:border-s-4 prose-blockquote:border-primary-900 prose-blockquote:bg-secondary-50 prose-blockquote:p-4 prose-blockquote:rounded-e-xl prose-blockquote:text-secondary-900 prose-blockquote:not-italic\r\n                            prose-a:text-primary-900 prose-a:underline hover:prose-a:text-primary-950",
@@ -13173,21 +13239,39 @@ function ArticleShow({ article, relatedArticles }) {
 						}),
 						unusedMiddleImages.length > 0 && /* @__PURE__ */ jsx("div", {
 							className: "grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8",
-							children: unusedMiddleImages.map((img) => /* @__PURE__ */ jsx("img", {
-								src: img.url || (img.path.startsWith("http") || img.path.startsWith("/") ? img.path : `/storage/${img.path}`),
-								alt: img.alt_text || article.title,
-								className: "w-full h-56 rounded-2xl object-cover border border-secondary-200/60",
-								loading: "lazy"
-							}, img.id))
+							children: unusedMiddleImages.map((img) => {
+								const imgTag = /* @__PURE__ */ jsx("img", {
+									src: img.url || (img.path.startsWith("http") || img.path.startsWith("/") ? img.path : `/storage/${img.path}`),
+									alt: img.alt_text || article.title,
+									className: "w-full h-56 rounded-2xl object-cover border border-secondary-200/60",
+									loading: "lazy"
+								});
+								return img.link_url ? /* @__PURE__ */ jsx("a", {
+									href: img.link_url,
+									target: "_blank",
+									rel: "noopener noreferrer",
+									className: "block hover:opacity-95 transition-opacity",
+									children: imgTag
+								}, img.id) : /* @__PURE__ */ jsx("div", { children: imgTag }, img.id);
+							})
 						}),
 						bottomImages.length > 0 && /* @__PURE__ */ jsx("div", {
 							className: "grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8",
-							children: bottomImages.map((img) => /* @__PURE__ */ jsx("img", {
-								src: img.url || (img.path.startsWith("http") || img.path.startsWith("/") ? img.path : `/storage/${img.path}`),
-								alt: img.alt_text || article.title,
-								className: "w-full h-56 rounded-2xl object-cover border border-secondary-200/60",
-								loading: "lazy"
-							}, img.id))
+							children: bottomImages.map((img) => {
+								const imgTag = /* @__PURE__ */ jsx("img", {
+									src: img.url || (img.path.startsWith("http") || img.path.startsWith("/") ? img.path : `/storage/${img.path}`),
+									alt: img.alt_text || article.title,
+									className: "w-full h-56 rounded-2xl object-cover border border-secondary-200/60",
+									loading: "lazy"
+								});
+								return img.link_url ? /* @__PURE__ */ jsx("a", {
+									href: img.link_url,
+									target: "_blank",
+									rel: "noopener noreferrer",
+									className: "block hover:opacity-95 transition-opacity",
+									children: imgTag
+								}, img.id) : /* @__PURE__ */ jsx("div", { children: imgTag }, img.id);
+							})
 						})
 					]
 				}), relatedArticles?.length > 0 && /* @__PURE__ */ jsxs("section", {

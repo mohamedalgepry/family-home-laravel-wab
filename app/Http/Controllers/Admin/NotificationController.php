@@ -208,7 +208,8 @@ class NotificationController extends Controller
     {
         try {
             app(ListingService::class)->clearCache();
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            \Log::warning('NotificationController: cache clear failed', ['error' => $e->getMessage()]);
         }
     }
 }

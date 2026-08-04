@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Public;
 
-use App\Domain\Listings\Models\AboutPage;
 use App\Domain\Common\Support\Sanitizer;
+use App\Domain\Listings\Models\AboutPage;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\App;
 use Inertia\Inertia;

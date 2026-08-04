@@ -7,30 +7,23 @@ import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import TextAlign from '@tiptap/extension-text-align'
 import Underline from '@tiptap/extension-underline'
-import Image from '@tiptap/extension-image'
+import LinkExtension from '@tiptap/extension-link'
 
-function MenuBar({ editor, trans, articleTitle }) {
+function MenuBar({ editor, trans }) {
     if (!editor) return null
 
-    const handleImageUpload = async (e) => {
-        const file = e.target.files?.[0]
-        if (!file) return
+    const setLink = useCallback(() => {
+        const previousUrl = editor.getAttributes('link').href
+        const url = window.prompt(trans('enter_url') || 'أدخل الرابط (URL):', previousUrl || 'https://')
 
-        const formData = new FormData()
-        formData.append('image', file)
-
-        try {
-            const res = await window.axios.post('/admin/media/upload', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' },
-            })
-            if (res.data?.url) {
-                editor.chain().focus().setImage({ src: res.data.url, alt: articleTitle || '' }).run()
-            }
-        } catch (err) {
-            console.error('Image upload failed', err)
+        if (url === null) return
+        if (url === '') {
+            editor.chain().focus().extendMarkRange('link').unsetLink().run()
+            return
         }
-        e.target.value = ''
-    }
+
+        editor.chain().focus().extendMarkRange('link').setLink({ href: url, target: '_blank', rel: 'noopener noreferrer' }).run()
+    }, [editor, trans])
 
     return (
         <div className="flex flex-wrap gap-1 p-2 border-b border-secondary-200 bg-surface/50 items-center">
@@ -43,6 +36,17 @@ function MenuBar({ editor, trans, articleTitle }) {
             <button type="button" onClick={() => editor.chain().focus().toggleUnderline().run()} className={`px-2 py-1 text-xs rounded ${editor.isActive('underline') ? 'bg-primary-900 text-white' : 'bg-white text-secondary-700 hover:bg-secondary-100'}`}>
                 <u>U</u>
             </button>
+            <button type="button" onClick={setLink} className={`px-2 py-1 text-xs rounded flex items-center gap-1 ${editor.isActive('link') ? 'bg-primary-900 text-white' : 'bg-white text-secondary-700 hover:bg-secondary-100'}`} title={trans('link') || 'إدراج / تعديل رابط'}>
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+                </svg>
+                <span>{trans('link') || 'رابط'}</span>
+            </button>
+            {editor.isActive('link') && (
+                <button type="button" onClick={() => editor.chain().focus().unsetLink().run()} className="px-2 py-1 text-xs rounded bg-red-50 text-red-600 hover:bg-red-100" title="إزالة الرابط">
+                    ✕
+                </button>
+            )}
             <span className="w-px bg-secondary-200 mx-1 h-4" />
             <button type="button" onClick={() => editor.chain().focus().toggleBulletList().run()} className={`px-2 py-1 text-xs rounded ${editor.isActive('bulletList') ? 'bg-primary-900 text-white' : 'bg-white text-secondary-700 hover:bg-secondary-100'}`}>
                 {trans('list')}
@@ -67,11 +71,6 @@ function MenuBar({ editor, trans, articleTitle }) {
             <button type="button" onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} className={`px-2 py-1 text-xs rounded ${editor.isActive('heading', { level: 3 }) ? 'bg-primary-900 text-white' : 'bg-white text-secondary-700 hover:bg-secondary-100'}`}>
                 H3
             </button>
-            <span className="w-px bg-secondary-200 mx-1 h-4" />
-            <label className="px-2 py-1 text-xs rounded bg-white text-secondary-700 hover:bg-secondary-100 cursor-pointer flex items-center gap-1 border border-secondary-200">
-                <span>🖼️ {trans('add_image') || 'إدراج صورة'}</span>
-                <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-            </label>
         </div>
     )
 }
@@ -99,6 +98,7 @@ export default function AdminArticlesForm({ article, categories }) {
         images: [],
         new_image_alts: {},
         new_image_positions: {},
+        new_image_links: {},
         deleted_image_ids: [],
         image_updates: {},
     })
@@ -118,7 +118,7 @@ export default function AdminArticlesForm({ article, categories }) {
         extensions: [
             StarterKit,
             Underline,
-            Image.configure({ inline: true }),
+            LinkExtension.configure({ openOnClick: false, HTMLAttributes: { target: '_blank', rel: 'noopener noreferrer' } }),
             TextAlign.configure({ types: ['heading', 'paragraph'] }),
         ],
         content: article?.content_ar || '',
@@ -132,7 +132,7 @@ export default function AdminArticlesForm({ article, categories }) {
         extensions: [
             StarterKit,
             Underline,
-            Image.configure({ inline: true }),
+            LinkExtension.configure({ openOnClick: false, HTMLAttributes: { target: '_blank', rel: 'noopener noreferrer' } }),
             TextAlign.configure({ types: ['heading', 'paragraph'] }),
         ],
         content: article?.content_en || '',
@@ -342,6 +342,7 @@ export default function AdminArticlesForm({ article, categories }) {
                                             </div>
                                         </div>
                                         <input type="text" placeholder={trans('alt_text')} value={data.image_updates[img.id]?.alt_text ?? (img.alt_text || '')} onChange={e => handleImageUpdate(img.id, 'alt_text', e.target.value)} className="w-full px-2 py-1 border border-secondary-200 rounded text-xs" />
+                                        <input type="url" placeholder={isRtl ? 'رابط الصورة (اختياري: https://...)' : 'Image Link URL (Optional)'} value={data.image_updates[img.id]?.link_url ?? (img.link_url || '')} onChange={e => handleImageUpdate(img.id, 'link_url', e.target.value)} className="w-full px-2 py-1 border border-secondary-200 rounded text-xs" />
                                         <select value={data.image_updates[img.id]?.position ?? (img.position || 'middle')} onChange={e => handleImageUpdate(img.id, 'position', e.target.value)} className="w-full px-2 py-1 border border-secondary-200 rounded text-xs bg-white">
                                             <option value="top">أول المقال</option>
                                             <option value="middle">وسط المقال</option>
@@ -380,6 +381,10 @@ export default function AdminArticlesForm({ article, categories }) {
                                             <input type="text" placeholder={trans('alt_text')} onChange={e => {
                                                 const alts = data.new_image_alts || {}
                                                 setData('new_image_alts', { ...alts, [fileIndex]: e.target.value })
+                                            }} className="w-full px-2 py-1 border border-secondary-200 rounded text-xs" />
+                                            <input type="url" placeholder={isRtl ? 'رابط الصورة (اختياري: https://...)' : 'Image Link URL (Optional)'} onChange={e => {
+                                                const links = data.new_image_links || {}
+                                                setData('new_image_links', { ...links, [fileIndex]: e.target.value })
                                             }} className="w-full px-2 py-1 border border-secondary-200 rounded text-xs" />
                                             <select onChange={e => {
                                                 const pos = data.new_image_positions || {}

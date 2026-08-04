@@ -6,6 +6,7 @@ use App\Domain\Listings\Models\PageSeo;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -53,7 +54,7 @@ class PageSeoController extends Controller
         ]);
 
         $pageSeo->update($validated);
-        \Illuminate\Support\Facades\Cache::forget('seo_pages_cache');
+        Cache::forget('seo_pages_cache');
 
         return redirect()->route('admin.seo-pages.index')
             ->with('success', __('SEO settings updated successfully.'));

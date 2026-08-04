@@ -25,14 +25,14 @@ class NewMessageNotification extends Notification
         $unitName = $this->message->unit?->name;
         $subject = $unitName
             ? "استفسار جديد عن عقار: {$unitName}"
-            : "استفسار جديد من عميل عبر فاميلي هوم";
+            : 'استفسار جديد من عميل عبر فاميلي هوم';
 
         return (new MailMessage)
             ->subject($subject)
             ->greeting("مرحباً {$notifiable->name}،")
             ->line("لقد استلمت رسالة جديدة من العميل: {$this->message->client_name}")
             ->line("رقم الهاتف: {$this->message->client_phone}")
-            ->line($unitName ? "العقار المستهدف: {$unitName}" : "")
+            ->line($unitName ? "العقار المستهدف: {$unitName}" : '')
             ->line("نص الرسالة: {$this->message->content}")
             ->action('عرض الرسائل في لوحة التحكم', url('/admin/messages'));
     }

@@ -1,6 +1,7 @@
 <?php
 
 use App\Domain\Common\QueryBuilders\ListingQueryBuilder;
+use App\Domain\Listings\DTOs\CreateArticleData;
 use App\Domain\Listings\Models\Area;
 use App\Domain\Listings\Models\Article;
 use App\Domain\Listings\Models\Category;
@@ -209,7 +210,7 @@ it('creates and updates articles through article service', function () {
     $category = Category::create(['name_ar' => 'عقارات', 'name_en' => 'Real Estate', 'slug' => 'real-estate']);
     $service = app(ArticleService::class);
 
-    $data = \App\Domain\Listings\DTOs\CreateArticleData::from([
+    $data = CreateArticleData::from([
         'category_id' => $category->id,
         'title_ar' => 'مقال جديد',
         'title_en' => 'New Article',
@@ -228,7 +229,7 @@ it('creates and updates articles through article service', function () {
         ->and($article->slug)->not->toBeEmpty()
         ->and($article->keywords)->toBe(['عقارات', 'شقق']);
 
-    $updateData = \App\Domain\Listings\DTOs\CreateArticleData::from([
+    $updateData = CreateArticleData::from([
         'category_id' => $category->id,
         'title_ar' => 'مقال معدل',
         'title_en' => 'Updated Article',

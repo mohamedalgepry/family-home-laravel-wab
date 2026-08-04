@@ -72,7 +72,7 @@ class ProfileService
             unset($data['password']);
         }
 
-        $userData    = Arr::only($data, ['name', 'email', 'password']);
+        $userData = Arr::only($data, ['name', 'email', 'password']);
         $profileData = Arr::only($data, ['phone', 'whatsapp', 'facebook', 'linkedin']);
 
         if ($avatar) {
@@ -88,7 +88,7 @@ class ProfileService
     private function storeAvatar(User $user, UploadedFile $avatar): string
     {
         $oldAvatar = $user->profile?->avatar;
-        $path      = $avatar->store('avatars', 'public');
+        $path = $avatar->store('avatars', 'public');
 
         if (! $path) {
             throw new \RuntimeException('Failed to store avatar.');

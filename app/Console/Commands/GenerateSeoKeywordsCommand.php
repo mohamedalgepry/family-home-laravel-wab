@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Cache;
 class GenerateSeoKeywordsCommand extends Command
 {
     protected $signature = 'seo:generate-keywords {--force : Overwrite existing custom keywords}';
+
     protected $description = 'Generate rich SEO keywords for pages, units, projects, and articles automatically';
 
     public function handle(): int
@@ -38,7 +39,7 @@ class GenerateSeoKeywordsCommand extends Command
                     'طرق السداد بالتقسيط بالجنيه', 'عقارات بدون مقدم مصر', 'شقق بالتقسيط المريح', 'عقارات الاستثمار في مصر',
                     'عقارات مميزة للبيع مصر', 'أفضل أسعار العقارات بالجنيه', 'حاسبة التمويل العقاري مصر', 'مستشار عقاري مجاني مصر',
                     'شقق للبيع بيت الوطن', 'شقق للبيع النرجس الجديدة', 'شقق للبيع اللوتس التجمع', 'شقق للبيع القرنفل التجمع',
-                    'فلل للبيع الثورة الخضراء', 'كمبوندات السلسلة الذهبية', 'شقق للبيع بالتقسيط على 10 سنوات', 'عقارات استلام فوري مصر'
+                    'فلل للبيع الثورة الخضراء', 'كمبوندات السلسلة الذهبية', 'شقق للبيع بالتقسيط على 10 سنوات', 'عقارات استلام فوري مصر',
                 ],
                 'en' => [
                     'family home real estate egypt', 'properties for sale in egypt', 'apartments for sale cairo', 'villas for sale egypt', 'real estate investment egypt',
@@ -47,8 +48,8 @@ class GenerateSeoKeywordsCommand extends Command
                     'penthouse for sale sheikh zayed', 'gated community compounds egypt', 'new cairo apartments', 'sheikh zayed villas', 'north coast chalets for sale',
                     'prime location properties egypt', 'family home properties', 'buy apartment egypt online', 'best property deals cairo',
                     'flexible payment plans egp', 'zero downpayment properties egypt', 'property valuation egypt', 'real estate broker cairo',
-                    'ready to move apartments cairo', 'long term installment properties cairo', 'beit el watan apartments for sale', 'narges new cairo properties'
-                ]
+                    'ready to move apartments cairo', 'long term installment properties cairo', 'beit el watan apartments for sale', 'narges new cairo properties',
+                ],
             ],
             'units_index' => [
                 'meta_title_ar' => 'دليل العقارات والوحدات السكنية والتجارية للبيع في مصر | فاميلي هوم',
@@ -62,14 +63,14 @@ class GenerateSeoKeywordsCommand extends Command
                     'وحدات سكنية للبيع مصر', 'وحدات تجارية للبيع مصر', 'وحدات إدارية للبيع مصر', 'وحدات طبية للبيع مصر', 'أسعار الشقق اليوم في مصر',
                     'ارخص شقق للبيع بمصر', 'شقق للبيع من المالك مباشرة مصر', 'وحدات عقارية بالتقسيط بدون فوائد بالجنيه', 'مشاريع سكنية حديثة بمصر',
                     'أسعار متر الشقق في التجمع', 'أسعار الشقق في الشيخ زايد', 'شقق نصف تشطيب للبيع مصر', 'شقق تشطيب كامل سوبر لوكس للبيع',
-                    'محلات للبيع العاصمة الإدارية', 'مكاتب للبيع بالتجمع الخامس', 'عيادات طبية للبيع الشيخ زايد', 'شقق أرضي بحديقة للبيع مصر'
+                    'محلات للبيع العاصمة الإدارية', 'مكاتب للبيع بالتجمع الخامس', 'عيادات طبية للبيع الشيخ زايد', 'شقق أرضي بحديقة للبيع مصر',
                 ],
                 'en' => [
                     'egypt properties directory', 'search apartments cairo', 'villas directory egypt', 'commercial units for sale cairo', 'office space for sale egp',
                     'medical clinics for sale egypt', 'retail shops for sale cairo', 'studio apartments for sale egypt', 'townhouse for sale new cairo', 'twin house for sale zayed',
                     'residential units egypt', 'properties by owner egypt', 'cheap apartments for sale cairo', 'luxury units for sale egypt', 'no interest payment plans egp',
-                    'fully finished apartments for sale cairo', 'core and shell properties egypt', 'ground floor apartments with garden cairo', 'cairo property price per meter'
-                ]
+                    'fully finished apartments for sale cairo', 'core and shell properties egypt', 'ground floor apartments with garden cairo', 'cairo property price per meter',
+                ],
             ],
             'projects_index' => [
                 'meta_title_ar' => 'دليل الكمبوندات والمشاريع العقارية الحديثة في مصر | فاميلي هوم',
@@ -81,14 +82,14 @@ class GenerateSeoKeywordsCommand extends Command
                     'مشاريع العاصمة الإدارية الجديدة', 'مشاريع الساحل الشمالي', 'مشاريع العين السخنة', 'مشاريع 6 أكتوبر',
                     'مولات تجارية جديدة بالقاهرة', 'أبراج إدارية العاصمة', 'مشاريع الشركات العقارية المصرية', 'مشاريع تسليم فوري بمصر', 'مشاريع تحت الإنشاء مصر',
                     'أفضل كمبوند سكني في مصر', 'مشاريع فاميلي هوم', 'أسعار الكمبوندات اليوم في مصر', 'استثمار في المشاريع العقارية بمصر',
-                    'دليل مطوري العقارات بمصر', 'كمبوندات المستقبل سيتي', 'كمبوندات الشروق', 'كمبوندات العبور', 'مشروعات رأس الحكمة الساحل الشمالي'
+                    'دليل مطوري العقارات بمصر', 'كمبوندات المستقبل سيتي', 'كمبوندات الشروق', 'كمبوندات العبور', 'مشروعات رأس الحكمة الساحل الشمالي',
                 ],
                 'en' => [
                     'real estate projects egypt', 'compound directory egypt', 'new residential compounds cairo', 'new cairo compounds', 'sheikh zayed compounds',
                     'new capital projects egypt', 'north coast projects', 'ain sokhna projects', 'october compounds egypt', 'commercial malls new capital',
                     'under construction projects egypt', 'ready to move compounds cairo', 'top compound developers egypt', 'family home projects',
-                    'mostakbal city compounds', 'ras el hekma north coast projects', 'top egyptian real estate developers'
-                ]
+                    'mostakbal city compounds', 'ras el hekma north coast projects', 'top egyptian real estate developers',
+                ],
             ],
             'deals' => [
                 'meta_title_ar' => 'أقوى الصفقات والعروض العقارية الحصرية في مصر | فاميلي هوم',
@@ -99,13 +100,13 @@ class GenerateSeoKeywordsCommand extends Command
                     'صفقات عقارية بمصر', 'عروض العقارات في مصر', 'تخفيضات الشقق والفلل بالقاهرة', 'عروض التقسيط المريح بالجنيه', 'عروض العقارات بدون مقدم مصر',
                     'صفقات شقق التجمع', 'صفقات الفلل والكمبوندات بمصر', 'فرص استثمارية عقارية بمصر', 'أقل سعر متر في مصر', 'شقق للبيع بسعر اللقطة بالقاهرة',
                     'عقارات للبيع بسعر الكاش مصر', 'خصومات السداد النقدي بالجنيه', 'صفقات فاميلي هوم الحصرية بمصر',
-                    'خصومات الرواد العقارية', 'خصومات الحجز المبكر للكمبوندات', 'شقق للبيع بسعر الافتتاح مصر'
+                    'خصومات الرواد العقارية', 'خصومات الحجز المبكر للكمبوندات', 'شقق للبيع بسعر الافتتاح مصر',
                 ],
                 'en' => [
                     'exclusive property deals egypt', 'discounted apartments cairo', 'hot real estate offers egypt', 'zero downpayment deals egp', 'cash discount properties cairo',
                     'below market price properties egypt', 'best investment deals cairo', 'family home hot deals egypt', 'limited time property offers cairo',
-                    'early bird discount properties egypt', 'launch prices real estate cairo'
-                ]
+                    'early bird discount properties egypt', 'launch prices real estate cairo',
+                ],
             ],
             'articles_index' => [
                 'meta_title_ar' => 'مدونة العقارات والاستثمار في مصر | نصائح وأخبار السوق | فاميلي هوم',
@@ -116,13 +117,13 @@ class GenerateSeoKeywordsCommand extends Command
                     'أخبار العقارات في مصر', 'مقالات استثمار عقاري مصر', 'دليل الشراء العقاري في مصر', 'نصائح شراء شقة بالقاهرة', 'أفضل مناطق الاستثمار العقاري بمصر',
                     'مستقبل العقارات في مصر', 'كيف تختار بيتك الأول بمصر', 'قوانين التمويل العقاري المصري', 'تحليل أسعار العقارات بالجنيه',
                     'مدونة فاميلي هوم مصر', 'أخبار التجمع والعاصمة الإدارية', 'مقارنات الكمبوندات العقارية بمصر',
-                    'نصائح التشطيب والديكور بمصر', 'كيف تحسب عائد الاستثمار العقاري', 'دليل الاستثمار في المحلات والمكاتب'
+                    'نصائح التشطيب والديكور بمصر', 'كيف تحسب عائد الاستثمار العقاري', 'دليل الاستثمار في المحلات والمكاتب',
                 ],
                 'en' => [
                     'egypt real estate news', 'property investment blog cairo', 'buying guide egypt', 'real estate market analysis cairo', 'first time home buyer tips egypt',
                     'cairo real estate trends', 'new capital news egypt', 'family home blog',
-                    'roi real estate calculation egypt', 'commercial property investment tips cairo'
-                ]
+                    'roi real estate calculation egypt', 'commercial property investment tips cairo',
+                ],
             ],
             'about' => [
                 'meta_title_ar' => 'عن شركة فاميلي هوم العقارية في مصر | الرؤية والخبرة',
@@ -130,7 +131,7 @@ class GenerateSeoKeywordsCommand extends Command
                 'meta_description_ar' => 'تعرف على شركة فاميلي هوم العقارية في مصر، رؤيتنا في تقديم أفضل الحلول والخدمات الاستشارية والتسويقية للعملاء في سوق العقارات المصري.',
                 'meta_description_en' => 'Learn more about Family Home Real Estate Egypt, our expertise, values, and commitment to providing top-tier real estate advisory services in Cairo.',
                 'ar' => ['عن فاميلي هوم بمصر', 'شركة فاميلي هوم العقارية بمصر', 'رؤية فاميلي هوم مصر', 'خدمات التسويق العقاري بمصر', 'خبراء العقارات بمصر', 'قصة نجاح فاميلي هوم', 'فريق الاستشارات العقارية مصر'],
-                'en' => ['about family home egypt', 'family home real estate company egypt', 'real estate advisory cairo', 'our real estate experts egypt', 'family home mission and vision']
+                'en' => ['about family home egypt', 'family home real estate company egypt', 'real estate advisory cairo', 'our real estate experts egypt', 'family home mission and vision'],
             ],
             'contact' => [
                 'meta_title_ar' => 'تواصل مع فاميلي هوم العقارية في مصر | خدمة العملاء وحجز المعاينات',
@@ -138,7 +139,7 @@ class GenerateSeoKeywordsCommand extends Command
                 'meta_description_ar' => 'تواصل مع مستشارينا العقاريين في فاميلي هوم مصر للاستفسار عن أي وحدة أو مشروع عقاري بالقاهرة والمحافظات أو لحجز معاينة موقعية.',
                 'meta_description_en' => 'Get in touch with Family Home real estate consultants in Egypt for inquiries, property viewings, and personalized assistance.',
                 'ar' => ['تواصل مع فاميلي هوم مصر', 'رقم هاتف فاميلي هوم', 'فرع الشركة العقارية بالقاهرة', 'خدمة العملاء العقارية مصر', 'حجز معاينة عقارية بالقاهرة', 'عنوان شركة فاميلي هوم العقارية'],
-                'en' => ['contact family home egypt', 'family home phone number cairo', 'real estate customer service egypt', 'book property viewing cairo', 'family home office address cairo']
+                'en' => ['contact family home egypt', 'family home phone number cairo', 'real estate customer service egypt', 'book property viewing cairo', 'family home office address cairo'],
             ],
         ];
 
@@ -179,7 +180,7 @@ class GenerateSeoKeywordsCommand extends Command
         $unitCount = 0;
         Unit::with(['type', 'area'])->chunk(200, function ($units) use (&$unitCount, $force) {
             foreach ($units as $unit) {
-                if (!$force && !empty($unit->keywords_ar) && count($unit->keywords_ar) > 10) {
+                if (! $force && ! empty($unit->keywords_ar) && count($unit->keywords_ar) > 10) {
                     continue;
                 }
 
@@ -226,7 +227,7 @@ class GenerateSeoKeywordsCommand extends Command
         $projectCount = 0;
         Project::with('area')->chunk(200, function ($projects) use (&$projectCount, $force) {
             foreach ($projects as $project) {
-                if (!$force && !empty($project->keywords_ar) && count($project->keywords_ar) > 10) {
+                if (! $force && ! empty($project->keywords_ar) && count($project->keywords_ar) > 10) {
                     continue;
                 }
 
@@ -270,7 +271,7 @@ class GenerateSeoKeywordsCommand extends Command
         try {
             Article::chunk(200, function ($articles) use (&$articleCount, $force) {
                 foreach ($articles as $article) {
-                    if (!$force && !empty($article->keywords_ar) && count($article->keywords_ar) > 5) {
+                    if (! $force && ! empty($article->keywords_ar) && count($article->keywords_ar) > 5) {
                         continue;
                     }
 
@@ -279,17 +280,17 @@ class GenerateSeoKeywordsCommand extends Command
 
                     $autoKwAr = [
                         $titleAr,
-                        "أخبار العقارات",
-                        "استثمار عقاري",
-                        "نصائح عقارية",
-                        "فاميلي هوم مقالات",
+                        'أخبار العقارات',
+                        'استثمار عقاري',
+                        'نصائح عقارية',
+                        'فاميلي هوم مقالات',
                     ];
 
                     $autoKwEn = [
                         $titleEn,
-                        "real estate news",
-                        "property investment",
-                        "family home article",
+                        'real estate news',
+                        'property investment',
+                        'family home article',
                     ];
 
                     if (\Schema::hasColumn('articles', 'keywords_ar')) {
@@ -304,12 +305,18 @@ class GenerateSeoKeywordsCommand extends Command
                 }
             });
             $this->info("Generated rich keywords for {$articleCount} Articles.");
-        } catch (\Throwable $e) {}
+        } catch (\Throwable $e) {
+            $this->warn('Article SEO keyword generation encountered an error: '.$e->getMessage());
+            \Log::warning('GenerateSeoKeywordsCommand: article keyword pass failed', [
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         // Flush inertia / pageSeo cache if present
         Cache::forget('page_seo');
 
         $this->info('Successfully completed SEO keywords generation!');
+
         return Command::SUCCESS;
     }
 }

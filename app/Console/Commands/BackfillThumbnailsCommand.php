@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Storage;
 class BackfillThumbnailsCommand extends Command
 {
     protected $signature = 'images:backfill-thumbnails';
+
     protected $description = 'Generate missing 300px thumbnails for all existing unit, project, and article images';
 
     public function handle(): int
@@ -30,8 +31,8 @@ class BackfillThumbnailsCommand extends Command
             }
         });
 
-        if (!empty($unitMissing)) {
-            $this->info('Generating ' . count($unitMissing) . ' unit thumbnails...');
+        if (! empty($unitMissing)) {
+            $this->info('Generating '.count($unitMissing).' unit thumbnails...');
             foreach (array_chunk($unitMissing, 10) as $chunk) {
                 dispatch_sync(new GenerateThumbnailsJob('UnitImage', 0, $chunk));
                 $generatedCount += count($chunk);
@@ -48,8 +49,8 @@ class BackfillThumbnailsCommand extends Command
             }
         });
 
-        if (!empty($projectMissing)) {
-            $this->info('Generating ' . count($projectMissing) . ' project thumbnails...');
+        if (! empty($projectMissing)) {
+            $this->info('Generating '.count($projectMissing).' project thumbnails...');
             foreach (array_chunk($projectMissing, 10) as $chunk) {
                 dispatch_sync(new GenerateThumbnailsJob('ProjectImage', 0, $chunk));
                 $generatedCount += count($chunk);
@@ -66,8 +67,8 @@ class BackfillThumbnailsCommand extends Command
             }
         });
 
-        if (!empty($articleMissing)) {
-            $this->info('Generating ' . count($articleMissing) . ' article thumbnails...');
+        if (! empty($articleMissing)) {
+            $this->info('Generating '.count($articleMissing).' article thumbnails...');
             foreach (array_chunk($articleMissing, 10) as $chunk) {
                 dispatch_sync(new GenerateThumbnailsJob('ArticleImage', 0, $chunk));
                 $generatedCount += count($chunk);
@@ -75,12 +76,13 @@ class BackfillThumbnailsCommand extends Command
         }
 
         $this->info("Completed! Backfilled {$generatedCount} missing thumbnails.");
+
         return Command::SUCCESS;
     }
 
     private function shouldGenerate($disk, ?string $path): bool
     {
-        if (!$path) {
+        if (! $path) {
             return false;
         }
 
@@ -88,15 +90,15 @@ class BackfillThumbnailsCommand extends Command
             return false;
         }
 
-        if (!$disk->exists($path)) {
+        if (! $disk->exists($path)) {
             return false;
         }
 
         $dir = dirname($path);
         $filename = basename($path);
         $filenameNoExt = pathinfo($filename, PATHINFO_FILENAME);
-        $thumbPath = ($dir !== '.' ? $dir . '/' : '') . 'thumb_' . $filenameNoExt . '.webp';
+        $thumbPath = ($dir !== '.' ? $dir.'/' : '').'thumb_'.$filenameNoExt.'.webp';
 
-        return !$disk->exists($thumbPath);
+        return ! $disk->exists($thumbPath);
     }
 }

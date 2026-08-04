@@ -35,11 +35,14 @@ class UpdateArticleRequest extends FormRequest
             'new_image_alts.*' => 'nullable|string|max:500',
             'new_image_positions' => 'nullable|array',
             'new_image_positions.*' => 'nullable|in:top,middle,bottom',
+            'new_image_links' => 'nullable|array',
+            'new_image_links.*' => 'nullable|string|max:2048',
             'deleted_image_ids' => 'nullable|array',
             'deleted_image_ids.*' => 'integer|exists:article_images,id',
             'image_updates' => 'nullable|array',
             'image_updates.*.alt_text' => 'nullable|string|max:500',
             'image_updates.*.position' => 'nullable|in:top,middle,bottom',
+            'image_updates.*.link_url' => 'nullable|string|max:2048',
         ];
     }
 }

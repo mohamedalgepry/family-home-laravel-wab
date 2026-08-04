@@ -5,6 +5,7 @@ namespace App\Domain\Common\Services;
 use App\Domain\Listings\Models\Article;
 use App\Domain\Listings\Models\Project;
 use App\Domain\Listings\Models\Unit;
+use App\Services\SeoService;
 
 class SeoMetaService
 {
@@ -32,7 +33,8 @@ class SeoMetaService
 
     public function forPage(string $pageKey, array $customMeta = []): array
     {
-        $seoService = app(\App\Services\SeoService::class);
+        $seoService = app(SeoService::class);
+
         return $seoService->forPage($pageKey, $customMeta);
     }
 

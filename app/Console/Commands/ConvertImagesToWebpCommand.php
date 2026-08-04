@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Storage;
 class ConvertImagesToWebpCommand extends Command
 {
     protected $signature = 'images:convert-all-webp';
+
     protected $description = 'Convert all existing PNG/JPG images (units, projects, articles, avatars) to WebP and update database paths';
 
     public function handle(): int
@@ -62,6 +63,7 @@ class ConvertImagesToWebpCommand extends Command
         Cache::flush();
 
         $this->info("Success! Converted {$convertedCount} images to compressed WebP and updated database paths.");
+
         return Command::SUCCESS;
     }
 
@@ -137,9 +139,11 @@ class ConvertImagesToWebpCommand extends Command
             }
 
             Log::info("ConvertImagesToWebpCommand: converted {$path} -> {$webpRelativePath}");
+
             return true;
         } catch (\Throwable $e) {
             Log::warning("ConvertImagesToWebpCommand failed for {$path}: ".$e->getMessage());
+
             return false;
         }
     }

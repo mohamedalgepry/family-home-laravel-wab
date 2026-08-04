@@ -1,6 +1,9 @@
 <?php
 
+use App\Domain\Listings\DTOs\CreateUnitData;
 use App\Domain\Listings\Models\Area;
+use App\Domain\Listings\Models\Article;
+use App\Domain\Listings\Models\Category;
 use App\Domain\Listings\Models\Unit;
 use App\Domain\Listings\Models\UnitType;
 use App\Domain\Listings\Services\ListingImageService;
@@ -76,8 +79,8 @@ it('does not override an existing primary image', function () {
 });
 
 it('supports per-index attributes through a callable', function () {
-    $article = App\Domain\Listings\Models\Article::create([
-        'category_id' => App\Domain\Listings\Models\Category::create(['name_ar' => 'أخبار', 'name_en' => 'News', 'slug' => 'news'])->id,
+    $article = Article::create([
+        'category_id' => Category::create(['name_ar' => 'أخبار', 'name_en' => 'News', 'slug' => 'news'])->id,
         'title' => 'Article',
         'title_ar' => 'مقال',
         'title_en' => 'Article',
@@ -121,7 +124,7 @@ it('persists and deletes images through the unit service flow', function () {
 
     $service = app(UnitService::class);
     $service->createUnit(
-        data: \App\Domain\Listings\DTOs\CreateUnitData::from([
+        data: CreateUnitData::from([
             'name_en' => 'New Unit',
             'type_id' => $this->unit->type_id,
             'area_id' => $this->unit->area_id,

@@ -34,6 +34,8 @@ class StoreArticleRequest extends FormRequest
             'new_image_alts.*' => 'nullable|string|max:500',
             'new_image_positions' => 'nullable|array',
             'new_image_positions.*' => 'nullable|in:top,middle,bottom',
+            'new_image_links' => 'nullable|array',
+            'new_image_links.*' => 'nullable|string|max:2048',
         ];
     }
 }

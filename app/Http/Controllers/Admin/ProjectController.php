@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Domain\Listings\DTOs\CreateProjectData;
 use App\Domain\Listings\Actions\StoreUploadedImagesAction;
+use App\Domain\Listings\DTOs\CreateProjectData;
 use App\Domain\Listings\Jobs\NotifyNewProjectJob;
 use App\Domain\Listings\Models\Area;
 use App\Domain\Listings\Models\Feature;
@@ -81,13 +81,13 @@ class ProjectController extends Controller
     public function store(StoreProjectRequest $request): RedirectResponse
     {
         $this->authorize('create', Project::class);
-        
+
         $validated = $request->validated();
         $userId = auth()->id();
         if ($request->user()->isAdmin()) {
-            if (!empty($validated['user_id'])) {
+            if (! empty($validated['user_id'])) {
                 $userId = (int) $validated['user_id'];
-            } elseif (!empty($validated['manager_id'])) {
+            } elseif (! empty($validated['manager_id'])) {
                 $userId = (int) $validated['manager_id'];
             }
         }
@@ -116,7 +116,7 @@ class ProjectController extends Controller
         if (! $request->user()->isAdmin()) {
             unset($validated['user_id'], $validated['manager_id']);
         } else {
-            if (empty($validated['user_id']) && !empty($validated['manager_id'])) {
+            if (empty($validated['user_id']) && ! empty($validated['manager_id'])) {
                 $validated['user_id'] = $validated['manager_id'];
             }
         }
@@ -132,7 +132,7 @@ class ProjectController extends Controller
             imageOrder: $request->input('image_order', []),
         );
 
-        if ($request->user()->isAdmin() && !empty($validated['user_id'])) {
+        if ($request->user()->isAdmin() && ! empty($validated['user_id'])) {
             $updatedProject->user_id = (int) $validated['user_id'];
             $updatedProject->save();
         }

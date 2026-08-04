@@ -57,7 +57,7 @@ class PointsService
     {
         $performedBy = $performedBy ?? request()?->user();
 
-        return DB::transaction(function () use ($performedBy) {
+        return DB::transaction(function () {
             $updated = User::managers()
                 ->update(['points_balance' => DB::raw('initial_monthly_balance')]);
 

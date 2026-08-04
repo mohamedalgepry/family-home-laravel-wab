@@ -70,7 +70,7 @@ class Sanitizer
     {
         $tag = strtolower($element->tagName);
         $allowed = match ($tag) {
-            'a' => ['href', 'title', 'class'],
+            'a' => ['href', 'title', 'class', 'target', 'rel'],
             'img' => ['src', 'alt', 'title', 'width', 'height', 'class'],
             default => ['class'],
         };

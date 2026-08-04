@@ -6,26 +6,28 @@ use App\Domain\Listings\Models\Article;
 use App\Domain\Listings\Models\Project;
 use App\Domain\Listings\Models\Unit;
 use Illuminate\Console\Command;
+use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class ExportPrerenderData extends Command
 {
     protected $signature = 'prerender:data';
+
     protected $description = 'Export all public page route HTML templates and Inertia page objects for static prerendering';
 
     public function handle(): int
     {
         $urls = $this->collectUrls();
         $results = [];
-        $kernel = app(\Illuminate\Contracts\Http\Kernel::class);
+        $kernel = app(Kernel::class);
 
         foreach ($urls as $item) {
             $url = $item['url'];
             $outputPath = $item['output'];
 
             try {
-                $request = Request::create('http://localhost' . $url, 'GET');
+                $request = Request::create('http://localhost'.$url, 'GET');
                 $response = $kernel->handle($request);
                 $html = $response->getContent();
                 $kernel->terminate($request, $response);
@@ -49,13 +51,14 @@ class ExportPrerenderData extends Command
                     }
                 }
             } catch (\Throwable $e) {
-                Log::warning("ExportPrerenderData failed for URL {$url}: " . $e->getMessage());
+                Log::warning("ExportPrerenderData failed for URL {$url}: ".$e->getMessage());
             }
         }
 
         $filePath = storage_path('app/prerender_pages.json');
         file_put_contents($filePath, json_encode($results, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE));
-        $this->info("Exported " . count($results) . " page templates to {$filePath}");
+        $this->info('Exported '.count($results)." page templates to {$filePath}");
+
         return Command::SUCCESS;
     }
 

@@ -14,6 +14,7 @@ class Area extends Model
     public function getNameAttribute(): string
     {
         $locale = app()->getLocale();
+
         return $locale === 'ar' ? ($this->name_ar ?? $this->name_en ?? '') : ($this->name_en ?? $this->name_ar ?? '');
     }
 

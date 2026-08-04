@@ -59,6 +59,7 @@ class DetectBot
 
         if (empty($path) || $path === 'ar' || $path === 'en') {
             $locale = empty($path) ? 'ar' : $path;
+
             return "{$baseDir}/{$locale}/index.html";
         }
 

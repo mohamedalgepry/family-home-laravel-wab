@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Domain\Common\QueryBuilders\UserScopeQueryBuilder;
-use App\Domain\Listings\DTOs\CreateUnitData;
 use App\Domain\Listings\Actions\StoreUploadedImagesAction;
+use App\Domain\Listings\DTOs\CreateUnitData;
 use App\Domain\Listings\Models\Area;
 use App\Domain\Listings\Models\Feature;
 use App\Domain\Listings\Models\FinishingType;
@@ -20,6 +20,7 @@ use App\Http\Requests\Admin\AdjustPointsRequest;
 use App\Http\Requests\Admin\StoreUnitRequest;
 use App\Http\Requests\Admin\UpdateUnitRequest;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -91,10 +92,10 @@ class UnitController extends Controller
     public function store(StoreUnitRequest $request): RedirectResponse
     {
         $this->authorize('create', Unit::class);
-        
+
         $validated = $request->validated();
         $targetUser = $request->user();
-        if ($request->user()->isAdmin() && !empty($validated['user_id'])) {
+        if ($request->user()->isAdmin() && ! empty($validated['user_id'])) {
             $targetUser = User::find($validated['user_id']) ?? $request->user();
         }
         $validated['user_id'] = $targetUser->id;
@@ -135,7 +136,7 @@ class UnitController extends Controller
             primaryImageIndex: $primaryImageIndex,
         );
 
-        if ($request->user()->isAdmin() && !empty($validated['user_id'])) {
+        if ($request->user()->isAdmin() && ! empty($validated['user_id'])) {
             $updatedUnit->user_id = (int) $validated['user_id'];
             $updatedUnit->save();
         }
@@ -194,7 +195,7 @@ class UnitController extends Controller
             ->with('success', __('admin.deal_success'));
     }
 
-    public function toggleActive(Unit $unit, \Illuminate\Http\Request $request): RedirectResponse
+    public function toggleActive(Unit $unit, Request $request): RedirectResponse
     {
         $this->authorize('toggleActive', $unit);
 

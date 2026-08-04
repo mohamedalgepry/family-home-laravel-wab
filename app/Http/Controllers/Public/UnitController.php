@@ -7,6 +7,7 @@ use App\Domain\Listings\Models\Unit;
 use App\Domain\Listings\Services\ListingLookupService;
 use App\Domain\Listings\Services\ListingService;
 use App\Domain\Listings\Services\PageViewService;
+use App\Services\SeoService;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -118,6 +119,7 @@ class UnitController
         }
 
         $pageKey = $isDeals ? 'deals' : 'units_index';
-        return app(\App\Services\SeoService::class)->forPage($pageKey, $customMeta);
+
+        return app(SeoService::class)->forPage($pageKey, $customMeta);
     }
 }

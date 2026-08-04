@@ -247,6 +247,7 @@ class SeoService
     public function getWebsiteSchema(): array
     {
         $locale = app()->getLocale();
+
         return [
             '@context' => 'https://schema.org',
             '@type' => 'WebSite',

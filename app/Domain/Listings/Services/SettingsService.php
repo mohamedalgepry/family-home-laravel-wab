@@ -61,9 +61,9 @@ class SettingsService
     {
         return [
             'daily_deduction_enabled' => $this->getBool('daily_deduction_enabled'),
-            'daily_deduction_value'   => (int) $this->get('daily_deduction_value', '10'),
-            'monthly_reset_day'       => (int) $this->get('monthly_reset_day', '1'),
-            'monthly_reset_auto'      => $this->getBool('monthly_reset_auto'),
+            'daily_deduction_value' => (int) $this->get('daily_deduction_value', '10'),
+            'monthly_reset_day' => (int) $this->get('monthly_reset_day', '1'),
+            'monthly_reset_auto' => $this->getBool('monthly_reset_auto'),
         ];
     }
 

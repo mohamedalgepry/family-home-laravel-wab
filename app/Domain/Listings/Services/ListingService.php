@@ -73,22 +73,8 @@ class ListingService
     private function applyUnitFilters($query, array $filters): void
     {
         ListingQueryBuilder::applyExactMatches($query, $filters, ['area_id', 'type_id', 'transaction', 'payment_method', 'finishing_type_id']);
-
-        if (! empty($filters['price_min'])) {
-            $query->where('price', '>=', $filters['price_min']);
-        }
-
-        if (! empty($filters['price_max'])) {
-            $query->where('price', '<=', $filters['price_max']);
-        }
-
-        if (! empty($filters['size_min'])) {
-            $query->where('size', '>=', $filters['size_min']);
-        }
-
-        if (! empty($filters['size_max'])) {
-            $query->where('size', '<=', $filters['size_max']);
-        }
+        ListingQueryBuilder::applyRange($query, $filters, 'price', 'price_min', 'price_max');
+        ListingQueryBuilder::applyRange($query, $filters, 'size', 'size_min', 'size_max');
 
         if (! empty($filters['is_deal'])) {
             $query->where('is_deal', true);

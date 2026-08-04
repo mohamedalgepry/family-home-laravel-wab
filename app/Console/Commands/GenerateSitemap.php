@@ -12,14 +12,15 @@ use Illuminate\Support\Facades\Log;
 class GenerateSitemap extends Command
 {
     protected $signature = 'sitemap:generate';
+
     protected $description = 'Generate public/sitemap.xml with updated listing and project URLs';
 
     public function handle(): int
     {
         $baseUrl = rtrim(config('app.url', 'https://familyhome-co.com'), '/');
 
-        $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
-        $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">' . "\n";
+        $xml = '<?xml version="1.0" encoding="UTF-8"?>'."\n";
+        $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">'."\n";
 
         $xml .= $this->urlEntry($baseUrl, '/', now(), '1.0', 'daily');
         $xml .= $this->urlEntry($baseUrl, '/units', now(), '0.8', 'hourly');
@@ -86,17 +87,17 @@ class GenerateSitemap extends Command
         try {
             Category::whereHas('articles', fn ($query) => $query->where('is_published', true))
                 ->chunk(500, function ($categories) use ($baseUrl, &$xml) {
-                foreach ($categories as $category) {
-                    $arSlug = $category->slug_ar ?? $category->slug;
-                    $enSlug = $category->slug_en ?? $category->slug;
-                    $xml .= $this->urlEntry(
-                        $baseUrl,
-                        ['ar' => "/articles?category={$arSlug}", 'en' => "/articles?category={$enSlug}"],
-                        $category->updated_at,
-                        '0.5',
-                        'weekly'
-                    );
-                }
+                    foreach ($categories as $category) {
+                        $arSlug = $category->slug_ar ?? $category->slug;
+                        $enSlug = $category->slug_en ?? $category->slug;
+                        $xml .= $this->urlEntry(
+                            $baseUrl,
+                            ['ar' => "/articles?category={$arSlug}", 'en' => "/articles?category={$enSlug}"],
+                            $category->updated_at,
+                            '0.5',
+                            'weekly'
+                        );
+                    }
                 });
         } catch (\Throwable $e) {
             Log::error('GenerateSitemap categories section failed', ['error' => $e->getMessage()]);
@@ -107,6 +108,7 @@ class GenerateSitemap extends Command
         file_put_contents(public_path('sitemap.xml'), $xml);
 
         $this->info('public/sitemap.xml generated successfully!');
+
         return Command::SUCCESS;
     }
 
@@ -120,28 +122,29 @@ class GenerateSitemap extends Command
             $pathEn = ltrim($path, '/');
         }
 
-        $urlAr = $baseUrl . '/ar' . ($pathAr ? '/' . $pathAr : '');
-        $urlEn = $baseUrl . '/en' . ($pathEn ? '/' . $pathEn : '');
+        $urlAr = $baseUrl.'/ar'.($pathAr ? '/'.$pathAr : '');
+        $urlEn = $baseUrl.'/en'.($pathEn ? '/'.$pathEn : '');
 
         $entry = '';
         foreach (['ar' => $urlAr, 'en' => $urlEn] as $lang => $url) {
             $entry .= "  <url>\n";
-            $entry .= '    <loc>' . htmlspecialchars($url, ENT_XML1, 'UTF-8') . "</loc>\n";
-            $entry .= '    <xhtml:link rel="alternate" hreflang="ar" href="' . htmlspecialchars($urlAr, ENT_XML1, 'UTF-8') . "\" />\n";
-            $entry .= '    <xhtml:link rel="alternate" hreflang="en" href="' . htmlspecialchars($urlEn, ENT_XML1, 'UTF-8') . "\" />\n";
-            $entry .= '    <xhtml:link rel="alternate" hreflang="x-default" href="' . htmlspecialchars($urlAr, ENT_XML1, 'UTF-8') . "\" />\n";
+            $entry .= '    <loc>'.htmlspecialchars($url, ENT_XML1, 'UTF-8')."</loc>\n";
+            $entry .= '    <xhtml:link rel="alternate" hreflang="ar" href="'.htmlspecialchars($urlAr, ENT_XML1, 'UTF-8')."\" />\n";
+            $entry .= '    <xhtml:link rel="alternate" hreflang="en" href="'.htmlspecialchars($urlEn, ENT_XML1, 'UTF-8')."\" />\n";
+            $entry .= '    <xhtml:link rel="alternate" hreflang="x-default" href="'.htmlspecialchars($urlAr, ENT_XML1, 'UTF-8')."\" />\n";
 
             if ($lastmod) {
                 $dateStr = is_object($lastmod) ? $lastmod->toW3cString() : date('c', strtotime($lastmod));
-                $entry .= '    <lastmod>' . $dateStr . "</lastmod>\n";
+                $entry .= '    <lastmod>'.$dateStr."</lastmod>\n";
             } else {
-                $entry .= '    <lastmod>' . date('c') . "</lastmod>\n";
+                $entry .= '    <lastmod>'.date('c')."</lastmod>\n";
             }
 
             $entry .= "    <changefreq>{$changefreq}</changefreq>\n";
             $entry .= "    <priority>{$priority}</priority>\n";
             $entry .= "  </url>\n";
         }
+
         return $entry;
     }
 }

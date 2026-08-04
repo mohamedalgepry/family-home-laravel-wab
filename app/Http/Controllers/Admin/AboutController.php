@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domain\Common\Support\Sanitizer;
 use App\Domain\Listings\Actions\StoreUploadedImagesAction;
 use App\Domain\Listings\DTOs\UpdateAboutPageData;
 use App\Domain\Listings\Models\AboutPage;
 use App\Domain\Listings\Services\AboutService;
-use App\Domain\Common\Support\Sanitizer;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdateAboutPageRequest;
 use Illuminate\Http\RedirectResponse;
