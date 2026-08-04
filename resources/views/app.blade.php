@@ -14,9 +14,11 @@
         $heroMobileUrl = $heroImageMobileSetting ? asset('storage/' . $heroImageMobileSetting) : ($heroImageSetting ? asset('storage/' . $heroImageSetting) : asset('images/hero-mobile.webp'));
     @endphp
 
-    <!-- Preload LCP Hero Image for Mobile & Desktop -->
+    @if(request()->routeIs('home') || request()->is('/') || request()->is('ar') || request()->is('en'))
+    <!-- Preload LCP Hero Image for Mobile & Desktop (Home Page Only) -->
     <link rel="preload" as="image" href="{{ $heroMobileUrl }}" type="image/webp" media="(max-width: 640px)" fetchpriority="high">
     <link rel="preload" as="image" href="{{ $heroDesktopUrl }}" type="image/webp" media="(min-width: 641px)" fetchpriority="high">
+    @endif
 
     <!-- Cairo Font (Optimized & Non-blocking) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
