@@ -14309,7 +14309,7 @@ function SearchBar({ areas = [], unitTypes = [], features = [], finishingTypes =
 							children: [/* @__PURE__ */ jsx("option", {
 								value: "",
 								children: locale === "ar" ? "كل المناطق" : "All Areas"
-							}), areas.map((area) => /* @__PURE__ */ jsx("option", {
+							}), areas?.map((area) => /* @__PURE__ */ jsx("option", {
 								value: area.id,
 								children: locale === "ar" ? area.name_ar : area.name_en
 							}, area.id))]
@@ -14329,7 +14329,7 @@ function SearchBar({ areas = [], unitTypes = [], features = [], finishingTypes =
 							children: [/* @__PURE__ */ jsx("option", {
 								value: "",
 								children: locale === "ar" ? "كل الأنواع" : "All Types"
-							}), unitTypes.map((ut) => /* @__PURE__ */ jsx("option", {
+							}), unitTypes?.map((ut) => /* @__PURE__ */ jsx("option", {
 								value: ut.id,
 								children: locale === "ar" ? ut.name_ar : ut.name_en
 							}, ut.id))]
@@ -14589,6 +14589,8 @@ function Home({ featuredUnits, latestUnits, popularSearches, areas, unitTypes, f
 	const isLoading = !featuredUnits && !latestUnits;
 	const hasFeatured = featuredUnits?.data?.length > 0;
 	const hasLatest = latestUnits?.data?.length > 0;
+	const firstFeaturedImg = featuredUnits?.data?.[0]?.images?.[0];
+	const homeOgImage = firstFeaturedImg?.url || (firstFeaturedImg?.path ? `/storage/${firstFeaturedImg.path}` : null);
 	return /* @__PURE__ */ jsxs("div", {
 		dir: isRtl ? "rtl" : "ltr",
 		className: "min-h-screen bg-surface flex flex-col",
@@ -14596,7 +14598,7 @@ function Home({ featuredUnits, latestUnits, popularSearches, areas, unitTypes, f
 			/* @__PURE__ */ jsx(SeoHead, {
 				title: trans("site_title"),
 				description: trans("home_description"),
-				ogImage: featuredUnits?.data?.[0]?.images?.[0]?.url || (featuredUnits?.data?.[0]?.images?.[0]?.path ? `/storage/${featuredUnits.data[0].images[0].path}` : null),
+				ogImage: homeOgImage,
 				canonical: typeof window !== "undefined" ? window.location.href : null
 			}),
 			/* @__PURE__ */ jsx(Header, {}),

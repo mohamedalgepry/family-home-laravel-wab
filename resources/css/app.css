@@ -372,6 +372,10 @@
         outline: none;
     }
 
+    a:active, button:active, [role="button"]:active {
+        color: var(--color-primary-900) !important;
+    }
+
     @media (hover: hover) and (pointer: fine) {
         *:focus-visible {
             outline: 2px solid var(--color-primary-900);

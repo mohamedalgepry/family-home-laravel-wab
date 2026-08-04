@@ -129,7 +129,7 @@ export default function SearchBar({ areas = [], unitTypes = [], features = [], f
                             className="w-full text-secondary-800 outline-none cursor-pointer"
                         >
                             <option value="">{locale === 'ar' ? 'كل المناطق' : 'All Areas'}</option>
-                            {areas.map(area => (
+                            {areas?.map(area => (
                                 <option key={area.id} value={area.id}>
                                     {locale === 'ar' ? area.name_ar : area.name_en}
                                 </option>
@@ -149,7 +149,7 @@ export default function SearchBar({ areas = [], unitTypes = [], features = [], f
                             className="w-full text-secondary-800 outline-none cursor-pointer"
                         >
                             <option value="">{locale === 'ar' ? 'كل الأنواع' : 'All Types'}</option>
-                            {unitTypes.map(ut => (
+                            {unitTypes?.map(ut => (
                                 <option key={ut.id} value={ut.id}>
                                     {locale === 'ar' ? ut.name_ar : ut.name_en}
                                 </option>

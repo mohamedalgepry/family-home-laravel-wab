@@ -25,12 +25,15 @@ export default function Home({ featuredUnits, latestUnits, popularSearches, area
     const hasFeatured = featuredUnits?.data?.length > 0
     const hasLatest = latestUnits?.data?.length > 0
 
+    const firstFeaturedImg = featuredUnits?.data?.[0]?.images?.[0]
+    const homeOgImage = firstFeaturedImg?.url || (firstFeaturedImg?.path ? `/storage/${firstFeaturedImg.path}` : null)
+
     return (
         <div dir={isRtl ? 'rtl' : 'ltr'} className="min-h-screen bg-surface flex flex-col">
             <SeoHead
                 title={trans('site_title')}
                 description={trans('home_description')}
-                ogImage={featuredUnits?.data?.[0]?.images?.[0]?.url || (featuredUnits?.data?.[0]?.images?.[0]?.path ? `/storage/${featuredUnits.data[0].images[0].path}` : null)}
+                ogImage={homeOgImage}
                 canonical={typeof window !== 'undefined' ? window.location.href : null}
             />
             <Header />
