@@ -103,9 +103,7 @@ export default function Header({ compareCount = 0 }) {
                 <div className="flex items-center gap-3">
                     {/* Language Toggle */}
                     <Link
-                        href={`/locale/${isRtl ? 'en' : 'ar'}`}
-                        method="get"
-                        as="button"
+                        href={localizedPath(url, isRtl ? 'en' : 'ar')}
                         className="text-xs font-medium text-secondary-700 hover:text-primary-900 border border-secondary-200 rounded-lg px-2.5 py-1.5 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500"
                         aria-label={isRtl ? 'تغيير اللغة إلى الإنجليزية' : 'Switch language to Arabic'}
                     >

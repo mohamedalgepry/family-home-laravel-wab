@@ -18,7 +18,7 @@ export default function SeoHead({
     const siteName = trans('site_title')
     const isRtl = locale === 'ar'
 
-    const cleanPath = url.split('?')[0];
+    const cleanPath = (typeof url === 'string' ? url : '/').split('?')[0];
     const pathWithoutLocale = cleanPath.replace(/^\/(ar|en)(\/|$)/, '/');
     const baseUrl = appUrl || (typeof window !== 'undefined' ? window.location.origin : '');
     

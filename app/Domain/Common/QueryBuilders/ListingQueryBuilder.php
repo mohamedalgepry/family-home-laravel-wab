@@ -3,6 +3,7 @@
 namespace App\Domain\Common\QueryBuilders;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class ListingQueryBuilder
@@ -51,8 +52,9 @@ class ListingQueryBuilder
         // الأعمدة الأخرى في قائمة الفلتر (slugs) — مفهرسة بـ unique، تبقى بـ LIKE
         $slugFields = array_values(array_diff($fields, $fulltextColumns));
 
-        // نستخدم FULLTEXT فقط على MySQL/MariaDB (SQLite للاختبارات لا يدعمه)
-        $useFulltext = DB::getDriverName() === 'mysql'
+        // نستخدم FULLTEXT فقط إذا كانت قاعدة البيانات MySQL والفهرس موجود فعلياً
+        $table = $query->getModel()->getTable();
+        $useFulltext = self::hasFulltextIndex($table)
             && count(array_intersect($fields, $fulltextColumns)) > 0;
 
         $query->where(function (Builder $q) use ($search, $fields, $slugFields, $fulltextColumns, $useFulltext, $relation) {
@@ -65,7 +67,7 @@ class ListingQueryBuilder
                     $q->orWhere($field, 'like', "{$search}%");
                 }
             } else {
-                // Fallback لـ SQLite (بيئة الاختبار) أو أي driver آخر
+                // Fallback لـ SQLite (بيئة الاختبار) أو في حال عدم وجود الفهرس على MySQL
                 foreach ($fields as $field) {
                     $q->orWhere($field, 'like', "%{$search}%");
                 }
@@ -79,6 +81,22 @@ class ListingQueryBuilder
                 });
             }
         });
+    }
+
+    private static function hasFulltextIndex(string $table): bool
+    {
+        if (DB::getDriverName() !== 'mysql') {
+            return false;
+        }
+
+        try {
+            return Cache::remember("fulltext_idx_exists_{$table}", 3600, function () use ($table) {
+                $indexes = DB::select("SHOW INDEX FROM `{$table}` WHERE Index_type = 'FULLTEXT'");
+                return ! empty($indexes);
+            });
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
 
 

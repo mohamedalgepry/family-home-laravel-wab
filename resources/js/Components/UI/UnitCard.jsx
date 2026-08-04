@@ -34,6 +34,10 @@ export default function UnitCard({ unit, loading = false }) {
         return <SkeletonCard />
     }
 
+    if (!unit) {
+        return null;
+    }
+
     const mainImage = unit?.images?.find(img => img.is_main || img.is_primary) || unit?.images?.[0]
     const thumbnail = mainImage?.thumb_url || mainImage?.url || (mainImage?.path ? (mainImage.path.startsWith('http') || mainImage.path.startsWith('/') ? mainImage.path : `/storage/${mainImage.path}`) : PLACEHOLDER)
     const imageSrcSet = (mainImage?.thumb_url && mainImage?.url && mainImage.thumb_url !== mainImage.url)

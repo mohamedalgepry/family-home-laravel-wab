@@ -19,19 +19,32 @@ class PageController extends Controller
         session(['locale' => $lang]);
         App::setLocale($lang);
 
-        $previous = url()->previous();
-        $parsed = parse_url($previous);
-        $path = $parsed['path'] ?? '/';
-        $query = isset($parsed['query']) ? '?'.$parsed['query'] : '';
-
-        if (preg_match('#^/(ar|en)(/.*)?$#', $path, $matches)) {
-            $rest = $matches[2] ?? '';
-            $newPath = '/'.$lang.$rest;
-
-            return redirect($newPath.$query);
+        $targetPath = request()->query('path');
+        if ($targetPath && str_starts_with($targetPath, '/') && ! str_starts_with($targetPath, '//')) {
+            if (preg_match('#^/(ar|en)(/.*)?$#', $targetPath, $matches)) {
+                $rest = $matches[2] ?? '';
+                return redirect('/'.$lang.$rest);
+            }
+            return redirect($targetPath);
         }
 
-        return redirect()->back();
+        $previous = url()->previous();
+        if ($previous) {
+            $parsed = parse_url($previous);
+            $path = $parsed['path'] ?? '';
+            $query = isset($parsed['query']) ? '?'.$parsed['query'] : '';
+
+            if ($path && preg_match('#^/(ar|en)(/.*)?$#', $path, $matches)) {
+                $rest = $matches[2] ?? '';
+                return redirect('/'.$lang.$rest.$query);
+            }
+
+            if ($path && str_starts_with($path, '/')) {
+                return redirect($path.$query);
+            }
+        }
+
+        return redirect()->route('home', ['locale' => $lang]);
     }
 
     public function rootRedirect()

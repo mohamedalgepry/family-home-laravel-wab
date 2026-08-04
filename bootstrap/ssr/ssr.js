@@ -11988,9 +11988,7 @@ function Header({ compareCount = 0 }) {
 				/* @__PURE__ */ jsxs("div", {
 					className: "flex items-center gap-3",
 					children: [/* @__PURE__ */ jsx(Link, {
-						href: `/locale/${isRtl ? "en" : "ar"}`,
-						method: "get",
-						as: "button",
+						href: localizedPath(url, isRtl ? "en" : "ar"),
 						className: "text-xs font-medium text-secondary-700 hover:text-primary-900 border border-secondary-200 rounded-lg px-2.5 py-1.5 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500",
 						"aria-label": isRtl ? "تغيير اللغة إلى الإنجليزية" : "Switch language to Arabic",
 						children: isRtl ? trans("lang_en") : trans("lang_ar")
@@ -12405,7 +12403,7 @@ function SeoHead({ title, description, keywords, ogImage, ogType = "website", ca
 	const { url } = usePage();
 	const siteName = useTrans(locale)("site_title");
 	const isRtl = locale === "ar";
-	const cleanPath = url.split("?")[0];
+	const cleanPath = (typeof url === "string" ? url : "/").split("?")[0];
 	const pathWithoutLocale = cleanPath.replace(/^\/(ar|en)(\/|$)/, "/");
 	const baseUrl = appUrl || (typeof window !== "undefined" ? window.location.origin : "");
 	const activeKey = pageKey || {
@@ -12579,6 +12577,7 @@ function UnitCard({ unit, loading = false }) {
 	const isRtl = locale === "ar";
 	const { compareList, toggleCompare, maxItems } = useCompare("unit");
 	if (loading) return /* @__PURE__ */ jsx(SkeletonCard$2, {});
+	if (!unit) return null;
 	const mainImage = unit?.images?.find((img) => img.is_main || img.is_primary) || unit?.images?.[0];
 	const thumbnail = mainImage?.thumb_url || mainImage?.url || (mainImage?.path ? mainImage.path.startsWith("http") || mainImage.path.startsWith("/") ? mainImage.path : `/storage/${mainImage.path}` : PLACEHOLDER$5);
 	const imageSrcSet = mainImage?.thumb_url && mainImage?.url && mainImage.thumb_url !== mainImage.url ? `${mainImage.thumb_url} 400w, ${mainImage.url} 800w` : void 0;
@@ -14780,6 +14779,7 @@ function ProjectCard({ project, loading = false }) {
 	const isRtl = locale === "ar";
 	const { compareList, toggleCompare } = useCompare("project");
 	if (loading) return /* @__PURE__ */ jsx(SkeletonCard, {});
+	if (!project) return null;
 	const mainImage = project?.images?.find((img) => img.is_main || img.is_primary) || project?.images?.[0];
 	const thumbnail = mainImage?.thumb_url || mainImage?.url || (mainImage?.path ? mainImage.path.startsWith("http") || mainImage.path.startsWith("/") ? mainImage.path : `/storage/${mainImage.path}` : PLACEHOLDER$2);
 	const imageSrcSet = mainImage?.thumb_url && mainImage?.url && mainImage.thumb_url !== mainImage.url ? `${mainImage.thumb_url} 400w, ${mainImage.url} 800w` : void 0;
