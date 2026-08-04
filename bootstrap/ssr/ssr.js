@@ -292,7 +292,6 @@ var translations = {
 		sidebar_articles: "المقارلات والاخبار",
 		sidebar_settings: "الإعدادات",
 		sidebar_about: "صفحة عنا",
-		sidebar_activity_log: "سجل النشاطات",
 		sidebar_categories: "تصنيفات المقارلات والاخبار",
 		article_categories: "تصنيفات المقارلات والاخبار",
 		created_at: "تاريخ الإنشاء",
@@ -359,7 +358,6 @@ var translations = {
 		sidebar_settings: "الإعدادات",
 		sidebar_seo_pages: "SEO الصفحات",
 		sidebar_about: "صفحة عنا",
-		sidebar_activity_log: "سجل النشاطات",
 		payment_details: "تفاصيل الدفع",
 		created: "تم الإنشاء",
 		updated: "تم التحديث",
@@ -726,7 +724,6 @@ var translations = {
 		sidebar_articles: "Articles",
 		sidebar_settings: "Settings",
 		sidebar_about: "About Page",
-		sidebar_activity_log: "Activity Log",
 		sidebar_categories: "Article Categories",
 		article_categories: "Article Categories",
 		created_at: "Created At",
@@ -794,7 +791,6 @@ var translations = {
 		sidebar_settings: "Settings",
 		sidebar_seo_pages: "SEO Pages",
 		sidebar_about: "About Page",
-		sidebar_activity_log: "Activity Log",
 		payment_details: "Payment Details",
 		created: "Created",
 		updated: "Updated",
@@ -1074,7 +1070,8 @@ function AdminSidebar({ children }) {
 	const [liveMsgCount, setLiveMsgCount] = useState(0);
 	const [showFlash, setShowFlash] = useState(true);
 	const [soundEnabled, setSoundEnabled] = useState(() => {
-		return localStorage.getItem("notification_sound") !== "off";
+		if (typeof window !== "undefined" && typeof localStorage !== "undefined") return localStorage.getItem("notification_sound") !== "off";
+		return true;
 	});
 	const [notifOpen, setNotifOpen] = useState(false);
 	const [recentNotifs, setRecentNotifs] = useState([]);
@@ -1237,7 +1234,7 @@ function AdminSidebar({ children }) {
 	function toggleSound() {
 		const next = !soundEnabled;
 		setSoundEnabled(next);
-		localStorage.setItem("notification_sound", next ? "on" : "off");
+		if (typeof window !== "undefined" && typeof localStorage !== "undefined") localStorage.setItem("notification_sound", next ? "on" : "off");
 	}
 	const isActive = (href) => {
 		if (!url) return false;
@@ -11856,7 +11853,7 @@ function AdminUsersIndex({ users, managers, filters }) {
 }
 //#endregion
 //#region resources/js/Components/OptimizedImage.jsx
-function OptimizedImage({ src, alt = "", width, height, className = "", lazy = true, fallbackSrc = "/images/fallback.jpg", role, srcSet, sizes = "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 400px", ...props }) {
+function OptimizedImage({ src, alt = "", width, height, className = "", lazy = true, fallbackSrc = "/images/fallback.jpg", role, srcSet, sizes = "(max-width: 480px) 400px, (max-width: 768px) 400px, (max-width: 1024px) 400px, 800px", ...props }) {
 	const [imgSrc, setImgSrc] = useState(src);
 	const [hasError, setHasError] = useState(false);
 	const handleError = () => {
@@ -12584,6 +12581,7 @@ function UnitCard({ unit, loading = false }) {
 	if (loading) return /* @__PURE__ */ jsx(SkeletonCard$2, {});
 	const mainImage = unit?.images?.find((img) => img.is_main || img.is_primary) || unit?.images?.[0];
 	const thumbnail = mainImage?.thumb_url || mainImage?.url || (mainImage?.path ? mainImage.path.startsWith("http") || mainImage.path.startsWith("/") ? mainImage.path : `/storage/${mainImage.path}` : PLACEHOLDER$5);
+	const imageSrcSet = mainImage?.thumb_url && mainImage?.url && mainImage.thumb_url !== mainImage.url ? `${mainImage.thumb_url} 400w, ${mainImage.url} 800w` : void 0;
 	const isFeatured = (unit?.priority_points ?? 0) > 0;
 	const isCompared = compareList.includes(unit?.id);
 	const uploaderWhatsapp = unit?.project?.user?.profile?.whatsapp || unit?.project?.user?.whatsapp || unit?.user?.profile?.whatsapp || unit?.user?.whatsapp;
@@ -12602,6 +12600,7 @@ function UnitCard({ unit, loading = false }) {
 			children: [
 				/* @__PURE__ */ jsx(OptimizedImage, {
 					src: thumbnail,
+					srcSet: imageSrcSet,
 					alt: imageAlt,
 					width: 400,
 					height: 300,
@@ -13016,6 +13015,7 @@ function ArticleCard({ article, loading = false }) {
 	if (loading) return /* @__PURE__ */ jsx(SkeletonCard$1, {});
 	const headerImg = article?.images?.find((img) => img.position === "header") || article?.images?.[0];
 	const thumbnail = headerImg?.thumb_url || headerImg?.url || (headerImg?.path ? headerImg.path.startsWith("http") || headerImg.path.startsWith("/") ? headerImg.path : `/storage/${headerImg.path}` : PLACEHOLDER$4);
+	const imageSrcSet = headerImg?.thumb_url && headerImg?.url && headerImg.thumb_url !== headerImg.url ? `${headerImg.thumb_url} 400w, ${headerImg.url} 800w` : void 0;
 	const imageAlt = article.alt_text || `${article.title} - ${trans("app_name")}`;
 	const categoryName = article.category ? isRtl ? article.category.name_ar : article.category.name_en : null;
 	const formattedDate = article.published_at ? new Date(article.published_at).toLocaleDateString(isRtl ? "ar-EG" : "en-US", {
@@ -13030,6 +13030,7 @@ function ArticleCard({ article, loading = false }) {
 			className: "relative h-48 w-full overflow-hidden bg-secondary-100",
 			children: [/* @__PURE__ */ jsx(OptimizedImage, {
 				src: thumbnail,
+				srcSet: imageSrcSet,
 				alt: imageAlt,
 				width: 400,
 				height: 300,
@@ -14781,6 +14782,7 @@ function ProjectCard({ project, loading = false }) {
 	if (loading) return /* @__PURE__ */ jsx(SkeletonCard, {});
 	const mainImage = project?.images?.find((img) => img.is_main || img.is_primary) || project?.images?.[0];
 	const thumbnail = mainImage?.thumb_url || mainImage?.url || (mainImage?.path ? mainImage.path.startsWith("http") || mainImage.path.startsWith("/") ? mainImage.path : `/storage/${mainImage.path}` : PLACEHOLDER$2);
+	const imageSrcSet = mainImage?.thumb_url && mainImage?.url && mainImage.thumb_url !== mainImage.url ? `${mainImage.thumb_url} 400w, ${mainImage.url} 800w` : void 0;
 	const isCompared = compareList.includes(project?.id);
 	const areaName = project.area?.name || project.area_name || (isRtl ? "مصر" : "Egypt");
 	const imageAlt = project.alt_text || `${project.name || (isRtl ? "مشروع عقاري" : "Project")} ${isRtl ? "في" : "in"} ${areaName} - ${trans("app_name")}`;
@@ -14795,6 +14797,7 @@ function ProjectCard({ project, loading = false }) {
 				className: "block w-full h-full focus:outline-none focus:ring-2 focus:ring-primary-500",
 				children: /* @__PURE__ */ jsx(OptimizedImage, {
 					src: thumbnail,
+					srcSet: imageSrcSet,
 					alt: imageAlt,
 					width: 480,
 					height: 360,

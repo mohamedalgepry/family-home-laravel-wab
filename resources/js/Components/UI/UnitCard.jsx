@@ -36,6 +36,9 @@ export default function UnitCard({ unit, loading = false }) {
 
     const mainImage = unit?.images?.find(img => img.is_main || img.is_primary) || unit?.images?.[0]
     const thumbnail = mainImage?.thumb_url || mainImage?.url || (mainImage?.path ? (mainImage.path.startsWith('http') || mainImage.path.startsWith('/') ? mainImage.path : `/storage/${mainImage.path}`) : PLACEHOLDER)
+    const imageSrcSet = (mainImage?.thumb_url && mainImage?.url && mainImage.thumb_url !== mainImage.url)
+        ? `${mainImage.thumb_url} 400w, ${mainImage.url} 800w`
+        : undefined
     const isFeatured = (unit?.priority_points ?? 0) > 0
     const isCompared = compareList.includes(unit?.id)
 
@@ -60,6 +63,7 @@ export default function UnitCard({ unit, loading = false }) {
                 <Link href={localizedPath(`/units/${unit.slug}`, locale)} className="block relative overflow-hidden aspect-[4/3] focus:outline-none focus:ring-2 focus:ring-primary-500">
                     <OptimizedImage
                         src={thumbnail}
+                        srcSet={imageSrcSet}
                         alt={imageAlt}
                         width={400}
                         height={300}

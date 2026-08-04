@@ -34,6 +34,9 @@ export default function ProjectCard({ project, loading = false }) {
 
     const mainImage = project?.images?.find(img => img.is_main || img.is_primary) || project?.images?.[0]
     const thumbnail = mainImage?.thumb_url || mainImage?.url || (mainImage?.path ? (mainImage.path.startsWith('http') || mainImage.path.startsWith('/') ? mainImage.path : `/storage/${mainImage.path}`) : PLACEHOLDER)
+    const imageSrcSet = (mainImage?.thumb_url && mainImage?.url && mainImage.thumb_url !== mainImage.url)
+        ? `${mainImage.thumb_url} 400w, ${mainImage.url} 800w`
+        : undefined
     const isCompared = compareList.includes(project?.id)
 
     const areaName = project.area?.name || project.area_name || (isRtl ? 'مصر' : 'Egypt')
@@ -53,6 +56,7 @@ export default function ProjectCard({ project, loading = false }) {
                 >
                     <OptimizedImage
                         src={thumbnail}
+                        srcSet={imageSrcSet}
                         alt={imageAlt}
                         width={480}
                         height={360}

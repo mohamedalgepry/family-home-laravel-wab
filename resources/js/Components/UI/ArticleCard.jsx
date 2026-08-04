@@ -30,6 +30,9 @@ export default function ArticleCard({ article, loading = false }) {
 
     const headerImg = article?.images?.find(img => img.position === 'header') || article?.images?.[0]
     const thumbnail = headerImg?.thumb_url || headerImg?.url || (headerImg?.path ? (headerImg.path.startsWith('http') || headerImg.path.startsWith('/') ? headerImg.path : `/storage/${headerImg.path}`) : PLACEHOLDER)
+    const imageSrcSet = (headerImg?.thumb_url && headerImg?.url && headerImg.thumb_url !== headerImg.url)
+        ? `${headerImg.thumb_url} 400w, ${headerImg.url} 800w`
+        : undefined
     const imageAlt = article.alt_text || `${article.title} - ${trans('app_name')}`
     const categoryName = article.category ? (isRtl ? article.category.name_ar : article.category.name_en) : null
 
@@ -49,6 +52,7 @@ export default function ArticleCard({ article, loading = false }) {
             <div className="relative h-48 w-full overflow-hidden bg-secondary-100">
                 <OptimizedImage
                     src={thumbnail}
+                    srcSet={imageSrcSet}
                     alt={imageAlt}
                     width={400}
                     height={300}

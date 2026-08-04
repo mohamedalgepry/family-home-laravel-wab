@@ -14,7 +14,6 @@
         "intervention/image": "^4.2",
         "laravel/framework": "^13.8",
         "laravel/tinker": "^3.0",
-        "spatie/laravel-activitylog": "^4.10",
         "spatie/laravel-backup": "^10.3",
         "spatie/laravel-data": "^4.23"
     },

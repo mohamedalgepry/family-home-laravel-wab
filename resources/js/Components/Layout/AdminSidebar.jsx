@@ -84,7 +84,10 @@ export default function AdminSidebar({ children }) {
     const [showFlash, setShowFlash] = useState(true)
 
     const [soundEnabled, setSoundEnabled] = useState(() => {
-        return localStorage.getItem('notification_sound') !== 'off'
+        if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+            return localStorage.getItem('notification_sound') !== 'off'
+        }
+        return true
     })
     const [notifOpen, setNotifOpen] = useState(false)
     const [recentNotifs, setRecentNotifs] = useState([])
@@ -258,7 +261,9 @@ export default function AdminSidebar({ children }) {
     function toggleSound() {
         const next = !soundEnabled
         setSoundEnabled(next)
-        localStorage.setItem('notification_sound', next ? 'on' : 'off')
+        if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+            localStorage.setItem('notification_sound', next ? 'on' : 'off')
+        }
     }
 
     const isActive = (href) => {

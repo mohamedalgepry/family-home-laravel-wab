@@ -81,8 +81,6 @@ return [
     'images' => 'Images',
     'add_images' => 'Add Images',
     'sidebar_notifications' => 'Notifications',
-    'sidebar_activity_log' => 'Activity Log',
-    'activity_log' => 'Activity Log',
     'deleting' => 'Deleting...',
     'close' => 'Close',
     'disable_sound' => 'Disable Sound',

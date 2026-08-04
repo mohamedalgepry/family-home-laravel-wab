@@ -81,8 +81,6 @@ return [
     'images' => 'الصور',
     'add_images' => 'إضافة صور',
     'sidebar_notifications' => 'الإشعارات',
-    'sidebar_activity_log' => 'سجل النشاطات',
-    'activity_log' => 'سجل النشاطات',
     'deleting' => 'جارٍ الحذف...',
     'close' => 'إغلاق',
     'disable_sound' => 'تعطيل الصوت',

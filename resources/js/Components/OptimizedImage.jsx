@@ -10,7 +10,7 @@ export default function OptimizedImage({
     fallbackSrc = '/images/fallback.jpg',
     role,
     srcSet,
-    sizes = '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 400px',
+    sizes = '(max-width: 480px) 400px, (max-width: 768px) 400px, (max-width: 1024px) 400px, 800px',
     ...props
 }) {
     const [imgSrc, setImgSrc] = useState(src);
