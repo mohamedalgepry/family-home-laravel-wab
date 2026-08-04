@@ -9,7 +9,19 @@ use App\Http\Controllers\Public\MessageController;
 use App\Http\Controllers\Public\ProjectController;
 use App\Http\Controllers\Public\SitemapController;
 use App\Http\Controllers\Public\UnitController;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+
+// فحص صحة قاعدة البيانات — متاح بدون مصادقة، لا يكشف بيانات حساسة
+Route::get('/health', function () {
+    try {
+        DB::connection()->getPdo();
+
+        return response()->json(['status' => 'ok', 'database' => 'connected']);
+    } catch (\Throwable $e) {
+        return response()->json(['status' => 'error', 'database' => 'unavailable'], 503);
+    }
+})->name('health.check');
 
 Route::get('/sitemap.xml', SitemapController::class);
 
