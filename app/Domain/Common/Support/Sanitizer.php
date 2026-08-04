@@ -70,15 +70,23 @@ class Sanitizer
     {
         $tag = strtolower($element->tagName);
         $allowed = match ($tag) {
-            'a' => ['href', 'title', 'class', 'target', 'rel'],
-            'img' => ['src', 'alt', 'title', 'width', 'height', 'class'],
-            default => ['class'],
+            'a' => ['href', 'title', 'class', 'target', 'rel', 'style'],
+            'img' => ['src', 'alt', 'title', 'width', 'height', 'class', 'style'],
+            default => ['class', 'style'],
         };
 
         foreach (iterator_to_array($element->attributes) as $attribute) {
             $name = strtolower($attribute->name);
             if (! in_array($name, $allowed, true)) {
                 $element->removeAttribute($attribute->name);
+            }
+        }
+
+        if ($element->hasAttribute('style')) {
+            $style = $element->getAttribute('style');
+            // Block javascript:, expression(), url() in inline style attributes for XSS safety
+            if (preg_match('/(javascript|expression|url\s*\()/i', $style)) {
+                $element->removeAttribute('style');
             }
         }
 

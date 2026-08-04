@@ -29,3 +29,15 @@ it('keeps safe local images and links', function () {
         ->toContain('src="/storage/articles/example.webp"')
         ->toContain('alt="Example"');
 });
+
+it('preserves safe inline color styles while stripping unsafe css expressions', function () {
+    $html = Sanitizer::rich(
+        '<span style="color: #ef4444;">Colored Text</span>'
+        .'<span style="color: expression(alert(1))">Unsafe</span>'
+    );
+
+    expect($html)
+        ->toContain('style="color: #ef4444;"')
+        ->toContain('Colored Text')
+        ->not->toContain('expression');
+});

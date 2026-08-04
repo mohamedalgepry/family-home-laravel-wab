@@ -8,6 +8,8 @@ import StarterKit from '@tiptap/starter-kit'
 import TextAlign from '@tiptap/extension-text-align'
 import Underline from '@tiptap/extension-underline'
 import LinkExtension from '@tiptap/extension-link'
+import { Color } from '@tiptap/extension-color'
+import { TextStyle } from '@tiptap/extension-text-style'
 
 function MenuBar({ editor, trans }) {
     if (!editor) return null
@@ -65,6 +67,39 @@ function MenuBar({ editor, trans }) {
                 R
             </button>
             <span className="w-px bg-secondary-200 mx-1 h-4" />
+            <div className="flex items-center gap-1.5 px-1 py-0.5 rounded bg-white border border-secondary-200" title={trans('text_color') || 'لون الخط'}>
+                <label className="text-[11px] text-secondary-600 font-medium cursor-pointer flex items-center gap-1">
+                    <span>{trans('text_color') || 'اللون'}:</span>
+                    <input
+                        type="color"
+                        onInput={(e) => editor.chain().focus().setColor(e.target.value).run()}
+                        value={editor.getAttributes('textStyle').color || '#000000'}
+                        className="w-5 h-5 rounded cursor-pointer border-0 p-0 bg-transparent"
+                    />
+                </label>
+                <div className="flex items-center gap-0.5">
+                    {['#111827', '#dc2626', '#2563eb', '#16a34a', '#d97706', '#9333ea'].map((c) => (
+                        <button
+                            key={c}
+                            type="button"
+                            onClick={() => editor.chain().focus().setColor(c).run()}
+                            className="w-3.5 h-3.5 rounded-full border border-black/10 transition-transform hover:scale-125"
+                            style={{ backgroundColor: c }}
+                        />
+                    ))}
+                    {editor.getAttributes('textStyle').color && (
+                        <button
+                            type="button"
+                            onClick={() => editor.chain().focus().unsetColor().run()}
+                            className="text-[10px] text-secondary-400 hover:text-red-600 px-1"
+                            title="إعادة ضبط اللون"
+                        >
+                            ✕
+                        </button>
+                    )}
+                </div>
+            </div>
+            <span className="w-px bg-secondary-200 mx-1 h-4" />
             <button type="button" onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} className={`px-2 py-1 text-xs rounded ${editor.isActive('heading', { level: 2 }) ? 'bg-primary-900 text-white' : 'bg-white text-secondary-700 hover:bg-secondary-100'}`}>
                 H2
             </button>
@@ -120,6 +155,8 @@ export default function AdminArticlesForm({ article, categories }) {
             Underline,
             LinkExtension.configure({ openOnClick: false, HTMLAttributes: { target: '_blank', rel: 'noopener noreferrer' } }),
             TextAlign.configure({ types: ['heading', 'paragraph'] }),
+            TextStyle,
+            Color,
         ],
         content: article?.content_ar || '',
         editorProps: {
@@ -134,6 +171,8 @@ export default function AdminArticlesForm({ article, categories }) {
             Underline,
             LinkExtension.configure({ openOnClick: false, HTMLAttributes: { target: '_blank', rel: 'noopener noreferrer' } }),
             TextAlign.configure({ types: ['heading', 'paragraph'] }),
+            TextStyle,
+            Color,
         ],
         content: article?.content_en || '',
         editorProps: {

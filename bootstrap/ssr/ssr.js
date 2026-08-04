@@ -8,6 +8,8 @@ import Image$1 from "@tiptap/extension-image";
 import axios from "axios";
 import Underline from "@tiptap/extension-underline";
 import LinkExtension from "@tiptap/extension-link";
+import { Color } from "@tiptap/extension-color";
+import { TextStyle } from "@tiptap/extension-text-style";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { renderToString } from "react-dom/server";
 import createServer from "@inertiajs/react/server";
@@ -2785,6 +2787,41 @@ function MenuBar({ editor, trans }) {
 				children: "R"
 			}),
 			/* @__PURE__ */ jsx("span", { className: "w-px bg-secondary-200 mx-1 h-4" }),
+			/* @__PURE__ */ jsxs("div", {
+				className: "flex items-center gap-1.5 px-1 py-0.5 rounded bg-white border border-secondary-200",
+				title: trans("text_color") || "لون الخط",
+				children: [/* @__PURE__ */ jsxs("label", {
+					className: "text-[11px] text-secondary-600 font-medium cursor-pointer flex items-center gap-1",
+					children: [/* @__PURE__ */ jsxs("span", { children: [trans("text_color") || "اللون", ":"] }), /* @__PURE__ */ jsx("input", {
+						type: "color",
+						onInput: (e) => editor.chain().focus().setColor(e.target.value).run(),
+						value: editor.getAttributes("textStyle").color || "#000000",
+						className: "w-5 h-5 rounded cursor-pointer border-0 p-0 bg-transparent"
+					})]
+				}), /* @__PURE__ */ jsxs("div", {
+					className: "flex items-center gap-0.5",
+					children: [[
+						"#111827",
+						"#dc2626",
+						"#2563eb",
+						"#16a34a",
+						"#d97706",
+						"#9333ea"
+					].map((c) => /* @__PURE__ */ jsx("button", {
+						type: "button",
+						onClick: () => editor.chain().focus().setColor(c).run(),
+						className: "w-3.5 h-3.5 rounded-full border border-black/10 transition-transform hover:scale-125",
+						style: { backgroundColor: c }
+					}, c)), editor.getAttributes("textStyle").color && /* @__PURE__ */ jsx("button", {
+						type: "button",
+						onClick: () => editor.chain().focus().unsetColor().run(),
+						className: "text-[10px] text-secondary-400 hover:text-red-600 px-1",
+						title: "إعادة ضبط اللون",
+						children: "✕"
+					})]
+				})]
+			}),
+			/* @__PURE__ */ jsx("span", { className: "w-px bg-secondary-200 mx-1 h-4" }),
 			/* @__PURE__ */ jsx("button", {
 				type: "button",
 				onClick: () => editor.chain().focus().toggleHeading({ level: 2 }).run(),
@@ -2850,7 +2887,9 @@ function AdminArticlesForm({ article, categories }) {
 					rel: "noopener noreferrer"
 				}
 			}),
-			TextAlign.configure({ types: ["heading", "paragraph"] })
+			TextAlign.configure({ types: ["heading", "paragraph"] }),
+			TextStyle,
+			Color
 		],
 		content: article?.content_ar || "",
 		editorProps: { attributes: {
@@ -2870,7 +2909,9 @@ function AdminArticlesForm({ article, categories }) {
 					rel: "noopener noreferrer"
 				}
 			}),
-			TextAlign.configure({ types: ["heading", "paragraph"] })
+			TextAlign.configure({ types: ["heading", "paragraph"] }),
+			TextStyle,
+			Color
 		],
 		content: article?.content_en || "",
 		editorProps: { attributes: { class: "prose prose-sm max-w-none focus:outline-none min-h-[500px] px-4 py-3" } },
