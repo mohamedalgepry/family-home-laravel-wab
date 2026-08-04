@@ -134,6 +134,24 @@ export default function AdminSidebar({ children }) {
         })
     }
 
+    function handleNotifItemClick(n) {
+        if (!n.read_at) {
+            markNotifRead(n.id)
+        }
+        setNotifOpen(false)
+
+        const type = n.type || ''
+        if (type === 'new_message' || n.message_id) {
+            router.visit('/admin/messages')
+        } else if (n.unit_id) {
+            router.visit(`/admin/units/${n.unit_id}/edit`)
+        } else if (n.project_id) {
+            router.visit(`/admin/projects/${n.project_id}/edit`)
+        } else {
+            router.visit('/admin/notifications')
+        }
+    }
+
     function markAllNotifsRead() {
         router.post('/admin/notifications/read-all', {}, {
             preserveScroll: true,
@@ -470,7 +488,7 @@ export default function AdminSidebar({ children }) {
                                                     return (
                                                         <button
                                                             key={n.id}
-                                                            onClick={() => { if (isUnread) markNotifRead(n.id) }}
+                                                            onClick={() => handleNotifItemClick(n)}
                                                             className={`w-full text-start p-3 border-b border-secondary-100 last:border-b-0 hover:bg-surface/50 transition-colors flex gap-3 ${isUnread ? 'bg-primary-50/20' : ''}`}
                                                         >
                                                             <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-xs ${iconColor}`}>
