@@ -416,6 +416,13 @@ var translations = {
 		new_password: "كلمة السر الجديدة",
 		confirm_password: "تأكيد كلمة المرور",
 		change_password_hint: "اترك حقول كلمة السر فارغة إذا كنت لا ترغب في تغيير كلمة السر الحالية",
+		reset_password_title: "إعادة ضبط كلمة السر",
+		forgot_password: "أدخل بريدك الإلكتروني ليصلك رابط إعادة تعيين كلمة السر",
+		send_reset_link: "إرسال رابط إعادة الضبط",
+		reset_button: "حفظ كلمة السر الجديدة",
+		back_to_login: "العودة لتسجيل الدخول",
+		password_requirements: "يجب أن تحتوي كلمة السر على 8 أحرف على الأقل",
+		email_placeholder: "name@example.com",
 		facebook_link: "رابط حساب الفيسبوك",
 		sidebar_seo_pages: "SEO الصفحات",
 		seo_pages_title: "إدارة SEO الصفحات الثابتة",
@@ -849,6 +856,13 @@ var translations = {
 		new_password: "New Password",
 		confirm_password: "Confirm Password",
 		change_password_hint: "Leave password fields blank if you do not wish to change your current password",
+		reset_password_title: "Reset Password",
+		forgot_password: "Enter your email address to receive a password reset link",
+		send_reset_link: "Send Reset Link",
+		reset_button: "Save New Password",
+		back_to_login: "Back to Login",
+		password_requirements: "Password must be at least 8 characters long",
+		email_placeholder: "name@example.com",
 		facebook_link: "Facebook Account Link",
 		sidebar_seo_pages: "SEO Pages",
 		seo_pages_title: "Static Pages SEO Management",
@@ -16458,6 +16472,7 @@ var ForgotPassword_exports = /* @__PURE__ */ __exportAll({ default: () => Forgot
 function ForgotPassword() {
 	const { locale } = usePage().props;
 	const trans = useTrans(locale);
+	const isRtl = locale === "ar";
 	const { data, setData, post, processing, errors } = useForm({ email: "" });
 	function handleSubmit(e) {
 		e.preventDefault();
@@ -16465,30 +16480,61 @@ function ForgotPassword() {
 	}
 	return /* @__PURE__ */ jsxs(AuthLayout, {
 		title: trans("reset_password_title"),
+		subtitle: isRtl ? "أدخل معلومات حسابك لإرسال رابط التعيين" : "Enter your email to receive a password reset link",
 		children: [
 			/* @__PURE__ */ jsx("p", {
-				className: "text-sm text-muted mb-6 text-center",
+				className: "text-xs text-secondary-600 mb-5 leading-relaxed text-center",
 				children: trans("forgot_password")
 			}),
 			/* @__PURE__ */ jsxs("form", {
 				onSubmit: handleSubmit,
 				noValidate: true,
-				children: [/* @__PURE__ */ jsx(InputField, {
-					name: "email",
-					label: trans("email"),
-					type: "email",
-					value: data.email,
-					onChange: (e) => setData("email", e.target.value),
-					placeholder: trans("email_placeholder"),
-					required: true,
-					autoComplete: "email"
-				}), /* @__PURE__ */ jsx(Button, {
-					type: "submit",
-					disabled: processing,
-					children: processing ? /* @__PURE__ */ jsxs("span", {
-						className: "flex items-center justify-center gap-2",
-						children: [/* @__PURE__ */ jsxs("svg", {
-							className: "animate-spin h-4 w-4",
+				className: "space-y-4",
+				children: [/* @__PURE__ */ jsxs("div", { children: [
+					/* @__PURE__ */ jsx("label", {
+						className: "block text-xs font-medium text-secondary-800 mb-1",
+						children: trans("email")
+					}),
+					/* @__PURE__ */ jsxs("div", {
+						className: "relative",
+						children: [/* @__PURE__ */ jsx("div", {
+							className: "absolute inset-y-0 start-0 ps-3 flex items-center pointer-events-none text-secondary-400",
+							children: /* @__PURE__ */ jsx("svg", {
+								className: "w-4 h-4",
+								fill: "none",
+								stroke: "currentColor",
+								viewBox: "0 0 24 24",
+								children: /* @__PURE__ */ jsx("path", {
+									strokeLinecap: "round",
+									strokeLinejoin: "round",
+									strokeWidth: 1.5,
+									d: "M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"
+								})
+							})
+						}), /* @__PURE__ */ jsx("input", {
+							type: "email",
+							name: "email",
+							required: true,
+							autoComplete: "email",
+							value: data.email,
+							onChange: (e) => setData("email", e.target.value),
+							placeholder: trans("email_placeholder"),
+							className: `w-full ps-9 pe-3 py-2.5 bg-slate-50 text-secondary-950 placeholder-secondary-400 border ${errors.email ? "border-red-500 focus:ring-red-500/20" : "border-secondary-200 focus:border-primary-900 focus:ring-primary-900/10"} rounded-xl text-sm transition-all focus:bg-white focus:outline-none focus:ring-4`
+						})]
+					}),
+					errors.email && /* @__PURE__ */ jsx("p", {
+						className: "mt-1 text-xs text-red-600 font-medium",
+						children: errors.email
+					})
+				] }), /* @__PURE__ */ jsx("div", {
+					className: "pt-2",
+					children: /* @__PURE__ */ jsx("button", {
+						type: "submit",
+						disabled: processing,
+						className: "w-full py-3 px-4 bg-primary-900 hover:bg-primary-950 text-white font-bold text-sm rounded-xl shadow-md hover:shadow-lg transition-all transform active:scale-[0.99] disabled:opacity-60 flex items-center justify-center gap-2",
+						children: processing ? /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsxs("svg", {
+							className: "animate-spin h-4 w-4 text-white",
+							fill: "none",
 							viewBox: "0 0 24 24",
 							children: [/* @__PURE__ */ jsx("circle", {
 								className: "opacity-25",
@@ -16496,22 +16542,21 @@ function ForgotPassword() {
 								cy: "12",
 								r: "10",
 								stroke: "currentColor",
-								strokeWidth: "4",
-								fill: "none"
+								strokeWidth: "4"
 							}), /* @__PURE__ */ jsx("path", {
 								className: "opacity-75",
 								fill: "currentColor",
 								d: "M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
 							})]
-						}), trans("send_reset_link")]
-					}) : trans("send_reset_link")
+						}), /* @__PURE__ */ jsx("span", { children: isRtl ? "جارٍ الإرسال..." : "Sending..." })] }) : /* @__PURE__ */ jsx("span", { children: trans("send_reset_link") })
+					})
 				})]
 			}),
 			/* @__PURE__ */ jsx("div", {
 				className: "mt-6 text-center",
-				children: /* @__PURE__ */ jsx("a", {
-					href: localizedPath("/login", locale),
-					className: "text-sm text-primary-900 hover:text-primary-950 underline-offset-2 hover:underline",
+				children: /* @__PURE__ */ jsx(Link, {
+					href: "/login",
+					className: "text-xs font-medium text-primary-900 hover:text-primary-950 hover:underline transition-colors",
 					children: trans("back_to_login")
 				})
 			})
@@ -16887,12 +16932,14 @@ function Profile() {
 //#endregion
 //#region resources/js/Pages/Shared/ResetPassword.jsx
 var ResetPassword_exports = /* @__PURE__ */ __exportAll({ default: () => ResetPassword });
-function ResetPassword() {
+function ResetPassword({ token, email }) {
 	const { locale } = usePage().props;
 	const trans = useTrans(locale);
+	const isRtl = locale === "ar";
+	const [showPassword, setShowPassword] = useState(false);
 	const { data, setData, post, processing, errors } = useForm({
-		token: "",
-		email: "",
+		token: token || "",
+		email: email || "",
 		password: "",
 		password_confirmation: ""
 	});
@@ -16902,56 +16949,178 @@ function ResetPassword() {
 	}
 	return /* @__PURE__ */ jsxs(AuthLayout, {
 		title: trans("reset_password_title"),
+		subtitle: isRtl ? "أدخل كلمة السر الجديدة لحسابك" : "Enter your new password below",
 		children: [/* @__PURE__ */ jsxs("form", {
 			onSubmit: handleSubmit,
 			noValidate: true,
+			className: "space-y-4",
 			children: [
 				/* @__PURE__ */ jsx("input", {
 					type: "hidden",
 					name: "token",
 					value: data.token
 				}),
-				/* @__PURE__ */ jsx(InputField, {
-					name: "email",
-					label: trans("email"),
-					type: "email",
-					value: data.email,
-					onChange: (e) => setData("email", e.target.value),
-					placeholder: trans("email_placeholder"),
-					required: true,
-					autoComplete: "email"
-				}),
-				/* @__PURE__ */ jsx(InputField, {
-					name: "password",
-					label: trans("new_password"),
-					type: "password",
-					value: data.password,
-					onChange: (e) => setData("password", e.target.value),
-					placeholder: "••••••••",
-					required: true,
-					autoComplete: "new-password"
-				}),
+				/* @__PURE__ */ jsxs("div", { children: [
+					/* @__PURE__ */ jsx("label", {
+						className: "block text-xs font-medium text-secondary-800 mb-1",
+						children: trans("email")
+					}),
+					/* @__PURE__ */ jsxs("div", {
+						className: "relative",
+						children: [/* @__PURE__ */ jsx("div", {
+							className: "absolute inset-y-0 start-0 ps-3 flex items-center pointer-events-none text-secondary-400",
+							children: /* @__PURE__ */ jsx("svg", {
+								className: "w-4 h-4",
+								fill: "none",
+								stroke: "currentColor",
+								viewBox: "0 0 24 24",
+								children: /* @__PURE__ */ jsx("path", {
+									strokeLinecap: "round",
+									strokeLinejoin: "round",
+									strokeWidth: 1.5,
+									d: "M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"
+								})
+							})
+						}), /* @__PURE__ */ jsx("input", {
+							type: "email",
+							name: "email",
+							required: true,
+							autoComplete: "email",
+							value: data.email,
+							onChange: (e) => setData("email", e.target.value),
+							placeholder: trans("email_placeholder"),
+							className: `w-full ps-9 pe-3 py-2.5 bg-slate-50 text-secondary-950 placeholder-secondary-400 border ${errors.email ? "border-red-500 focus:ring-red-500/20" : "border-secondary-200 focus:border-primary-900 focus:ring-primary-900/10"} rounded-xl text-sm transition-all focus:bg-white focus:outline-none focus:ring-4`
+						})]
+					}),
+					errors.email && /* @__PURE__ */ jsx("p", {
+						className: "mt-1 text-xs text-red-600 font-medium",
+						children: errors.email
+					})
+				] }),
+				/* @__PURE__ */ jsxs("div", { children: [
+					/* @__PURE__ */ jsx("label", {
+						className: "block text-xs font-medium text-secondary-800 mb-1",
+						children: trans("new_password")
+					}),
+					/* @__PURE__ */ jsxs("div", {
+						className: "relative",
+						children: [
+							/* @__PURE__ */ jsx("div", {
+								className: "absolute inset-y-0 start-0 ps-3 flex items-center pointer-events-none text-secondary-400",
+								children: /* @__PURE__ */ jsx("svg", {
+									className: "w-4 h-4",
+									fill: "none",
+									stroke: "currentColor",
+									viewBox: "0 0 24 24",
+									children: /* @__PURE__ */ jsx("path", {
+										strokeLinecap: "round",
+										strokeLinejoin: "round",
+										strokeWidth: 1.5,
+										d: "M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
+									})
+								})
+							}),
+							/* @__PURE__ */ jsx("input", {
+								type: showPassword ? "text" : "password",
+								name: "password",
+								required: true,
+								autoComplete: "new-password",
+								value: data.password,
+								onChange: (e) => setData("password", e.target.value),
+								placeholder: "••••••••",
+								className: `w-full ps-9 pe-10 py-2.5 bg-slate-50 text-secondary-950 placeholder-secondary-400 border ${errors.password ? "border-red-500 focus:ring-red-500/20" : "border-secondary-200 focus:border-primary-900 focus:ring-primary-900/10"} rounded-xl text-sm transition-all focus:bg-white focus:outline-none focus:ring-4`
+							}),
+							/* @__PURE__ */ jsx("button", {
+								type: "button",
+								onClick: () => setShowPassword(!showPassword),
+								className: "absolute inset-y-0 end-0 pe-3 flex items-center text-secondary-400 hover:text-secondary-700 transition-colors",
+								"aria-label": showPassword ? isRtl ? "إخفاء كلمة المرور" : "Hide password" : isRtl ? "إظهار كلمة المرور" : "Show password",
+								children: showPassword ? /* @__PURE__ */ jsx("svg", {
+									className: "w-4 h-4",
+									fill: "none",
+									stroke: "currentColor",
+									viewBox: "0 0 24 24",
+									children: /* @__PURE__ */ jsx("path", {
+										strokeLinecap: "round",
+										strokeLinejoin: "round",
+										strokeWidth: 1.5,
+										d: "M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88"
+									})
+								}) : /* @__PURE__ */ jsxs("svg", {
+									className: "w-4 h-4",
+									fill: "none",
+									stroke: "currentColor",
+									viewBox: "0 0 24 24",
+									children: [/* @__PURE__ */ jsx("path", {
+										strokeLinecap: "round",
+										strokeLinejoin: "round",
+										strokeWidth: 1.5,
+										d: "M2.036 12c1.349-3.938 5.143-7 9.964-7s8.615 3.062 9.964 7c-1.349 3.938-5.143 7-9.964 7s-8.615-3.062-9.964-7z"
+									}), /* @__PURE__ */ jsx("path", {
+										strokeLinecap: "round",
+										strokeLinejoin: "round",
+										strokeWidth: 1.5,
+										d: "M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+									})]
+								})
+							})
+						]
+					}),
+					errors.password && /* @__PURE__ */ jsx("p", {
+						className: "mt-1 text-xs text-red-600 font-medium",
+						children: errors.password
+					})
+				] }),
+				/* @__PURE__ */ jsxs("div", { children: [
+					/* @__PURE__ */ jsx("label", {
+						className: "block text-xs font-medium text-secondary-800 mb-1",
+						children: trans("confirm_password")
+					}),
+					/* @__PURE__ */ jsxs("div", {
+						className: "relative",
+						children: [/* @__PURE__ */ jsx("div", {
+							className: "absolute inset-y-0 start-0 ps-3 flex items-center pointer-events-none text-secondary-400",
+							children: /* @__PURE__ */ jsx("svg", {
+								className: "w-4 h-4",
+								fill: "none",
+								stroke: "currentColor",
+								viewBox: "0 0 24 24",
+								children: /* @__PURE__ */ jsx("path", {
+									strokeLinecap: "round",
+									strokeLinejoin: "round",
+									strokeWidth: 1.5,
+									d: "M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
+								})
+							})
+						}), /* @__PURE__ */ jsx("input", {
+							type: showPassword ? "text" : "password",
+							name: "password_confirmation",
+							required: true,
+							autoComplete: "new-password",
+							value: data.password_confirmation,
+							onChange: (e) => setData("password_confirmation", e.target.value),
+							placeholder: "••••••••",
+							className: `w-full ps-9 pe-3 py-2.5 bg-slate-50 text-secondary-950 placeholder-secondary-400 border ${errors.password_confirmation ? "border-red-500 focus:ring-red-500/20" : "border-secondary-200 focus:border-primary-900 focus:ring-primary-900/10"} rounded-xl text-sm transition-all focus:bg-white focus:outline-none focus:ring-4`
+						})]
+					}),
+					errors.password_confirmation && /* @__PURE__ */ jsx("p", {
+						className: "mt-1 text-xs text-red-600 font-medium",
+						children: errors.password_confirmation
+					})
+				] }),
 				/* @__PURE__ */ jsx("p", {
-					className: "text-xs text-muted mb-4 -mt-2",
+					className: "text-xs text-secondary-500 pt-0.5",
 					children: trans("password_requirements")
 				}),
-				/* @__PURE__ */ jsx(InputField, {
-					name: "password_confirmation",
-					label: trans("confirm_password"),
-					type: "password",
-					value: data.password_confirmation,
-					onChange: (e) => setData("password_confirmation", e.target.value),
-					placeholder: "••••••••",
-					required: true,
-					autoComplete: "new-password"
-				}),
-				/* @__PURE__ */ jsx(Button, {
-					type: "submit",
-					disabled: processing,
-					children: processing ? /* @__PURE__ */ jsxs("span", {
-						className: "flex items-center justify-center gap-2",
-						children: [/* @__PURE__ */ jsxs("svg", {
-							className: "animate-spin h-4 w-4",
+				/* @__PURE__ */ jsx("div", {
+					className: "pt-2",
+					children: /* @__PURE__ */ jsx("button", {
+						type: "submit",
+						disabled: processing,
+						className: "w-full py-3 px-4 bg-primary-900 hover:bg-primary-950 text-white font-bold text-sm rounded-xl shadow-md hover:shadow-lg transition-all transform active:scale-[0.99] disabled:opacity-60 flex items-center justify-center gap-2",
+						children: processing ? /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsxs("svg", {
+							className: "animate-spin h-4 w-4 text-white",
+							fill: "none",
 							viewBox: "0 0 24 24",
 							children: [/* @__PURE__ */ jsx("circle", {
 								className: "opacity-25",
@@ -16959,22 +17128,21 @@ function ResetPassword() {
 								cy: "12",
 								r: "10",
 								stroke: "currentColor",
-								strokeWidth: "4",
-								fill: "none"
+								strokeWidth: "4"
 							}), /* @__PURE__ */ jsx("path", {
 								className: "opacity-75",
 								fill: "currentColor",
 								d: "M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
 							})]
-						}), trans("reset_button")]
-					}) : trans("reset_button")
+						}), /* @__PURE__ */ jsx("span", { children: isRtl ? "جارٍ الحفظ..." : "Saving..." })] }) : /* @__PURE__ */ jsx("span", { children: trans("reset_button") })
+					})
 				})
 			]
 		}), /* @__PURE__ */ jsx("div", {
 			className: "mt-6 text-center",
-			children: /* @__PURE__ */ jsx("a", {
-				href: localizedPath("/login", locale),
-				className: "text-sm text-primary-900 hover:text-primary-950 underline-offset-2 hover:underline",
+			children: /* @__PURE__ */ jsx(Link, {
+				href: "/login",
+				className: "text-xs font-medium text-primary-900 hover:text-primary-950 hover:underline transition-colors",
 				children: trans("back_to_login")
 			})
 		})]
