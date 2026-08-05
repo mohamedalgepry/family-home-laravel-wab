@@ -5,7 +5,23 @@
     $title = $meta['title'] ?? $defaultTitle;
     $description = $meta['description'] ?? '';
     $keywords = $meta['keywords'] ?? '';
-    $image = $meta['image'] ?? asset('icon.png');
+    $rawImage = $meta['image'] ?? null;
+    $image = null;
+    if (!empty($rawImage)) {
+        if (str_starts_with($rawImage, 'http://') || str_starts_with($rawImage, 'https://')) {
+            $image = $rawImage;
+        } elseif (str_starts_with($rawImage, '/storage') || str_starts_with($rawImage, 'storage/')) {
+            $image = asset(ltrim($rawImage, '/'));
+        } else {
+            $image = asset('storage/' . ltrim($rawImage, '/'));
+        }
+    }
+
+    if (empty($image)) {
+        $siteLogo = app(\App\Domain\Listings\Services\SettingsService::class)->get('site_logo');
+        $image = $siteLogo ? asset('storage/' . ltrim($siteLogo, '/')) : asset('icon.png');
+    }
+
     $canonical = $meta['canonical'] ?? url()->current();
     $hreflang = $meta['hreflang'] ?? [];
     $ogType = $meta['og_type'] ?? 'website';
@@ -24,12 +40,13 @@
     <link rel="alternate" hreflang="{{ $lang }}" href="{{ $url }}">
 @endforeach
 
-<!-- Open Graph / Facebook -->
+<!-- Open Graph / WhatsApp / Facebook / Telegram / LinkedIn -->
 <meta property="og:type" content="{{ $ogType }}">
 <meta property="og:url" content="{{ $canonical }}">
 <meta property="og:title" content="{{ $title }}">
 <meta property="og:description" content="{{ $description }}">
 <meta property="og:image" content="{{ $image }}">
+<meta property="og:image:secure_url" content="{{ $image }}">
 <meta property="og:site_name" content="{{ config('app.name') }}">
 
 <!-- Twitter Cards -->

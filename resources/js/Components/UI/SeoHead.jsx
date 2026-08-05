@@ -51,6 +51,15 @@ export default function SeoHead({
     const urlAr = hreflang?.ar || (baseUrl + (pathWithoutLocale === '/' ? '/ar' : `/ar${pathWithoutLocale === '/' ? '' : pathWithoutLocale}`));
     const urlEn = hreflang?.en || (baseUrl + (pathWithoutLocale === '/' ? '/en' : `/en${pathWithoutLocale === '/' ? '' : pathWithoutLocale}`));
 
+    // Resolve full absolute URL for social media image
+    let finalOgImage = ogImage;
+    if (finalOgImage) {
+        if (!finalOgImage.startsWith('http://') && !finalOgImage.startsWith('https://')) {
+            const cleanImgPath = finalOgImage.startsWith('/') ? finalOgImage : `/${finalOgImage}`;
+            finalOgImage = baseUrl ? `${baseUrl}${cleanImgPath}` : cleanImgPath;
+        }
+    }
+
     return (
         <Head>
             {finalTitle && <title>{finalTitle}</title>}
@@ -63,14 +72,15 @@ export default function SeoHead({
             {finalDescription && <meta property="og:description" content={finalDescription} />}
             <meta property="og:type" content={ogType} />
             <meta property="og:site_name" content={siteName} />
-            {ogImage && <meta property="og:image" content={ogImage} />}
+            {finalOgImage && <meta property="og:image" content={finalOgImage} />}
+            {finalOgImage && <meta property="og:image:secure_url" content={finalOgImage} />}
             <meta property="og:url" content={finalCanonical} />
 
             {/* Twitter Card */}
             <meta name="twitter:card" content="summary_large_image" />
             {finalTitle && <meta name="twitter:title" content={finalTitle} />}
             {finalDescription && <meta name="twitter:description" content={finalDescription} />}
-            {ogImage && <meta name="twitter:image" content={ogImage} />}
+            {finalOgImage && <meta name="twitter:image" content={finalOgImage} />}
 
             {/* Canonical */}
             <link rel="canonical" href={finalCanonical} />

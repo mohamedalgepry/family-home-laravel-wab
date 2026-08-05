@@ -12427,6 +12427,13 @@ function SeoHead({ title, description, keywords, ogImage, ogType = "website", ca
 	const finalCanonical = (canonical || (baseUrl ? `${baseUrl}${cleanPath}` : cleanPath)).split("?")[0];
 	const urlAr = hreflang?.ar || baseUrl + (pathWithoutLocale === "/" ? "/ar" : `/ar${pathWithoutLocale === "/" ? "" : pathWithoutLocale}`);
 	const urlEn = hreflang?.en || baseUrl + (pathWithoutLocale === "/" ? "/en" : `/en${pathWithoutLocale === "/" ? "" : pathWithoutLocale}`);
+	let finalOgImage = ogImage;
+	if (finalOgImage) {
+		if (!finalOgImage.startsWith("http://") && !finalOgImage.startsWith("https://")) {
+			const cleanImgPath = finalOgImage.startsWith("/") ? finalOgImage : `/${finalOgImage}`;
+			finalOgImage = baseUrl ? `${baseUrl}${cleanImgPath}` : cleanImgPath;
+		}
+	}
 	return /* @__PURE__ */ jsxs(Head, { children: [
 		finalTitle && /* @__PURE__ */ jsx("title", { children: finalTitle }),
 		finalDescription && /* @__PURE__ */ jsx("meta", {
@@ -12457,9 +12464,13 @@ function SeoHead({ title, description, keywords, ogImage, ogType = "website", ca
 			property: "og:site_name",
 			content: siteName
 		}),
-		ogImage && /* @__PURE__ */ jsx("meta", {
+		finalOgImage && /* @__PURE__ */ jsx("meta", {
 			property: "og:image",
-			content: ogImage
+			content: finalOgImage
+		}),
+		finalOgImage && /* @__PURE__ */ jsx("meta", {
+			property: "og:image:secure_url",
+			content: finalOgImage
 		}),
 		/* @__PURE__ */ jsx("meta", {
 			property: "og:url",
@@ -12477,9 +12488,9 @@ function SeoHead({ title, description, keywords, ogImage, ogType = "website", ca
 			name: "twitter:description",
 			content: finalDescription
 		}),
-		ogImage && /* @__PURE__ */ jsx("meta", {
+		finalOgImage && /* @__PURE__ */ jsx("meta", {
 			name: "twitter:image",
-			content: ogImage
+			content: finalOgImage
 		}),
 		/* @__PURE__ */ jsx("link", {
 			rel: "canonical",
