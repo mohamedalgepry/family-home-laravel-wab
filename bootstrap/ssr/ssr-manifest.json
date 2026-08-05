@@ -58,8 +58,10 @@
   "resources/js/Pages/Shared/Login.jsx": [],
   "resources/js/Pages/Shared/Profile.jsx": [],
   "resources/js/Pages/Shared/ResetPassword.jsx": [],
+  "resources/js/Pages/Shared/VerifyOtp.jsx": [],
   "resources/js/Pages/Shared/Welcome.jsx": [],
   "resources/js/Utils/route.js": [],
+  "resources/js/Utils/tiptapFontSize.js": [],
   "resources/js/Utils/trans.js": [],
   "resources/js/Utils/youtube.js": [],
   "resources/js/ssr.jsx": []

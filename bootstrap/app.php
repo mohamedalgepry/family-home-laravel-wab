@@ -40,7 +40,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $exceptions->render(function (\Throwable $e, Request $request) {
             if ($e instanceof AuthorizationException) {
-                if ($request->is('admin/*') || $request->is('*/admin/*')) {
+                if ($request->is('admin') || $request->is('admin/*') || $request->is('*/admin') || $request->is('*/admin/*')) {
                     return redirect()->route('admin.dashboard')->with('error', __('messages.not_authorized'));
                 }
 
@@ -49,8 +49,13 @@ return Application::configure(basePath: dirname(__DIR__))
 
             // في بيئة الإنتاج: إذا أرجع طلب Inertia خطأ سيرفر 500 غير متوقع، نعيد التوجيه للرئيسية مع رسالة وتفادي الشاشة البيضاء
             if (! app()->environment('local') && $request->header('X-Inertia')) {
+                if ($e instanceof \Illuminate\Validation\ValidationException || $e instanceof \Illuminate\Auth\AuthenticationException) {
+                    return null;
+                }
+
                 \Log::error('Inertia Exception Handled: '.$e->getMessage(), ['trace' => $e->getTraceAsString()]);
                 $locale = session('locale', 'ar');
+
                 return redirect("/{$locale}")->with('error', 'حدث خطأ مؤقت، يرجى المحاولة مرة أخرى.');
             }
         });

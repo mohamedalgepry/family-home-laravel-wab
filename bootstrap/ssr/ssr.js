@@ -10,6 +10,7 @@ import Underline from "@tiptap/extension-underline";
 import LinkExtension from "@tiptap/extension-link";
 import { Color } from "@tiptap/extension-color";
 import { TextStyle } from "@tiptap/extension-text-style";
+import { Extension } from "@tiptap/core";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { renderToString } from "react-dom/server";
 import createServer from "@inertiajs/react/server";
@@ -2705,9 +2706,50 @@ function Select({ value, onChange, children, className = "", disabled = false, r
 	});
 }
 //#endregion
+//#region resources/js/Utils/tiptapFontSize.js
+var FontSize = Extension.create({
+	name: "fontSize",
+	addOptions() {
+		return { types: ["textStyle"] };
+	},
+	addGlobalAttributes() {
+		return [{
+			types: this.options.types,
+			attributes: { fontSize: {
+				default: null,
+				parseHTML: (element) => element.style.fontSize?.replace(/['"]+/g, "") || null,
+				renderHTML: (attributes) => {
+					if (!attributes.fontSize) return {};
+					return { style: `font-size: ${attributes.fontSize}` };
+				}
+			} }
+		}];
+	},
+	addCommands() {
+		return {
+			setFontSize: (fontSize) => ({ chain }) => {
+				return chain().setMark("textStyle", { fontSize }).run();
+			},
+			unsetFontSize: () => ({ chain }) => {
+				return chain().setMark("textStyle", { fontSize: null }).removeEmptyTextStyle().run();
+			}
+		};
+	}
+});
+//#endregion
 //#region resources/js/Pages/Admin/Articles/Form.jsx
 var Form_exports$2 = /* @__PURE__ */ __exportAll({ default: () => AdminArticlesForm });
-function MenuBar({ editor, trans }) {
+var FONT_SIZES = [
+	"12px",
+	"14px",
+	"16px",
+	"18px",
+	"20px",
+	"24px",
+	"28px",
+	"32px"
+];
+function MenuBar({ editor, trans, isRtl = false }) {
 	if (!editor) return null;
 	const setLink = useCallback(() => {
 		const previousUrl = editor.getAttributes("link").href;
@@ -2837,6 +2879,30 @@ function MenuBar({ editor, trans }) {
 				})]
 			}),
 			/* @__PURE__ */ jsx("span", { className: "w-px bg-secondary-200 mx-1 h-4" }),
+			/* @__PURE__ */ jsxs("div", {
+				className: "flex items-center gap-1.5 px-1 py-0.5 rounded bg-white border border-secondary-200",
+				title: trans("font_size") || "حجم الخط",
+				children: [/* @__PURE__ */ jsxs("label", {
+					className: "text-[11px] text-secondary-600 font-medium",
+					children: [trans("font_size") || "الحجم", ":"]
+				}), /* @__PURE__ */ jsxs("select", {
+					value: editor.getAttributes("textStyle").fontSize || "",
+					onChange: (e) => {
+						const size = e.target.value;
+						if (size) editor.chain().focus().setFontSize(size).run();
+						else editor.chain().focus().unsetFontSize().run();
+					},
+					className: "text-[11px] border-0 bg-transparent text-secondary-700 cursor-pointer focus:outline-none focus:ring-0 py-0.5",
+					children: [/* @__PURE__ */ jsx("option", {
+						value: "",
+						children: isRtl ? "افتراضي" : "Default"
+					}), FONT_SIZES.map((size) => /* @__PURE__ */ jsx("option", {
+						value: size,
+						children: size
+					}, size))]
+				})]
+			}),
+			/* @__PURE__ */ jsx("span", { className: "w-px bg-secondary-200 mx-1 h-4" }),
 			/* @__PURE__ */ jsx("button", {
 				type: "button",
 				onClick: () => editor.chain().focus().toggleHeading({ level: 2 }).run(),
@@ -2904,7 +2970,8 @@ function AdminArticlesForm({ article, categories }) {
 			}),
 			TextAlign.configure({ types: ["heading", "paragraph"] }),
 			TextStyle,
-			Color
+			Color,
+			FontSize
 		],
 		content: article?.content_ar || "",
 		editorProps: { attributes: {
@@ -2926,7 +2993,8 @@ function AdminArticlesForm({ article, categories }) {
 			}),
 			TextAlign.configure({ types: ["heading", "paragraph"] }),
 			TextStyle,
-			Color
+			Color,
+			FontSize
 		],
 		content: article?.content_en || "",
 		editorProps: { attributes: { class: "prose prose-sm max-w-none focus:outline-none min-h-[500px] px-4 py-3" } },
@@ -3094,7 +3162,7 @@ function AdminArticlesForm({ article, categories }) {
 								children: [/* @__PURE__ */ jsx(MenuBar, {
 									editor: editorAr,
 									trans,
-									articleTitle: data.title_ar
+									isRtl
 								}), /* @__PURE__ */ jsx(EditorContent, { editor: editorAr })]
 							}),
 							contentTab === "en" && /* @__PURE__ */ jsxs("div", {
@@ -3102,7 +3170,7 @@ function AdminArticlesForm({ article, categories }) {
 								children: [/* @__PURE__ */ jsx(MenuBar, {
 									editor: editorEn,
 									trans,
-									articleTitle: data.title_en
+									isRtl
 								}), /* @__PURE__ */ jsx(EditorContent, { editor: editorEn })]
 							}),
 							errors.content_ar && /* @__PURE__ */ jsx("p", {
@@ -6561,7 +6629,6 @@ function Edit({ user }) {
 	const [preview, setPreview] = useState(currentUser.avatar ? currentUser.avatar.startsWith("http") || currentUser.avatar.startsWith("/storage") ? currentUser.avatar : `/storage/${currentUser.avatar}` : null);
 	const { data, setData, post, processing, errors } = useForm({
 		name: currentUser.name || "",
-		email: currentUser.email || "",
 		phone: currentUser.phone || "",
 		whatsapp: currentUser.whatsapp || "",
 		facebook: currentUser.facebook || "",
@@ -6685,15 +6752,15 @@ function Edit({ user }) {
 							}),
 							/* @__PURE__ */ jsx("input", {
 								type: "email",
-								value: data.email,
-								onChange: (e) => setData("email", e.target.value),
-								className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900",
-								required: true,
+								value: currentUser.email || "",
+								readOnly: true,
+								disabled: true,
+								className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-secondary-50 text-secondary-600 cursor-not-allowed",
 								dir: "ltr"
 							}),
-							errors.email && /* @__PURE__ */ jsx("p", {
-								className: "text-xs text-error mt-1",
-								children: errors.email
+							/* @__PURE__ */ jsx("p", {
+								className: "text-xs text-muted mt-1",
+								children: isRtl ? "لا يمكن تغيير البريد الإلكتروني. تواصل مع مدير النظام." : "Email cannot be changed. Contact your administrator."
 							})
 						] })]
 					}),
@@ -7235,7 +7302,7 @@ function AdminProjectForm({ project, areas, features, finishingTypes, managers }
 							})] }),
 							isAdmin && managers?.length > 0 && /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
 								className: "block text-sm font-semibold text-secondary-950 mb-1",
-								children: locale === "ar" ? "الوسيط المختص / صاحب المشروع" : "Assigned Agent / Manager"
+								children: locale === "ar" ? "المدير المختص / صاحب المشروع" : "Assigned Manager / Project Owner"
 							}), /* @__PURE__ */ jsxs(Select, {
 								value: data.user_id || data.manager_id || "",
 								onChange: (e) => {
@@ -7245,13 +7312,13 @@ function AdminProjectForm({ project, areas, features, finishingTypes, managers }
 								className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white",
 								children: [/* @__PURE__ */ jsx("option", {
 									value: "",
-									children: locale === "ar" ? "اختر الوسيط المختص..." : "Select Agent..."
+									children: locale === "ar" ? "اختر المدير المختص..." : "Select Manager..."
 								}), managers?.map((m) => /* @__PURE__ */ jsxs("option", {
 									value: m.id,
 									children: [
 										m.name,
 										" (",
-										m.role === "admin" ? locale === "ar" ? "أدمن" : "Admin" : m.role === "manager" ? locale === "ar" ? "مدير" : "Manager" : locale === "ar" ? "وسيط" : "Agent",
+										m.role === "admin" ? locale === "ar" ? "أدمن" : "Admin" : locale === "ar" ? "مدير" : "Manager",
 										")"
 									]
 								}, m.id))]
@@ -12032,8 +12099,8 @@ function Header({ compareCount = 0 }) {
 				}),
 				/* @__PURE__ */ jsxs("div", {
 					className: "flex items-center gap-3",
-					children: [/* @__PURE__ */ jsx(Link, {
-						href: localizedPath(url, isRtl ? "en" : "ar"),
+					children: [/* @__PURE__ */ jsx("a", {
+						href: `/locale/${isRtl ? "en" : "ar"}?path=${encodeURIComponent(typeof url === "string" && url ? url : `/${locale}`)}`,
 						className: "text-xs font-medium text-secondary-700 hover:text-primary-900 border border-secondary-200 rounded-lg px-2.5 py-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
 						"aria-label": isRtl ? "تغيير اللغة إلى الإنجليزية" : "Switch language to Arabic",
 						children: isRtl ? trans("lang_en") : trans("lang_ar")
@@ -14639,7 +14706,8 @@ var Home_exports = /* @__PURE__ */ __exportAll({ default: () => Home });
 var HERO_BG = "/images/hero.webp";
 var HERO_BG_MOBILE = "/images/hero-mobile.webp";
 function Home({ featuredUnits, latestUnits, popularSearches, areas, unitTypes, features, finishingTypes }) {
-	const { locale, settings } = usePage().props;
+	const { locale, settings, appUrl } = usePage().props;
+	const { url: currentUrl } = usePage();
 	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
 	const heroTitle = isRtl ? settings?.hero_title_ar || trans("hero_title") : settings?.hero_title_en || trans("hero_title");
@@ -14659,7 +14727,7 @@ function Home({ featuredUnits, latestUnits, popularSearches, areas, unitTypes, f
 				title: trans("site_title"),
 				description: trans("home_description"),
 				ogImage: homeOgImage,
-				canonical: typeof window !== "undefined" ? window.location.href : null
+				canonical: appUrl && currentUrl ? `${appUrl}${currentUrl.split("?")[0]}` : void 0
 			}),
 			/* @__PURE__ */ jsx(Header, {}),
 			/* @__PURE__ */ jsxs("main", {
@@ -16481,7 +16549,7 @@ function ForgotPassword() {
 	}
 	return /* @__PURE__ */ jsxs(AuthLayout, {
 		title: trans("reset_password_title"),
-		subtitle: isRtl ? "أدخل معلومات حسابك لإرسال رابط التعيين" : "Enter your email to receive a password reset link",
+		subtitle: isRtl ? "أدخل بريدك الإلكتروني لإرسال رمز التحقق (6 أرقام)" : "Enter your email to receive a 6-digit verification code",
 		children: [
 			statusMessage && /* @__PURE__ */ jsxs("div", {
 				className: "mb-5 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs font-medium flex items-center gap-3",
@@ -16500,7 +16568,7 @@ function ForgotPassword() {
 			}),
 			/* @__PURE__ */ jsx("p", {
 				className: "text-xs text-secondary-600 mb-5 leading-relaxed text-center",
-				children: trans("forgot_password")
+				children: isRtl ? "سنقوم بإرسال رمز تحقق مكون من 6 أرقام إلى بريدك الإلكتروني لإعادة تعيين كلمة المرور." : "We will send a 6-digit verification code to your email address to reset your password."
 			}),
 			/* @__PURE__ */ jsxs("form", {
 				onSubmit: handleSubmit,
@@ -16948,12 +17016,27 @@ function Profile() {
 //#endregion
 //#region resources/js/Pages/Shared/ResetPassword.jsx
 var ResetPassword_exports = /* @__PURE__ */ __exportAll({ default: () => ResetPassword });
-function ResetPassword({ token, email }) {
+function ResetPassword({ token, email, secondsRemaining = 60, error: propError }) {
 	const { locale, flash, status: pageStatus } = usePage().props;
 	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
 	const [showPassword, setShowPassword] = useState(false);
+	const [timeLeft, setTimeLeft] = useState(secondsRemaining);
 	const statusMessage = pageStatus || flash?.status || flash?.success;
+	useEffect(() => {
+		if (timeLeft <= 0) return;
+		const timer = setInterval(() => {
+			setTimeLeft((prev) => {
+				if (prev <= 1) {
+					clearInterval(timer);
+					return 0;
+				}
+				return prev - 1;
+			});
+		}, 1e3);
+		return () => clearInterval(timer);
+	}, [timeLeft]);
+	const isExpired = timeLeft <= 0 || Boolean(propError);
 	const { data, setData, post, processing, errors } = useForm({
 		token: token || "",
 		email: email || "",
@@ -16962,13 +17045,57 @@ function ResetPassword({ token, email }) {
 	});
 	function handleSubmit(e) {
 		e.preventDefault();
+		if (isExpired) return;
 		post("/reset-password");
 	}
 	return /* @__PURE__ */ jsxs(AuthLayout, {
 		title: trans("reset_password_title"),
-		subtitle: isRtl ? "أدخل كلمة السر الجديدة لحسابك" : "Enter your new password below",
+		subtitle: isRtl ? "أدخل كلمة السر الجديدة لحسابك خلال المهلة المحددة (5 دقائق)" : "Enter your new password within the 5-minute window",
 		children: [
-			statusMessage && /* @__PURE__ */ jsxs("div", {
+			/* @__PURE__ */ jsxs("div", {
+				className: `mb-5 p-4 rounded-xl border flex items-center justify-between transition-colors ${isExpired ? "bg-red-50 border-red-200 text-red-800" : "bg-amber-50 border-amber-200 text-amber-900"}`,
+				children: [/* @__PURE__ */ jsxs("div", {
+					className: "flex items-center gap-3",
+					children: [/* @__PURE__ */ jsx("svg", {
+						className: `w-5 h-5 shrink-0 ${isExpired ? "text-red-600" : "text-amber-600 animate-pulse"}`,
+						fill: "none",
+						stroke: "currentColor",
+						viewBox: "0 0 24 24",
+						children: /* @__PURE__ */ jsx("path", {
+							strokeLinecap: "round",
+							strokeLinejoin: "round",
+							strokeWidth: 2,
+							d: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+						})
+					}), /* @__PURE__ */ jsx("span", {
+						className: "text-xs font-semibold",
+						children: isExpired ? isRtl ? "انتهت المهلة المحددة (5 دقائق)!" : "The 5-minute time window has expired!" : isRtl ? "الوقت المتبقي لإعادة التعيين:" : "Time remaining to reset:"
+					})]
+				}), !isExpired && /* @__PURE__ */ jsxs("span", {
+					className: "px-3 py-1 bg-amber-200/60 text-amber-950 font-mono font-bold text-sm rounded-lg shadow-sm",
+					children: [
+						timeLeft,
+						" ",
+						isRtl ? "ثانية" : "s"
+					]
+				})]
+			}),
+			propError && /* @__PURE__ */ jsxs("div", {
+				className: "mb-5 p-4 bg-red-50 border border-red-200 rounded-xl text-red-800 text-xs font-medium flex items-center gap-3",
+				children: [/* @__PURE__ */ jsx("svg", {
+					className: "w-5 h-5 text-red-600 shrink-0",
+					fill: "none",
+					stroke: "currentColor",
+					viewBox: "0 0 24 24",
+					children: /* @__PURE__ */ jsx("path", {
+						strokeLinecap: "round",
+						strokeLinejoin: "round",
+						strokeWidth: 2,
+						d: "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+					})
+				}), /* @__PURE__ */ jsx("span", { children: propError })]
+			}),
+			statusMessage && !propError && /* @__PURE__ */ jsxs("div", {
 				className: "mb-5 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs font-medium flex items-center gap-3",
 				children: [/* @__PURE__ */ jsx("svg", {
 					className: "w-5 h-5 text-emerald-600 shrink-0",
@@ -16993,47 +17120,27 @@ function ResetPassword({ token, email }) {
 						name: "token",
 						value: data.token
 					}),
-					email ? /* @__PURE__ */ jsx("input", {
+					/* @__PURE__ */ jsx("input", {
 						type: "hidden",
 						name: "email",
 						value: data.email
-					}) : /* @__PURE__ */ jsxs("div", { children: [
-						/* @__PURE__ */ jsx("label", {
-							className: "block text-xs font-medium text-secondary-800 mb-1",
-							children: trans("email")
-						}),
-						/* @__PURE__ */ jsxs("div", {
-							className: "relative",
-							children: [/* @__PURE__ */ jsx("div", {
-								className: "absolute inset-y-0 start-0 ps-3 flex items-center pointer-events-none text-secondary-400",
-								children: /* @__PURE__ */ jsx("svg", {
-									className: "w-4 h-4",
-									fill: "none",
-									stroke: "currentColor",
-									viewBox: "0 0 24 24",
-									children: /* @__PURE__ */ jsx("path", {
-										strokeLinecap: "round",
-										strokeLinejoin: "round",
-										strokeWidth: 1.5,
-										d: "M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"
-									})
-								})
-							}), /* @__PURE__ */ jsx("input", {
-								type: "email",
-								name: "email",
-								required: true,
-								autoComplete: "email",
-								value: data.email,
-								onChange: (e) => setData("email", e.target.value),
-								placeholder: trans("email_placeholder"),
-								className: `w-full ps-9 pe-3 py-2.5 bg-slate-50 text-secondary-950 placeholder-secondary-400 border ${errors.email ? "border-red-500 focus:ring-red-500/20" : "border-secondary-200 focus:border-red-600 focus:ring-red-600/10"} rounded-xl text-sm transition-all focus:bg-white focus:outline-none focus:ring-4`
-							})]
-						}),
-						errors.email && /* @__PURE__ */ jsx("p", {
-							className: "mt-1 text-xs text-red-600 font-medium",
-							children: errors.email
+					}),
+					!email && /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+						className: "block text-xs font-medium text-secondary-800 mb-1",
+						children: trans("email")
+					}), /* @__PURE__ */ jsx("div", {
+						className: "relative",
+						children: /* @__PURE__ */ jsx("input", {
+							type: "email",
+							name: "email",
+							required: true,
+							disabled: isExpired,
+							value: data.email,
+							onChange: (e) => setData("email", e.target.value),
+							placeholder: trans("email_placeholder"),
+							className: "w-full px-3 py-2.5 bg-slate-50 border border-secondary-200 rounded-xl text-sm disabled:opacity-50"
 						})
-					] }),
+					})] }),
 					/* @__PURE__ */ jsxs("div", { children: [
 						/* @__PURE__ */ jsx("label", {
 							className: "block text-xs font-medium text-secondary-800 mb-1",
@@ -17061,17 +17168,17 @@ function ResetPassword({ token, email }) {
 									type: showPassword ? "text" : "password",
 									name: "password",
 									required: true,
+									disabled: isExpired,
 									autoComplete: "new-password",
 									value: data.password,
 									onChange: (e) => setData("password", e.target.value),
 									placeholder: "••••••••",
-									className: `w-full ps-9 pe-10 py-2.5 bg-slate-50 text-secondary-950 placeholder-secondary-400 border ${errors.password ? "border-red-500 focus:ring-red-500/20" : "border-secondary-200 focus:border-red-600 focus:ring-red-600/10"} rounded-xl text-sm transition-all focus:bg-white focus:outline-none focus:ring-4`
+									className: `w-full ps-9 pe-10 py-2.5 bg-slate-50 text-secondary-950 placeholder-secondary-400 border ${errors.password ? "border-red-500 focus:ring-red-500/20" : "border-secondary-200 focus:border-red-600 focus:ring-red-600/10"} rounded-xl text-sm transition-all focus:bg-white focus:outline-none focus:ring-4 disabled:opacity-50`
 								}),
 								/* @__PURE__ */ jsx("button", {
 									type: "button",
 									onClick: () => setShowPassword(!showPassword),
 									className: "absolute inset-y-0 end-0 pe-3 flex items-center text-secondary-400 hover:text-secondary-700 transition-colors",
-									"aria-label": showPassword ? isRtl ? "إخفاء كلمة المرور" : "Hide password" : isRtl ? "إظهار كلمة المرور" : "Show password",
 									children: showPassword ? /* @__PURE__ */ jsx("svg", {
 										className: "w-4 h-4",
 										fill: "none",
@@ -17133,11 +17240,12 @@ function ResetPassword({ token, email }) {
 								type: showPassword ? "text" : "password",
 								name: "password_confirmation",
 								required: true,
+								disabled: isExpired,
 								autoComplete: "new-password",
 								value: data.password_confirmation,
 								onChange: (e) => setData("password_confirmation", e.target.value),
 								placeholder: "••••••••",
-								className: `w-full ps-9 pe-3 py-2.5 bg-slate-50 text-secondary-950 placeholder-secondary-400 border ${errors.password_confirmation ? "border-red-500 focus:ring-red-500/20" : "border-secondary-200 focus:border-red-600 focus:ring-red-600/10"} rounded-xl text-sm transition-all focus:bg-white focus:outline-none focus:ring-4`
+								className: `w-full ps-9 pe-3 py-2.5 bg-slate-50 text-secondary-950 placeholder-secondary-400 border ${errors.password_confirmation ? "border-red-500 focus:ring-red-500/20" : "border-secondary-200 focus:border-red-600 focus:ring-red-600/10"} rounded-xl text-sm transition-all focus:bg-white focus:outline-none focus:ring-4 disabled:opacity-50`
 							})]
 						}),
 						errors.password_confirmation && /* @__PURE__ */ jsx("p", {
@@ -17151,9 +17259,13 @@ function ResetPassword({ token, email }) {
 					}),
 					/* @__PURE__ */ jsx("div", {
 						className: "pt-2",
-						children: /* @__PURE__ */ jsx("button", {
+						children: isExpired ? /* @__PURE__ */ jsx(Link, {
+							href: "/forgot-password",
+							className: "w-full py-3 px-4 bg-red-600 hover:bg-red-700 text-white font-bold text-sm rounded-xl shadow-md text-center block transition-all",
+							children: isRtl ? "طلب رمز تحقق جديد" : "Request New Code"
+						}) : /* @__PURE__ */ jsx("button", {
 							type: "submit",
-							disabled: processing,
+							disabled: processing || isExpired,
 							className: "w-full py-3 px-4 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-bold text-sm rounded-xl shadow-md shadow-red-500/20 hover:shadow-lg hover:shadow-red-500/30 transition-all transform active:scale-[0.99] disabled:opacity-60 flex items-center justify-center gap-2",
 							children: processing ? /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsxs("svg", {
 								className: "animate-spin h-4 w-4 text-white",
@@ -17171,7 +17283,7 @@ function ResetPassword({ token, email }) {
 									fill: "currentColor",
 									d: "M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
 								})]
-							}), /* @__PURE__ */ jsx("span", { children: isRtl ? "جارٍ الحفظ..." : "Saving..." })] }) : /* @__PURE__ */ jsx("span", { children: trans("reset_button") })
+							}), /* @__PURE__ */ jsx("span", { children: isRtl ? "جارٍ الحفظ..." : "Saving..." })] }) : /* @__PURE__ */ jsx("span", { children: isRtl ? "تغيير كلمة المرور الآن" : "Update Password Now" })
 						})
 					})
 				]
@@ -17183,6 +17295,130 @@ function ResetPassword({ token, email }) {
 					className: "text-xs font-medium text-red-600 hover:text-red-700 hover:underline transition-colors",
 					children: trans("back_to_login")
 				})
+			})
+		]
+	});
+}
+//#endregion
+//#region resources/js/Pages/Shared/VerifyOtp.jsx
+var VerifyOtp_exports = /* @__PURE__ */ __exportAll({ default: () => VerifyOtp });
+function VerifyOtp() {
+	const { locale, flash, status: pageStatus, email: propEmail } = usePage().props;
+	const trans = useTrans(locale);
+	const isRtl = locale === "ar";
+	const statusMessage = pageStatus || flash?.status || flash?.success;
+	const { data, setData, post, processing, errors } = useForm({
+		email: propEmail || "",
+		code: ""
+	});
+	function handleSubmit(e) {
+		e.preventDefault();
+		post("/verify-otp");
+	}
+	return /* @__PURE__ */ jsxs(AuthLayout, {
+		title: isRtl ? "تأكيد رمز التحقق" : "Verify Security Code",
+		subtitle: isRtl ? "أدخل الرمز المكون من 6 أرقام المرسل إلى بريدك الإلكتروني" : "Enter the 6-digit code sent to your email address",
+		children: [
+			statusMessage && /* @__PURE__ */ jsxs("div", {
+				className: "mb-5 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs font-medium flex items-center gap-3",
+				children: [/* @__PURE__ */ jsx("svg", {
+					className: "w-5 h-5 text-emerald-600 shrink-0",
+					fill: "none",
+					stroke: "currentColor",
+					viewBox: "0 0 24 24",
+					children: /* @__PURE__ */ jsx("path", {
+						strokeLinecap: "round",
+						strokeLinejoin: "round",
+						strokeWidth: 2,
+						d: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+					})
+				}), /* @__PURE__ */ jsx("span", { children: statusMessage })]
+			}),
+			/* @__PURE__ */ jsxs("form", {
+				onSubmit: handleSubmit,
+				noValidate: true,
+				className: "space-y-4",
+				children: [
+					/* @__PURE__ */ jsxs("div", { children: [
+						/* @__PURE__ */ jsx("label", {
+							className: "block text-xs font-medium text-secondary-800 mb-1",
+							children: trans("email")
+						}),
+						/* @__PURE__ */ jsx("input", {
+							type: "email",
+							name: "email",
+							required: true,
+							readOnly: true,
+							value: data.email,
+							className: `w-full px-3 py-2.5 bg-slate-100 text-secondary-700 border ${errors.email ? "border-red-500" : "border-secondary-200"} rounded-xl text-sm cursor-not-allowed`
+						}),
+						errors.email && /* @__PURE__ */ jsx("p", {
+							className: "mt-1 text-xs text-red-600 font-medium",
+							children: errors.email
+						})
+					] }),
+					/* @__PURE__ */ jsxs("div", { children: [
+						/* @__PURE__ */ jsx("label", {
+							className: "block text-xs font-medium text-secondary-800 mb-1",
+							children: isRtl ? "رمز التحقق (6 أرقام)" : "Verification Code (6 digits)"
+						}),
+						/* @__PURE__ */ jsx("div", {
+							className: "relative",
+							children: /* @__PURE__ */ jsx("input", {
+								type: "text",
+								name: "code",
+								maxLength: 6,
+								required: true,
+								autoFocus: true,
+								value: data.code,
+								onChange: (e) => setData("code", e.target.value.replace(/\D/g, "")),
+								placeholder: "123456",
+								className: `w-full px-4 py-3 text-center tracking-[0.75em] text-lg font-bold bg-slate-50 text-secondary-950 border ${errors.code ? "border-red-500 focus:ring-red-500/20" : "border-secondary-200 focus:border-red-600 focus:ring-red-600/10"} rounded-xl transition-all focus:bg-white focus:outline-none focus:ring-4`
+							})
+						}),
+						errors.code && /* @__PURE__ */ jsx("p", {
+							className: "mt-1 text-xs text-red-600 font-medium",
+							children: errors.code
+						})
+					] }),
+					/* @__PURE__ */ jsx("div", {
+						className: "pt-2",
+						children: /* @__PURE__ */ jsx("button", {
+							type: "submit",
+							disabled: processing || data.code.length !== 6,
+							className: "w-full py-3 px-4 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-bold text-sm rounded-xl shadow-md shadow-red-500/20 hover:shadow-lg hover:shadow-red-500/30 transition-all transform active:scale-[0.99] disabled:opacity-60 flex items-center justify-center gap-2",
+							children: processing ? /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsxs("svg", {
+								className: "animate-spin h-4 w-4 text-white",
+								fill: "none",
+								viewBox: "0 0 24 24",
+								children: [/* @__PURE__ */ jsx("circle", {
+									className: "opacity-25",
+									cx: "12",
+									cy: "12",
+									r: "10",
+									stroke: "currentColor",
+									strokeWidth: "4"
+								}), /* @__PURE__ */ jsx("path", {
+									className: "opacity-75",
+									fill: "currentColor",
+									d: "M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+								})]
+							}), /* @__PURE__ */ jsx("span", { children: isRtl ? "جارٍ التحقق..." : "Verifying..." })] }) : /* @__PURE__ */ jsx("span", { children: isRtl ? "متابعة وتأكيد الرمز" : "Verify Code & Proceed" })
+						})
+					})
+				]
+			}),
+			/* @__PURE__ */ jsxs("div", {
+				className: "mt-6 text-center flex items-center justify-between text-xs font-medium",
+				children: [/* @__PURE__ */ jsx(Link, {
+					href: "/forgot-password",
+					className: "text-secondary-600 hover:text-secondary-800 hover:underline transition-colors",
+					children: isRtl ? "إعادة طلب الرمز" : "Resend Code"
+				}), /* @__PURE__ */ jsx(Link, {
+					href: "/login",
+					className: "text-red-600 hover:text-red-700 hover:underline transition-colors",
+					children: trans("back_to_login")
+				})]
 			})
 		]
 	});
@@ -17272,6 +17508,7 @@ createServer((page) => createInertiaApp({
 			"./Pages/Shared/Login.jsx": Login_exports,
 			"./Pages/Shared/Profile.jsx": Profile_exports,
 			"./Pages/Shared/ResetPassword.jsx": ResetPassword_exports,
+			"./Pages/Shared/VerifyOtp.jsx": VerifyOtp_exports,
 			"./Pages/Shared/Welcome.jsx": Welcome_exports
 		}))[`./Pages/${name}.jsx`];
 	},
