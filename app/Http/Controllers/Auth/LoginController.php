@@ -71,10 +71,11 @@ class LoginController extends Controller
         return back()->with('success', __('auth.check_email'));
     }
 
-    public function showResetForm(string $token): Response
+    public function showResetForm(\Illuminate\Http\Request $request, string $token): Response
     {
         return Inertia::render('Shared/ResetPassword', [
             'token' => $token,
+            'email' => (string) $request->query('email', ''),
         ]);
     }
 
@@ -82,6 +83,6 @@ class LoginController extends Controller
     {
         $this->authService->resetPassword($request->validated());
 
-        return redirect('/')->with('success', __('auth.password_reset_success'));
+        return back()->with('status', __('auth.password_reset_success'));
     }
 }

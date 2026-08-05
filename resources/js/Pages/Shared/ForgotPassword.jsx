@@ -3,9 +3,11 @@ import AuthLayout from '../../Components/Layout/AuthLayout'
 import { useTrans } from '../../Utils/trans'
 
 export default function ForgotPassword() {
-    const { locale } = usePage().props
+    const { locale, flash, status: pageStatus } = usePage().props
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
+
+    const statusMessage = pageStatus || flash?.status || flash?.success
 
     const { data, setData, post, processing, errors } = useForm({
         email: '',
@@ -21,6 +23,15 @@ export default function ForgotPassword() {
             title={trans('reset_password_title')}
             subtitle={isRtl ? 'أدخل معلومات حسابك لإرسال رابط التعيين' : 'Enter your email to receive a password reset link'}
         >
+            {statusMessage && (
+                <div className="mb-5 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs font-medium flex items-center gap-3">
+                    <svg className="w-5 h-5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>{statusMessage}</span>
+                </div>
+            )}
+
             <p className="text-xs text-secondary-600 mb-5 leading-relaxed text-center">
                 {trans('forgot_password')}
             </p>

@@ -44,7 +44,8 @@ test('user can reset password with valid token', function () {
     ]);
 
     $response->assertSessionHasNoErrors();
-    $response->assertRedirect('/');
+    $response->assertRedirect();
+    $response->assertSessionHas('status');
 
     $this->assertTrue(Hash::check('new-password-123', $user->fresh()->password));
 });

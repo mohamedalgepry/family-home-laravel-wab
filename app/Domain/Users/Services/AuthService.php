@@ -55,8 +55,6 @@ class AuthService
     {
         $status = Password::reset($credentials, function (User $user, string $password) {
             $user->forceFill(['password' => $password])->save();
-            Auth::login($user);
-            session()->regenerate();
         });
 
         if ($status !== Password::PASSWORD_RESET) {
