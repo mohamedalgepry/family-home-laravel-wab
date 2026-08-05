@@ -56,7 +56,7 @@ export default function ForgotPassword() {
                             onChange={e => setData('email', e.target.value)}
                             placeholder={trans('email_placeholder')}
                             className={`w-full ps-9 pe-3 py-2.5 bg-slate-50 text-secondary-950 placeholder-secondary-400 border ${
-                                errors.email ? 'border-red-500 focus:ring-red-500/20' : 'border-secondary-200 focus:border-primary-900 focus:ring-primary-900/10'
+                                errors.email ? 'border-red-500 focus:ring-red-500/20' : 'border-secondary-200 focus:border-red-600 focus:ring-red-600/10'
                             } rounded-xl text-sm transition-all focus:bg-white focus:outline-none focus:ring-4`}
                         />
                     </div>
@@ -71,7 +71,7 @@ export default function ForgotPassword() {
                     <button
                         type="submit"
                         disabled={processing}
-                        className="w-full py-3 px-4 bg-primary-900 hover:bg-primary-950 text-white font-bold text-sm rounded-xl shadow-md hover:shadow-lg transition-all transform active:scale-[0.99] disabled:opacity-60 flex items-center justify-center gap-2"
+                        className="w-full py-3 px-4 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-bold text-sm rounded-xl shadow-md shadow-red-500/20 hover:shadow-lg hover:shadow-red-500/30 transition-all transform active:scale-[0.99] disabled:opacity-60 flex items-center justify-center gap-2"
                     >
                         {processing ? (
                             <>
@@ -91,7 +91,7 @@ export default function ForgotPassword() {
             <div className="mt-6 text-center">
                 <Link
                     href="/login"
-                    className="text-xs font-medium text-primary-900 hover:text-primary-950 hover:underline transition-colors"
+                    className="text-xs font-medium text-red-600 hover:text-red-700 hover:underline transition-colors"
                 >
                     {trans('back_to_login')}
                 </Link>

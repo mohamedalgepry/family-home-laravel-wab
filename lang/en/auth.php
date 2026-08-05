@@ -19,6 +19,7 @@ return [
     'password_requirements' => 'Password must be at least 8 characters',
     'failed' => 'These credentials do not match our records',
     'throttle' => 'Too many login attempts. Please try again in :seconds seconds.',
+    'user_not_found' => 'We could not find a user with that email address.',
     'profile_title' => 'Profile',
     'profile_info' => 'Personal Information',
     'contact_info' => 'Contact Information',

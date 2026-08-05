@@ -44,7 +44,7 @@ class LoginController extends Controller
 
             RateLimiter::clear($key);
 
-            return redirect()->intended('/admin');
+            return redirect('/admin');
         } catch (ValidationException $e) {
             RateLimiter::hit($key);
 

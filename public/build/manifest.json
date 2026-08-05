@@ -152,7 +152,7 @@
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-D_nE6a6u.css",
+    "file": "assets/app-50-pDUu8.css",
     "name": "app",
     "names": [
       "app.css"
@@ -631,7 +631,7 @@
     ]
   },
   "resources/js/Pages/Shared/ForgotPassword.jsx": {
-    "file": "assets/ForgotPassword-DyWRfASf.js",
+    "file": "assets/ForgotPassword-BYPjeHx9.js",
     "name": "ForgotPassword",
     "src": "resources/js/Pages/Shared/ForgotPassword.jsx",
     "isDynamicEntry": true,
@@ -667,7 +667,7 @@
     ]
   },
   "resources/js/Pages/Shared/ResetPassword.jsx": {
-    "file": "assets/ResetPassword-B7qKDW3l.js",
+    "file": "assets/ResetPassword-0pukCzzE.js",
     "name": "ResetPassword",
     "src": "resources/js/Pages/Shared/ResetPassword.jsx",
     "isDynamicEntry": true,
@@ -689,7 +689,7 @@
     ]
   },
   "resources/js/app.jsx": {
-    "file": "assets/app-DS168oxL.js",
+    "file": "assets/app-DxS2AvmF.js",
     "name": "app",
     "src": "resources/js/app.jsx",
     "isEntry": true,

@@ -22,6 +22,14 @@ test('forgot password request sends password reset link to valid user', function
     $response->assertRedirect();
 });
 
+test('forgot password fails when email is not registered in database', function () {
+    $response = $this->post('/forgot-password', [
+        'email' => 'nonexistent@example.com',
+    ]);
+
+    $response->assertSessionHasErrors(['email']);
+});
+
 test('reset password page renders with token', function () {
     $response = $this->get('/reset-password/sample-token');
 
