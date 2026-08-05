@@ -103,14 +103,13 @@ export default function AdminUsersCreate({ managers }) {
 
                         {data.role === 'agent' && (
                             <div>
-                                <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('users.manager')} *</label>
+                                <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('users.manager')} ({isRtl ? 'اختياري - التلقائي الأدمن الحالي' : 'Optional - Default current Admin'})</label>
                                 <Select
                                     value={data.manager_id}
                                     onChange={e => setData('manager_id', e.target.value)}
                                     className="w-full px-4 py-2 border border-secondary-200 rounded-lg bg-white"
-                                    required={data.role === 'agent'}
                                 >
-                                    <option value="">{trans('users.select_manager') || 'اختر المدير...'}</option>
+                                    <option value="">{isRtl ? 'تلقائياً (أنا الأدمن الحالي)' : 'Default (Current Admin)'}</option>
                                     {managers?.map(m => (
                                         <option key={m.id} value={m.id}>{m.name}</option>
                                     ))}

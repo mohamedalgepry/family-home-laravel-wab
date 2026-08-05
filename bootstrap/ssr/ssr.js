@@ -11119,16 +11119,20 @@ function AdminUsersCreate({ managers }) {
 					data.role === "agent" && /* @__PURE__ */ jsxs("div", { children: [
 						/* @__PURE__ */ jsxs("label", {
 							className: "block text-sm font-medium text-secondary-950 mb-1",
-							children: [trans("users.manager"), " *"]
+							children: [
+								trans("users.manager"),
+								" (",
+								isRtl ? "اختياري - التلقائي الأدمن الحالي" : "Optional - Default current Admin",
+								")"
+							]
 						}),
 						/* @__PURE__ */ jsxs(Select, {
 							value: data.manager_id,
 							onChange: (e) => setData("manager_id", e.target.value),
 							className: "w-full px-4 py-2 border border-secondary-200 rounded-lg bg-white",
-							required: data.role === "agent",
 							children: [/* @__PURE__ */ jsx("option", {
 								value: "",
-								children: trans("users.select_manager") || "اختر المدير..."
+								children: isRtl ? "تلقائياً (أنا الأدمن الحالي)" : "Default (Current Admin)"
 							}), managers?.map((m) => /* @__PURE__ */ jsx("option", {
 								value: m.id,
 								children: m.name

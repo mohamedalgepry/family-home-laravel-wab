@@ -73,7 +73,7 @@ class UserController extends Controller
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
-            'manager_id' => $data['role'] === 'agent' ? $data['manager_id'] : null,
+            'manager_id' => $data['role'] === 'agent' ? (!empty($data['manager_id']) ? $data['manager_id'] : $request->user()->id) : null,
         ]);
 
         $user->role = $data['role'];

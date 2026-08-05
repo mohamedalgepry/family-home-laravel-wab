@@ -21,7 +21,6 @@ class StoreUserRequest extends FormRequest
             'role' => ['required', 'string', Rule::in(['admin', 'manager', 'agent'])],
             'manager_id' => [
                 'nullable',
-                Rule::requiredIf(fn () => $this->role === 'agent'),
                 'exists:users,id',
             ],
         ];
