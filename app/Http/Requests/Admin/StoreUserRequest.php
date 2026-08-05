@@ -9,19 +9,21 @@ class StoreUserRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->isAdmin() ?? false;
+        return $this->user()?->isAdmin() || $this->user()?->isManager();
     }
 
     public function rules(): array
     {
+        $isManager = $this->user()?->isManager();
+
         return [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'role' => ['required', 'string', Rule::in(['admin', 'manager', 'agent'])],
+            'role' => [$isManager ? 'nullable' : 'required', 'string', Rule::in(['admin', 'manager', 'agent'])],
             'manager_id' => [
                 'nullable',
-                Rule::requiredIf(fn () => $this->role === 'agent'),
+                Rule::requiredIf(fn () => ! $isManager && $this->role === 'agent'),
                 'exists:users,id',
             ],
         ];
