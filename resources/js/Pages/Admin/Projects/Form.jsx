@@ -441,7 +441,7 @@ export default function AdminProjectForm({ project, areas, features, finishingTy
                             {isAdmin && managers?.length > 0 && (
                                 <div>
                                     <label className="block text-sm font-semibold text-secondary-950 mb-1">
-                                        {locale === 'ar' ? 'الوسيط المختص / صاحب المشروع' : 'Assigned Agent / Manager'}
+                                        {locale === 'ar' ? 'المدير المختص / صاحب المشروع' : 'Assigned Manager / Project Owner'}
                                     </label>
                                     <Select
                                         value={data.user_id || data.manager_id || ''}
@@ -451,10 +451,10 @@ export default function AdminProjectForm({ project, areas, features, finishingTy
                                         }}
                                         className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white"
                                     >
-                                        <option value="">{locale === 'ar' ? 'اختر الوسيط المختص...' : 'Select Agent...'}</option>
+                                        <option value="">{locale === 'ar' ? 'اختر المدير المختص...' : 'Select Manager...'}</option>
                                         {managers?.map(m => (
                                             <option key={m.id} value={m.id}>
-                                                {m.name} ({m.role === 'admin' ? (locale === 'ar' ? 'أدمن' : 'Admin') : m.role === 'manager' ? (locale === 'ar' ? 'مدير' : 'Manager') : (locale === 'ar' ? 'وسيط' : 'Agent')})
+                                                {m.name} ({m.role === 'admin' ? (locale === 'ar' ? 'أدمن' : 'Admin') : (locale === 'ar' ? 'مدير' : 'Manager')})
                                             </option>
                                         ))}
                                     </Select>

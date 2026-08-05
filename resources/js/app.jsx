@@ -21,7 +21,14 @@ class ErrorBoundary extends Component {
 
     render() {
         if (this.state.hasError) {
-            return null
+            return (
+                <div className="min-h-screen flex items-center justify-center bg-surface p-6 text-center">
+                    <div>
+                        <p className="text-secondary-800 font-medium mb-2">جاري إعادة تحميل الصفحة...</p>
+                        <p className="text-sm text-secondary-500">Reloading page...</p>
+                    </div>
+                </div>
+            )
         }
         return this.props.children
     }
@@ -38,10 +45,25 @@ if (typeof window !== 'undefined') {
     );
 
     router.on('invalid', (event) => {
-        event.preventDefault();
         const response = event.detail.response;
-        const targetUrl = response?.request?.responseURL || response?.headers?.location || window.location.href;
-        window.location.href = targetUrl;
+        const inertiaLocation = response?.headers?.['x-inertia-location'];
+
+        if (inertiaLocation) {
+            event.preventDefault();
+            window.location.href = inertiaLocation;
+            return;
+        }
+
+        // Cached HTML returned instead of Inertia JSON — reload the intended page cleanly
+        const visitUrl = event.detail?.visit?.url?.href || response?.request?.responseURL;
+        if (visitUrl) {
+            event.preventDefault();
+            window.location.assign(visitUrl);
+            return;
+        }
+
+        event.preventDefault();
+        window.location.reload();
     });
 
     // تأثير تلوين النص عند اللمس على الموبايل (a:active لا يعمل بموثوقية على متصفحات Android/iOS)

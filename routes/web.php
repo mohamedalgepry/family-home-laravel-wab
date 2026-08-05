@@ -81,7 +81,9 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [LoginController::class, 'store']);
     Route::get('/forgot-password', [LoginController::class, 'forgotPassword'])->name('password.request');
     Route::post('/forgot-password', [LoginController::class, 'sendResetLink'])->name('password.email');
-    Route::get('/reset-password/{token}', [LoginController::class, 'showResetForm'])->name('password.reset');
+    Route::get('/verify-otp', [LoginController::class, 'showVerifyOtpForm'])->name('password.otp');
+    Route::post('/verify-otp', [LoginController::class, 'verifyOtp'])->name('password.otp.verify');
+    Route::get('/reset-password/{token?}', [LoginController::class, 'showResetForm'])->name('password.reset');
     Route::post('/reset-password', [LoginController::class, 'resetPassword'])->name('password.update');
 });
 
@@ -103,7 +105,9 @@ Route::prefix('{locale}')->whereIn('locale', ['ar', 'en'])->middleware(SetLocale
         Route::post('/login', [LoginController::class, 'store']);
         Route::get('/forgot-password', [LoginController::class, 'forgotPassword']);
         Route::post('/forgot-password', [LoginController::class, 'sendResetLink']);
-        Route::get('/reset-password/{token}', [LoginController::class, 'showResetForm']);
+        Route::get('/verify-otp', [LoginController::class, 'showVerifyOtpForm']);
+        Route::post('/verify-otp', [LoginController::class, 'verifyOtp']);
+        Route::get('/reset-password/{token?}', [LoginController::class, 'showResetForm']);
         Route::post('/reset-password', [LoginController::class, 'resetPassword']);
     });
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Domain\Users\Models\User;
+use App\Domain\Users\Notifications\SendWelcomeNotification;
 use App\Domain\Users\Services\UserService;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AssignAgentsRequest;
@@ -68,17 +69,20 @@ class UserController extends Controller
         $this->authorize('create', User::class);
 
         $data = $request->validated();
+        $plainPassword = $data['password'];
 
         $user = User::make([
             'name' => $data['name'],
             'email' => $data['email'],
-            'password' => Hash::make($data['password']),
+            'password' => Hash::make($plainPassword),
             'manager_id' => $data['role'] === 'agent' ? (!empty($data['manager_id']) ? $data['manager_id'] : $request->user()->id) : null,
         ]);
 
         $user->role = $data['role'];
         $user->is_active = true;
         $user->save();
+
+        $user->notify(new SendWelcomeNotification($plainPassword, app()->getLocale()));
 
         return redirect()->route('admin.users.index')
             ->with('success', __('users.user_created', ['name' => $user->name]));

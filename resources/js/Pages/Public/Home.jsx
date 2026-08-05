@@ -12,7 +12,8 @@ const HERO_BG = '/images/hero.webp'
 const HERO_BG_MOBILE = '/images/hero-mobile.webp'
 
 export default function Home({ featuredUnits, latestUnits, popularSearches, areas, unitTypes, features, finishingTypes }) {
-    const { locale, settings } = usePage().props
+    const { locale, settings, appUrl } = usePage().props
+    const { url: currentUrl } = usePage()
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
 
@@ -34,7 +35,7 @@ export default function Home({ featuredUnits, latestUnits, popularSearches, area
                 title={trans('site_title')}
                 description={trans('home_description')}
                 ogImage={homeOgImage}
-                canonical={typeof window !== 'undefined' ? window.location.href : null}
+                canonical={appUrl && currentUrl ? `${appUrl}${currentUrl.split('?')[0]}` : undefined}
             />
             <Header />
 

@@ -77,10 +77,10 @@ it('lets an agent see only their manager projects', function () {
     expect($projects->all())->toBe([$this->managerProject->id]);
 });
 
-it('lets an agent without a manager see no projects', function () {
+it('lets an agent without a manager see all projects', function () {
     $projects = UserScopeQueryBuilder::applyOwnershipScope(Project::query(), $this->lonelyAgent)->pluck('id');
 
-    expect($projects)->toHaveCount(0);
+    expect($projects)->toHaveCount(3);
 });
 
 it('returns team user ids for manager and agents', function () {

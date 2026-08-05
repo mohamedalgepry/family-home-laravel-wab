@@ -66,23 +66,122 @@ class LoginController extends Controller
 
     public function sendResetLink(ForgotPasswordRequest $request): RedirectResponse
     {
-        $this->authService->forgotPassword($request->input('email'));
+        $key = 'forgot-password|'.$request->input('email').'|'.$request->ip();
 
-        return back()->with('success', __('auth.check_email'));
+        if (RateLimiter::tooManyAttempts($key, 3)) {
+            $seconds = RateLimiter::availableIn($key);
+
+            throw ValidationException::withMessages([
+                'email' => __('auth.throttle', ['seconds' => $seconds]),
+            ]);
+        }
+
+        RateLimiter::hit($key, 300);
+
+        $email = $request->input('email');
+        $this->authService->sendOtp($email, app()->getLocale());
+
+        $request->session()->put('password_reset_email', $email);
+
+        return redirect()->route('password.otp')->with('status', __('auth.otp_sent'));
     }
 
-    public function showResetForm(\Illuminate\Http\Request $request, string $token): Response
+    public function showVerifyOtpForm(\Illuminate\Http\Request $request): Response|RedirectResponse
     {
+        $email = (string) $request->session()->get('password_reset_email', '');
+
+        if ($email === '') {
+            return redirect()->route('password.request');
+        }
+
+        return Inertia::render('Shared/VerifyOtp', [
+            'email' => $email,
+        ]);
+    }
+
+    public function verifyOtp(\Illuminate\Http\Request $request): RedirectResponse
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'code' => 'required|string|size:6',
+        ]);
+
+        $sessionEmail = (string) $request->session()->get('password_reset_email', '');
+
+        if ($sessionEmail === '' || $sessionEmail !== $request->input('email')) {
+            throw ValidationException::withMessages([
+                'email' => __('auth.reset_session_expired'),
+            ]);
+        }
+
+        $key = 'verify-otp|'.$request->input('email').'|'.$request->ip();
+
+        if (RateLimiter::tooManyAttempts($key, 5)) {
+            $seconds = RateLimiter::availableIn($key);
+
+            throw ValidationException::withMessages([
+                'code' => __('auth.throttle', ['seconds' => $seconds]),
+            ]);
+        }
+
+        try {
+            $resetToken = $this->authService->verifyOtp($request->input('email'), $request->input('code'));
+            RateLimiter::clear($key);
+
+            $request->session()->put('password_reset_token', $resetToken);
+
+            return redirect()->route('password.reset', [
+                'token' => $resetToken,
+            ]);
+        } catch (ValidationException $e) {
+            RateLimiter::hit($key, 180);
+            throw $e;
+        }
+    }
+
+    public function showResetForm(\Illuminate\Http\Request $request, string $token = ''): Response|RedirectResponse
+    {
+        $email = (string) $request->session()->get('password_reset_email', '');
+        $token = $token ?: (string) $request->session()->get('password_reset_token', '');
+
+        if ($email === '' || $token === '') {
+            return redirect()->route('password.request');
+        }
+
+        try {
+            $secondsRemaining = $this->authService->checkResetTokenValidity($email, $token);
+        } catch (ValidationException $e) {
+            $request->session()->forget(['password_reset_email', 'password_reset_token']);
+
+            return Inertia::render('Shared/ResetPassword', [
+                'token' => $token,
+                'email' => $email,
+                'secondsRemaining' => 0,
+                'error' => __('auth.reset_token_expired'),
+            ]);
+        }
+
         return Inertia::render('Shared/ResetPassword', [
             'token' => $token,
-            'email' => (string) $request->query('email', ''),
+            'email' => $email,
+            'secondsRemaining' => $secondsRemaining,
         ]);
     }
 
     public function resetPassword(ResetPasswordRequest $request): RedirectResponse
     {
-        $this->authService->resetPassword($request->validated());
+        $sessionEmail = (string) $request->session()->get('password_reset_email', '');
 
-        return back()->with('status', __('auth.password_reset_success'));
+        if ($sessionEmail === '' || $sessionEmail !== $request->input('email')) {
+            throw ValidationException::withMessages([
+                'email' => __('auth.reset_session_expired'),
+            ]);
+        }
+
+        $this->authService->resetPasswordWithOtp($request->validated());
+
+        $request->session()->forget(['password_reset_email', 'password_reset_token']);
+
+        return redirect()->route('login')->with('status', __('auth.password_reset_success'));
     }
 }

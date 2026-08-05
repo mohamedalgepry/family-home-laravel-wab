@@ -101,14 +101,14 @@ export default function Header({ compareCount = 0 }) {
 
                 {/* Actions */}
                 <div className="flex items-center gap-3">
-                    {/* Language Toggle */}
-                    <Link
-                        href={localizedPath(url, isRtl ? 'en' : 'ar')}
+                    {/* Language Toggle — server redirect preserves the current path reliably on mobile */}
+                    <a
+                        href={`/locale/${isRtl ? 'en' : 'ar'}?path=${encodeURIComponent(typeof url === 'string' && url ? url : `/${locale}`)}`}
                         className="text-xs font-medium text-secondary-700 hover:text-primary-900 border border-secondary-200 rounded-lg px-2.5 py-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                         aria-label={isRtl ? 'تغيير اللغة إلى الإنجليزية' : 'Switch language to Arabic'}
                     >
                         {isRtl ? trans('lang_en') : trans('lang_ar')}
-                    </Link>
+                    </a>
 
                     {/* Mobile Menu Toggle */}
                     <button

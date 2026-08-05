@@ -26,11 +26,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => EnsureUserHasRole::class,
         ]);
         $middleware->web(append: [
+            HttpCacheControl::class,
             DetectBot::class,
             SetLocale::class,
             HandleInertiaRequests::class,
             SecurityHeadersMiddleware::class,
-            HttpCacheControl::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

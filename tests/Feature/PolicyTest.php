@@ -84,18 +84,24 @@ it('lets an agent without a manager view only their own units', function () {
         ->and($this->policy->delete($this->lonelyAgent, $this->lonelyUnit))->toBeFalse();
 });
 
-it('lets managers and agents see only their own projects', function () {
+it('lets managers and agents see appropriate projects based on manager relationship', function () {
     $project = new Project(['user_id' => $this->manager->id, 'name' => 'Project', 'name_ar' => 'مشروع', 'name_en' => 'Project']);
     $project->save();
 
     $otherProject = new Project(['user_id' => $this->otherManager->id, 'name' => 'Other', 'name_ar' => 'آخر', 'name_en' => 'Other']);
     $otherProject->save();
 
+    $agentUnderAdmin = createUser('Agent Under Admin', 'agent', $this->admin->id);
+
     $policy = app(ProjectPolicy::class);
 
     expect($policy->view($this->manager, $project))->toBeTrue()
         ->and($policy->view($this->manager, $otherProject))->toBeFalse()
-        ->and($policy->view($this->agent, $project))->toBeFalse()
+        ->and($policy->view($this->agent, $project))->toBeTrue()
+        ->and($policy->view($this->agent, $otherProject))->toBeFalse()
+        ->and($policy->view($agentUnderAdmin, $project))->toBeTrue()
+        ->and($policy->view($agentUnderAdmin, $otherProject))->toBeTrue()
+        ->and($policy->view($this->lonelyAgent, $project))->toBeTrue()
         ->and($policy->view($this->admin, $otherProject))->toBeTrue()
         ->and($policy->create($this->manager))->toBeTrue()
         ->and($policy->create($this->agent))->toBeFalse()

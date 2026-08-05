@@ -72,7 +72,7 @@ class ProfileService
             unset($data['password']);
         }
 
-        $userData = Arr::only($data, ['name', 'email', 'password']);
+        $userData = Arr::only($data, ['name', 'password']);
         $profileData = Arr::only($data, ['phone', 'whatsapp', 'facebook', 'linkedin']);
 
         if ($avatar) {

@@ -74,7 +74,7 @@ class ProjectController extends Controller
             'areas' => Area::select('id', 'name_ar', 'name_en')->orderBy('name_ar')->get(),
             'features' => Feature::select('id', 'name_ar', 'name_en')->get(),
             'finishingTypes' => FinishingType::select('id', 'name_ar', 'name_en')->get(),
-            'managers' => User::whereIn('role', ['admin', 'manager', 'agent'])->select('id', 'name', 'role')->orderBy('name')->get(),
+            'managers' => User::whereIn('role', ['admin', 'manager'])->select('id', 'name', 'role')->orderBy('name')->get(),
         ];
     }
 

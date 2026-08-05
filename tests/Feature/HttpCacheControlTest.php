@@ -9,7 +9,7 @@ test('it bypasses public cache and sets no-cache on contact page', function () {
 
     $response->assertOk();
     $response->assertHeader('Cache-Control', 'no-cache, private');
-    $response->assertHeader('Vary', 'X-Inertia');
+    $response->assertHeader('Vary', 'X-Inertia, Accept');
 });
 
 test('it bypasses public cache and sets no-cache on single unit detail page with form', function () {
@@ -33,7 +33,7 @@ test('it bypasses public cache and sets no-cache on single unit detail page with
 
     $response->assertOk();
     $response->assertHeader('Cache-Control', 'no-cache, private');
-    $response->assertHeader('Vary', 'X-Inertia');
+    $response->assertHeader('Vary', 'X-Inertia, Accept');
 });
 
 test('it sets public Cache-Control on unit listing search page without forms', function () {
@@ -41,7 +41,7 @@ test('it sets public Cache-Control on unit listing search page without forms', f
 
     $response->assertOk();
     $this->assertStringContainsString('public', $response->headers->get('Cache-Control'));
-    $response->assertHeader('Vary', 'X-Inertia');
+    $response->assertHeader('Vary', 'X-Inertia, Accept');
 });
 
 test('it sets public Cache-Control on about page', function () {
@@ -49,7 +49,7 @@ test('it sets public Cache-Control on about page', function () {
 
     $response->assertOk();
     $this->assertStringContainsString('public', $response->headers->get('Cache-Control'));
-    $response->assertHeader('Vary', 'X-Inertia');
+    $response->assertHeader('Vary', 'X-Inertia, Accept');
 });
 
 test('contact form submission succeeds without csrf errors', function () {

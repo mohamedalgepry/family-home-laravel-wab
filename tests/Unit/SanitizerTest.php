@@ -30,14 +30,20 @@ it('keeps safe local images and links', function () {
         ->toContain('alt="Example"');
 });
 
-it('strips all inline style attributes from rich content for security', function () {
+it('keeps safe color and font-size styles while stripping unsafe ones', function () {
     $html = Sanitizer::rich(
         '<span style="color: #ef4444;">Colored Text</span>'
-        .'<span style="color: expression(alert(1))">Unsafe</span>'
+        .'<span style="font-size: 20px;">Large Text</span>'
+        .'<span style="color: expression(alert(1)); font-size: 999px;">Unsafe</span>'
+        .'<span style="background-color: red;">No background</span>'
     );
 
     expect($html)
-        ->not->toContain('style=')
+        ->toContain('color: #ef4444')
+        ->toContain('font-size: 20px')
         ->toContain('Colored Text')
-        ->not->toContain('expression');
+        ->toContain('Large Text')
+        ->not->toContain('expression')
+        ->not->toContain('background-color')
+        ->not->toContain('999px');
 });

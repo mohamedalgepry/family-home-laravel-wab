@@ -72,6 +72,7 @@ class Sanitizer
         $allowed = match ($tag) {
             'a' => ['href', 'title', 'class', 'target', 'rel'],
             'img' => ['src', 'alt', 'title', 'width', 'height', 'class'],
+            'span' => ['class', 'style'],
             default => ['class'],
         };
 
@@ -79,6 +80,17 @@ class Sanitizer
             $name = strtolower($attribute->name);
             if (! in_array($name, $allowed, true)) {
                 $element->removeAttribute($attribute->name);
+
+                continue;
+            }
+
+            if ($name === 'style') {
+                $safeStyle = self::sanitizeStyleAttribute($attribute->value);
+                if ($safeStyle === '') {
+                    $element->removeAttribute($attribute->name);
+                } else {
+                    $element->setAttribute('style', $safeStyle);
+                }
             }
         }
 
@@ -89,6 +101,66 @@ class Sanitizer
         if ($tag === 'img' && $element->hasAttribute('src') && ! self::isSafeImageSource($element->getAttribute('src'))) {
             $element->removeAttribute('src');
         }
+    }
+
+    private static function sanitizeStyleAttribute(string $style): string
+    {
+        $safeParts = [];
+
+        foreach (explode(';', $style) as $declaration) {
+            $declaration = trim($declaration);
+            if ($declaration === '' || ! str_contains($declaration, ':')) {
+                continue;
+            }
+
+            [$property, $value] = array_map('trim', explode(':', $declaration, 2));
+            $property = strtolower($property);
+
+            if ($property === 'color' && self::isSafeColorValue($value)) {
+                $safeParts[] = "color: {$value}";
+            }
+
+            if ($property === 'font-size' && self::isSafeFontSizeValue($value)) {
+                $safeParts[] = "font-size: {$value}";
+            }
+        }
+
+        return implode('; ', $safeParts);
+    }
+
+    private static function isSafeColorValue(string $value): bool
+    {
+        $value = strtolower(trim($value));
+
+        if ($value === '' || str_contains($value, 'expression') || str_contains($value, 'javascript')) {
+            return false;
+        }
+
+        return (bool) preg_match('/^(#[0-9a-f]{3,8}|rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\)|rgba\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*(0(\.\d+)?|1(\.0+)?)\s*\)|[a-z]{3,20})$/', $value);
+    }
+
+    private static function isSafeFontSizeValue(string $value): bool
+    {
+        $value = strtolower(trim($value));
+
+        if ($value === '' || str_contains($value, 'expression') || str_contains($value, 'javascript')) {
+            return false;
+        }
+
+        if (! preg_match('/^(\d{1,3}(\.\d{1,2})?)(px|em|rem|pt|%)$/', $value, $matches)) {
+            return false;
+        }
+
+        $numeric = (float) $matches[1];
+        $unit = $matches[3];
+
+        return match ($unit) {
+            'px' => $numeric >= 8 && $numeric <= 72,
+            'em', 'rem' => $numeric >= 0.5 && $numeric <= 4,
+            'pt' => $numeric >= 6 && $numeric <= 54,
+            '%' => $numeric >= 50 && $numeric <= 200,
+            default => false,
+        };
     }
 
     private static function isSafeLink(string $url): bool

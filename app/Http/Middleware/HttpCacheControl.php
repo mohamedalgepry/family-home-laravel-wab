@@ -12,8 +12,16 @@ class HttpCacheControl
     {
         $response = $next($request);
 
-        // Always add Vary header for Inertia AJAX vs HTML rendering
-        $response->headers->set('Vary', 'X-Inertia');
+        // Separate cache entries for full-page HTML vs Inertia JSON (same URL, different Accept/X-Inertia)
+        $response->headers->set('Vary', 'X-Inertia, Accept');
+
+        // Never cache Inertia partial navigations — mobile browsers often ignore Vary
+        // and would serve cached HTML to X-Inertia requests, causing a blank white screen.
+        if ($request->header('X-Inertia')) {
+            $response->headers->set('Cache-Control', 'no-cache, private');
+
+            return $response;
+        }
 
         if (! $request->isMethod('GET') || $request->user()) {
             $response->headers->set('Cache-Control', 'no-cache, private');

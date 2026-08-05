@@ -18,8 +18,21 @@ class ProjectPolicy
             return true;
         }
 
-        if ($user->isManager() || $user->isAgent()) {
+        if ($user->isManager()) {
             return $this->isOwnedBy($user, $project);
+        }
+
+        if ($user->isAgent()) {
+            if ($user->manager_id === null) {
+                return true;
+            }
+
+            $manager = $user->manager ?? User::find($user->manager_id);
+            if (! $manager || $manager->isAdmin()) {
+                return true;
+            }
+
+            return $project->user_id === $user->manager_id;
         }
 
         return false;

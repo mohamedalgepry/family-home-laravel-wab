@@ -34,4 +34,10 @@ return [
     'remove_avatar' => 'Remove Image',
     'profile_updated' => 'Profile updated successfully',
     'password_changed' => 'Password changed successfully',
+    'invalid_otp' => 'The verification code is invalid or has expired.',
+    'reset_token_expired' => 'Sorry, the 5-minute reset window has expired or the token is invalid. Please request a new code.',
+    'reset_session_expired' => 'Your password reset session has expired. Please start again.',
+    'otp_sent' => 'A 6-digit verification code has been sent to your email address.',
+    'enter_otp' => 'Enter 6-digit Verification Code',
+    'verify_otp' => 'Verify Code',
 ];

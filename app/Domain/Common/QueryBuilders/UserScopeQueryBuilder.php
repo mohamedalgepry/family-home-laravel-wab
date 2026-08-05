@@ -35,8 +35,10 @@ class UserScopeQueryBuilder
     }
 
     /**
-     * يطبّق نطاق الملكية (المشاريع): المدير يرى مشاريعه فقط،
-     * والوسيط يرى مشاريع مديره فقط.
+     * يطبّق نطاق الملكية (المشاريع): المشرف يرى الكل،
+     * والمسوق التابع لمشرف يرى الكل،
+     * والمدير يرى مشاريعه فقط،
+     * والمسوق التابع لمدير يرى مشاريع مديره فقط.
      */
     public static function applyOwnershipScope(Builder $query, ?User $user, string $ownerColumn = 'user_id'): Builder
     {
@@ -44,9 +46,24 @@ class UserScopeQueryBuilder
             return $query;
         }
 
-        $ownerId = $user->isManager() ? $user->id : $user->manager_id;
+        if ($user->isManager()) {
+            return $query->where($ownerColumn, $user->id);
+        }
 
-        return $query->where($ownerColumn, $ownerId);
+        if ($user->isAgent()) {
+            if ($user->manager_id === null) {
+                return $query;
+            }
+
+            $manager = $user->manager ?? User::find($user->manager_id);
+            if (! $manager || $manager->isAdmin()) {
+                return $query;
+            }
+
+            return $query->where($ownerColumn, $user->manager_id);
+        }
+
+        return $query->where($ownerColumn, $user->id);
     }
 
     /**

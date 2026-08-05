@@ -10,8 +10,11 @@ import Underline from '@tiptap/extension-underline'
 import LinkExtension from '@tiptap/extension-link'
 import { Color } from '@tiptap/extension-color'
 import { TextStyle } from '@tiptap/extension-text-style'
+import { FontSize } from '../../../Utils/tiptapFontSize'
 
-function MenuBar({ editor, trans }) {
+const FONT_SIZES = ['12px', '14px', '16px', '18px', '20px', '24px', '28px', '32px']
+
+function MenuBar({ editor, trans, isRtl = false }) {
     if (!editor) return null
 
     const setLink = useCallback(() => {
@@ -100,6 +103,29 @@ function MenuBar({ editor, trans }) {
                 </div>
             </div>
             <span className="w-px bg-secondary-200 mx-1 h-4" />
+            <div className="flex items-center gap-1.5 px-1 py-0.5 rounded bg-white border border-secondary-200" title={trans('font_size') || 'حجم الخط'}>
+                <label className="text-[11px] text-secondary-600 font-medium">
+                    {trans('font_size') || 'الحجم'}:
+                </label>
+                <select
+                    value={editor.getAttributes('textStyle').fontSize || ''}
+                    onChange={(e) => {
+                        const size = e.target.value
+                        if (size) {
+                            editor.chain().focus().setFontSize(size).run()
+                        } else {
+                            editor.chain().focus().unsetFontSize().run()
+                        }
+                    }}
+                    className="text-[11px] border-0 bg-transparent text-secondary-700 cursor-pointer focus:outline-none focus:ring-0 py-0.5"
+                >
+                    <option value="">{isRtl ? 'افتراضي' : 'Default'}</option>
+                    {FONT_SIZES.map(size => (
+                        <option key={size} value={size}>{size}</option>
+                    ))}
+                </select>
+            </div>
+            <span className="w-px bg-secondary-200 mx-1 h-4" />
             <button type="button" onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} className={`px-2 py-1 text-xs rounded ${editor.isActive('heading', { level: 2 }) ? 'bg-primary-900 text-white' : 'bg-white text-secondary-700 hover:bg-secondary-100'}`}>
                 H2
             </button>
@@ -157,6 +183,7 @@ export default function AdminArticlesForm({ article, categories }) {
             TextAlign.configure({ types: ['heading', 'paragraph'] }),
             TextStyle,
             Color,
+            FontSize,
         ],
         content: article?.content_ar || '',
         editorProps: {
@@ -173,6 +200,7 @@ export default function AdminArticlesForm({ article, categories }) {
             TextAlign.configure({ types: ['heading', 'paragraph'] }),
             TextStyle,
             Color,
+            FontSize,
         ],
         content: article?.content_en || '',
         editorProps: {
@@ -303,13 +331,13 @@ export default function AdminArticlesForm({ article, categories }) {
                             
                             {contentTab === 'ar' && (
                                 <div className="border border-secondary-200 rounded-lg overflow-hidden" dir="rtl">
-                                    <MenuBar editor={editorAr} trans={trans} articleTitle={data.title_ar} />
+                                    <MenuBar editor={editorAr} trans={trans} isRtl={isRtl} />
                                     <EditorContent editor={editorAr} />
                                 </div>
                             )}
                             {contentTab === 'en' && (
                                 <div className="border border-secondary-200 rounded-lg overflow-hidden">
-                                    <MenuBar editor={editorEn} trans={trans} articleTitle={data.title_en} />
+                                    <MenuBar editor={editorEn} trans={trans} isRtl={isRtl} />
                                     <EditorContent editor={editorEn} />
                                 </div>
                             )}

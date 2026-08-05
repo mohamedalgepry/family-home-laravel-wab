@@ -15,7 +15,6 @@ export default function Edit({ user }) {
 
     const { data, setData, post, processing, errors } = useForm({
         name: currentUser.name || '',
-        email: currentUser.email || '',
         phone: currentUser.phone || '',
         whatsapp: currentUser.whatsapp || '',
         facebook: currentUser.facebook || '',
@@ -103,13 +102,15 @@ export default function Edit({ user }) {
                             <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('email', {}, 'admin')}</label>
                             <input
                                 type="email"
-                                value={data.email}
-                                onChange={e => setData('email', e.target.value)}
-                                className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
-                                required
+                                value={currentUser.email || ''}
+                                readOnly
+                                disabled
+                                className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-secondary-50 text-secondary-600 cursor-not-allowed"
                                 dir="ltr"
                             />
-                            {errors.email && <p className="text-xs text-error mt-1">{errors.email}</p>}
+                            <p className="text-xs text-muted mt-1">
+                                {isRtl ? 'لا يمكن تغيير البريد الإلكتروني. تواصل مع مدير النظام.' : 'Email cannot be changed. Contact your administrator.'}
+                            </p>
                         </div>
                     </div>
 

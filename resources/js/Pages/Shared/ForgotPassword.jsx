@@ -21,7 +21,7 @@ export default function ForgotPassword() {
     return (
         <AuthLayout
             title={trans('reset_password_title')}
-            subtitle={isRtl ? 'أدخل معلومات حسابك لإرسال رابط التعيين' : 'Enter your email to receive a password reset link'}
+            subtitle={isRtl ? 'أدخل بريدك الإلكتروني لإرسال رمز التحقق (6 أرقام)' : 'Enter your email to receive a 6-digit verification code'}
         >
             {statusMessage && (
                 <div className="mb-5 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs font-medium flex items-center gap-3">
@@ -33,7 +33,7 @@ export default function ForgotPassword() {
             )}
 
             <p className="text-xs text-secondary-600 mb-5 leading-relaxed text-center">
-                {trans('forgot_password')}
+                {isRtl ? 'سنقوم بإرسال رمز تحقق مكون من 6 أرقام إلى بريدك الإلكتروني لإعادة تعيين كلمة المرور.' : 'We will send a 6-digit verification code to your email address to reset your password.'}
             </p>
 
             <form onSubmit={handleSubmit} noValidate className="space-y-4">
