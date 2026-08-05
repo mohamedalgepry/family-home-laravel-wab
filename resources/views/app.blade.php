@@ -21,8 +21,8 @@
     @endif
 
     <!-- Preload Local Cairo Fonts (Non-blocking & Zero External Roundtrips) -->
-    <link rel="preload" href="/fonts/cairo/cairo-1.woff2" as="font" type="font/woff2" crossorigin>
-    <link rel="preload" href="/fonts/cairo/cairo-3.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/fonts/cairo/cairo-1.woff2" as="font" type="font/woff2" crossorigin fetchpriority="high">
+    <link rel="preload" href="/fonts/cairo/cairo-3.woff2" as="font" type="font/woff2" crossorigin fetchpriority="high">
 
     <!-- Google Analytics (Deferred to user interaction to eliminate Unused JS & TBT in PageSpeed/Lighthouse) -->
     <script>
