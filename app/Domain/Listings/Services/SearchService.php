@@ -5,15 +5,20 @@ namespace App\Domain\Listings\Services;
 use App\Domain\Common\Support\Sanitizer;
 use App\Domain\Listings\Models\PopularSearch;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Cache;
 
 class SearchService
 {
     public function getPopularSearches(int $limit = 10, int $days = 30): Collection
     {
-        return PopularSearch::where('last_searched_at', '>=', now()->subDays($days))
-            ->orderByDesc('search_count')
-            ->limit($limit)
-            ->get(['keyword', 'search_count']);
+        return Cache::remember(
+            "popular_searches_{$limit}_{$days}",
+            600,
+            fn () => PopularSearch::where('last_searched_at', '>=', now()->subDays($days))
+                ->orderByDesc('search_count')
+                ->limit($limit)
+                ->get(['keyword', 'search_count'])
+        );
     }
 
     public function recordSearch(string $keyword): void

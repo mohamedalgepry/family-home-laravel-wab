@@ -6,6 +6,7 @@ use App\Domain\Listings\Services\ListingLookupService;
 use App\Domain\Listings\Services\ListingService;
 use App\Domain\Listings\Services\SearchService;
 use App\Services\SeoService;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -20,20 +21,28 @@ class HomeController
 
     public function __invoke(): Response
     {
-        $featuredUnits = $this->listingService->getFeaturedUnits(8);
-        $latestUnits = $this->listingService->getLatestUnits(12);
-        $popularSearches = $this->searchService->getPopularSearches();
+        $page = (int) request()->input('page', 1);
+        $version = Cache::get(ListingService::CACHE_VERSION_KEY, 1);
+
+        $homeData = Cache::remember(
+            "home_page_data_page_{$page}_v{$version}",
+            300,
+            function () {
+                return [
+                    'featuredUnits' => $this->listingService->getFeaturedUnits(8),
+                    'latestUnits' => $this->listingService->getLatestUnits(12),
+                    'popularSearches' => $this->searchService->getPopularSearches(),
+                    'areas' => $this->lookupService->areas(),
+                    'unitTypes' => $this->lookupService->unitTypes(),
+                    'features' => $this->lookupService->features(),
+                    'finishingTypes' => $this->lookupService->finishingTypes(),
+                ];
+            }
+        );
 
         $meta = $this->seoService->forPage('home');
 
-        return Inertia::render('Public/Home', [
-            'featuredUnits' => $featuredUnits,
-            'latestUnits' => $latestUnits,
-            'popularSearches' => $popularSearches,
-            'areas' => $this->lookupService->areas(),
-            'unitTypes' => $this->lookupService->unitTypes(),
-            'features' => $this->lookupService->features(),
-            'finishingTypes' => $this->lookupService->finishingTypes(),
-        ])->withViewData(['meta' => $meta]);
+        return Inertia::render('Public/Home', $homeData)
+            ->withViewData(['meta' => $meta]);
     }
 }
