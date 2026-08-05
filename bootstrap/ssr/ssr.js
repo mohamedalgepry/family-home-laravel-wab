@@ -16654,9 +16654,9 @@ function Login() {
 						children: errors.password
 					})
 				] }),
-				/* @__PURE__ */ jsx("div", {
+				/* @__PURE__ */ jsxs("div", {
 					className: "flex items-center justify-between text-xs pt-0.5",
-					children: /* @__PURE__ */ jsxs("label", {
+					children: [/* @__PURE__ */ jsxs("label", {
 						className: "flex items-center gap-2 text-secondary-700 cursor-pointer select-none",
 						children: [/* @__PURE__ */ jsx("input", {
 							type: "checkbox",
@@ -16665,7 +16665,11 @@ function Login() {
 							onChange: (e) => setData("remember", e.target.checked),
 							className: "w-4 h-4 rounded border-secondary-300 text-primary-900 focus:ring-primary-900/20 cursor-pointer"
 						}), /* @__PURE__ */ jsx("span", { children: isRtl ? "تذكرني" : "Remember me" })]
-					})
+					}), /* @__PURE__ */ jsx(Link, {
+						href: "/forgot-password",
+						className: "text-primary-900 hover:text-primary-950 font-medium hover:underline transition-colors",
+						children: isRtl ? "نسيت كلمة السر؟" : "Forgot Password?"
+					})]
 				}),
 				/* @__PURE__ */ jsx("div", {
 					className: "pt-2",
