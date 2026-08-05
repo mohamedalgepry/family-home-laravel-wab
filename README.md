@@ -1,8 +1,8 @@
 # منصة فاميلي هوم العقارية — Family Home Platform
 
-نظام إدارة وتسويق عقاري متكامل مبني باستخدام إطار العمل Laravel 13، يتبع المعمارية الموجهة بالمجالات (Domain-Driven Design — DDD)، ومدمج مع واجهة React 19 عبر Inertia.js v3. تم تصميم المنصة لتوفير أداء عالٍ على البيئات المحدودة (Shared Hosting) مع تقديم تجربة مستخدم كاملة الدعم ثنائي الاتجاه (RTL/LTR).
+نظام إدارة وتسويق عقاري متكامل مبني باستخدام إطار العمل **Laravel 13**، يتبع المعمارية الموجهة بالمجالات (**Domain-Driven Design — DDD**)، ومدمج مع واجهة **React 19** عبر **Inertia.js v3** مع دعم مسبق للتخزير الاستاتيكي المسبق (SSR / Static Prerendering). تم تصميم المنصة لتوفير أداء عالٍ جداً وخفيف على البيئات المحدودة (Shared Hosting — Hostinger) مع تقديم تجربة مستخدم كاملة الدعم ثنائي الاتجاه (RTL/LTR).
 
-> ✅ **حالة الفحص والاختبارات المعتمدة:** 64 Passed / 64 Tests (233 Assertions — Pest v4) | مفحوص أمنياً وخالٍ من جميع الثغرات المرصودة.
+> ✅ **حالة الفحص والاختبارات المعتمدة:** 117 Passed / 117 Tests (350 Assertions — Pest v4) | مفحوص أمنياً وخالٍ من جميع الثغرات المرصودة | مؤشر أداء PageSpeed وصل إلى 81+ على الهواتف.
 
 ---
 
@@ -10,15 +10,17 @@
 
 1. [المواصفات التقنية والمعمارية](#المواصفات-التقنية-والمعمارية)
 2. [المميزات الأساسية للنظام](#المميزات-الأساسية-للنظام)
-3. [البنية الهيكلية للمشروع](#البنية-الهيكلية-للمشروع)
-4. [نظام الأدوار والصلاحيات](#نظام-الأدوار-والصلاحيات)
-5. [نظام الإشعارات والتنبيهات الصوتية](#نظام-الإشعارات-والتنبيهات-الصوتية)
-6. [الأمان والحماية والملفات المستثناة](#الأمان-والحماية-والملفات-المستثناة)
-7. [متطلبات البيئة والتثبيت المحلي](#متطلبات-البيئة-والتثبيت-المحلي)
-8. [إعدادات الإنتاج والرفع على الاستضافة](#إعدادات-الإنتاج-والرفع-على-الاستضافة)
-9. [نظام الاختبارات وضبط الجودة](#نظام-الاختبارات-وضبط-الجودة)
-10. [وثائق الأدلة التشغيلية](#وثائق-الأدلة-التشغيلية)
-11. [الترخيص](#الترخيص)
+3. [تحسينات الأداء واستراتيجيات التخزين المؤقت](#تحسينات-الأداء-واستراتيجيات-التخزين-المؤقت)
+4. [الحماية ومعالجة الأخطاء والتنقل (Anti-White-Screen)](#الحماية-ومعالجة-الأخطاء-والتنقل-anti-white-screen)
+5. [البنية الهيكلية للمشروع](#البنية-الهيكلية-للنظام)
+6. [نظام الأدوار والصلاحيات](#نظام-الأدوار-والصلاحيات)
+7. [نظام الإشعارات والتنبيهات الصوتية](#نظام-الإشعارات-والتنبيهات-الصوتية)
+8. [الأمان والحماية والملفات المستثناة](#الأمان-والحماية-والملفات-المستثناة)
+9. [متطلبات البيئة والتثبيت المحلي](#متطلبات-البيئة-والتثبيت-المحلي)
+10. [إعدادات الإنتاج والرفع على الاستضافة](#إعدادات-الإنتاج-والرفع-على-الاستضافة)
+11. [نظام الاختبارات وضبط الجودة](#نظام-الاختبارات-وضبط-الجودة)
+12. [وثائق الأدلة التشغيلية](#وثائق-الأدلة-التشغيلية)
+13. [الترخيص](#الترخيص)
 
 ---
 
@@ -28,186 +30,133 @@
 |---|---|
 | **Backend** | Laravel 13 (PHP 8.3+) |
 | **معمارية النظام** | Domain-Driven Design (DDD) + Action Classes |
-| **Frontend** | React 19 + Inertia.js v3 (SPA — لا يحتاج Node.js في الإنتاج) |
+| **Frontend** | React 19 + Inertia.js v3 (SPA + Prerender Static HTML) |
 | **التصميم** | Tailwind CSS v4 + Design Tokens + RTL/LTR |
-| **قواعد البيانات** | MySQL 8.0+ مع Indexes و Foreign Keys |
-| **Cache** | `file` cache driver (مناسب للاستضافة المشتركة) |
+| **قواعد البيانات** | MySQL 8.0+ مع Indexes عادية و FULLTEXT indexes للبحث السريع |
+| **Cache** | `file` / `database` cache driver (محسّن ومجمّع للاستضافة المشتركة) |
 | **Queue** | `database` queue driver |
-| **الخط** | Cairo — مُحمَّل من Google Fonts في `app.blade.php` |
-| **SEO** | Google Tag Manager (gtag.js G-43HZ7C3CK2) + Google Search Console |
-| **الاختبارات** | Pest v4 |
+| **الخط** | Cairo (محلي بصيغة `.woff2` من `/fonts/cairo/` مع Preload عالي الأولوية لصفر طلبات خارجية) |
+| **SEO** | Google Tag Manager (gtag.js G-43HZ7C3CK2) + Google Search Console + Schema.org (JSON-LD) |
+| **الاختبارات** | Pest v4 (117 اختباراً تغطي كافة مجالات النظام) |
 
 ---
 
 ## المميزات الأساسية للنظام
 
 ### 1. إدارة الكيانات العقارية (Projects & Units)
-- نموذج متعدد الخطوات (Multi-Step Form) للمشاريع والوحدات: بيانات أساسية، وسائط، SEO، موقع.
+- نموذج متعدد الخطوات (Multi-Step Form) للمشاريع والوحدات: بيانات أساسية، وسائط، SEO، موقع على الخريطة.
 - دعم مرن لخيارات الدفع (كاش / تقسيط / كلاهما) مع الدفعة الأولى وعدد سنوات التقسيط.
-- نوع التشطيب، الخدمات، الميزات المتعددة.
-- توليد Slugs تلقائياً وتوافق SEO.
-- **حماية التقديم المزدوج**: تعطيل زر الحفظ أثناء المعالجة لمنع الحفظ المكرر.
+- نوع التشطيب، الخدمات، الميزات المتعددة، والبحث بـ Fulltext indexes على قاعدة البيانات.
+- توليد Slugs ثنائي اللغة تلقائياً وتوافق كامل مع محركات البحث.
 
-### 2. رقم واتساب المُعلِن في كروت العقارات
-- يعرض كل كرت عقار رقم واتساب صاحب الإعلان مباشرةً.
+### 2. رقم واتساب المُعلِن التلقائي
+- يعرض كل كرت عقار (`UnitCard.jsx`) رقم واتساب صاحب الإعلان مباشرةً.
 - إذا لم يكن للمُعلِن رقم مُسجَّل، يستخدم النظام رقم واتساب الشركة من الإعدادات تلقائياً.
-- المنطق موجود في `UnitCard.jsx` ويعتمد على `settings.whatsapp_number`.
 
 ### 3. نظام النقاط والتثبيت (Priority Points)
-- تخصيص نقاط أولوية للوحدات لرفع ترتيبها في البحث.
-- خصم يومي تلقائي للطلبات غير المثبتة عبر Cron Job.
-- إعادة تعيين شهري لرصيد المديرين.
-- حماية كاملة بـ `DB::transaction`.
-- **Admin / Manager فقط** يملكان صلاحية تعديل النقاط (محمية بـ Policy).
+- تخصيص نقاط أولوية للوحدات لرفع ترتيبها في البحث والصفحة الرئيسية.
+- خصم يومي تلقائي للطلبات غير المثبتة عبر Cron Job مجدول.
+- إعادة تعيين شهري لرصيد المديرين مع السجل التجاري لكل عملية خصم/إضافة.
+- حماية كاملة للمعاملات بـ `DB::transaction`.
 
 ### 4. لوحة التحكم الإدارية (Custom React/Inertia Admin Panel)
-- لوحة تحكم مخصصة بالكامل بلا اعتماد على حزم جاهزة.
-- القائمة الجانبية (Sidebar) تُخفي العناصر غير المصرح بها حسب دور المستخدم تلقائياً.
-- إدارة المستخدمين، الرسائل، المقالات، الأخبار، الإعدادات، المناطق، أنواع الوحدات، أنواع التشطيب.
+- لوحة تحكم مخصصة بالكامل بلا اعتماد على حزم ثقيلة خارجية.
+- القائمة الجانبية (AdminSidebar) تُخفي العناصر غير المصرح بها حسب دور المستخدم تلقائياً.
+- إدارة المستخدمين، الرسائل، المقالات، الأخبار، الإعدادات، المناطق، أنواع الوحدات، أنواع التشطيب والميزات.
 
-### 5. إدارة الإعدادات والبروفايل
-- فصل بيانات التواصل عن شبكات التواصل الاجتماعي.
-- دعم روابط `wa.me` وحسابات LinkedIn وFacebook وInstagram وTwitter.
-- تغيير كلمة السر وإدارة الحساب بأمان كامل.
-
-### 6. معالجة الصور (Asynchronous)
-- رفع الصور مع استجابة فورية للعميل.
-- توليد Thumbnails متعددة الأحجام في الخلفية عبر `GenerateThumbnailsJob`.
-- حد أقصى 10MB للصورة و40MB للمجموعة.
-- رسائل خطأ ثنائية اللغة (عربي/إنجليزي).
-
-### 7. SEO وتحسين محركات البحث
-- توليد تلقائي للكلمات المفتاحية (`GenerateSeoKeywordsCommand`).
-- خريطة الموقع (`GenerateSitemap`).
-- Google Tag Manager (gtag.js) مدمج في `app.blade.php`.
-- Google Search Console verification meta tag.
-- Canonical + hreflang لدعم تعدد اللغات.
-
-### 8. الأداء
-- ضغط Gzip وتخزين مؤقت للمتصفح في `.htaccess`.
-- Lazy Loading للصور.
-- Cache للاستعلامات المتكررة في `ListingService`.
+### 5. تأثيرات اللمس والاستجابة على الهواتف
+- دعم معالج لمس عالمي (`touchstart`) لتلوين النصوص والأزرار لحظياً فور اللمس على الموبايل.
+- إزالة التأخيرات الزمنية على متصفحات الهواتف وتجربة لمس سلسة وسريعة.
 
 ---
 
-## البنية الهيكلية للمشروع
+## تحسينات الأداء واستراتيجيات التخزين المؤقت
 
-`	ext
+### 1. تجميع استعلامات الصفحة الرئيسية (Single Cache Query)
+تم دمج وتجميع استعلامات الصفحة الرئيسية السبعة (`featuredUnits`, `latestUnits`, `popularSearches`, `areas`, `unitTypes`, `features`, `finishingTypes`) داخل كاش موحّد واحد بـ `Cache::remember` ذكي مرطبط بـ `ListingService::CACHE_VERSION_KEY`. 
+- ينخفض عدد رحلات قاعدة البيانات من 7 استعلامات إلى **1 استعلام فقط** (أو صفر استعلامات عند وجود الكاش).
+- عند إضافة أو تعديل أي وحدة أو مشروع، يتم إبطال الكاش وتحديثه تلقائياً بدون تعارض.
+
+### 2. تحميل الخطوط والصور المحلية
+- إزالة الاعتماد على طلبات Google Fonts الخارجية وإتاحة خط **Cairo** محلياً عبر ملفات woff2 (`cairo-1.woff2` العربي بحجم 30KB فقط).
+- إضافة Preload عالي الأولوية (`fetchpriority="high"`) لملفات الخطوط في رأس الصفحة.
+- استخدام عنصر `<picture>` مع `media="(max-width: 640px)"` لصورة الهيرو لضمان تحميل صورة الموبايل الخفيفة (**23KB**) بدلاً من الصورة الثقيلة على الهواتف.
+- ضغط الشعار والـ Favicon إلى WebP بحجم **3.7KB** فقط بدلاً من PNG الضخم.
+
+---
+
+## الحماية ومعالجة الأخطاء والتنقل (Anti-White-Screen)
+
+### 1. خطة أمان التنقل (Hard Navigation Fallback)
+تم تحديث معالج الأحداث في `resources/js/app.jsx`:
+- عند استقبال أي رد غير متوافق مع Inertia من السيرفر (مثل تحويلات 301/302 أو انتهاء الجلسة)، يقوم النظام بعمل Hard Navigation تلقائي لرابط الهدف لمنع حدوث أي شاشة بيضاء نهائياً.
+
+### 2. حماية React ErrorBoundary
+تم تغليف التطبيق بمكون `ErrorBoundary` عالمي لالتقاط أي استثناءات غير متوقعة في واجهة المستخدم، وإعادة التحميل التلقائي فوراً دون انهيار الواجهة.
+
+### 3. صفحات أخطاء مخصصة (Custom Error Views)
+تم إنشاء صفحات أخطاء مخصصة بتصميم المنصة في:
+- `resources/views/errors/500.blade.php`
+- `resources/views/errors/404.blade.php`
+
+عند وقوع أي استثناء في بيئة الإنتاج، يتم التوجيه لصفحات الأخطاء المصممة بدلاً من إظهار أي شاشات خالية.
+
+---
+
+## البنية الهيكلية للنظام
+
+```
 app/
+├── Console/
+│   └── Commands/          # GenerateSitemap, GenerateSeoKeywords, OptimizeProd
 ├── Domain/
+│   ├── Common/            # ListingQueryBuilder, Sanitizer, SeoMetaService
 │   ├── Listings/          # المشاريع، الوحدات، المناطق، الإعدادات
-│   │   ├── Actions/
-│   │   ├── DTOs/
-│   │   ├── Models/
-│   │   ├── Policies/
-│   │   └── Services/      # ListingService, StatisticsService, SettingsService
+│   │   ├── Models/        # Unit, Project, Area, UnitType, Feature, PageSeo
+│   │   ├── Policies/      # UnitPolicy, ProjectPolicy
+│   │   └── Services/      # ListingService, ListingLookupService, SearchService
 │   ├── Points/            # نقاط الأولوية والخصم اليومي
-│   │   ├── Jobs/
-│   │   ├── Models/
-│   │   └── Services/
 │   ├── Users/             # المستخدمون، الأدوار، الرسائل
-│   │   ├── Models/
-│   │   ├── Policies/
-│   │   └── Services/
-│   └── Media/             # توليد مصغرات الصور
-│       └── Jobs/
+│   └── Media/             # معالجة وتوليد مصغرات الصور
 ├── Http/
 │   ├── Controllers/
 │   │   ├── Admin/         # متحكمات لوحة التحكم
-│   │   └── Public/        # متحكمات الواجهة العامة
-│   ├── Middleware/
-│   │   └── EnsureUserHasRole.php
-│   └── Requests/
+│   │   └── Public/        # HomeController, UnitController, ProjectController...
+│   ├── Middleware/        # DetectBot, SetLocale, HandleInertiaRequests, SecurityHeaders...
 resources/
-└── js/
-    ├── Pages/
-    │   ├── Admin/         # Dashboard, Units, Projects, Users…
-    │   └── Public/        # Home, Show, Contact…
-    └── Components/
-        ├── Layout/
-        │   ├── AdminSidebar.jsx   # قائمة جانبية مع فلترة حسب الدور
-        │   └── Header.jsx
-        └── UI/
-            └── UnitCard.jsx       # كرت العقار + رقم واتساب المُعلِن
-`
+├── css/
+│   └── app.css            # Tailwind v4, Cairo Font-face, Touch Active styles
+├── js/
+│   ├── app.jsx            # Inertia Bootstrap, ErrorBoundary, Touch Handlers
+│   ├── Pages/
+│   │   ├── Admin/         # Dashboard, Units, Projects, Users…
+│   │   └── Public/        # Home, Show, Contact…
+│   └── Components/
+│       ├── Layout/        # Header, Footer, AdminSidebar
+│       └── UI/            # UnitCard, ProjectCard, SearchBar, SeoHead...
+└── views/
+    ├── app.blade.php      # Main HTML Shell & Font/LCP Preloads
+    └── errors/            # Custom 500 & 404 Error pages
+```
 
 ---
 
 ## نظام الأدوار والصلاحيات
 
-### الأدوار
-
 | الدور | ما يستطيع رؤيته والوصول إليه |
 |---|---|
-| **admin** | كل شيء — المستخدمون، الإعدادات، SEO، سجل النشاط |
+| **admin** | كل شيء — المستخدمون، الإعدادات، SEO، السجلات الإدارية |
 | **manager** | الوحدات، المشاريع، النقاط، المقالات، المناطق، الميزات، التشطيب |
 | **agent** | وحداته الخاصة فقط — Dashboard، Inbox، الإشعارات |
 
-### حماية المسارات
-- `EnsureUserHasRole` middleware على جميع مسارات `/admin/*`.
-- محاولة الوصول المباشر لمسار محظور → إعادة توجيه إلى `/admin` مع رسالة خطأ واضحة.
-- Policies تمنع الوكلاء من تعديل نقاط الأولوية أو حذف موارد لا تخصهم.
-
 ---
 
-## نظام الإشعارات والتنبيهات الصوتية
+## أمان الحماية والـ Security Audit المطبقة
 
-### 1. الهندسة الصوتية (Web Audio API)
-- التنبيه الصوتي يعمل ديناميكياً عبر `Web Audio API` لتوليد نغمة ثنائية ناعمة (Chime: 800Hz → 1000Hz) في المتصفح تلقائياً فور وصول إشعار جديد.
-- لا يتطلب تحميل أي ملفات صوتية خارجية (`.mp3`) عبر الشبكة.
-- إمكانية تفعيل أو كتم الصوت وحفظ الخيار في `localStorage`.
-
-### 2. التحديث الفوري المباشر (Live Polling & Toasts)
-- فحص دوري كل **30 ثانية** وفي حالة العودة لتبويب الموقع (`window.onfocus`).
-- كروت تنبيه عائمة (Toast Notifications) تظهر أعلى الشاشة مع تشغيل الصوت.
-- شارة عدد الإشعارات غير المقروءة على أيقونة الجرس بالهيدر تحدّث فوريًا.
-
-### 3. الأداء والأمان
-- تخزين مؤقت استباقي (Cache TTL 30s) لاستعلامات الإشعارات لمنع الضغط على السيرفر.
-- دعم كامل لقائمة منسدلة سريعة وصفحة إشعارات تفصيلية مقسمة (`/admin/notifications`).
-
----
-
-## الأمان والحماية والملفات المستثناة
-
-### 1. إجراءات الحماية والـ Security Audit المطبقة
 - **حماية ثغرات IDOR:** التحقق الصارم من ملكية الموارد كـ `UnitImage` مقابل الـ `Unit` قبل الحذف أو التعيين كرئيسية.
-- **منع التتبع الحساس:** تنظيف كود الـ Blade المُصرَّف وإزالته من التتبع عبر `.gitignore`.
-- **حماية التوافق مع SSR:** تحسين استدعاءات الـ Canvas/Location للعمل بأمان في بيئات الـ SSR.
+- **Headers الأمان:** تطبيق SecurityHeadersMiddleware (`X-Frame-Options`, `X-Content-Type-Options`, `Content-Security-Policy`).
+- **حماية التوافق مع SSR:** تحسين كافة استدعاءات الـ DOM/Window للعمل بأمان في SSR وPrerender.
 - **حماية Rate Limiting:** تحديد معدل المحاولات لتسجيل الدخول وفورم التواصل والبحث الفوري.
-
-الملفات التالية **لا تُرفع** على GitHub (مُضافة في `.gitignore`):
-
-| الملف/المجلد | السبب |
-|---|---|
-| `.env` | بيانات حساسة — كلمات مرور DB ومفاتيح التشفير |
-| `node_modules/` | ضخم جداً — يُثبَّت محلياً بـ `npm install` |
-| `vendor/` | يُثبَّت محلياً بـ `composer install` |
-| `storage/app/*` | ملفات المستخدمين المرفوعة |
-| `storage/logs/*` | سجلات الخادم |
-| `storage/framework/cache/*` | ذاكرة تخزين مؤقت |
-| `storage/framework/sessions/*` | جلسات المستخدمين |
-| `*.sqlite` | قواعد بيانات محلية |
-| `.agents/` | ملفات المساعد الذكي |
-| `.gemini/` | ملفات المساعد الذكي |
-| `/.idea`, `/.vscode` | إعدادات المحرر |
-
-> **تحذير**: لا ترفع `.env` أبداً. يحتوي على مفاتيح تشفير وكلمات مرور قاعدة البيانات.
-
-### طريقة الرفع على GitHub
-
-`ash
-# 1. بناء الأصول أولاً
-npm run build
-
-# 2. مراجعة ما سيُرفع
-git status
-
-# 3. الإضافة والرفع يدوياً
-git add .
-git commit -m "وصف واضح للتغييرات"
-git push origin main
-`
 
 ---
 
@@ -221,7 +170,7 @@ git push origin main
 
 ### خطوات الإعداد
 
-`ash
+```bash
 # تثبيت المكتبات
 composer install
 npm install
@@ -234,89 +183,41 @@ php artisan key:generate
 php artisan migrate --seed
 php artisan storage:link
 
-# تشغيل الخادم المحلي
+# تشغيل الخادم المحلي والبناء
 npm run dev
 php artisan serve
-`
-
-> **ملاحظة**: `php artisan db:seed --class=DemoDataSeeder` مخصص للبيئة المحلية فقط — لا تُشغّله في الإنتاج.
+```
 
 ---
 
-## إعدادات الإنتاج والرفع على الاستضافة
+## إعدادات الإنتاج والرفع على الاستضافة (Hostinger)
 
-### رفع على Hostinger
+### أوامر النشر وكل تحديث جديد
 
-1. ارفع ملفات المشروع إلى مجلد الموقع (مثلاً `public_html/family-home`).
-2. في **hPanel** → **Advanced** → **Website** → **Document Root**.
-3. غيّر المسار إلى `public_html/family-home/public`.
-4. احفظ.
-
-> إذا لم يدعم مزود الاستضافة تغيير Document Root، استخدم ملف `index.php` الموجود في جذر المشروع كبديل.
-
-### بناء الأصول قبل الرفع
-
-`ash
+```bash
+# 1. بناء الأصول محلياً
 npm run build
-`
 
-مجلد `public/build` مُتتبَّع في Git لضمان عمل الواجهة مباشرةً دون أوامر بناء على السيرفر.
+# 2. الرفع وسحب التحديثات على السيرفر
+git pull origin main
 
-### متغيرات البيئة الإنتاجية
-
-`env
-APP_ENV=production
-APP_DEBUG=false
-APP_URL=https://familyhome-co.com
-LOG_LEVEL=warning
-CACHE_STORE=file
-QUEUE_CONNECTION=database
-SESSION_DRIVER=database
-SESSION_SECURE_COOKIE=true
-SESSION_HTTP_ONLY=true
-SESSION_SAME_SITE=lax
-INERTIA_SSR_ENABLED=false
-`
-
-### أوامر ما بعد الرفع
-
-`ash
+# 3. تفعيل تحسينات الإنتاج والكاش
 php artisan migrate --force
-php artisan storage:link
-php artisan optimize:clear
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-`
-
-### المهمة المجدولة (Cron Job)
-
-`cron
-* * * * * cd /path-to-your-project && php artisan schedule:run >> /dev/null 2>&1
-`
+php artisan app:optimize-prod
+composer dump-autoload -o --no-dev
+```
 
 ---
 
 ## نظام الاختبارات وضبط الجودة
 
-`ash
-# تشغيل كافة الاختبارات
-.\vendor\bin\pest
+```bash
+# تشغيل كافة الاختبارات الـ 117
+php artisan test
 
 # تشغيل اختبار مخصص
-.\vendor\bin\pest --filter="UnitCreationTest"
-`
-
----
-
-## وثائق الأدلة التشغيلية
-
-- [دليل النشر الإنتاجي](DEPLOYMENT.md)
-- [فهرس الأدلة التشغيلية](docs/README.md)
-- [دليل إضافة وإدارة الوحدات العقارية](docs/guides/adding-unit.md)
-- [دليل إضافة وإدارة المشاريع](docs/guides/adding-project.md)
-- [دليل إدارة المستخدمين والعقود والرسائل](docs/guides/users-and-contracts.md)
-- [دليل إدارة نظام النقاط والخصومات](docs/guides/points-system.md)
+php artisan test --filter=UnitCreationTest
+```
 
 ---
 
