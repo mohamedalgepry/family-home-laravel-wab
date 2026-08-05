@@ -372,8 +372,7 @@
         outline: none;
     }
 
-    a:active, button:active, [role="button"]:active,
-    a.touch-active, button.touch-active, [role="button"].touch-active {
+    a:active, button:active, [role="button"]:active {
         color: var(--color-primary-900) !important;
     }
 
@@ -384,7 +383,16 @@
             border-radius: 2px;
         }
     }
+}
 
+/* تأثير اللمس على الموبايل — خارج @layer لضمان أعلى أولوية في Cascade */
+a.touch-active,
+button.touch-active,
+[role="button"].touch-active {
+    color: var(--color-primary-900) !important;
+}
+
+@layer base {
     /* ----------------------------------------------------
        GLOBAL PREMIUM DESIGN SYSTEM (HeroUI / Linear Style)
        ---------------------------------------------------- */
