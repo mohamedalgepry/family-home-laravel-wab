@@ -1002,7 +1002,7 @@ var NAV_GROUPS = [
 			{
 				key: "sidebar_users",
 				href: "/admin/users",
-				scope: "manager",
+				scope: "admin",
 				icon: "M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"
 			},
 			{
@@ -10988,11 +10988,10 @@ function AdminUnitsIndex({ units, areas, unitTypes, filters }) {
 //#endregion
 //#region resources/js/Pages/Admin/Users/Create.jsx
 var Create_exports = /* @__PURE__ */ __exportAll({ default: () => AdminUsersCreate });
-function AdminUsersCreate({ managers, isManagerCreating }) {
-	const { locale, auth } = usePage().props;
+function AdminUsersCreate({ managers }) {
+	const { locale } = usePage().props;
 	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
-	const isManager = isManagerCreating || auth?.user?.role === "manager";
 	const { data, setData, post, processing, errors } = useForm({
 		name: "",
 		email: "",
@@ -11012,7 +11011,7 @@ function AdminUsersCreate({ managers, isManagerCreating }) {
 			className: "flex items-center justify-between mb-6",
 			children: [/* @__PURE__ */ jsx("div", { children: /* @__PURE__ */ jsx("h1", {
 				className: "text-2xl font-bold text-secondary-950",
-				children: isManager ? isRtl ? "إضافة وكيل جديد" : "Add New Agent" : trans("users.add_user")
+				children: trans("users.add_user")
 			}) }), /* @__PURE__ */ jsx(Link, {
 				href: "/admin/users",
 				className: "px-4 py-2 text-sm font-medium text-secondary-700 bg-white border border-secondary-200 rounded-lg hover:bg-surface",
@@ -11087,7 +11086,7 @@ function AdminUsersCreate({ managers, isManagerCreating }) {
 							required: true
 						})] })]
 					}),
-					!isManager && /* @__PURE__ */ jsxs("div", { children: [
+					/* @__PURE__ */ jsxs("div", { children: [
 						/* @__PURE__ */ jsxs("label", {
 							className: "block text-sm font-medium text-secondary-950 mb-1",
 							children: [trans("users.role"), " *"]
@@ -11117,7 +11116,7 @@ function AdminUsersCreate({ managers, isManagerCreating }) {
 							children: errors.role
 						})
 					] }),
-					!isManager && data.role === "agent" && /* @__PURE__ */ jsxs("div", { children: [
+					data.role === "agent" && /* @__PURE__ */ jsxs("div", { children: [
 						/* @__PURE__ */ jsxs("label", {
 							className: "block text-sm font-medium text-secondary-950 mb-1",
 							children: [trans("users.manager"), " *"]

@@ -8,27 +8,27 @@ class UserPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->isAdmin() || $user->isManager();
+        return $user->isAdmin();
     }
 
     public function view(User $user, User $model): bool
     {
-        return $user->isAdmin() || $user->id === $model->id || ($user->isManager() && $model->manager_id === $user->id);
+        return $user->isAdmin() || $user->id === $model->id;
     }
 
     public function create(User $user): bool
     {
-        return $user->isAdmin() || $user->isManager();
+        return $user->isAdmin();
     }
 
     public function update(User $user, User $model): bool
     {
-        return $user->isAdmin() || $user->id === $model->id || ($user->isManager() && $model->manager_id === $user->id);
+        return $user->isAdmin() || $user->id === $model->id;
     }
 
     public function delete(User $user, User $model): bool
     {
-        return ($user->isAdmin() && $user->id !== $model->id) || ($user->isManager() && $model->manager_id === $user->id);
+        return $user->isAdmin() && $user->id !== $model->id;
     }
 
     public function transferProjects(User $user): bool

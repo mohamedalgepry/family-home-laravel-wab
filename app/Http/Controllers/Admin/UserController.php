@@ -25,15 +25,10 @@ class UserController extends Controller
     {
         $this->authorize('viewAny', User::class);
 
-        $currentUser = request()->user();
         $filters = request()->only(['search', 'role']);
 
         $users = User::with('manager:id,name')
             ->orderBy('name')
-            ->when($currentUser->isManager(), fn ($q) => $q->where(function ($sq) use ($currentUser) {
-                $sq->where('manager_id', $currentUser->id)
-                   ->orWhere('id', $currentUser->id);
-            }))
             ->when(! empty($filters['search']), fn ($q) => $q->where(function ($q) use ($filters) {
                 $q->where('name', 'like', "%{$filters['search']}%")
                     ->orWhere('email', 'like', "%{$filters['search']}%");
@@ -41,13 +36,11 @@ class UserController extends Controller
             ->when(! empty($filters['role']), fn ($q) => $q->where('role', $filters['role']))
             ->get();
 
-        $managers = $currentUser->isAdmin()
-            ? User::managers()
-                ->select('id', 'name')
-                ->with('agents:id,name,email,manager_id')
-                ->orderBy('name')
-                ->get()
-            : collect([]);
+        $managers = User::managers()
+            ->select('id', 'name')
+            ->with('agents:id,name,email,manager_id')
+            ->orderBy('name')
+            ->get();
 
         return Inertia::render('Admin/Users/Index', [
             'users' => $users,
@@ -60,15 +53,13 @@ class UserController extends Controller
     {
         $this->authorize('create', User::class);
 
-        $currentUser = request()->user();
-
-        $managers = $currentUser->isAdmin()
-            ? User::managers()->select('id', 'name')->orderBy('name')->get()
-            : collect([]);
+        $managers = User::managers()
+            ->select('id', 'name')
+            ->orderBy('name')
+            ->get();
 
         return Inertia::render('Admin/Users/Create', [
             'managers' => $managers,
-            'isManagerCreating' => $currentUser->isManager(),
         ]);
     }
 
@@ -77,24 +68,15 @@ class UserController extends Controller
         $this->authorize('create', User::class);
 
         $data = $request->validated();
-        $currentUser = $request->user();
-
-        if ($currentUser->isManager()) {
-            $role = 'agent';
-            $managerId = $currentUser->id;
-        } else {
-            $role = $data['role'] ?? 'agent';
-            $managerId = $role === 'agent' ? ($data['manager_id'] ?? null) : null;
-        }
 
         $user = User::make([
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
-            'manager_id' => $managerId,
+            'manager_id' => $data['role'] === 'agent' ? $data['manager_id'] : null,
         ]);
 
-        $user->role = $role;
+        $user->role = $data['role'];
         $user->is_active = true;
         $user->save();
 

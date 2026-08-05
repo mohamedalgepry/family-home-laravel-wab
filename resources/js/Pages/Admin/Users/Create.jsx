@@ -3,11 +3,10 @@ import { useTrans } from '../../../Utils/trans'
 import AdminSidebar from '../../../Components/Layout/AdminSidebar'
 import { Select } from '../../../Components/UI'
 
-export default function AdminUsersCreate({ managers, isManagerCreating }) {
-    const { locale, auth } = usePage().props
+export default function AdminUsersCreate({ managers }) {
+    const { locale } = usePage().props
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
-    const isManager = isManagerCreating || auth?.user?.role === 'manager'
 
     const { data, setData, post, processing, errors } = useForm({
         name: '',
@@ -29,9 +28,7 @@ export default function AdminUsersCreate({ managers, isManagerCreating }) {
             <div dir={isRtl ? 'rtl' : 'ltr'} className="p-6">
                 <div className="flex items-center justify-between mb-6">
                     <div>
-                        <h1 className="text-2xl font-bold text-secondary-950">
-                            {isManager ? (isRtl ? 'إضافة وكيل جديد' : 'Add New Agent') : trans('users.add_user')}
-                        </h1>
+                        <h1 className="text-2xl font-bold text-secondary-950">{trans('users.add_user')}</h1>
                     </div>
                     <Link href="/admin/users" className="px-4 py-2 text-sm font-medium text-secondary-700 bg-white border border-secondary-200 rounded-lg hover:bg-surface">
                         {trans('back')}
@@ -40,7 +37,7 @@ export default function AdminUsersCreate({ managers, isManagerCreating }) {
 
                 <div className="max-w-3xl bg-white rounded-xl shadow-card p-6 border border-secondary-100">
                     <form onSubmit={handleSubmit} className="space-y-6">
-                        
+
                         <div>
                             <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('users.name')} *</label>
                             <input
@@ -89,24 +86,22 @@ export default function AdminUsersCreate({ managers, isManagerCreating }) {
                             </div>
                         </div>
 
-                        {!isManager && (
-                            <div>
-                                <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('users.role')} *</label>
-                                <Select
-                                    value={data.role}
-                                    onChange={e => setData('role', e.target.value)}
-                                    className="w-full px-4 py-2 border border-secondary-200 rounded-lg bg-white"
-                                    required
-                                >
-                                    <option value="admin">{trans('users.role_admin') || 'مدير عام'}</option>
-                                    <option value="manager">{trans('users.role_manager') || 'مدير'}</option>
-                                    <option value="agent">{trans('users.role_agent') || 'موظف'}</option>
-                                </Select>
-                                {errors.role && <p className="text-xs text-error mt-1">{errors.role}</p>}
-                            </div>
-                        )}
+                        <div>
+                            <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('users.role')} *</label>
+                            <Select
+                                value={data.role}
+                                onChange={e => setData('role', e.target.value)}
+                                className="w-full px-4 py-2 border border-secondary-200 rounded-lg bg-white"
+                                required
+                            >
+                                <option value="admin">{trans('users.role_admin') || 'مدير عام'}</option>
+                                <option value="manager">{trans('users.role_manager') || 'مدير'}</option>
+                                <option value="agent">{trans('users.role_agent') || 'موظف'}</option>
+                            </Select>
+                            {errors.role && <p className="text-xs text-error mt-1">{errors.role}</p>}
+                        </div>
 
-                        {!isManager && data.role === 'agent' && (
+                        {data.role === 'agent' && (
                             <div>
                                 <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('users.manager')} *</label>
                                 <Select

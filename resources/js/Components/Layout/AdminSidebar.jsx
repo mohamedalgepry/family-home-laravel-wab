@@ -33,7 +33,7 @@ const NAV_GROUPS = [
         items: [
             { key: 'sidebar_messages', href: '/admin/messages', icon: 'M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155' },
             { key: 'sidebar_notifications', href: '/admin/notifications', icon: 'M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0' },
-            { key: 'sidebar_users', href: '/admin/users', scope: 'manager', icon: 'M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z' },
+            { key: 'sidebar_users', href: '/admin/users', scope: 'admin', icon: 'M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z' },
             { key: 'sidebar_points', href: '/admin/points', scope: 'manager', icon: 'M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
         ]
     },
@@ -69,7 +69,7 @@ function playNotificationSound() {
         osc2.connect(gain)
         osc2.start(now + 0.15)
         osc2.stop(now + 0.4)
-    } catch {}
+    } catch { }
 }
 
 export default function AdminSidebar({ children }) {
@@ -123,7 +123,7 @@ export default function AdminSidebar({ children }) {
             if (!res.ok) throw new Error('Unable to load notifications')
             const data = await res.json()
             setRecentNotifs(data.notifications || [])
-        } catch {}
+        } catch { }
         setLoadingNotifs(false)
     }
 
@@ -298,11 +298,10 @@ export default function AdminSidebar({ children }) {
                                         key={item.key}
                                         href={item.href}
                                         onClick={() => setMobileOpen(false)}
-                                        className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm transition-all duration-200 ${
-                                            active
+                                        className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm transition-all duration-200 ${active
                                                 ? 'bg-primary-900/20 text-white font-semibold border-s-4 border-primary-900 ps-3.5'
                                                 : 'text-secondary-300 hover:bg-secondary-900 hover:text-white ps-4'
-                                        }`}
+                                            }`}
                                     >
                                         <svg className={`w-5 h-5 shrink-0 ${active ? 'text-primary-500' : 'text-secondary-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                                             <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
@@ -337,10 +336,10 @@ export default function AdminSidebar({ children }) {
             <aside className="w-64 bg-secondary-950 text-white shrink-0 hidden md:flex flex-col border-e border-secondary-800/60">
                 <div className="p-4 border-b border-secondary-800/80 flex items-center justify-between">
                     <Link href="/admin" className="flex items-center gap-2">
-                        <img 
-                            src={settings?.site_logo ? (settings.site_logo.startsWith('http') || settings.site_logo.startsWith('/storage') ? settings.site_logo : `/storage/${settings.site_logo}`) : '/icon.png'} 
-                            alt={trans('app_name')} 
-                            className="h-8 w-auto object-contain" 
+                        <img
+                            src={settings?.site_logo ? (settings.site_logo.startsWith('http') || settings.site_logo.startsWith('/storage') ? settings.site_logo : `/storage/${settings.site_logo}`) : '/icon.png'}
+                            alt={trans('app_name')}
+                            className="h-8 w-auto object-contain"
                             onError={(e) => { e.currentTarget.src = '/icon.png'; }}
                         />
                         <div>
@@ -412,7 +411,7 @@ export default function AdminSidebar({ children }) {
                         >
                             {isRtl ? trans('lang_en') : trans('lang_ar')}
                         </Link>
-                        
+
                         <div className="flex items-center gap-3 border-s border-secondary-200 ps-4 rtl:border-s-0 rtl:border-r rtl:pr-4 rtl:ps-0">
                             <button
                                 onClick={toggleSound}
@@ -502,13 +501,13 @@ export default function AdminSidebar({ children }) {
                                                             <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-xs ${iconColor}`}>
                                                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                                                                     <path strokeLinecap="round" strokeLinejoin="round" d={
-                                                                     type.includes('expiry') || type.includes('expired') || type === 'unit_pending_approval'
-                                                                         ? 'M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z'
-                                                                         : type === 'new_project_created' || type === 'unit_approved'
-                                                                             ? 'M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
-                                                                             : type === 'new_message'
-                                                                                 ? 'M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z'
-                                                                                 : 'M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0'
+                                                                        type.includes('expiry') || type.includes('expired') || type === 'unit_pending_approval'
+                                                                            ? 'M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z'
+                                                                            : type === 'new_project_created' || type === 'unit_approved'
+                                                                                ? 'M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
+                                                                                : type === 'new_message'
+                                                                                    ? 'M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z'
+                                                                                    : 'M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0'
                                                                     } />
                                                                 </svg>
                                                             </div>
@@ -541,9 +540,9 @@ export default function AdminSidebar({ children }) {
                             <Link href="/admin/profile" className="flex items-center gap-2 group focus-visible:ring-2 focus-visible:ring-primary-900 focus-visible:outline-none rounded-full" title={trans('my_profile', {}, 'admin')}>
                                 <div className="w-8 h-8 rounded-full bg-primary-50 text-primary-900 flex items-center justify-center font-bold text-sm border border-primary-100 group-hover:bg-primary-900 group-hover:text-white transition-colors overflow-hidden relative">
                                     {auth?.user?.avatar && !avatarFailed ? (
-                                        <img 
-                                            src={auth.user.avatar.startsWith('http') || auth.user.avatar.startsWith('/storage') ? auth.user.avatar : `/storage/${auth.user.avatar}`} 
-                                            alt={auth?.user?.name || ''} 
+                                        <img
+                                            src={auth.user.avatar.startsWith('http') || auth.user.avatar.startsWith('/storage') ? auth.user.avatar : `/storage/${auth.user.avatar}`}
+                                            alt={auth?.user?.name || ''}
                                             className="w-full h-full object-cover"
                                             onError={() => setAvatarFailed(true)}
                                         />
@@ -553,10 +552,10 @@ export default function AdminSidebar({ children }) {
                                 </div>
                             </Link>
 
-                            <Link 
-                                href="/logout" 
-                                method="post" 
-                                as="button" 
+                            <Link
+                                href="/logout"
+                                method="post"
+                                as="button"
                                 className="w-8 h-8 rounded-full flex items-center justify-center text-secondary-500 hover:bg-red-50 hover:text-error transition-colors focus-visible:ring-2 focus-visible:ring-error focus-visible:outline-none"
                                 title={trans('logout')}
                                 aria-label="Logout"
