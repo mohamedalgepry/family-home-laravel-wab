@@ -13,29 +13,32 @@ class GenerateSitemap extends Command
 {
     protected $signature = 'sitemap:generate';
 
-    protected $description = 'Generate public/sitemap.xml with updated listing and project URLs';
+    protected $description = 'Generate public sitemap index and sub-sitemaps XML files';
 
     public function handle(): int
     {
         $baseUrl = rtrim(config('app.url', 'https://familyhome-co.com'), '/');
 
-        $xml = '<?xml version="1.0" encoding="UTF-8"?>'."\n";
-        $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">'."\n";
+        // 1. Static sitemap
+        $staticXml = $this->startUrlSet();
+        $staticXml .= $this->urlEntry($baseUrl, '/', now(), '1.0', 'daily');
+        $staticXml .= $this->urlEntry($baseUrl, '/units', now(), '0.8', 'hourly');
+        $staticXml .= $this->urlEntry($baseUrl, '/units/deals', now(), '0.6', 'daily');
+        $staticXml .= $this->urlEntry($baseUrl, '/projects', now(), '0.8', 'hourly');
+        $staticXml .= $this->urlEntry($baseUrl, '/articles', now(), '0.8', 'daily');
+        $staticXml .= $this->urlEntry($baseUrl, '/about', now(), '0.5', 'monthly');
+        $staticXml .= $this->urlEntry($baseUrl, '/contact', now(), '0.5', 'monthly');
+        $staticXml .= $this->endUrlSet();
+        file_put_contents(public_path('sitemap-static.xml'), $staticXml);
 
-        $xml .= $this->urlEntry($baseUrl, '/', now(), '1.0', 'daily');
-        $xml .= $this->urlEntry($baseUrl, '/units', now(), '0.8', 'hourly');
-        $xml .= $this->urlEntry($baseUrl, '/units/deals', now(), '0.6', 'daily');
-        $xml .= $this->urlEntry($baseUrl, '/projects', now(), '0.8', 'hourly');
-        $xml .= $this->urlEntry($baseUrl, '/articles', now(), '0.8', 'daily');
-        $xml .= $this->urlEntry($baseUrl, '/about', now(), '0.5', 'monthly');
-        $xml .= $this->urlEntry($baseUrl, '/contact', now(), '0.5', 'monthly');
-
+        // 2. Units sitemap
+        $unitsXml = $this->startUrlSet();
         try {
-            Unit::active()->chunk(500, function ($units) use ($baseUrl, &$xml) {
+            Unit::active()->chunk(500, function ($units) use ($baseUrl, &$unitsXml) {
                 foreach ($units as $unit) {
                     $arSlug = $unit->slug_ar ?? $unit->slug;
                     $enSlug = $unit->slug_en ?? $unit->slug;
-                    $xml .= $this->urlEntry(
+                    $unitsXml .= $this->urlEntry(
                         $baseUrl,
                         ['ar' => "/units/{$arSlug}", 'en' => "/units/{$enSlug}"],
                         $unit->updated_at,
@@ -47,13 +50,17 @@ class GenerateSitemap extends Command
         } catch (\Throwable $e) {
             Log::error('GenerateSitemap units section failed', ['error' => $e->getMessage()]);
         }
+        $unitsXml .= $this->endUrlSet();
+        file_put_contents(public_path('sitemap-units.xml'), $unitsXml);
 
+        // 3. Projects sitemap
+        $projectsXml = $this->startUrlSet();
         try {
-            Project::where('is_active', true)->chunk(500, function ($projects) use ($baseUrl, &$xml) {
+            Project::where('is_active', true)->chunk(500, function ($projects) use ($baseUrl, &$projectsXml) {
                 foreach ($projects as $project) {
                     $arSlug = $project->slug_ar ?? $project->slug;
                     $enSlug = $project->slug_en ?? $project->slug;
-                    $xml .= $this->urlEntry(
+                    $projectsXml .= $this->urlEntry(
                         $baseUrl,
                         ['ar' => "/projects/{$arSlug}", 'en' => "/projects/{$enSlug}"],
                         $project->updated_at,
@@ -65,13 +72,17 @@ class GenerateSitemap extends Command
         } catch (\Throwable $e) {
             Log::error('GenerateSitemap projects section failed', ['error' => $e->getMessage()]);
         }
+        $projectsXml .= $this->endUrlSet();
+        file_put_contents(public_path('sitemap-projects.xml'), $projectsXml);
 
+        // 4. Articles sitemap
+        $articlesXml = $this->startUrlSet();
         try {
-            Article::where('is_published', true)->chunk(500, function ($articles) use ($baseUrl, &$xml) {
+            Article::where('is_published', true)->chunk(500, function ($articles) use ($baseUrl, &$articlesXml) {
                 foreach ($articles as $article) {
                     $arSlug = $article->slug_ar ?? $article->slug;
                     $enSlug = $article->slug_en ?? $article->slug;
-                    $xml .= $this->urlEntry(
+                    $articlesXml .= $this->urlEntry(
                         $baseUrl,
                         ['ar' => "/articles/{$arSlug}", 'en' => "/articles/{$enSlug}"],
                         $article->updated_at,
@@ -83,14 +94,18 @@ class GenerateSitemap extends Command
         } catch (\Throwable $e) {
             Log::error('GenerateSitemap articles section failed', ['error' => $e->getMessage()]);
         }
+        $articlesXml .= $this->endUrlSet();
+        file_put_contents(public_path('sitemap-articles.xml'), $articlesXml);
 
+        // 5. Categories sitemap
+        $categoriesXml = $this->startUrlSet();
         try {
             Category::whereHas('articles', fn ($query) => $query->where('is_published', true))
-                ->chunk(500, function ($categories) use ($baseUrl, &$xml) {
+                ->chunk(500, function ($categories) use ($baseUrl, &$categoriesXml) {
                     foreach ($categories as $category) {
                         $arSlug = $category->slug_ar ?? $category->slug;
                         $enSlug = $category->slug_en ?? $category->slug;
-                        $xml .= $this->urlEntry(
+                        $categoriesXml .= $this->urlEntry(
                             $baseUrl,
                             ['ar' => "/articles?category={$arSlug}", 'en' => "/articles?category={$enSlug}"],
                             $category->updated_at,
@@ -102,14 +117,47 @@ class GenerateSitemap extends Command
         } catch (\Throwable $e) {
             Log::error('GenerateSitemap categories section failed', ['error' => $e->getMessage()]);
         }
+        $categoriesXml .= $this->endUrlSet();
+        file_put_contents(public_path('sitemap-categories.xml'), $categoriesXml);
 
-        $xml .= '</urlset>';
+        // 6. Index sitemap
+        $indexXml = '<?xml version="1.0" encoding="UTF-8"?>'."\n";
+        $indexXml .= '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'."\n";
+        $indexXml .= '    <sitemap>'."\n";
+        $indexXml .= '        <loc>'.$baseUrl.'/sitemap-static.xml</loc>'."\n";
+        $indexXml .= '    </sitemap>'."\n";
+        $indexXml .= '    <sitemap>'."\n";
+        $indexXml .= '        <loc>'.$baseUrl.'/sitemap-units.xml</loc>'."\n";
+        $indexXml .= '    </sitemap>'."\n";
+        $indexXml .= '    <sitemap>'."\n";
+        $indexXml .= '        <loc>'.$baseUrl.'/sitemap-projects.xml</loc>'."\n";
+        $indexXml .= '    </sitemap>'."\n";
+        $indexXml .= '    <sitemap>'."\n";
+        $indexXml .= '        <loc>'.$baseUrl.'/sitemap-articles.xml</loc>'."\n";
+        $indexXml .= '    </sitemap>'."\n";
+        $indexXml .= '    <sitemap>'."\n";
+        $indexXml .= '        <loc>'.$baseUrl.'/sitemap-categories.xml</loc>'."\n";
+        $indexXml .= '    </sitemap>'."\n";
+        $indexXml .= '</sitemapindex>';
 
-        file_put_contents(public_path('sitemap.xml'), $xml);
+        file_put_contents(public_path('sitemap.xml'), $indexXml);
 
-        $this->info('public/sitemap.xml generated successfully!');
+        $this->info('Public sitemap index and sub-sitemaps generated successfully!');
 
         return Command::SUCCESS;
+    }
+
+    private function startUrlSet(): string
+    {
+        $xml = '<?xml version="1.0" encoding="UTF-8"?>'."\n";
+        $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">'."\n";
+
+        return $xml;
+    }
+
+    private function endUrlSet(): string
+    {
+        return '</urlset>';
     }
 
     private function urlEntry(string $baseUrl, string|array $path, mixed $lastmod = null, string $priority = '0.5', string $changefreq = 'weekly'): string

@@ -23,7 +23,12 @@ Route::get('/health', function () {
     }
 })->name('health.check');
 
-Route::get('/sitemap.xml', SitemapController::class);
+Route::get('/sitemap.xml', [SitemapController::class, 'index']);
+Route::get('/sitemap-static.xml', [SitemapController::class, 'static']);
+Route::get('/sitemap-units.xml', [SitemapController::class, 'units']);
+Route::get('/sitemap-projects.xml', [SitemapController::class, 'projects']);
+Route::get('/sitemap-articles.xml', [SitemapController::class, 'articles']);
+Route::get('/sitemap-categories.xml', [SitemapController::class, 'categories']);
 
 Route::get('/storage/{path}', function ($path) {
     // منع Path Traversal

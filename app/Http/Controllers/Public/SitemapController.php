@@ -13,9 +13,45 @@ class SitemapController
 {
     public function __invoke(): Response
     {
-        $content = Cache::remember('sitemap_xml', 3600, function () {
+        return $this->index();
+    }
+
+    public function index(): Response
+    {
+        $content = Cache::remember('sitemap_index_xml', 3600, function () {
+            $baseUrl = rtrim(config('app.url'), '/');
+
             $xml = '<?xml version="1.0" encoding="UTF-8"?>'."\n";
-            $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">'."\n";
+            $xml .= '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'."\n";
+            $xml .= '    <sitemap>'."\n";
+            $xml .= '        <loc>'.$baseUrl.'/sitemap-static.xml</loc>'."\n";
+            $xml .= '    </sitemap>'."\n";
+            $xml .= '    <sitemap>'."\n";
+            $xml .= '        <loc>'.$baseUrl.'/sitemap-units.xml</loc>'."\n";
+            $xml .= '    </sitemap>'."\n";
+            $xml .= '    <sitemap>'."\n";
+            $xml .= '        <loc>'.$baseUrl.'/sitemap-projects.xml</loc>'."\n";
+            $xml .= '    </sitemap>'."\n";
+            $xml .= '    <sitemap>'."\n";
+            $xml .= '        <loc>'.$baseUrl.'/sitemap-articles.xml</loc>'."\n";
+            $xml .= '    </sitemap>'."\n";
+            $xml .= '    <sitemap>'."\n";
+            $xml .= '        <loc>'.$baseUrl.'/sitemap-categories.xml</loc>'."\n";
+            $xml .= '    </sitemap>'."\n";
+            $xml .= '</sitemapindex>';
+
+            return $xml;
+        });
+
+        return response($content, 200, [
+            'Content-Type' => 'application/xml',
+        ]);
+    }
+
+    public function static(): Response
+    {
+        $content = Cache::remember('sitemap_static_xml', 3600, function () {
+            $xml = $this->startUrlSet();
 
             $xml .= $this->urlEntry('/', now(), '1.0', 'daily');
             $xml .= $this->urlEntry('/units', now(), '0.8', 'hourly');
@@ -24,6 +60,21 @@ class SitemapController
             $xml .= $this->urlEntry('/articles', now(), '0.8', 'daily');
             $xml .= $this->urlEntry('/about', now(), '0.5', 'monthly');
             $xml .= $this->urlEntry('/contact', now(), '0.5', 'monthly');
+
+            $xml .= $this->endUrlSet();
+
+            return $xml;
+        });
+
+        return response($content, 200, [
+            'Content-Type' => 'application/xml',
+        ]);
+    }
+
+    public function units(): Response
+    {
+        $content = Cache::remember('sitemap_units_xml', 3600, function () {
+            $xml = $this->startUrlSet();
 
             Unit::active()->chunk(500, function ($units) use (&$xml) {
                 foreach ($units as $unit) {
@@ -38,6 +89,21 @@ class SitemapController
                 }
             });
 
+            $xml .= $this->endUrlSet();
+
+            return $xml;
+        });
+
+        return response($content, 200, [
+            'Content-Type' => 'application/xml',
+        ]);
+    }
+
+    public function projects(): Response
+    {
+        $content = Cache::remember('sitemap_projects_xml', 3600, function () {
+            $xml = $this->startUrlSet();
+
             Project::where('is_active', true)->chunk(500, function ($projects) use (&$xml) {
                 foreach ($projects as $project) {
                     $arSlug = $project->slug_ar ?? $project->slug;
@@ -50,6 +116,21 @@ class SitemapController
                     );
                 }
             });
+
+            $xml .= $this->endUrlSet();
+
+            return $xml;
+        });
+
+        return response($content, 200, [
+            'Content-Type' => 'application/xml',
+        ]);
+    }
+
+    public function articles(): Response
+    {
+        $content = Cache::remember('sitemap_articles_xml', 3600, function () {
+            $xml = $this->startUrlSet();
 
             Article::where('is_published', true)->chunk(500, function ($articles) use (&$xml) {
                 foreach ($articles as $article) {
@@ -64,6 +145,21 @@ class SitemapController
                 }
             });
 
+            $xml .= $this->endUrlSet();
+
+            return $xml;
+        });
+
+        return response($content, 200, [
+            'Content-Type' => 'application/xml',
+        ]);
+    }
+
+    public function categories(): Response
+    {
+        $content = Cache::remember('sitemap_categories_xml', 3600, function () {
+            $xml = $this->startUrlSet();
+
             Category::chunk(500, function ($categories) use (&$xml) {
                 foreach ($categories as $category) {
                     $arSlug = $category->slug_ar ?? $category->slug;
@@ -77,7 +173,7 @@ class SitemapController
                 }
             });
 
-            $xml .= '</urlset>';
+            $xml .= $this->endUrlSet();
 
             return $xml;
         });
@@ -85,6 +181,19 @@ class SitemapController
         return response($content, 200, [
             'Content-Type' => 'application/xml',
         ]);
+    }
+
+    private function startUrlSet(): string
+    {
+        $xml = '<?xml version="1.0" encoding="UTF-8"?>'."\n";
+        $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">'."\n";
+
+        return $xml;
+    }
+
+    private function endUrlSet(): string
+    {
+        return '</urlset>';
     }
 
     private function urlEntry(string|array $path, mixed $lastmod = null, string $priority = '0.5', string $changefreq = 'weekly'): string
