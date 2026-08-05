@@ -90,6 +90,10 @@ Route::middleware('auth')->group(function () {
 
 Route::get('/', [PageController::class, 'rootRedirect'])->name('root');
 
+// منع trailing-slash redirect على الموبايل (بعض المتصفحات تُضيف / في النهاية فيتسبب 301)
+Route::get('/ar/', fn() => redirect('/ar', 301));
+Route::get('/en/', fn() => redirect('/en', 301));
+
 Route::prefix('{locale}')->whereIn('locale', ['ar', 'en'])->middleware(SetLocale::class)->group(function () {
     Route::get('/', HomeController::class)->name('home');
 

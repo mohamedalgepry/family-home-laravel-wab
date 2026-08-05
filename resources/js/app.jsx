@@ -14,6 +14,20 @@ if (typeof window !== 'undefined') {
     router.on('invalid', (event) => {
         event.preventDefault();
     });
+
+    // تأثير تلوين النص عند اللمس على الموبايل (a:active لا يعمل بموثوقية على متصفحات Android/iOS)
+    document.addEventListener('touchstart', (e) => {
+        const el = e.target.closest('a, button, [role="button"]');
+        if (!el) return;
+        el.classList.add('touch-active');
+        const cleanup = () => {
+            el.classList.remove('touch-active');
+            document.removeEventListener('touchend', cleanup);
+            document.removeEventListener('touchcancel', cleanup);
+        };
+        document.addEventListener('touchend', cleanup, { once: true });
+        document.addEventListener('touchcancel', cleanup, { once: true });
+    }, { passive: true });
 }
 
 createInertiaApp({

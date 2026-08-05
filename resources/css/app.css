@@ -372,7 +372,8 @@
         outline: none;
     }
 
-    a:active, button:active, [role="button"]:active {
+    a:active, button:active, [role="button"]:active,
+    a.touch-active, button.touch-active, [role="button"].touch-active {
         color: var(--color-primary-900) !important;
     }
 
