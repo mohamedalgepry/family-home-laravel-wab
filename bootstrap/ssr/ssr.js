@@ -11921,7 +11921,7 @@ function Header({ compareCount = 0 }) {
 	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
 	const [menuOpen, setMenuOpen] = useState(false);
-	const logoSrc = settings?.site_logo ? settings.site_logo.startsWith("http") || settings.site_logo.startsWith("/storage") ? settings.site_logo : `/storage/${settings.site_logo}` : "/icon.png";
+	const logoSrc = settings?.site_logo ? settings.site_logo.startsWith("http") || settings.site_logo.startsWith("/storage") ? settings.site_logo : `/storage/${settings.site_logo}` : "/icon.webp";
 	const logoAlt = `${trans("app_name")} - ${isRtl ? "موقع عقارات عائلية" : "Family Real Estate"}`;
 	const isActive = (href) => {
 		if (!url) return false;
@@ -11961,7 +11961,7 @@ function Header({ compareCount = 0 }) {
 						width: 32,
 						height: 32,
 						lazy: false,
-						fallbackSrc: "/icon.png",
+						fallbackSrc: "/icon.webp",
 						className: "h-8 w-auto object-contain"
 					}), /* @__PURE__ */ jsx("span", {
 						className: "text-xl font-bold text-primary-900 tracking-tight group-hover:text-primary-700 transition-colors",

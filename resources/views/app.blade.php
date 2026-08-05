@@ -10,8 +10,8 @@
         $settingsService = app(\App\Domain\Listings\Services\SettingsService::class);
         $heroImageSetting = $settingsService->get('hero_image');
         $heroImageMobileSetting = $settingsService->get('hero_image_mobile');
-        $heroDesktopUrl = $heroImageSetting ? asset('storage/' . $heroImageSetting) : asset('images/hero.webp');
-        $heroMobileUrl = $heroImageMobileSetting ? asset('storage/' . $heroImageMobileSetting) : ($heroImageSetting ? asset('storage/' . $heroImageSetting) : asset('images/hero-mobile.webp'));
+        $heroDesktopUrl = $heroImageSetting ? ('/storage/' . ltrim($heroImageSetting, '/')) : '/images/hero.webp';
+        $heroMobileUrl = $heroImageMobileSetting ? ('/storage/' . ltrim($heroImageMobileSetting, '/')) : ($heroImageSetting ? ('/storage/' . ltrim($heroImageSetting, '/')) : '/images/hero-mobile.webp');
     @endphp
 
     @if(request()->routeIs('home') || request()->is('/') || request()->is('ar') || request()->is('en'))
@@ -52,12 +52,12 @@
 
     @php
         $siteLogo = app(\App\Domain\Listings\Services\SettingsService::class)->get('site_logo');
-        $faviconUrl = $siteLogo ? asset('storage/' . $siteLogo) : asset('icon.png');
+        $faviconUrl = $siteLogo ? asset('storage/' . $siteLogo) : asset('icon.webp');
         $seoService = app(\App\Services\SeoService::class);
         $currentMeta = $meta ?? $seoService->forPage(request()->route()?->getName() ?? 'home');
     @endphp
 
-    <link rel="icon" type="image/png" href="{{ $faviconUrl }}">
+    <link rel="icon" type="image/webp" href="{{ $faviconUrl }}">
     <link rel="apple-touch-icon" href="{{ $faviconUrl }}">
 
     <x-seo.meta :meta="$currentMeta" />
