@@ -14701,12 +14701,12 @@ function Home({ featuredUnits, latestUnits, popularSearches, areas, unitTypes, f
 						}), isLoading ? /* @__PURE__ */ jsx("div", {
 							className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5",
 							children: Array.from({ length: 4 }).map((_, i) => /* @__PURE__ */ jsx(UnitCard, { loading: true }, i))
-						}) : hasFeatured ? /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("div", {
+						}) : hasFeatured && Array.isArray(featuredUnits?.data) ? /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("div", {
 							className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5",
 							children: featuredUnits.data.map((unit) => /* @__PURE__ */ jsx(UnitCard, { unit }, unit.id))
 						}), /* @__PURE__ */ jsx(Pagination, {
 							meta: featuredUnits,
-							links: featuredUnits.links
+							links: featuredUnits?.links
 						})] }) : /* @__PURE__ */ jsx("p", {
 							className: "text-sm text-muted text-center py-12",
 							children: trans("no_results")
@@ -14743,12 +14743,12 @@ function Home({ featuredUnits, latestUnits, popularSearches, areas, unitTypes, f
 							}), isLoading ? /* @__PURE__ */ jsx("div", {
 								className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5",
 								children: Array.from({ length: 4 }).map((_, i) => /* @__PURE__ */ jsx(UnitCard, { loading: true }, i))
-							}) : hasLatest ? /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("div", {
+							}) : hasLatest && Array.isArray(latestUnits?.data) ? /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("div", {
 								className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5",
 								children: latestUnits.data.map((unit) => /* @__PURE__ */ jsx(UnitCard, { unit }, unit.id))
 							}), /* @__PURE__ */ jsx(Pagination, {
 								meta: latestUnits,
-								links: latestUnits.links
+								links: latestUnits?.links
 							})] }) : /* @__PURE__ */ jsx("p", {
 								className: "text-sm text-muted text-center py-12",
 								children: trans("no_results")

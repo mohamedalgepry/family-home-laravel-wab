@@ -1,5 +1,31 @@
 import { createInertiaApp, router } from '@inertiajs/react'
 import { createRoot } from 'react-dom/client'
+import { Component } from 'react'
+
+class ErrorBoundary extends Component {
+    constructor(props) {
+        super(props)
+        this.state = { hasError: false }
+    }
+
+    static getDerivedStateFromError() {
+        return { hasError: true }
+    }
+
+    componentDidCatch(error, info) {
+        console.error('Unhandled React Error:', error, info)
+        if (typeof window !== 'undefined') {
+            window.location.reload()
+        }
+    }
+
+    render() {
+        if (this.state.hasError) {
+            return null
+        }
+        return this.props.children
+    }
+}
 
 if (typeof window !== 'undefined') {
     console.log(
@@ -13,6 +39,9 @@ if (typeof window !== 'undefined') {
 
     router.on('invalid', (event) => {
         event.preventDefault();
+        const response = event.detail.response;
+        const targetUrl = response?.request?.responseURL || response?.headers?.location || window.location.href;
+        window.location.href = targetUrl;
     });
 
     // تأثير تلوين النص عند اللمس على الموبايل (a:active لا يعمل بموثوقية على متصفحات Android/iOS)
@@ -36,7 +65,11 @@ createInertiaApp({
         return pages[`./Pages/${name}.jsx`]()
     },
     setup({ el, App, props }) {
-        createRoot(el).render(<App {...props} />)
+        createRoot(el).render(
+            <ErrorBoundary>
+                <App {...props} />
+            </ErrorBoundary>
+        )
     },
     progress: {
         color: '#CC0000',

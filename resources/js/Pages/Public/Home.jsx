@@ -113,14 +113,14 @@ export default function Home({ featuredUnits, latestUnits, popularSearches, area
                                 <UnitCard key={i} loading={true} />
                             ))}
                         </div>
-                    ) : hasFeatured ? (
+                    ) : hasFeatured && Array.isArray(featuredUnits?.data) ? (
                         <>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                                 {featuredUnits.data.map(unit => (
                                     <UnitCard key={unit.id} unit={unit} />
                                 ))}
                             </div>
-                            <Pagination meta={featuredUnits} links={featuredUnits.links} />
+                            <Pagination meta={featuredUnits} links={featuredUnits?.links} />
                         </>
                     ) : (
                         <p className="text-sm text-muted text-center py-12">{trans('no_results')}</p>
@@ -149,14 +149,14 @@ export default function Home({ featuredUnits, latestUnits, popularSearches, area
                                     <UnitCard key={i} loading={true} />
                                 ))}
                             </div>
-                        ) : hasLatest ? (
+                        ) : hasLatest && Array.isArray(latestUnits?.data) ? (
                             <>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                                     {latestUnits.data.map(unit => (
                                         <UnitCard key={unit.id} unit={unit} />
                                     ))}
                                 </div>
-                                <Pagination meta={latestUnits} links={latestUnits.links} />
+                                <Pagination meta={latestUnits} links={latestUnits?.links} />
                             </>
                         ) : (
                             <p className="text-sm text-muted text-center py-12">{trans('no_results')}</p>
