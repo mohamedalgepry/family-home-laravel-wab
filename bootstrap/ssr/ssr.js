@@ -14609,15 +14609,20 @@ function Home({ featuredUnits, latestUnits, popularSearches, areas, unitTypes, f
 						className: "relative bg-secondary-950 flex flex-col justify-center min-h-[80vh]",
 						children: [/* @__PURE__ */ jsxs("div", {
 							className: "absolute inset-0 z-0 overflow-hidden",
-							children: [/* @__PURE__ */ jsx("img", {
-								src: heroImage,
-								srcSet: `${heroImageMobile} 640w, ${heroImage} 1400w`,
-								sizes: "100vw",
-								alt: "",
-								className: "w-full h-full object-cover scale-105",
-								fetchPriority: "high",
-								loading: "eager",
-								decoding: "sync"
+							children: [/* @__PURE__ */ jsxs("picture", {
+								className: "w-full h-full",
+								children: [/* @__PURE__ */ jsx("source", {
+									media: "(max-width: 640px)",
+									srcSet: heroImageMobile,
+									type: "image/webp"
+								}), /* @__PURE__ */ jsx("img", {
+									src: heroImage,
+									alt: "",
+									className: "w-full h-full object-cover scale-105",
+									fetchPriority: "high",
+									loading: "eager",
+									decoding: "sync"
+								})]
 							}), /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-gradient-to-t from-secondary-950 via-secondary-950/85 to-black/60" })]
 						}), /* @__PURE__ */ jsxs("div", {
 							className: "relative z-20 max-w-container mx-auto px-4 py-20 sm:py-28 text-center w-full",

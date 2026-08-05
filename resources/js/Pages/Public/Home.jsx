@@ -42,16 +42,17 @@ export default function Home({ featuredUnits, latestUnits, popularSearches, area
                 {/* Hero Section */}
                 <section className="relative bg-secondary-950 flex flex-col justify-center min-h-[80vh]">
                     <div className="absolute inset-0 z-0 overflow-hidden">
-                        <img 
-                            src={heroImage} 
-                            srcSet={`${heroImageMobile} 640w, ${heroImage} 1400w`}
-                            sizes="100vw"
-                            alt="" 
-                            className="w-full h-full object-cover scale-105" 
-                            fetchPriority="high" 
-                            loading="eager" 
-                            decoding="sync" 
-                        />
+                        <picture className="w-full h-full">
+                            <source media="(max-width: 640px)" srcSet={heroImageMobile} type="image/webp" />
+                            <img 
+                                src={heroImage} 
+                                alt="" 
+                                className="w-full h-full object-cover scale-105" 
+                                fetchPriority="high" 
+                                loading="eager" 
+                                decoding="sync" 
+                            />
+                        </picture>
                         <div className="absolute inset-0 bg-gradient-to-t from-secondary-950 via-secondary-950/85 to-black/60"></div>
                     </div>
                     
