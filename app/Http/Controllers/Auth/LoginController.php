@@ -8,6 +8,7 @@ use App\Http\Requests\Auth\ForgotPasswordRequest;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\ResetPasswordRequest;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -26,15 +27,8 @@ class LoginController extends Controller
 
     public function store(LoginRequest $request): RedirectResponse
     {
-        $key = 'login|'.$request->input('email').'|'.$request->ip();
-
-        if (RateLimiter::tooManyAttempts($key, 5)) {
-            $seconds = RateLimiter::availableIn($key);
-
-            throw ValidationException::withMessages([
-                'email' => __('auth.throttle', ['seconds' => $seconds]),
-            ]);
-        }
+        $rateLimitKey = 'login|'.$request->input('email').'|'.$request->ip();
+        $this->ensureIsNotRateLimited($rateLimitKey, maxAttempts: 5, errorKey: 'email');
 
         try {
             $user = $this->authService->login(
@@ -42,11 +36,11 @@ class LoginController extends Controller
                 $request->boolean('remember'),
             );
 
-            RateLimiter::clear($key);
+            RateLimiter::clear($rateLimitKey);
 
             return redirect('/admin');
         } catch (ValidationException $e) {
-            RateLimiter::hit($key);
+            RateLimiter::hit($rateLimitKey);
 
             throw $e;
         }
@@ -66,27 +60,19 @@ class LoginController extends Controller
 
     public function sendResetLink(ForgotPasswordRequest $request): RedirectResponse
     {
-        $key = 'forgot-password|'.$request->input('email').'|'.$request->ip();
-
-        if (RateLimiter::tooManyAttempts($key, 3)) {
-            $seconds = RateLimiter::availableIn($key);
-
-            throw ValidationException::withMessages([
-                'email' => __('auth.throttle', ['seconds' => $seconds]),
-            ]);
-        }
-
-        RateLimiter::hit($key, 300);
-
         $email = $request->input('email');
-        $this->authService->sendOtp($email, app()->getLocale());
+        $rateLimitKey = 'forgot-password|'.$email.'|'.$request->ip();
 
+        $this->ensureIsNotRateLimited($rateLimitKey, maxAttempts: 3, decaySeconds: 300, errorKey: 'email');
+        RateLimiter::hit($rateLimitKey, 300);
+
+        $this->authService->sendOtp($email, app()->getLocale());
         $request->session()->put('password_reset_email', $email);
 
         return redirect()->route('password.otp')->with('status', __('auth.otp_sent'));
     }
 
-    public function showVerifyOtpForm(\Illuminate\Http\Request $request): Response|RedirectResponse
+    public function showVerifyOtpForm(Request $request): Response|RedirectResponse
     {
         $email = (string) $request->session()->get('password_reset_email', '');
 
@@ -99,34 +85,28 @@ class LoginController extends Controller
         ]);
     }
 
-    public function verifyOtp(\Illuminate\Http\Request $request): RedirectResponse
+    public function verifyOtp(Request $request): RedirectResponse
     {
         $request->validate([
             'email' => 'required|email',
             'code' => 'required|string|size:6',
         ]);
 
+        $email = $request->input('email');
         $sessionEmail = (string) $request->session()->get('password_reset_email', '');
 
-        if ($sessionEmail === '' || $sessionEmail !== $request->input('email')) {
+        if ($sessionEmail === '' || $sessionEmail !== $email) {
             throw ValidationException::withMessages([
                 'email' => __('auth.reset_session_expired'),
             ]);
         }
 
-        $key = 'verify-otp|'.$request->input('email').'|'.$request->ip();
-
-        if (RateLimiter::tooManyAttempts($key, 5)) {
-            $seconds = RateLimiter::availableIn($key);
-
-            throw ValidationException::withMessages([
-                'code' => __('auth.throttle', ['seconds' => $seconds]),
-            ]);
-        }
+        $rateLimitKey = 'verify-otp|'.$email.'|'.$request->ip();
+        $this->ensureIsNotRateLimited($rateLimitKey, maxAttempts: 5, errorKey: 'code');
 
         try {
-            $resetToken = $this->authService->verifyOtp($request->input('email'), $request->input('code'));
-            RateLimiter::clear($key);
+            $resetToken = $this->authService->verifyOtp($email, $request->input('code'));
+            RateLimiter::clear($rateLimitKey);
 
             $request->session()->put('password_reset_token', $resetToken);
 
@@ -134,12 +114,12 @@ class LoginController extends Controller
                 'token' => $resetToken,
             ]);
         } catch (ValidationException $e) {
-            RateLimiter::hit($key, 180);
+            RateLimiter::hit($rateLimitKey, 180);
             throw $e;
         }
     }
 
-    public function showResetForm(\Illuminate\Http\Request $request, string $token = ''): Response|RedirectResponse
+    public function showResetForm(Request $request, string $token = ''): Response|RedirectResponse
     {
         $email = (string) $request->session()->get('password_reset_email', '');
         $token = $token ?: (string) $request->session()->get('password_reset_token', '');
@@ -170,18 +150,29 @@ class LoginController extends Controller
 
     public function resetPassword(ResetPasswordRequest $request): RedirectResponse
     {
+        $email = $request->input('email');
         $sessionEmail = (string) $request->session()->get('password_reset_email', '');
 
-        if ($sessionEmail === '' || $sessionEmail !== $request->input('email')) {
+        if ($sessionEmail === '' || $sessionEmail !== $email) {
             throw ValidationException::withMessages([
                 'email' => __('auth.reset_session_expired'),
             ]);
         }
 
         $this->authService->resetPasswordWithOtp($request->validated());
-
         $request->session()->forget(['password_reset_email', 'password_reset_token']);
 
         return redirect()->route('login')->with('status', __('auth.password_reset_success'));
+    }
+
+    private function ensureIsNotRateLimited(string $key, int $maxAttempts, int $decaySeconds = 60, string $errorKey = 'email'): void
+    {
+        if (RateLimiter::tooManyAttempts($key, $maxAttempts)) {
+            $seconds = RateLimiter::availableIn($key);
+
+            throw ValidationException::withMessages([
+                $errorKey => __('auth.throttle', ['seconds' => $seconds]),
+            ]);
+        }
     }
 }

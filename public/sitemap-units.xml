@@ -1,38 +1,74 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
-    <loc>http://127.0.0.1:8000/ar/units/fyla</loc>
-    <xhtml:link rel="alternate" hreflang="ar" href="http://127.0.0.1:8000/ar/units/fyla" />
-    <xhtml:link rel="alternate" hreflang="en" href="http://127.0.0.1:8000/en/units/villa" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="http://127.0.0.1:8000/ar/units/fyla" />
-    <lastmod>2026-08-05T10:45:23+00:00</lastmod>
+    <loc>http://127.0.0.1:8000/ar/units/ohd-almdyr</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="http://127.0.0.1:8000/ar/units/ohd-almdyr" />
+    <xhtml:link rel="alternate" hreflang="en" href="http://127.0.0.1:8000/en/units/manager-unit" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="http://127.0.0.1:8000/ar/units/ohd-almdyr" />
+    <lastmod>2026-08-05T17:26:00+00:00</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>http://127.0.0.1:8000/en/units/villa</loc>
-    <xhtml:link rel="alternate" hreflang="ar" href="http://127.0.0.1:8000/ar/units/fyla" />
-    <xhtml:link rel="alternate" hreflang="en" href="http://127.0.0.1:8000/en/units/villa" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="http://127.0.0.1:8000/ar/units/fyla" />
-    <lastmod>2026-08-05T10:45:23+00:00</lastmod>
+    <loc>http://127.0.0.1:8000/en/units/manager-unit</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="http://127.0.0.1:8000/ar/units/ohd-almdyr" />
+    <xhtml:link rel="alternate" hreflang="en" href="http://127.0.0.1:8000/en/units/manager-unit" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="http://127.0.0.1:8000/ar/units/ohd-almdyr" />
+    <lastmod>2026-08-05T17:26:00+00:00</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>http://127.0.0.1:8000/ar/units/brg</loc>
-    <xhtml:link rel="alternate" hreflang="ar" href="http://127.0.0.1:8000/ar/units/brg" />
-    <xhtml:link rel="alternate" hreflang="en" href="http://127.0.0.1:8000/en/units/tower" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="http://127.0.0.1:8000/ar/units/brg" />
-    <lastmod>2026-08-05T10:45:23+00:00</lastmod>
+    <loc>http://127.0.0.1:8000/ar/units/ohd-alokyl-a</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="http://127.0.0.1:8000/ar/units/ohd-alokyl-a" />
+    <xhtml:link rel="alternate" hreflang="en" href="http://127.0.0.1:8000/en/units/agent-a-unit" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="http://127.0.0.1:8000/ar/units/ohd-alokyl-a" />
+    <lastmod>2026-08-05T17:26:00+00:00</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>http://127.0.0.1:8000/en/units/tower</loc>
-    <xhtml:link rel="alternate" hreflang="ar" href="http://127.0.0.1:8000/ar/units/brg" />
-    <xhtml:link rel="alternate" hreflang="en" href="http://127.0.0.1:8000/en/units/tower" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="http://127.0.0.1:8000/ar/units/brg" />
-    <lastmod>2026-08-05T10:45:23+00:00</lastmod>
+    <loc>http://127.0.0.1:8000/en/units/agent-a-unit</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="http://127.0.0.1:8000/ar/units/ohd-alokyl-a" />
+    <xhtml:link rel="alternate" hreflang="en" href="http://127.0.0.1:8000/en/units/agent-a-unit" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="http://127.0.0.1:8000/ar/units/ohd-alokyl-a" />
+    <lastmod>2026-08-05T17:26:00+00:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>http://127.0.0.1:8000/ar/units/ohd-alokyl-b</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="http://127.0.0.1:8000/ar/units/ohd-alokyl-b" />
+    <xhtml:link rel="alternate" hreflang="en" href="http://127.0.0.1:8000/en/units/agent-b-unit" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="http://127.0.0.1:8000/ar/units/ohd-alokyl-b" />
+    <lastmod>2026-08-05T17:26:00+00:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>http://127.0.0.1:8000/en/units/agent-b-unit</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="http://127.0.0.1:8000/ar/units/ohd-alokyl-b" />
+    <xhtml:link rel="alternate" hreflang="en" href="http://127.0.0.1:8000/en/units/agent-b-unit" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="http://127.0.0.1:8000/ar/units/ohd-alokyl-b" />
+    <lastmod>2026-08-05T17:26:00+00:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>http://127.0.0.1:8000/ar/units/ohd-alokyl-alohyd</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="http://127.0.0.1:8000/ar/units/ohd-alokyl-alohyd" />
+    <xhtml:link rel="alternate" hreflang="en" href="http://127.0.0.1:8000/en/units/lonely-agent-unit" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="http://127.0.0.1:8000/ar/units/ohd-alokyl-alohyd" />
+    <lastmod>2026-08-05T17:26:00+00:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>http://127.0.0.1:8000/en/units/lonely-agent-unit</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="http://127.0.0.1:8000/ar/units/ohd-alokyl-alohyd" />
+    <xhtml:link rel="alternate" hreflang="en" href="http://127.0.0.1:8000/en/units/lonely-agent-unit" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="http://127.0.0.1:8000/ar/units/ohd-alokyl-alohyd" />
+    <lastmod>2026-08-05T17:26:00+00:00</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>

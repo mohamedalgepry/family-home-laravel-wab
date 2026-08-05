@@ -2,25 +2,68 @@
 
 namespace App\Domain\Listings\Services;
 
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class SitemapService
 {
-    /** Invalidate the dynamic response and queue a fresh public sitemap. */
+    public function __construct(
+        private readonly SitemapBuilder $builder,
+    ) {}
+
+    /** Invalidate cached responses and rewrite all public sitemap files immediately. */
     public function regenerate(): void
     {
+        $this->forgetCache();
+
         try {
-            Cache::forget('sitemap_xml');
-            Cache::forget('sitemap_index_xml');
-            Cache::forget('sitemap_static_xml');
-            Cache::forget('sitemap_units_xml');
-            Cache::forget('sitemap_projects_xml');
-            Cache::forget('sitemap_articles_xml');
-            Cache::forget('sitemap_categories_xml');
-            Artisan::queue('sitemap:generate');
-        } catch (\Throwable) {
-            // The hourly scheduler is a fallback when the queue is unavailable.
+            $this->writePublicFiles();
+        } catch (\Throwable $exception) {
+            Log::error('Sitemap regeneration failed', [
+                'error' => $exception->getMessage(),
+            ]);
         }
+    }
+
+    public function forgetCache(): void
+    {
+        foreach ($this->cacheKeys() as $key) {
+            Cache::forget($key);
+        }
+    }
+
+    public function remember(string $key, callable $callback): string
+    {
+        return Cache::remember($key, 3600, $callback);
+    }
+
+    public function writePublicFiles(): void
+    {
+        $files = [
+            'sitemap.xml' => $this->builder->buildIndex(),
+            'sitemap-static.xml' => $this->builder->buildStatic(),
+            'sitemap-units.xml' => $this->builder->buildUnits(),
+            'sitemap-projects.xml' => $this->builder->buildProjects(),
+            'sitemap-articles.xml' => $this->builder->buildArticles(),
+            'sitemap-categories.xml' => $this->builder->buildCategories(),
+            'robots.txt' => $this->builder->buildRobots(),
+        ];
+
+        foreach ($files as $filename => $contents) {
+            file_put_contents(public_path($filename), $contents);
+        }
+    }
+
+    /** @return list<string> */
+    public function cacheKeys(): array
+    {
+        return [
+            'sitemap_index_xml',
+            'sitemap_static_xml',
+            'sitemap_units_xml',
+            'sitemap_projects_xml',
+            'sitemap_articles_xml',
+            'sitemap_categories_xml',
+        ];
     }
 }

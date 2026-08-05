@@ -2,6 +2,8 @@
 /public/hot
 /public/storage
 /public/sitemap.xml
+/public/sitemap-*.xml
+/public/robots.txt
 /storage/*.key
 /vendor
 .env

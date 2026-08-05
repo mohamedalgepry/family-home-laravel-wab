@@ -7,6 +7,7 @@ use App\Domain\Listings\Models\Setting;
 use App\Domain\Listings\Models\Unit;
 use App\Domain\Listings\Notifications\ProjectExpiryWarningNotification;
 use App\Domain\Listings\Notifications\UnitExpiryNotification;
+use App\Domain\Listings\Services\SitemapService;
 use App\Domain\Users\Models\User;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -17,10 +18,16 @@ class AutoDeleteReviewJob implements ShouldQueue
 {
     use Queueable;
 
-    public function handle(): void
+    private bool $listingsChanged = false;
+
+    public function handle(SitemapService $sitemapService): void
     {
         $this->processUnits();
         $this->processProjects();
+
+        if ($this->listingsChanged) {
+            $sitemapService->regenerate();
+        }
     }
 
     protected function processUnits(): void
@@ -63,6 +70,8 @@ class AutoDeleteReviewJob implements ShouldQueue
                 'count' => count($expiredIds),
                 'unit_ids' => $expiredIds,
             ]);
+
+            $this->listingsChanged = true;
         }
 
         $cleanupDays = (int) Setting::getValue('cleanup_deleted_days', '7');
@@ -80,6 +89,8 @@ class AutoDeleteReviewJob implements ShouldQueue
             Log::info('AutoDeleteReviewJob: permanently deleted old deactivated units.', [
                 'count' => count($ids),
             ]);
+
+            $this->listingsChanged = true;
         }
     }
 
@@ -122,6 +133,8 @@ class AutoDeleteReviewJob implements ShouldQueue
             Log::warning('AutoDeleteReviewJob: projects deactivated.', [
                 'count' => count($expiredIds),
             ]);
+
+            $this->listingsChanged = true;
         }
 
         $cleanupDays = (int) Setting::getValue('cleanup_deleted_days', '7');
@@ -139,6 +152,8 @@ class AutoDeleteReviewJob implements ShouldQueue
             Log::info('AutoDeleteReviewJob: permanently deleted old deactivated projects.', [
                 'count' => count($ids),
             ]);
+
+            $this->listingsChanged = true;
         }
     }
 }
