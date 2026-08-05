@@ -14,6 +14,7 @@
 
 <title>{{ $title }}</title>
 <meta name="description" content="{{ $description }}">
+<meta name="author" content="mohamed algbry">
 @if($keywords)
     <meta name="keywords" content="{{ $keywords }}">
 @endif

@@ -12433,6 +12433,10 @@ function SeoHead({ title, description, keywords, ogImage, ogType = "website", ca
 			name: "keywords",
 			content: finalKeywords
 		}),
+		/* @__PURE__ */ jsx("meta", {
+			name: "author",
+			content: "mohamed algbry"
+		}),
 		finalTitle && /* @__PURE__ */ jsx("meta", {
 			property: "og:title",
 			content: finalTitle
