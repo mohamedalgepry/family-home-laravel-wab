@@ -11022,7 +11022,22 @@ function AdminUsersCreate({ managers }) {
 			children: /* @__PURE__ */ jsxs("form", {
 				onSubmit: handleSubmit,
 				className: "space-y-6",
+				autoComplete: "off",
 				children: [
+					/* @__PURE__ */ jsx("input", {
+						type: "text",
+						name: "fake_username_remember",
+						style: { display: "none" },
+						tabIndex: -1,
+						autoComplete: "off"
+					}),
+					/* @__PURE__ */ jsx("input", {
+						type: "password",
+						name: "fake_password_remember",
+						style: { display: "none" },
+						tabIndex: -1,
+						autoComplete: "off"
+					}),
 					/* @__PURE__ */ jsxs("div", { children: [
 						/* @__PURE__ */ jsxs("label", {
 							className: "block text-sm font-medium text-secondary-950 mb-1",
@@ -11030,8 +11045,10 @@ function AdminUsersCreate({ managers }) {
 						}),
 						/* @__PURE__ */ jsx("input", {
 							type: "text",
+							name: "name",
 							value: data.name,
 							onChange: (e) => setData("name", e.target.value),
+							autoComplete: "off",
 							className: "w-full px-4 py-2 border border-secondary-200 rounded-lg focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 bg-white",
 							required: true
 						}),
@@ -11047,8 +11064,10 @@ function AdminUsersCreate({ managers }) {
 						}),
 						/* @__PURE__ */ jsx("input", {
 							type: "email",
+							name: "email",
 							value: data.email,
 							onChange: (e) => setData("email", e.target.value),
+							autoComplete: "off",
 							className: "w-full px-4 py-2 border border-secondary-200 rounded-lg focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 bg-white",
 							required: true
 						}),
@@ -11066,8 +11085,10 @@ function AdminUsersCreate({ managers }) {
 							}),
 							/* @__PURE__ */ jsx("input", {
 								type: "password",
+								name: "password",
 								value: data.password,
 								onChange: (e) => setData("password", e.target.value),
+								autoComplete: "new-password",
 								className: "w-full px-4 py-2 border border-secondary-200 rounded-lg focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 bg-white",
 								required: true
 							}),
@@ -11080,8 +11101,10 @@ function AdminUsersCreate({ managers }) {
 							children: [trans("password_confirmation"), " *"]
 						}), /* @__PURE__ */ jsx("input", {
 							type: "password",
+							name: "password_confirmation",
 							value: data.password_confirmation,
 							onChange: (e) => setData("password_confirmation", e.target.value),
+							autoComplete: "new-password",
 							className: "w-full px-4 py-2 border border-secondary-200 rounded-lg focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 bg-white",
 							required: true
 						})] })]

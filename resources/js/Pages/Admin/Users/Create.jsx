@@ -36,14 +36,19 @@ export default function AdminUsersCreate({ managers }) {
                 </div>
 
                 <div className="max-w-3xl bg-white rounded-xl shadow-card p-6 border border-secondary-100">
-                    <form onSubmit={handleSubmit} className="space-y-6">
+                    <form onSubmit={handleSubmit} className="space-y-6" autoComplete="off">
+                        {/* Fake inputs to trick browser password managers and prevent aggressive autofill */}
+                        <input type="text" name="fake_username_remember" style={{ display: 'none' }} tabIndex={-1} autoComplete="off" />
+                        <input type="password" name="fake_password_remember" style={{ display: 'none' }} tabIndex={-1} autoComplete="off" />
 
                         <div>
                             <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('users.name')} *</label>
                             <input
                                 type="text"
+                                name="name"
                                 value={data.name}
                                 onChange={e => setData('name', e.target.value)}
+                                autoComplete="off"
                                 className="w-full px-4 py-2 border border-secondary-200 rounded-lg focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 bg-white"
                                 required
                             />
@@ -54,8 +59,10 @@ export default function AdminUsersCreate({ managers }) {
                             <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('users.email')} *</label>
                             <input
                                 type="email"
+                                name="email"
                                 value={data.email}
                                 onChange={e => setData('email', e.target.value)}
+                                autoComplete="off"
                                 className="w-full px-4 py-2 border border-secondary-200 rounded-lg focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 bg-white"
                                 required
                             />
@@ -67,8 +74,10 @@ export default function AdminUsersCreate({ managers }) {
                                 <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('password')} *</label>
                                 <input
                                     type="password"
+                                    name="password"
                                     value={data.password}
                                     onChange={e => setData('password', e.target.value)}
+                                    autoComplete="new-password"
                                     className="w-full px-4 py-2 border border-secondary-200 rounded-lg focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 bg-white"
                                     required
                                 />
@@ -78,8 +87,10 @@ export default function AdminUsersCreate({ managers }) {
                                 <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('password_confirmation')} *</label>
                                 <input
                                     type="password"
+                                    name="password_confirmation"
                                     value={data.password_confirmation}
                                     onChange={e => setData('password_confirmation', e.target.value)}
+                                    autoComplete="new-password"
                                     className="w-full px-4 py-2 border border-secondary-200 rounded-lg focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 bg-white"
                                     required
                                 />
