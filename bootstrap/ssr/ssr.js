@@ -1301,6 +1301,10 @@ function AdminSidebar({ children }) {
 		dir: isRtl ? "rtl" : "ltr",
 		className: "min-h-screen bg-surface flex",
 		children: [
+			/* @__PURE__ */ jsx(Head, { children: /* @__PURE__ */ jsx("meta", {
+				name: "author",
+				content: "mohamed algbry"
+			}) }),
 			/* @__PURE__ */ jsxs("aside", {
 				className: "w-64 bg-secondary-950 text-white shrink-0 hidden md:flex flex-col border-e border-secondary-800/60",
 				children: [
@@ -16326,6 +16330,10 @@ function AuthLayout({ children, title, subtitle }) {
 		dir: isRtl ? "rtl" : "ltr",
 		className: "min-h-screen bg-slate-50 text-secondary-950 flex flex-col justify-between relative font-sans selection:bg-primary-900 selection:text-white",
 		children: [
+			/* @__PURE__ */ jsx(Head, { children: /* @__PURE__ */ jsx("meta", {
+				name: "author",
+				content: "mohamed algbry"
+			}) }),
 			/* @__PURE__ */ jsxs("header", {
 				className: "relative z-10 w-full max-w-5xl mx-auto px-6 pt-6 pb-2 flex items-center justify-between",
 				children: [/* @__PURE__ */ jsxs(Link, {

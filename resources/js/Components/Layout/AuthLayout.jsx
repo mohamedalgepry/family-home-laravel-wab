@@ -1,4 +1,4 @@
-import { usePage, Link } from '@inertiajs/react'
+import { usePage, Link, Head } from '@inertiajs/react'
 import { useTrans } from '../../Utils/trans'
 import { localizedPath } from '../../Utils/route'
 
@@ -16,6 +16,9 @@ export default function AuthLayout({ children, title, subtitle }) {
             dir={isRtl ? 'rtl' : 'ltr'}
             className="min-h-screen bg-slate-50 text-secondary-950 flex flex-col justify-between relative font-sans selection:bg-primary-900 selection:text-white"
         >
+            <Head>
+                <meta name="author" content="mohamed algbry" />
+            </Head>
             {/* Header */}
             <header className="relative z-10 w-full max-w-5xl mx-auto px-6 pt-6 pb-2 flex items-center justify-between">
                 <Link

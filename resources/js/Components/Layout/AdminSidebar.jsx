@@ -1,4 +1,4 @@
-import { usePage, Link, router } from '@inertiajs/react'
+import { usePage, Link, router, Head } from '@inertiajs/react'
 import { useTrans } from '../../Utils/trans'
 import { localizedPath } from '../../Utils/route'
 import { useState, useEffect, useRef } from 'react'
@@ -330,6 +330,9 @@ export default function AdminSidebar({ children }) {
 
     return (
         <div dir={isRtl ? 'rtl' : 'ltr'} className="min-h-screen bg-surface flex">
+            <Head>
+                <meta name="author" content="mohamed algbry" />
+            </Head>
             {/* Desktop Sidebar */}
             <aside className="w-64 bg-secondary-950 text-white shrink-0 hidden md:flex flex-col border-e border-secondary-800/60">
                 <div className="p-4 border-b border-secondary-800/80 flex items-center justify-between">
