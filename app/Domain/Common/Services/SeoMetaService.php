@@ -57,26 +57,28 @@ class SeoMetaService
                 'en' => url("/en/{$section}/{$enSlug}"),
                 'x-default' => url("/ar/{$section}/{$arSlug}"),
             ],
-            'schema' => '<script type="application/ld+json">'.json_encode($schema, JSON_UNESCAPED_UNICODE).'</script>',
+            'schema' => $schema,
         ];
     }
 
     private function listingSchema(Unit|Project $listing): array
     {
-        $schema = [
+        $schema = array_filter([
             '@context' => 'https://schema.org',
             '@type' => 'RealEstateListing',
             'name' => $listing->name,
             'description' => $this->description($listing->meta_description ?? $listing->description),
             'image' => $this->schemaImage($listing->images),
-        ];
+        ], fn($v) => $v !== null && $v !== '');
 
         if ($listing instanceof Unit) {
-            $schema['offers'] = [
-                '@type' => 'Offer',
-                'price' => (string) $listing->price,
-                'priceCurrency' => 'EGP',
-            ];
+            if ($listing->price !== null) {
+                $schema['offers'] = [
+                    '@type' => 'Offer',
+                    'price' => $listing->price,
+                    'priceCurrency' => 'EGP',
+                ];
+            }
         }
 
         return $schema;
@@ -84,13 +86,13 @@ class SeoMetaService
 
     private function articleSchema(Article $article): array
     {
-        return [
+        return array_filter([
             '@context' => 'https://schema.org',
             '@type' => 'Article',
             'headline' => $article->title,
             'description' => $this->description($article->meta_description ?? $article->content),
             'image' => $this->schemaImage($article->images),
-        ];
+        ], fn($v) => $v !== null && $v !== '');
     }
 
     private function imagePath($images): ?string
