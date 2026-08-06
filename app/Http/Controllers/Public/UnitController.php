@@ -78,10 +78,16 @@ class UnitController
 
         $meta = $this->seoMetaService->forListing($unit, 'units');
 
+        $mainImage = $unit->images->firstWhere('is_main', true)
+            ?? $unit->images->firstWhere('is_primary', true)
+            ?? $unit->images->first();
+            
+        $lcpImage = $mainImage ? $mainImage->url : null;
+
         return Inertia::render('Public/Units/Show', [
             'unit' => $unit,
             'similarUnits' => $similarUnits,
-        ])->withViewData(['meta' => $meta]);
+        ])->withViewData(['meta' => $meta, 'lcpImage' => $lcpImage]);
     }
 
     private function buildFilteredUnitsMeta(array $filters, bool $isDeals = false): array

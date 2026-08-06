@@ -15,7 +15,10 @@
         $heroMobileUrl = $heroImageMobileSetting ? ('/storage/' . ltrim($heroImageMobileSetting, '/')) : ($heroImageSetting ? ('/storage/' . ltrim($heroImageSetting, '/')) : '/images/hero-mobile.webp');
     @endphp
 
-    @if(request()->routeIs('home') || request()->is('/') || request()->is('ar') || request()->is('en'))
+    @if(isset($lcpImage))
+    <!-- Preload LCP Image (Dynamic from Controller) -->
+    <link rel="preload" as="image" href="{{ $lcpImage }}" fetchpriority="high">
+    @elseif(request()->routeIs('home') || request()->is('/') || request()->is('ar') || request()->is('en'))
     <!-- Preload LCP Hero Image for Mobile & Desktop (Home Page Only) -->
     <link rel="preload" as="image" href="{{ $heroMobileUrl }}" type="image/webp" media="(max-width: 640px)" fetchpriority="high">
     <link rel="preload" as="image" href="{{ $heroDesktopUrl }}" type="image/webp" media="(min-width: 641px)" fetchpriority="high">

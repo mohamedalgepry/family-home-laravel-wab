@@ -64,8 +64,14 @@ class ProjectController
 
         $meta = $this->seoMetaService->forListing($project, 'projects');
 
+        $mainImage = $project->images->firstWhere('is_main', true)
+            ?? $project->images->firstWhere('is_primary', true)
+            ?? $project->images->first();
+            
+        $lcpImage = $mainImage ? $mainImage->url : null;
+
         return Inertia::render('Public/Projects/Show', [
             'project' => $project,
-        ])->withViewData(['meta' => $meta]);
+        ])->withViewData(['meta' => $meta, 'lcpImage' => $lcpImage]);
     }
 }
