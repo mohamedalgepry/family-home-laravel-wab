@@ -42,11 +42,15 @@ function makeUnit(array $overrides = []): Unit
     return $unit;
 }
 
-function schemaOf(string $metaSchema): array
+function schemaOf(array|string $metaSchema): array
 {
+    if (is_array($metaSchema)) {
+        return $metaSchema;
+    }
+    
     preg_match('/<script type="application\/ld\+json">(.*?)<\/script>/s', $metaSchema, $matches);
 
-    return json_decode($matches[1], true);
+    return json_decode($matches[1] ?? '{}', true);
 }
 
 it('builds a localized unit meta with canonical, hreflang and schema', function () {
@@ -89,7 +93,7 @@ it('falls back to the description and first image when meta and primary are miss
     expect($meta['description'])->toBe('Description En')
         ->and($meta['image'])->toBe($first->path)
         ->and($schema['image'])->toBe(asset('storage/'.$first->path))
-        ->and($meta['schema'])->toContain('"offers"');
+        ->and($schema)->toHaveKey('offers');
 });
 
 it('builds a project meta without offers in the schema', function () {

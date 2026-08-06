@@ -18,6 +18,7 @@ class ExportPrerenderData extends Command
 
     public function handle(): int
     {
+        $baseUrl = $this->resolveBaseUrl();
         $urls = $this->collectUrls();
         $results = [];
         $kernel = app(Kernel::class);
@@ -27,9 +28,9 @@ class ExportPrerenderData extends Command
             $outputPath = $item['output'];
 
             try {
-                $request = Request::create('http://localhost'.$url, 'GET');
+                $request = Request::create($baseUrl.$url, 'GET');
                 $response = $kernel->handle($request);
-                $html = $response->getContent();
+                $html = $this->normalizeBaseUrls($response->getContent() ?? '', $baseUrl);
                 $kernel->terminate($request, $response);
 
                 if ($html && (
@@ -45,8 +46,9 @@ class ExportPrerenderData extends Command
                         $results[] = [
                             'url' => $url,
                             'output' => $outputPath,
+                            'baseUrl' => $baseUrl,
                             'htmlTemplate' => $html,
-                            'page' => $pageObject,
+                            'page' => $this->normalizePageUrls($pageObject, $baseUrl),
                         ];
                     }
                 }
@@ -132,5 +134,34 @@ class ExportPrerenderData extends Command
         }
 
         return $items;
+    }
+
+    private function resolveBaseUrl(): string
+    {
+        $configured = env('PRERENDER_BASE_URL');
+
+        return rtrim((string) ($configured ?: config('app.url')), '/');
+    }
+
+    private function normalizeBaseUrls(string $html, string $baseUrl): string
+    {
+        if ($html === '') {
+            return '';
+        }
+
+        // Safety net: replace any leftover dev-host URLs (regardless of where the
+        // generation machine's APP_URL points) so bots never receive localhost links.
+        return preg_replace('#https?://(?:localhost|127\.0\.0\.1)(?::\d+)?#i', $baseUrl, $html);
+    }
+
+    private function normalizePageUrls(array $page, string $baseUrl): array
+    {
+        array_walk_recursive($page, function (&$value) use ($baseUrl) {
+            if (is_string($value)) {
+                $value = preg_replace('#https?://(?:localhost|127\.0\.0\.1)(?::\d+)?#i', $baseUrl, $value);
+            }
+        });
+
+        return $page;
     }
 }

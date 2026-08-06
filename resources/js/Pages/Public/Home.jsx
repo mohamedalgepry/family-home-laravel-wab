@@ -48,6 +48,8 @@ export default function Home({ featuredUnits, latestUnits, popularSearches, area
                             <img 
                                 src={heroImage} 
                                 alt="" 
+                                width={1920}
+                                height={1080}
                                 className="w-full h-full object-cover scale-105" 
                                 fetchPriority="high" 
                                 loading="eager" 

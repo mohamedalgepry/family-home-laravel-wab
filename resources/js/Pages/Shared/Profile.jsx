@@ -58,7 +58,7 @@ export default function Profile() {
                     <div className="flex items-center gap-4 mb-6">
                         <div className="w-20 h-20 rounded-full bg-surface overflow-hidden flex-shrink-0 border-2 border-secondary-200">
                             {user?.avatar ? (
-                                <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                                <img src={user.avatar} alt={user.name} width={80} height={80} className="w-full h-full object-cover" />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center text-2xl font-bold text-secondary-400 bg-surface">
                                     {user?.name?.charAt(0) || '?'}

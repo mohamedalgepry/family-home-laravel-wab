@@ -28,20 +28,20 @@
             text-align: center;
         }
         .logo-box {
-            width: 72px;
-            height: 72px;
-            margin: 0 auto 12px auto;
-            background: #ffffff;
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 16px auto;
+            background-color: #ffffff;
             border-radius: 50%;
-            padding: 6px;
+            padding: 10px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
             display: inline-block;
+            box-sizing: border-box;
         }
         .logo-img {
             width: 100%;
             height: 100%;
             object-fit: contain;
-            border-radius: 50%;
         }
         .brand-name {
             color: #ffffff;
@@ -108,8 +108,10 @@
 <body>
     <div class="email-container">
         <div class="header">
-            <div class="logo-box" style="width: 72px; height: 72px; margin: 0 auto 12px auto; background-color: #ffffff !important; background: #ffffff !important; border-radius: 50%; padding: 6px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); display: inline-block;">
-                <img src="{{ $logoUrl }}" alt="Logo" class="logo-img" style="width: 100%; height: 100%; object-fit: contain; border-radius: 50%; background-color: #ffffff !important; background: #ffffff !important;">
+            <div style="text-align: center;">
+                <div class="logo-box" style="width: 80px; height: 80px; margin: 0 auto 16px auto; background-color: #ffffff; border-radius: 50%; padding: 10px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); display: inline-block; box-sizing: border-box;">
+                    <img src="{{ $logoUrl }}" alt="Logo" class="logo-img" style="width: 100%; height: 100%; object-fit: contain;">
+                </div>
             </div>
             <h1 class="brand-name">Family Home</h1>
         </div>

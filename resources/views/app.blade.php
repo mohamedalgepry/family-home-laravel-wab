@@ -28,6 +28,12 @@
     <link rel="preload" href="/fonts/cairo/cairo-1.woff2" as="font" type="font/woff2" crossorigin fetchpriority="high">
     <link rel="preload" href="/fonts/cairo/cairo-3.woff2" as="font" type="font/woff2" crossorigin fetchpriority="high">
 
+    <!-- Preconnect to YouTube for embedded listing videos (only used when a page has a video) -->
+    <link rel="preconnect" href="https://www.youtube.com" crossorigin>
+    <link rel="preconnect" href="https://i.ytimg.com" crossorigin>
+    <link rel="dns-prefetch" href="https://www.youtube.com">
+    <link rel="dns-prefetch" href="https://i.ytimg.com">
+
     <!-- Google Analytics (Deferred to user interaction to eliminate Unused JS & TBT in PageSpeed/Lighthouse) -->
     <script>
       (function() {
@@ -67,6 +73,21 @@
     <x-seo.meta :meta="$currentMeta" />
 
     @vite(['resources/js/app.jsx', 'resources/css/app.css'])
+    @php
+        $localeChunk = null;
+        $manifestPath = public_path('build/manifest.json');
+        if (file_exists($manifestPath)) {
+            $manifest = json_decode(file_get_contents($manifestPath), true);
+            $localeKey = app()->getLocale() === 'ar'
+                ? 'resources/js/Utils/locales/ar.js'
+                : 'resources/js/Utils/locales/en.js';
+            $localeChunk = $manifest[$localeKey]['file'] ?? null;
+        }
+    @endphp
+    @if($localeChunk)
+    <!-- Preload the active locale dictionary (code-split per language) -->
+    <link rel="modulepreload" as="script" href="{{ asset('build/' . $localeChunk) }}">
+    @endif
     @inertiaHead
 </head>
 <body class="font-cairo antialiased bg-gray-50 text-gray-900 selection:bg-primary-500 selection:text-white">

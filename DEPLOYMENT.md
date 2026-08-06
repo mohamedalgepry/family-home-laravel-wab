@@ -23,10 +23,11 @@
 
 ## متغيرات البيئة الإنتاجية المطلوبة
 
-`env
+`````env
 APP_ENV=production
 APP_DEBUG=false
 APP_URL=https://familyhome-co.com
+PRERENDER_BASE_URL=https://familyhome-co.com
 LOG_LEVEL=warning
 CACHE_STORE=file
 QUEUE_CONNECTION=database
@@ -35,7 +36,7 @@ SESSION_SECURE_COOKIE=true
 SESSION_HTTP_ONLY=true
 SESSION_SAME_SITE=lax
 INERTIA_SSR_ENABLED=false
-`
+```
 
 اضبط `TRUSTED_PROXIES` على عناوين Proxy الخاصة بمزود الاستضافة فقط — لا تستخدم `*`.
 
@@ -47,7 +48,7 @@ INERTIA_SSR_ENABLED=false
 > البيانات التجريبية ستفشل بالتصميم لمنع ثغرات الأمان.
 > النشر الإنتاجي يحتاج فقط تشغيل `migrate`.
 
-`ash
+```bash
 php artisan migrate --force
 php artisan storage:link
 php artisan optimize:clear
@@ -55,7 +56,7 @@ php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 php artisan sitemap:generate
-`
+```
 
 بعد رفع أصول الواجهة الجديدة، امسح Cache الـ CDN/Hostinger وأعد تحميل المتصفح بالقوة.
 **الخطأ الشائع**: bundle قديم يُرسل طلب Inertia navigation إلى JSON endpoint وتظهر رسالة:
@@ -67,31 +68,95 @@ php artisan sitemap:generate
 
 ### Cron Job (مرة كل دقيقة)
 
-`cron
+```cron
 * * * * * cd /absolute/path/to/application && php artisan schedule:run >> /dev/null 2>&1
-`
+```
 
 ### Queue Worker
 
-إذا كانت خطة الاستضافة تدعم عملية دائمة:
+على الاستضافة المشتركة (Hostinger) لا يوجد Process Manager دائم، لذلك يُشغَّل الـ worker عبر
+**Cron Job إضافي كل دقيقة** ينفّذ أي مهام معلّقة ثم يتوقف:
 
-`ash
+```cron
+* * * * * cd /absolute/path/to/application && php artisan queue:work --stop-when-empty --tries=3 --timeout=60 >> /dev/null 2>&1
+```
+
+هذا أمر ضروري: **المصغرات WebP للصور لا تُولَّد إلا عبر الـ queue**، فبدونه تبقى الصور المرفوعة
+غير محسّنة وتؤثر على PageSpeed و LCP.
+
+إذا كانت خطة الاستضافة تدعم عملية دائمة، يمكن تشغيل الـ worker الدائم بدلاً من cron:
+
+```bash
 php artisan queue:work --tries=3 --timeout=60
-`
+```
 
-وإلا اضبط Scheduled Worker مناسب وراقب الأخطاء:
+راقب الأخطاء:
 
-`ash
+```bash
 php artisan queue:failed
-`
+```
+
+### إعادة توليد مصغرات الصور الموجودة
+
+لمعالجة الصور القديمة المرفوعة قبل تفعيل الـ queue (مثل صور PNG كبيرة بلا مصغرات):
+
+```bash
+php artisan images:regenerate
+```
 
 ### Sitemap وSEO
 
 ملف `https://familyhome-co.com/sitemap.xml` يُعاد توليده تلقائياً بعد أي إنشاء أو تعديل أو حذف أو نشر/تفعيل للمشاريع والوحدات والمقالات والتصنيفات، ويوجد تشغيل احتياطي كل ساعة عبر الـ Cron أعلاه. بعد أول رفع شغّل:
 
-`bash
+```bash
 php artisan sitemap:generate
-`
+```
+
+---
+
+## نظام الـ Prerender (مهم جداً للأداء و PageSpeed)
+
+`npm run build` يشغّل الآن تلقائياً ثلاث خطوات:
+`vite build` ← `vite build --ssr` ← `node scripts/prerender.js`،
+وينتج ملفات HTML جاهزة في `storage/app/prerendered/` تُخدم للبوتات
+(Googlebot, Bingbot, and Lighthouse/PageSpeed ...).
+
+> **مهم:** السكربت يستدعي `php artisan view:clear` قبل `vite build` —
+> تايلويند يمسح `storage/framework/views/` (القوالب المترجمة)، وهي تحوي
+> كلاسات صفحات أخطاء Laravel ولوحات Filament غير المستخدمة في الموقع العام،
+> فتتسرب إلى CSS المنتج وترفع حجمه ~15KB. لا تحذف هذه الخطوة من السكربت.
+
+قواعد مهمة:
+
+1. **قاعدة البيانات يجب أن تكون متاحة أثناء البناء** — الـ build يجمع بيانات الصفحات من Laravel
+   (`php artisan prerender:data`). إن فشلت قاعدة البيانات أثناء النشر، لا يفشل النشر تلقائياً؛
+   تشغّل يدوياً بعد إصلاح المشكلة:
+   ```bash
+   PRERENDER_ALLOW_FAILURES=1 node scripts/prerender.js
+   ```
+2. **`PRERENDER_BASE_URL`** يضمن أن كل روابط المضيف المحلي (`127.0.0.1`/`localhost`) في
+   الملفات المولّدة تُستبدل بالنطاق الرسمي — في `<head>` (canonical و hreflang و og:image)
+   **وفي كائن صفحة Inertia داخل data-page** (`appUrl` وروابط الصور). التطبيع يحدث في
+   `ExportPrerenderData` على مستوى كائن الصفحة + شبكة أمان ثانية في `scripts/prerender.js`
+   تغطي الصيغتين الخام والمهرّبة (`http:\/\/...`) مع حذف المنفذ.
+   عند التوليد على جهاز محلي ثم رفع الملفات يدوياً: تأكد من ضبط
+   `PRERENDER_BASE_URL=https://familyhome-co.com` قبل التشغيل.
+3. **استبدال ذرّي**: الملفات تُولَّد في مجلد مؤقت ثم تُستبدل دفعة واحدة
+   (`prerendered.new` ← `prerendered`) — لن تخدم الموقع ملفات ناقصة أو قديمة أبداً.
+4. **فحوصات تلقائية بعد التوليد**: التحقق من وجود كل هاش CSS/JS في `public/build`
+   (يكشف فوراً أي ملفات قديمة بهاشات مفقودة)، وفحص سلامة ترميز UTF-8
+   (يمنع تكرار مشكلة النص العربي المشوّه)، والتأكد من عدم وجود
+   `<script data-page>` مكرر في الصفحة النهائية.
+
+### خادم الـ SSR المخصص (هام)
+
+`resources/js/ssr.jsx` لا يستخدم خادم `createServer` الجاهز من حزمة
+`@inertiajs/react/server` — لأن `@inertiajs/core` يقرأ جسم طلب HTTP كسلسلة
+بفك ترميز كل chunk على حدة (`data += chunk`)، فيتشوّه أي حرف عربي متعدد البايتات
+ينقسم على حدود TCP chunk (يظهر `�` في الصفحات المولّدة).
+المشروع يشغّل خادمه الخاص بقراءة الجسم عبر `Buffer.concat` قبل `JSON.parse`.
+**لا تعدّل `ssr.jsx` ليستخدم خادم الحزمة الجاهز**، وإلا ستعود مشكلة النص العربي المشوّه
+في ملفات الـ prerender.
 
 ---
 

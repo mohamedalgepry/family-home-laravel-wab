@@ -91,6 +91,8 @@ export default function ProjectShow({ project }) {
                                 <img
                                     src={thumbnail}
                                     alt={project.alt_text || project.name}
+                                    width={1200}
+                                    height={900}
                                     className="w-full h-64 sm:h-80 lg:h-96 object-cover"
                                     fetchPriority="high"
                                     loading="eager"
@@ -157,6 +159,8 @@ export default function ProjectShow({ project }) {
                                             key={i}
                                             src={img.thumb_url || img.url || (img.path?.startsWith('http') || img.path?.startsWith('/') ? img.path : `/storage/${img.path}`)}
                                             alt={img.alt_text || ''}
+                                            width={80}
+                                            height={64}
                                             className={`w-20 h-16 object-cover rounded-lg cursor-pointer border-2 transition-all shrink-0 ${
                                                 i === selectedImageIndex ? 'border-primary-900 ring-2 ring-primary-900/30 scale-105' : 'border-transparent opacity-70 hover:opacity-100 hover:border-secondary-300'
                                             }`}
@@ -178,6 +182,7 @@ export default function ProjectShow({ project }) {
                                             src={embedUrl}
                                             title={project.name}
                                             className="w-full h-full"
+                                            loading="lazy"
                                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                             allowFullScreen
                                         />

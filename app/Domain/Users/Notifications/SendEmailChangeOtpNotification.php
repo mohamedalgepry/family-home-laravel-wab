@@ -38,7 +38,7 @@ class SendEmailChangeOtpNotification extends Notification
 
         return (new MailMessage)
             ->subject($subject)
-            ->view('emails.otp_reset', [
+            ->view('emails.email_change_otp', [
                 'otpCode' => $this->otpCode,
                 'locale' => $this->locale,
                 'isEnglish' => $isEnglish,

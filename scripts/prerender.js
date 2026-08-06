@@ -4,14 +4,23 @@ import path from 'node:path'
 import http from 'node:http'
 
 const PRERENDER_DIR = path.join(process.cwd(), 'storage', 'app', 'prerendered')
+const STAGING_DIR = path.join(process.cwd(), 'storage', 'app', 'prerendered.new')
+const BACKUP_DIR = path.join(process.cwd(), 'storage', 'app', 'prerendered.old')
+const BUILD_DIR = path.join(process.cwd(), 'public', 'build')
 const SSR_PORT = 13714
+const ALLOW_FAILURES = process.env.PRERENDER_ALLOW_FAILURES === '1'
 
 async function main() {
     console.log('[Prerender] Starting static HTML prerendering...')
 
     const ssrBundlePath = path.join(process.cwd(), 'bootstrap', 'ssr', 'ssr.js')
     if (!fs.existsSync(ssrBundlePath)) {
-        console.error('[Prerender] Error: SSR bundle not found at bootstrap/ssr/ssr.js. Run vite build --ssr first.')
+        console.error('[Prerender] Error: SSR bundle not found at bootstrap/ssr/ssr.js. Run "vite build --ssr" first.')
+        process.exit(1)
+    }
+
+    if (!fs.existsSync(path.join(BUILD_DIR, 'manifest.json'))) {
+        console.error('[Prerender] Error: Vite build manifest not found at public/build/manifest.json. Run "vite build" first.')
         process.exit(1)
     }
 
@@ -19,6 +28,7 @@ async function main() {
     console.log('[Prerender] Spawning SSR server process...')
     const ssrProcess = spawn('node', [ssrBundlePath], {
         stdio: 'inherit',
+        shell: true,
         env: { ...process.env, PORT: SSR_PORT },
     })
 
@@ -34,16 +44,30 @@ async function main() {
         }
         const rawData = fs.readFileSync(jsonPath, 'utf-8')
         const pages = JSON.parse(rawData.trim())
+
+        if (pages.length < 10) {
+            throw new Error(
+                `Only ${pages.length} pages were exported — expected at least 10 (2 locales x 5 core pages). ` +
+                'Is the database reachable and the site healthy? Fix the cause and re-run.'
+            )
+        }
         console.log(`[Prerender] Found ${pages.length} pages to prerender.`)
+
+        // Clean staging dir for an atomic swap at the end
+        fs.rmSync(STAGING_DIR, { recursive: true, force: true })
+        fs.mkdirSync(STAGING_DIR, { recursive: true })
 
         let count = 0
         const failures = []
         for (const item of pages) {
             try {
                 const ssrResult = await renderPage(item.page)
-                const fullHtml = mergeHtml(item.htmlTemplate, ssrResult)
+                const fullHtml = mergeHtml(item.htmlTemplate, ssrResult, item.baseUrl)
 
-                const targetFile = path.join(PRERENDER_DIR, item.output)
+                validateAssets(fullHtml, item.url)
+                assertCleanEncoding(fullHtml, item.url)
+
+                const targetFile = path.join(STAGING_DIR, item.output)
                 fs.mkdirSync(path.dirname(targetFile), { recursive: true })
                 fs.writeFileSync(targetFile, fullHtml, 'utf-8')
                 count++
@@ -56,10 +80,19 @@ async function main() {
         console.log(`[Prerender] Successfully generated ${count}/${pages.length} static HTML pages in storage/app/prerendered/`)
 
         if (failures.length > 0) {
-            throw new Error(`Prerendering failed for ${failures.length} page(s): ${failures.map(({ url }) => url).join(', ')}`)
+            const summary = failures.map(({ url }) => url).join(', ')
+            if (ALLOW_FAILURES) {
+                console.warn(`[Prerender] ${failures.length} page(s) failed but PRERENDER_ALLOW_FAILURES=1 — keeping the successful set: ${summary}`)
+            } else {
+                throw new Error(`Prerendering failed for ${failures.length} page(s): ${summary}`)
+            }
         }
+
+        swapDirectories()
+        console.log('[Prerender] Done — new prerendered pages are live.')
     } catch (err) {
-        console.error('[Prerender] Error during prerender process:', err)
+        console.error('[Prerender] Error during prerender process:', err.message ?? err)
+        fs.rmSync(STAGING_DIR, { recursive: true, force: true })
         process.exitCode = 1
     } finally {
         console.log('[Prerender] Terminating SSR server...')
@@ -67,57 +100,130 @@ async function main() {
     }
 }
 
-function renderPage(pageObject) {
-    return new Promise((resolve, reject) => {
-        const payload = JSON.stringify(pageObject)
-        const req = http.request(
-            {
-                hostname: '127.0.0.1',
-                port: SSR_PORT,
-                path: '/render',
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Content-Length': Buffer.byteLength(payload),
-                },
-            },
-            res => {
-                let data = ''
-                res.on('data', chunk => (data += chunk))
-                res.on('end', () => {
-                    if (res.statusCode >= 200 && res.statusCode < 300) {
-                        try {
-                            resolve(JSON.parse(data))
-                        } catch (e) {
-                            reject(e)
-                        }
-                    } else {
-                        reject(new Error(`HTTP ${res.statusCode}: ${data}`))
-                    }
-                })
-            }
-        )
+function swapDirectories() {
+    fs.rmSync(BACKUP_DIR, { recursive: true, force: true })
+    if (fs.existsSync(PRERENDER_DIR)) {
+        fs.renameSync(PRERENDER_DIR, BACKUP_DIR)
+    }
+    fs.renameSync(STAGING_DIR, PRERENDER_DIR)
+    fs.rmSync(BACKUP_DIR, { recursive: true, force: true })
+}
 
-        req.on('error', reject)
-        req.write(payload)
-        req.end()
+function renderPage(pageObject) {
+    const maxAttempts = 3
+
+    return new Promise((resolve, reject) => {
+        const attempt = (n) => {
+            const payload = JSON.stringify(pageObject)
+            const req = http.request(
+                {
+                    hostname: '127.0.0.1',
+                    port: SSR_PORT,
+                    path: '/render',
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Content-Length': Buffer.byteLength(payload),
+                    },
+                },
+                res => {
+                    // NOTE: never do `data += chunk` here — decoding each TCP chunk as UTF-8
+                    // independently corrupts multi-byte characters split across chunk
+                    // boundaries (a real source of the garbled-Arabic bug).
+                    const chunks = []
+                    res.on('data', chunk => chunks.push(Buffer.from(chunk)))
+                    res.on('end', () => {
+                        const data = Buffer.concat(chunks).toString('utf-8')
+
+                        if (res.statusCode >= 200 && res.statusCode < 300) {
+                            try {
+                                const result = JSON.parse(data)
+                                const rendered = `${result.body ?? ''}${(result.head ?? []).join('')}`
+                                if (rendered.includes('\uFFFD') && n < maxAttempts) {
+                                    console.warn(`[Prerender] Corrupted UTF-8 in SSR output for ${pageObject.url}, retrying (${n}/${maxAttempts})...`)
+                                    return attempt(n + 1)
+                                }
+                                resolve(result)
+                            } catch (e) {
+                                reject(e)
+                            }
+                        } else {
+                            reject(new Error(`HTTP ${res.statusCode}: ${data}`))
+                        }
+                    })
+                }
+            )
+
+            req.on('error', reject)
+            req.write(payload)
+            req.end()
+        }
+
+        attempt(1)
     })
 }
 
-function mergeHtml(templateHtml, ssrResult) {
+function mergeHtml(templateHtml, ssrResult, baseUrl) {
     let finalHtml = templateHtml
 
     if (ssrResult?.body) {
-        // Replace <div id="app" data-page="..."></div> with rendered SSR body
-        finalHtml = finalHtml.replace(/<div id="app"[^>]*>.*?<\/div>/s, ssrResult.body)
+        // Replace the empty #app placeholder div with the SSR-rendered body.
+        finalHtml = finalHtml.replace(/<div id="app"[^>]*>\s*<\/div>/, ssrResult.body)
+
+        if (Array.isArray(ssrResult?.head) && ssrResult.head.length > 0) {
+            // Strip server-rendered placeholder tags (marked with the "inertia" attribute)
+            // so the SSR head becomes the single source of truth — avoids duplicate title/meta.
+            finalHtml = finalHtml
+                .replace(/<title\b[^>]*\binertia\b[^>]*>[\s\S]*?<\/title>/g, '')
+                .replace(/<(?:meta|link)\b[^>]*\binertia\b[^>]*\/?>/g, '')
+
+            const headTags = ssrResult.head.join('\n')
+            finalHtml = finalHtml.replace('</head>', `${headTags}\n</head>`)
+        }
     }
 
-    if (Array.isArray(ssrResult?.head) && ssrResult.head.length > 0) {
-        const headTags = ssrResult.head.join('\n')
-        finalHtml = finalHtml.replace('</head>', `${headTags}\n</head>`)
+    // Final safety net: never let dev-host URLs leak into the static HTML.
+    // Handles both raw (http://127.0.0.1:8000) and JSON-escaped (http:\/\/127.0.0.1:8000)
+    // forms, with optional port numbers, and always strips the port.
+    if (baseUrl) {
+        finalHtml = finalHtml
+            .replace(/https?:\\\/\\\/(?:localhost|127\.0\.0\.1)(?::\d+)?/g, baseUrl)
+            .replace(/https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?/g, baseUrl)
     }
 
     return finalHtml
 }
 
+function validateAssets(html, url) {
+    const missing = new Set()
+    for (const match of html.matchAll(/([^"'\s()]+\.(?:js|css))(?=["')\s<])/g)) {
+        const ref = match[1].split('?')[0].split('#')[0]
+        if (!ref.includes('/assets/')) {
+            continue
+        }
+        const filename = ref.substring(ref.lastIndexOf('/') + 1)
+        if (!fs.existsSync(path.join(BUILD_DIR, 'assets', filename))) {
+            missing.add(ref)
+        }
+    }
+    if (missing.size > 0) {
+        throw new Error(
+            `Stale/missing build assets referenced by ${url}: ${[...missing].join(', ')}. ` +
+            'Run a fresh "vite build" and re-run prerender.'
+        )
+    }
+}
+
+function assertCleanEncoding(html, url) {
+    if (html.includes('\uFFFD')) {
+        throw new Error(`Replacement character (U+FFFD) found in prerendered HTML for ${url} — encoding corruption.`)
+    }
+    // Double-encoded UTF-8 (e.g. Arabic) appears as runs of Latin-1 supplement chars like ØÙ…Ø±ÙƒØ².
+    // A run of 3+ such chars in a row is essentially always mojibake, never legit text.
+    if (/(?:[\u00C0-\u00FF]{3,})/.test(html)) {
+        throw new Error(`Double-encoded (mojibake) text detected in prerendered HTML for ${url}. Aborting to avoid serving corrupted content.`)
+    }
+}
+
 main()
+

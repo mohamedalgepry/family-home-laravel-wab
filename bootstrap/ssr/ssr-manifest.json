@@ -60,6 +60,12 @@
   "resources/js/Pages/Shared/ResetPassword.jsx": [],
   "resources/js/Pages/Shared/VerifyOtp.jsx": [],
   "resources/js/Pages/Shared/Welcome.jsx": [],
+  "resources/js/Utils/locales/ar.js": [
+    "/build/assets/ar-BVTLrJyb.js"
+  ],
+  "resources/js/Utils/locales/en.js": [
+    "/build/assets/en-ZBrXmJRl.js"
+  ],
   "resources/js/Utils/route.js": [],
   "resources/js/Utils/tiptapFontSize.js": [],
   "resources/js/Utils/trans.js": [],

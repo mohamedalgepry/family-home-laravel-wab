@@ -3,7 +3,7 @@ import { usePage, Link } from '@inertiajs/react'
 import { useTrans } from '../../Utils/trans'
 import OptimizedImage from '../OptimizedImage'
 
-const PLACEHOLDER = '/images/fallback.jpg'
+const PLACEHOLDER = '/images/fallback.webp'
 
 function SkeletonCard() {
     return (

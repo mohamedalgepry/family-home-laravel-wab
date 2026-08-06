@@ -30,7 +30,7 @@ export default function Show({ agent, units, locale }) {
                 <div className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 sm:p-10 mb-10 flex flex-col sm:flex-row items-center sm:items-start gap-8">
                     <div className="shrink-0">
                         {avatarSrc ? (
-                            <img src={avatarSrc} alt={agent.name} className="w-32 h-32 sm:w-40 sm:h-40 rounded-full object-cover shadow-md border-4 border-white" />
+                            <img src={avatarSrc} alt={agent.name} width={160} height={160} className="w-32 h-32 sm:w-40 sm:h-40 rounded-full object-cover shadow-md border-4 border-white" />
                         ) : (
                             <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full bg-primary-50 flex items-center justify-center text-primary-900 font-bold text-4xl sm:text-5xl border-4 border-white shadow-md">
                                 {agent.name?.charAt(0)?.toUpperCase() || '?'}

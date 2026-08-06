@@ -4,7 +4,7 @@ import { useTrans } from '../../Utils/trans'
 import { useCompare } from '../../Hooks/useCompare'
 import OptimizedImage from '../OptimizedImage'
 
-const PLACEHOLDER = '/images/fallback.jpg'
+const PLACEHOLDER = '/images/fallback.webp'
 
 function SkeletonCard() {
     return (

@@ -51,14 +51,28 @@ class HandleInertiaRequests extends Middleware
             );
         }
 
-        $seoPages = [];
+        $seoPage = null;
         try {
             $seoPages = Cache::remember('seo_pages_cache', 3600, function () {
                 return PageSeo::all()->keyBy('page_key')->toArray();
             });
+            $path = '/' . trim((string) preg_replace('#^/(ar|en)(/|$)#', '/', $request->path()), '/');
+            $segment = strtok($path, '/') ?: '/';
+            $keyMap = [
+                '/' => 'home',
+                'about' => 'about',
+                'contact' => 'contact',
+                'units' => 'units_index',
+                'projects' => 'projects_index',
+                'deals' => 'deals',
+                'articles' => 'articles_index',
+                'comparison' => 'comparison',
+            ];
+            $activeKey = $keyMap[$segment] ?? null;
+            $seoPage = $activeKey ? ($seoPages[$activeKey] ?? null) : null;
         } catch (\Throwable $e) {
             \Log::warning('PageSeo failed in HandleInertiaRequests', ['error' => $e->getMessage()]);
-            $seoPages = [];
+            $seoPage = null;
         }
 
         return [
@@ -86,7 +100,7 @@ class HandleInertiaRequests extends Middleware
             ],
             'unread_notifications_count' => $unreadCount,
             'settings' => $sharedSettings,
-            'seo_pages' => $seoPages,
+            'seo_page' => $seoPage,
         ];
     }
 }

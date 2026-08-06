@@ -13,7 +13,7 @@ import { TextStyle } from "@tiptap/extension-text-style";
 import { Extension } from "@tiptap/core";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { renderToString } from "react-dom/server";
-import createServer from "@inertiajs/react/server";
+import http from "node:http";
 //#region \0rolldown/runtime.js
 var __defProp = Object.defineProperty;
 var __exportAll = (all, no_symbols) => {
@@ -27,896 +27,18 @@ var __exportAll = (all, no_symbols) => {
 };
 //#endregion
 //#region resources/js/Utils/trans.js
-var translations = {
-	ar: {
-		app_name: "فاميلي هوم",
-		home: "الرئيسية",
-		projects: "المشاريع",
-		units: "الوحدات",
-		deals: "الصفقات",
-		articles: "المقالات والأخبار",
-		about: "عنا",
-		contact: "تواصل معنا",
-		login: "تسجيل الدخول",
-		logout: "تسجيل خروج",
-		profile: "الملف الشخصي",
-		dashboard: "لوحة التحكم",
-		search: "بحث",
-		no_results: "لا توجد نتائج",
-		try_different_filters: "حاول تعديل الفلاتر",
-		loading: "جارٍ التحميل...",
-		save: "حفظ",
-		cancel: "إلغاء",
-		delete: "حذف",
-		edit: "تعديل",
-		create: "إضافة",
-		update: "تحديث",
-		confirm: "تأكيد",
-		yes: "نعم",
-		no: "لا",
-		back: "رجوع",
-		next: "التالي",
-		previous: "السابق",
-		all_rights_reserved: "جميع الحقوق محفوظة",
-		language: "اللغة",
-		arabic: "العربية",
-		english: "الإنجليزية",
-		read_more: "اقرأ المزيد",
-		show_more: "عرض المزيد",
-		show_less: "عرض أقل",
-		views: "مشاهدة",
-		share: "مشاركة",
-		no_data: "لا توجد بيانات",
-		confirm_delete: "هل أنت متأكد من الحذف؟",
-		featured: "مميز",
-		deals_page_title: "صفقات Family Home",
-		deals_page_empty: "لا توجد صفقات حاليًا",
-		hero_title: "ابحث عن منزل أحلامك",
-		hero_subtitle: "آلاف العقارات في جميع أنحاء المملكة",
-		popular_searches: "عمليات البحث الشائعة",
-		featured_units: "وحدات مميزة",
-		unit_whatsapp_inquiry: "مرحباً فاميلي هوم، أود الاستفسار عن العقار: :name",
-		browse: "تصفح",
-		detailed_comparison: "مقارنة تفصيلية",
-		compare_properties: "قارن بين العقارات",
-		compare_options_subtitle: "قارن بين الخيارات واختر الأفضل",
-		zoom: "تكبير",
-		unit_message_sent_success: "تم إرسال رسالتك بنجاح، وسيتواصل معك المستشار العقاري قريباً.",
-		contact_message_sent_success: "تم إرسال رسالتك بنجاح، وسنتواصل معك في أقرب وقت.",
-		featured_units_subtitle: "أفضل الفرص الاستثمارية والسكنية المختارة خصيصاً لك",
-		latest_units_subtitle: "أحدث العقارات المضافة حديثاً في مصر",
-		view_all: "عرض الكل",
-		currency_egp: "ج.م",
-		unit_sqm: "م²",
-		years: "سنوات",
-		compared: "تمت الإضافة",
-		contact_via_whatsapp: "تواصل عبر الواتساب",
-		inquire: "استفسار",
-		call_us: "اتصل بنا",
-		whatsapp_chat: "محادثة واتساب",
-		send_email: "إرسال بريد إلكتروني",
-		latest_units: "أحدث الوحدات",
-		quick_links: "روابط سريعة",
-		contact_info: "معلومات التواصل",
-		follow_us: "تابعنا",
-		no_transactions: "لا توجد معاملات",
-		site_title: "Family Home",
-		compare: "مقارنة",
-		feature: "ميزة",
-		items: "عناصر",
-		images: "الصور",
-		price: "السعر",
-		area_sqm: "المساحة (م²)",
-		rooms: "الغرف",
-		transaction: "نوع المعاملة",
-		sale: "بيع",
-		rent: "إيجار",
-		description: "الوصف",
-		my_profile: "ملفي الشخصي",
-		units_count: "عدد الوحدات",
-		location: "الموقع",
-		name: "الاسم",
-		email: "البريد الإلكتروني",
-		password: "كلمة المرور",
-		type: "النوع",
-		area: "المنطقة",
-		phone: "رقم الهاتف",
-		whatsapp: "رقم الواتساب",
-		facebook: "رابط فيسبوك",
-		avatar: "الصورة الشخصية",
-		upload_avatar: "رفع صورة",
-		remove_avatar: "حذف الصورة",
-		role: "الدور",
-		all_roles: "جميع الأدوار",
-		admin: "مدير النظام",
-		manager: "مدير",
-		agent: "وكيل",
-		status: "الحالة",
-		active: "نشط",
-		inactive: "غير نشط",
-		actions: "الإجراءات",
-		deactivate: "تعطيل",
-		activate: "تفعيل",
-		transfer_projects: "نقل المشاريع",
-		select_manager: "اختر المدير",
-		select_agents: "اختر الوكلاء",
-		no_agents_available: "لا يوجد وكلاء متاحين",
-		transfer_from: "من",
-		transfer_to: "إلى",
-		assign_agents: "تعيين وكلاء",
-		assign: "تعيين",
-		current_images: "الصور الحالية",
-		upload_new_images: "رفع صور جديدة",
-		primary_image: "الصورة الرئيسية",
-		primary_badge: "رئيسية",
-		secondary_images: "الصور الفرعية",
-		add_more_images: "إضافة صور",
-		set_as_primary: "تعيين كرئيسية",
-		remove_image: "حذف الصورة",
-		max_images: "الحد الأقصى 20 صورة",
-		video_url_help: "رابط يوتيوب أو فيميو",
-		add: "إضافة",
-		seo: "تحسين محركات البحث (SEO)",
-		meta_description: "وصف الميتا",
-		alt_text: "النص البديل",
-		keywords: "الكلمات المفتاحية",
-		latitude: "خط العرض",
-		longitude: "خط الطول",
-		location_address: "العنوان",
-		pinned: "مثبت",
-		not_pinned: "غير مثبت",
-		is_deal: "صفقة",
-		all: "الكل",
-		page_title: "الوحدات العقارية",
-		units_in_project: "الوحدات في هذا المشروع",
-		contact_agent: "تواصل مع الوسيط",
-		similar_units: "وحدات مشابهة",
-		your_name: "اسمك",
-		your_phone: "رقم هاتفك",
-		your_email: "بريدك الإلكتروني",
-		your_message: "رسالتك",
-		send_message: "إرسال رسالة",
-		blog: "المقالات والأخبار",
-		all_categories: "جميع التصنيفات",
-		published: "منشور",
-		draft: "مسودة",
-		unpublish: "إلغاء النشر",
-		publish: "نشر",
-		title: "العنوان",
-		content: "المحتوى",
-		excerpt: "المقدمة",
-		category: "التصنيف",
-		add_images: "إضافة صور",
-		seo_section_title: "تحسين محركات البحث",
-		content_ar: "المحتوى (عربي)",
-		content_en: "المحتوى (إنجليزي)",
-		lang_en: "EN",
-		lang_ar: "ع",
-		toggle_menu: "فتح القائمة",
-		close: "إغلاق",
-		watch_video: "مشاهدة الفيديو",
-		transfer: "نقل",
-		all_managers: "جميع المدراء",
-		monthly_reset_confirm_title: "تأكيد إعادة التعيين الشهري",
-		monthly_reset_confirm_text: "سيتم إعادة تعيين جميع أرصدة المدراء إلى رصيدهم الشهري الأولي. لا يمكن التراجع عن هذا الإجراء.",
-		search_projects: "ابحث عن مشروع",
-		clear_filters: "مسح الفلاتر",
-		projects_page_title: "المشاريع العقارية",
-		no_projects: "لا توجد مشاريع",
-		max_video_size: "الحد الأقصى لحجم الفيديو (ميغابايت)",
-		address: "العنوان",
-		social_facebook: "فيسبوك",
-		social_instagram: "إنستغرام",
-		social_twitter: "تويتر",
-		social_linkedin: "لينكد إن",
-		social_facebook_label: "فيسبوك",
-		social_instagram_label: "إنستغرام",
-		social_twitter_label: "تويتر",
-		social_linkedin_label: "لينكد إن",
-		about_gallery_image: "صورة من معرضنا",
-		article_image: "صورة المقال",
-		project_image: "صورة المشروع",
-		about_image: "صورة عنا",
-		about_image_preview: "معاينة صورة عنا",
-		previous_page: "الصفحة السابقة",
-		next_page: "التالية",
-		transaction_type: "نوع المعاملة",
-		allocate: "تخصيص",
-		daily_deduction: "الخصم اليومي",
-		daily_deduction_value: "قيمة الخصم اليومي",
-		monthly_reset_day: "يوم إعادة التعيين",
-		monthly_reset: "إعادة التعيين الشهرية",
-		automatic: "تلقائي",
-		settings_points: "إعدادات النقاط",
-		settings_auto_delete: "الحذف التلقائي",
-		auto_delete_days: "مدة الحذف التلقائي (أيام)",
-		settings_video_limit: "الحد الأقصى لحجم الفيديو",
-		settings_contact: "بيانات التواصل",
-		settings_social: "روابط السوشيال ميديا",
-		settings_logo: "شعار الموقع",
-		admin_adjust: "تعديل أدمن",
-		transaction_date: "تاريخ المعاملة",
-		performed_by: "تم بواسطة",
-		target_unit: "الوحدة المستهدفة",
-		balance_after: "الرصيد بعد",
-		notes: "ملاحظات",
-		reset: "إعادة تعيين",
-		date_from: "من تاريخ",
-		date_to: "إلى تاريخ",
-		current_balance: "الرصيد الحالي",
-		initial_balance: "الرصيد الأولي",
-		last_update: "آخر تحديث",
-		managers_balances: "أرصدة المدراء",
-		points_ledger: "سجل النقاط",
-		allocate_points: "تخصيص نقاط",
-		available_balance: "الرصيد المتاح",
-		points: "النقاط",
-		priority_points: "نقاط الأولوية",
-		settings: "الإعدادات",
-		disabled: "معطل",
-		day: "يوم",
-		auto: "تلقائي",
-		showing: "عرض",
-		of: "من",
-		nav_group_main: "الرئيسية",
-		nav_group_listings: "العقارات والمحتوى",
-		nav_group_taxonomies: "التصنيفات والمعايير",
-		nav_group_users: "المستخدمين والعمليات",
-		nav_group_system: "النظام والإعدادات",
-		sidebar_units: "الوحدات",
-		sidebar_projects: "المشاريع",
-		sidebar_points: "النقاط",
-		sidebar_users: "المستخدمين",
-		sidebar_messages: "الرسائل",
-		message_details: "تفاصيل الرسالة",
-		client_name: "اسم العميل",
-		client_phone: "رقم الهاتف",
-		client_email: "البريد الإلكتروني",
-		deleting: "جارٍ الحذف...",
-		disable_sound: "تعطيل الصوت",
-		enable_sound: "تفعيل الصوت",
-		login_button: "تسجيل الدخول",
-		back_to_login: "العودة إلى تسجيل الدخول",
-		email_placeholder: "بريدك الإلكتروني",
-		clear: "مسح",
-		price_per_sqm: "سعر المتر",
-		finishing: "التشطيب",
-		comparison_description: "قارن بين الوحدات والمشاريع العقارية بسهولة",
-		deals_description: "أفضل الصفقات العقارية المميزة",
-		projects_description: "تصفح أحدث المشاريع العقارية",
-		articles_description: "آخر المقارلات والأخبار العقارية",
-		contact_description: "تواصل معنا",
-		home_description: "Family Home — منصة العقارات الرائدة",
-		unit_type: "نوع الوحدة",
-		no_agent: "بدون وسيط",
-		sidebar_notifications: "الإشعارات",
-		sidebar_articles: "المقارلات والاخبار",
-		sidebar_settings: "الإعدادات",
-		sidebar_about: "صفحة عنا",
-		sidebar_categories: "تصنيفات المقارلات والاخبار",
-		article_categories: "تصنيفات المقارلات والاخبار",
-		created_at: "تاريخ الإنشاء",
-		sidebar_dashboard: "لوحة التحكم",
-		add_unit: "إضافة وحدة",
-		basic_info: "معلومات أساسية",
-		media: "الوسائط",
-		video: "الفيديو",
-		bathrooms: "الحمامات",
-		floor: "الطابق",
-		project: "المشروع",
-		add_project: "إضافة مشروع",
-		edit_project: "تعديل المشروع",
-		edit_unit: "تعديل الوحدة",
-		no_managers: "لا يوجد مدراء",
-		brand_name: "فاميلي هوم",
-		brand_tagline: "منصة التسويق العقاري الأولى",
-		name_ar: "الاسم (عربي)",
-		name_en: "الاسم (إنجليزي)",
-		sidebar_areas: "المناطق",
-		sidebar_unit_types: "أنواع الوحدات",
-		sort_order: "الترتيب",
-		list: "قائمة نقطية",
-		ordered_list: "قائمة رقمية",
-		title_ar: "العنوان (عربي)",
-		title_en: "العنوان (إنجليزي)",
-		excerpt_ar: "المقدمة (عربي)",
-		excerpt_en: "المقدمة (إنجليزي)",
-		position_inside: "داخل النص",
-		position_header: "في الترويسة",
-		size_small: "صغير",
-		size_medium: "متوسط",
-		size_large: "كبير",
-		size: "الحجم",
-		cover_image: "صورة الغلاف",
-		upload: "رفع صورة",
-		keywords_hint: "اضغط Enter لإضافة الكلمة المفتاحية",
-		payment_method: "طريقة الدفع",
-		cash: "نقداً",
-		installment: "تقسيط",
-		both: "نقداً أو تقسيط",
-		down_payment: "المقدم",
-		installment_years: "سنوات التقسيط",
-		finishing_type: "نوع التشطيب",
-		features: "المميزات",
-		nav_group_main: "الرئيسية",
-		nav_group_listings: "العقارات والمحتوى",
-		nav_group_taxonomies: "التصنيفات والمعايير",
-		nav_group_users: "المستخدمين والعمليات",
-		nav_group_system: "النظام والإعدادات",
-		sidebar_dashboard: "لوحة التحكم",
-		sidebar_projects: "المشاريع",
-		sidebar_units: "الوحدات",
-		sidebar_articles: "المقالات والأخبار",
-		sidebar_areas: "المناطق",
-		sidebar_unit_types: "أنواع الوحدات",
-		sidebar_features: "المميزات",
-		sidebar_finishing_types: "أنواع التشطيب",
-		sidebar_categories: "تصنيفات المقالات والأخبار",
-		sidebar_messages: "الرسائل",
-		sidebar_notifications: "الإشعارات",
-		sidebar_users: "المستخدمين",
-		sidebar_points: "النقاط",
-		sidebar_settings: "الإعدادات",
-		sidebar_seo_pages: "SEO الصفحات",
-		sidebar_about: "صفحة عنا",
-		payment_details: "تفاصيل الدفع",
-		created: "تم الإنشاء",
-		updated: "تم التحديث",
-		deleted: "تم الحذف",
-		activity_log: "سجل النشاطات",
-		event: "الحدث",
-		date: "التاريخ",
-		user: "المستخدم",
-		model: "النموذج",
-		remove: "إزالة",
-		add_new: "إضافة جديد",
-		slug: "الرابط الدائم",
-		stats_total_projects: "إجمالي المشاريع",
-		stats_total_units: "إجمالي الوحدات",
-		stats_total_users: "إجمالي المستخدمين",
-		stats_total_messages: "إجمالي الرسائل",
-		dashboard_title: "الرئيسية",
-		visits_chart: "رسم بياني للزيارات",
-		top_projects: "أبرز المشاريع",
-		icon: "الأيقونة",
-		ledger: "السجل",
-		ar: "عربي",
-		en: "إنجليزي",
-		assign_agents_to_manager: "تعيين وكلاء للمدير",
-		admin_panel: "لوحة التحكم",
-		add_user: "إضافة مستخدم",
-		delete_user: "حذف المستخدم",
-		confirm_delete_user: "هل أنت متأكد من رغبتك في حذف المستخدم :name؟",
-		user_has_relations_warning: "هذا المستخدم يمتلك بيانات مرتبطة بحسابه:",
-		transfer_data_to: "نقل البيانات إلى:",
-		force_delete_all: "حذف نهائي (سيمسح جميع البيانات المرتبطة)",
-		delete_confirm: "تأكيد الحذف",
-		user_deleted: "تم حذف المستخدم بنجاح",
-		user_created: "تم إنشاء المستخدم بنجاح",
-		agents: "الوكلاء (الموظفين)",
-		adjust_points: "تعديل النقاط",
-		run_daily_deduct: "تشغيل الخصم اليومي",
-		daily_deduct_success: "تم تنفيذ الخصم اليومي بنجاح",
-		password_confirmation: "تأكيد كلمة المرور",
-		role_admin: "مدير النظام",
-		role_manager: "مدير",
-		role_agent: "وكيل / موظف مبيعات",
-		status_pending: "لم يُرد بعد",
-		status_replied: "تم الرد",
-		mark_as_replied: "تمييز كـ \"تم الرد\"",
-		filter_by_agent: "تصفية حسب الوسيط",
-		client_info: "بيانات العميل",
-		message_content: "محتوى الرسالة",
-		sent_at: "تاريخ الإرسال",
-		replied_at: "تاريخ الرد",
-		no_messages: "لا توجد رسائل",
-		all_agents: "جميع الوسطاء",
-		unit: "الوحدة",
-		change_password: "تغيير كلمة السر",
-		password_changed: "تم تغيير كلمة السر بنجاح",
-		new_password: "كلمة السر الجديدة",
-		confirm_password: "تأكيد كلمة المرور",
-		change_password_hint: "اترك حقول كلمة السر فارغة إذا كنت لا ترغب في تغيير كلمة السر الحالية",
-		reset_password_title: "إعادة ضبط كلمة السر",
-		forgot_password: "أدخل بريدك الإلكتروني ليصلك رمز التحقق لإعادة تعيين كلمة السر",
-		send_reset_link: "إرسال رمز التحقق",
-		reset_button: "حفظ كلمة السر الجديدة",
-		back_to_login: "العودة لتسجيل الدخول",
-		password_requirements: "يجب أن تحتوي كلمة السر على 8 أحرف على الأقل",
-		email_placeholder: "name@example.com",
-		facebook_link: "رابط حساب الفيسبوك",
-		sidebar_seo_pages: "SEO الصفحات",
-		seo_pages_title: "إدارة SEO الصفحات الثابتة",
-		seo_pages_desc: "التحكم في الكلمات المفتاحية والعناوين والأوصاف لمحركات البحث",
-		seo_page_settings: "إعدادات الصفحة",
-		seo_page_home: "الرئيسية (Home)",
-		seo_page_units_index: "الوحدات (Units)",
-		seo_page_projects_index: "المشاريع (Projects)",
-		seo_page_deals: "الصفقات المميزة (Deals)",
-		seo_page_articles_index: "المقالات والأخبار (Articles & News)",
-		seo_page_about: "عن الشركة (About)",
-		seo_page_contact: "التواصل (Contact)",
-		seo_page_comparison: "المقارنة (Comparison)",
-		meta_title_ar: "العنوان (عربي)",
-		meta_title_en: "العنوان (English)",
-		meta_description_ar: "الوصف (عربي)",
-		meta_description_en: "الوصف (English)",
-		keywords_ar: "الكلمات المفتاحية (عربي)",
-		keywords_en: "الكلمات المفتاحية (English)",
-		add_keyword: "إضافة",
-		today: "اليوم",
-		yesterday: "أمس",
-		this_week: "هذا الأسبوع",
-		earlier: "سابقاً",
-		notifications_subtitle: "آخر التحديثات والإشعارات الهامة",
-		mark_all_read: "تحديد الكل كمقروء",
-		confirm_clear_all: "تأكيد حذف الكل",
-		clear_all: "حذف الكل",
-		unread: "غير مقروءة",
-		expiry: "انتهاء الصلاحية",
-		no_unread_notifications: "لا توجد إشعارات غير مقروءة",
-		no_expiry_notifications: "لا توجد إشعارات انتهاء صلاحية",
-		no_notifications_yet: "صندوق الإشعارات فارغ",
-		notifications_empty_hint: "عند اقتراب صلاحية وحدة أو مشروع، أو عند استلام رسالة جديدة، ستظهر الإشعارات هنا.",
-		new_badge: "جديد",
-		days_remaining: "متبقي :count أيام",
-		mark_read: "تحديد كمقروء",
-		extend: "تمديد",
-		delete_notification: "حذف الإشعار",
-		expires_label: "تاريخ الانتهاء:",
-		by_label: "بواسطة:",
-		send_code_to_new_email: "إرسال رمز التحقق للبريد الجديد",
-		verify_and_update_email: "تأكيد وتحديث البريد",
-		enter_email_otp_hint: "أدخل رمز التحقق (6 أرقام) المرسل إلى البريد الجديد لتأكيده.",
-		email_change_sent: "تم إرسال رمز التحقق إلى البريد الجديد بنجاح."
-	},
-	en: {
-		app_name: "Family Home",
-		home: "Home",
-		projects: "Projects",
-		units: "Units",
-		deals: "Deals",
-		articles: "Articles & News",
-		about: "About",
-		contact: "Contact Us",
-		login: "Login",
-		logout: "Logout",
-		profile: "Profile",
-		dashboard: "Dashboard",
-		search: "Search",
-		no_results: "No results found",
-		try_different_filters: "Try different filters",
-		loading: "Loading...",
-		save: "Save",
-		cancel: "Cancel",
-		delete: "Delete",
-		edit: "Edit",
-		create: "Create",
-		update: "Update",
-		confirm: "Confirm",
-		yes: "Yes",
-		no: "No",
-		back: "Back",
-		next: "Next",
-		previous: "Previous",
-		all_rights_reserved: "All Rights Reserved",
-		language: "Language",
-		arabic: "Arabic",
-		english: "English",
-		read_more: "Read More",
-		show_more: "Show More",
-		show_less: "Show Less",
-		views: "Views",
-		share: "Share",
-		no_data: "No data available",
-		confirm_delete: "Are you sure you want to delete?",
-		featured: "Featured",
-		deals_page_title: "Family Home Deals",
-		deals_page_empty: "No deals available at the moment",
-		hero_title: "Find Your Dream Home",
-		hero_subtitle: "Thousands of properties across the kingdom",
-		popular_searches: "Popular Searches",
-		featured_units: "Featured Units",
-		unit_whatsapp_inquiry: "Hello Family Home, I would like to inquire about: :name",
-		browse: "Browse",
-		detailed_comparison: "Detailed comparison",
-		compare_properties: "Compare Properties",
-		compare_options_subtitle: "Compare options and pick the best",
-		zoom: "Zoom",
-		unit_message_sent_success: "Your message has been sent successfully! The agent will contact you soon.",
-		contact_message_sent_success: "Your message has been sent successfully!",
-		featured_units_subtitle: "Handpicked investment and residential opportunities",
-		latest_units_subtitle: "Recently added real estate properties",
-		view_all: "View All",
-		currency_egp: "EGP",
-		unit_sqm: "m²",
-		years: "yrs",
-		compared: "Compared",
-		contact_via_whatsapp: "Contact via WhatsApp",
-		inquire: "Inquire",
-		call_us: "Call us",
-		whatsapp_chat: "WhatsApp Chat",
-		send_email: "Send email",
-		latest_units: "Latest Units",
-		quick_links: "Quick Links",
-		contact_info: "Contact Info",
-		follow_us: "Follow Us",
-		no_transactions: "No transactions found",
-		site_title: "Family Home",
-		compare: "Compare",
-		feature: "Feature",
-		items: "Items",
-		images: "Images",
-		price: "Price",
-		area_sqm: "Area (sqm)",
-		rooms: "Rooms",
-		transaction: "Transaction Type",
-		sale: "Sale",
-		rent: "Rent",
-		description: "Description",
-		my_profile: "My Profile",
-		units_count: "Number of Units",
-		location: "Location",
-		name: "Name",
-		email: "Email",
-		password: "Password",
-		type: "Type",
-		area: "Area",
-		phone: "Phone Number",
-		whatsapp: "WhatsApp Number",
-		facebook: "Facebook Link",
-		avatar: "Avatar",
-		upload_avatar: "Upload Image",
-		remove_avatar: "Remove Image",
-		role: "Role",
-		all_roles: "All Roles",
-		admin: "Admin",
-		manager: "Manager",
-		agent: "Agent",
-		status: "Status",
-		active: "Active",
-		inactive: "Inactive",
-		actions: "Actions",
-		deactivate: "Deactivate",
-		activate: "Activate",
-		transfer_projects: "Transfer Projects",
-		select_manager: "Select Manager",
-		select_agents: "Select Agents",
-		no_agents_available: "No agents available",
-		transfer_from: "From",
-		transfer_to: "To",
-		assign_agents: "Assign Agents",
-		assign: "Assign",
-		current_images: "Current Images",
-		upload_new_images: "Upload New Images",
-		primary_image: "Primary Image",
-		primary_badge: "Primary",
-		secondary_images: "Secondary Images",
-		add_more_images: "Add Images",
-		set_as_primary: "Set as Primary",
-		remove_image: "Remove Image",
-		max_images: "Max 20 images",
-		video_url_help: "YouTube or Vimeo URL",
-		add: "Add",
-		seo: "SEO",
-		meta_description: "Meta Description",
-		alt_text: "Alt Text",
-		keywords: "Keywords",
-		latitude: "Latitude",
-		longitude: "Longitude",
-		location_address: "Address",
-		pinned: "Pinned",
-		not_pinned: "Not Pinned",
-		is_deal: "Deal",
-		all: "All",
-		page_title: "Real Estate Units",
-		units_in_project: "Units in This Project",
-		contact_agent: "Contact Agent",
-		similar_units: "Similar Units",
-		your_name: "Your Name",
-		your_phone: "Your Phone",
-		your_email: "Your Email",
-		your_message: "Your Message",
-		send_message: "Send Message",
-		blog: "Blog",
-		all_categories: "All Categories",
-		published: "Published",
-		draft: "Draft",
-		unpublish: "Unpublish",
-		publish: "Publish",
-		title: "Title",
-		content: "Content",
-		excerpt: "Excerpt",
-		category: "Category",
-		add_images: "Add Images",
-		alt_text: "Alt Text",
-		seo_section_title: "SEO",
-		content_ar: "Content (Arabic)",
-		content_en: "Content (English)",
-		lang_en: "EN",
-		lang_ar: "AR",
-		toggle_menu: "Toggle menu",
-		close: "Close",
-		watch_video: "Watch Video",
-		transfer: "Transfer",
-		all_managers: "All Managers",
-		monthly_reset_confirm_title: "Confirm Monthly Reset",
-		monthly_reset_confirm_text: "This will reset all managers points balances to their initial monthly balance. This action cannot be undone.",
-		search_projects: "Search projects",
-		clear_filters: "Clear Filters",
-		projects_page_title: "Real Estate Projects",
-		no_projects: "No projects available",
-		max_video_size: "Max Video Size (MB)",
-		address: "Address",
-		social_facebook: "Facebook",
-		social_instagram: "Instagram",
-		social_twitter: "Twitter",
-		social_linkedin: "LinkedIn",
-		social_facebook_label: "Facebook",
-		social_instagram_label: "Instagram",
-		social_twitter_label: "Twitter",
-		social_linkedin_label: "LinkedIn",
-		about_gallery_image: "Gallery image",
-		article_image: "Article image",
-		project_image: "Project image",
-		about_image: "About image",
-		about_image_preview: "About image preview",
-		previous_page: "Previous page",
-		next_page: "Next page",
-		transaction_type: "Transaction Type",
-		allocate: "Allocate",
-		daily_deduction: "Daily Deduction",
-		daily_deduction_value: "Daily Deduction Value",
-		monthly_reset_day: "Reset Day",
-		monthly_reset: "Monthly Reset",
-		automatic: "Automatic",
-		settings_points: "Points Settings",
-		settings_auto_delete: "Auto Delete",
-		auto_delete_days: "Auto Delete Duration (Days)",
-		settings_video_limit: "Max Video Size",
-		settings_contact: "Contact Info",
-		settings_social: "Social Media Links",
-		settings_logo: "Site Logo",
-		admin_adjust: "Admin Adjustment",
-		transaction_date: "Transaction Date",
-		performed_by: "Performed By",
-		target_unit: "Target Unit",
-		balance_after: "Balance After",
-		notes: "Notes",
-		reset: "Reset",
-		date_from: "Date From",
-		date_to: "Date To",
-		current_balance: "Current Balance",
-		initial_balance: "Initial Balance",
-		last_update: "Last Update",
-		managers_balances: "Manager Balances",
-		points_ledger: "Points Ledger",
-		allocate_points: "Allocate Points",
-		available_balance: "Available Balance",
-		points: "Points",
-		priority_points: "Priority Points",
-		settings: "Settings",
-		disabled: "Disabled",
-		day: "Day",
-		auto: "Auto",
-		showing: "Showing",
-		of: "of",
-		nav_group_main: "Main",
-		nav_group_listings: "Listings & Content",
-		nav_group_taxonomies: "Taxonomies & Attributes",
-		nav_group_users: "Users & Operations",
-		nav_group_system: "System & Settings",
-		sidebar_units: "Units",
-		sidebar_projects: "Projects",
-		sidebar_points: "Points",
-		sidebar_users: "Users",
-		sidebar_messages: "Messages",
-		message_details: "Message Details",
-		client_name: "Client Name",
-		client_phone: "Phone Number",
-		client_email: "Email Address",
-		deleting: "Deleting...",
-		disable_sound: "Disable Sound",
-		enable_sound: "Enable Sound",
-		login_button: "Sign In",
-		back_to_login: "Back to Login",
-		email_placeholder: "Your Email",
-		clear: "Clear",
-		price_per_sqm: "Price per Sqm",
-		finishing: "Finishing",
-		comparison_description: "Compare properties and projects side by side",
-		deals_description: "Best featured real estate deals",
-		projects_description: "Browse the latest real estate projects",
-		articles_description: "Latest real estate articles and news",
-		contact_description: "Contact Us",
-		home_description: "Family Home — Leading Real Estate Platform",
-		unit_type: "Unit Type",
-		no_agent: "No Agent",
-		sidebar_notifications: "Notifications",
-		sidebar_articles: "Articles",
-		sidebar_settings: "Settings",
-		sidebar_about: "About Page",
-		sidebar_categories: "Article Categories",
-		article_categories: "Article Categories",
-		created_at: "Created At",
-		sidebar_dashboard: "Dashboard",
-		add_unit: "Add Unit",
-		basic_info: "Basic Info",
-		media: "Media",
-		seo: "SEO",
-		video: "Video",
-		bathrooms: "Bathrooms",
-		floor: "Floor",
-		project: "Project",
-		add_project: "Add Project",
-		edit_project: "Edit Project",
-		edit_unit: "Edit Unit",
-		no_managers: "No managers found",
-		brand_name: "Family Home",
-		brand_tagline: "The Premier Real Estate Platform",
-		name_ar: "Name (Arabic)",
-		name_en: "Name (English)",
-		sidebar_areas: "Areas",
-		sidebar_unit_types: "Unit Types",
-		sort_order: "Sort Order",
-		list: "Bulleted List",
-		ordered_list: "Numbered List",
-		title_ar: "Title (Arabic)",
-		title_en: "Title (English)",
-		excerpt_ar: "Excerpt (Arabic)",
-		excerpt_en: "Excerpt (English)",
-		position_inside: "Inside Text",
-		position_header: "Header",
-		size_small: "Small",
-		size_medium: "Medium",
-		size_large: "Large",
-		size: "Size",
-		cover_image: "Cover Image",
-		upload: "Upload Image",
-		keywords_hint: "Press Enter to add keyword",
-		payment_method: "Payment Method",
-		cash: "Cash",
-		installment: "Installment",
-		both: "Cash & Installment",
-		down_payment: "Down Payment",
-		installment_years: "Installment Years",
-		finishing_type: "Finishing Type",
-		features: "Features",
-		nav_group_main: "MAIN",
-		nav_group_listings: "LISTINGS & CONTENT",
-		nav_group_taxonomies: "TAXONOMIES & ATTRIBUTES",
-		nav_group_users: "USERS & OPERATIONS",
-		nav_group_system: "SYSTEM & SETTINGS",
-		sidebar_dashboard: "Dashboard",
-		sidebar_projects: "Projects",
-		sidebar_units: "Units",
-		sidebar_articles: "Articles & News",
-		sidebar_areas: "Areas",
-		sidebar_unit_types: "Unit Types",
-		sidebar_features: "Features",
-		sidebar_finishing_types: "Finishing Types",
-		sidebar_categories: "Articles & News Categories",
-		sidebar_messages: "Messages",
-		sidebar_notifications: "Notifications",
-		sidebar_users: "Users",
-		sidebar_points: "Points",
-		sidebar_settings: "Settings",
-		sidebar_seo_pages: "SEO Pages",
-		sidebar_about: "About Page",
-		payment_details: "Payment Details",
-		created: "Created",
-		updated: "Updated",
-		deleted: "Deleted",
-		activity_log: "Activity Log",
-		event: "Event",
-		date: "Date",
-		user: "User",
-		model: "Model",
-		remove: "Remove",
-		add_new: "Add New",
-		slug: "Slug",
-		stats_total_projects: "Total Projects",
-		stats_total_units: "Total Units",
-		stats_total_users: "Total Users",
-		stats_total_messages: "Total Messages",
-		dashboard_title: "Dashboard",
-		visits_chart: "Visits Chart",
-		top_projects: "Top Projects",
-		icon: "Icon",
-		ledger: "Ledger",
-		ar: "Arabic",
-		en: "English",
-		assign_agents_to_manager: "Assign Agents to Manager",
-		admin_panel: "Admin Panel",
-		add_user: "Add User",
-		delete_user: "Delete User",
-		confirm_delete_user: "Are you sure you want to delete user :name?",
-		user_has_relations_warning: "This user has associated data:",
-		transfer_data_to: "Transfer data to:",
-		force_delete_all: "Force delete (will remove all associated data)",
-		delete_confirm: "Confirm Delete",
-		user_deleted: "User deleted successfully",
-		user_created: "User created successfully",
-		agents: "Agents",
-		adjust_points: "Adjust Points",
-		run_daily_deduct: "Run Daily Deduction",
-		daily_deduct_success: "Daily deduction executed successfully",
-		password_confirmation: "Confirm Password",
-		role_admin: "Admin System Manager",
-		role_manager: "Manager",
-		role_agent: "Agent / Sales Rep",
-		status_pending: "Pending",
-		status_replied: "Replied",
-		mark_as_replied: "Mark as Replied",
-		filter_by_agent: "Filter by Agent",
-		client_info: "Client Info",
-		message_content: "Message Content",
-		sent_at: "Sent At",
-		replied_at: "Replied At",
-		no_messages: "No messages",
-		all_agents: "All Agents",
-		unit: "Unit",
-		change_password: "Change Password",
-		password_changed: "Password updated successfully",
-		new_password: "New Password",
-		confirm_password: "Confirm Password",
-		change_password_hint: "Leave password fields blank if you do not wish to change your current password",
-		reset_password_title: "Reset Password",
-		forgot_password: "Enter your email to receive a verification code to reset your password",
-		send_reset_link: "Send Verification Code",
-		reset_button: "Save New Password",
-		back_to_login: "Back to Login",
-		password_requirements: "Password must be at least 8 characters long",
-		email_placeholder: "name@example.com",
-		facebook_link: "Facebook Account Link",
-		sidebar_seo_pages: "SEO Pages",
-		seo_pages_title: "Static Pages SEO Management",
-		seo_pages_desc: "Control page meta titles, descriptions, and keywords for search engines",
-		seo_page_settings: "Page Settings",
-		seo_page_home: "Home Page",
-		seo_page_units_index: "Units Page",
-		seo_page_projects_index: "Projects Page",
-		seo_page_deals: "Deals Page",
-		seo_page_articles_index: "Articles & News Page",
-		seo_page_about: "About Page",
-		seo_page_contact: "Contact Page",
-		seo_page_comparison: "Comparison Page",
-		meta_title_ar: "Title (Arabic)",
-		meta_title_en: "Title (English)",
-		meta_description_ar: "Description (Arabic)",
-		meta_description_en: "Description (English)",
-		keywords_ar: "Keywords (Arabic)",
-		keywords_en: "Keywords (English)",
-		add_keyword: "Add",
-		today: "Today",
-		yesterday: "Yesterday",
-		this_week: "This Week",
-		earlier: "Earlier",
-		notifications_subtitle: "Latest updates and important alerts",
-		mark_all_read: "Mark all read",
-		confirm_clear_all: "Confirm Clear",
-		clear_all: "Clear all",
-		unread: "Unread",
-		expiry: "Expiry",
-		no_unread_notifications: "No unread notifications",
-		no_expiry_notifications: "No expiry notifications",
-		no_notifications_yet: "No notifications yet",
-		notifications_empty_hint: "When a unit or project is about to expire or a new message arrives, notifications will appear here.",
-		new_badge: "NEW",
-		days_remaining: ":countd",
-		mark_read: "Mark read",
-		extend: "Extend",
-		delete_notification: "Delete notification",
-		expires_label: "Expires:",
-		by_label: "By:",
-		send_code_to_new_email: "Send Verification Code to New Email",
-		verify_and_update_email: "Verify & Update Email",
-		enter_email_otp_hint: "Enter the 6-digit verification code sent to your new email to confirm.",
-		email_change_sent: "Verification code sent to the new email address successfully."
-	}
+var dictionaries = {};
+var loaders = {
+	ar: () => import("./assets/ar-BVTLrJyb.js"),
+	en: () => import("./assets/en-ZBrXmJRl.js")
 };
+async function loadLocale(locale) {
+	const key = loaders[locale] ? locale : "en";
+	if (!dictionaries[key]) dictionaries[key] = (await loaders[key]()).default;
+	return dictionaries[key];
+}
 function useTrans(locale) {
-	const lang = translations[locale] || translations.en;
+	const lang = dictionaries[locale] || dictionaries.en || {};
 	return (key, replacements = {}) => {
 		let text = lang[key];
 		if (!text) {
@@ -12048,7 +11170,7 @@ function AdminUsersIndex({ users, managers, filters }) {
 }
 //#endregion
 //#region resources/js/Components/OptimizedImage.jsx
-function OptimizedImage({ src, alt = "", width, height, className = "", lazy = true, fallbackSrc = "/images/fallback.jpg", role, srcSet, sizes = "(max-width: 480px) 400px, (max-width: 768px) 400px, (max-width: 1024px) 400px, 800px", ...props }) {
+function OptimizedImage({ src, alt = "", width, height, className = "", lazy = true, fallbackSrc = "/images/fallback.webp", role, srcSet, sizes = "(max-width: 480px) 400px, (max-width: 768px) 400px, (max-width: 1024px) 400px, 800px", ...props }) {
 	const [imgSrc, setImgSrc] = useState(src);
 	const [hasError, setHasError] = useState(false);
 	const handleError = () => {
@@ -12593,31 +11715,21 @@ function Footer() {
 }
 //#endregion
 //#region resources/js/Components/UI/SeoHead.jsx
-function SeoHead({ title, description, keywords, ogImage, ogType = "website", canonical, pageKey, jsonLd, hreflang }) {
-	const { locale, seo_pages, appUrl } = usePage().props;
+function SeoHead({ title, description, keywords, ogImage, ogType = "website", canonical, jsonLd, hreflang }) {
+	const { locale, seo_page, appUrl, seo_meta } = usePage().props;
 	const { url } = usePage();
 	const siteName = useTrans(locale)("site_title");
 	const isRtl = locale === "ar";
 	const cleanPath = (typeof url === "string" ? url : "/").split("?")[0];
 	const pathWithoutLocale = cleanPath.replace(/^\/(ar|en)(\/|$)/, "/");
 	const baseUrl = appUrl || (typeof window !== "undefined" ? window.location.origin : "");
-	const activeKey = pageKey || {
-		"/": "home",
-		"/about": "about",
-		"/contact": "contact",
-		"/units": "units_index",
-		"/projects": "projects_index",
-		"/deals": "deals",
-		"/articles": "articles_index",
-		"/comparison": "comparison"
-	}[pathWithoutLocale] || null;
-	const pageSeo = activeKey && seo_pages?.[activeKey] ? seo_pages[activeKey] : null;
+	const pageSeo = seo_page || null;
 	const finalTitle = pageSeo ? isRtl ? pageSeo.meta_title_ar || title : pageSeo.meta_title_en || title : title;
 	const finalDescription = pageSeo ? isRtl ? pageSeo.meta_description_ar || description : pageSeo.meta_description_en || description : description;
 	const finalKeywords = pageSeo ? isRtl ? Array.isArray(pageSeo.meta_keywords_ar) && pageSeo.meta_keywords_ar.length > 0 ? pageSeo.meta_keywords_ar.join(", ") : keywords : Array.isArray(pageSeo.meta_keywords_en) && pageSeo.meta_keywords_en.length > 0 ? pageSeo.meta_keywords_en.join(", ") : keywords : keywords;
-	const finalCanonical = (canonical || (baseUrl ? `${baseUrl}${cleanPath}` : cleanPath)).split("?")[0];
-	const urlAr = hreflang?.ar || baseUrl + (pathWithoutLocale === "/" ? "/ar" : `/ar${pathWithoutLocale === "/" ? "" : pathWithoutLocale}`);
-	const urlEn = hreflang?.en || baseUrl + (pathWithoutLocale === "/" ? "/en" : `/en${pathWithoutLocale === "/" ? "" : pathWithoutLocale}`);
+	const finalCanonical = (canonical || seo_meta?.canonical || (baseUrl ? `${baseUrl}${cleanPath}` : cleanPath)).split("?")[0];
+	const urlAr = hreflang?.ar || seo_meta?.hreflang?.ar || baseUrl + (pathWithoutLocale === "/" ? "/ar" : `/ar${pathWithoutLocale === "/" ? "" : pathWithoutLocale}`);
+	const urlEn = hreflang?.en || seo_meta?.hreflang?.en || baseUrl + (pathWithoutLocale === "/" ? "/en" : `/en${pathWithoutLocale === "/" ? "" : pathWithoutLocale}`);
 	let finalOgImage = ogImage;
 	if (finalOgImage) {
 		if (!finalOgImage.startsWith("http://") && !finalOgImage.startsWith("https://")) {
@@ -12628,30 +11740,37 @@ function SeoHead({ title, description, keywords, ogImage, ogType = "website", ca
 	return /* @__PURE__ */ jsxs(Head, { children: [
 		finalTitle && /* @__PURE__ */ jsx("title", { children: finalTitle }),
 		finalDescription && /* @__PURE__ */ jsx("meta", {
+			"head-key": "description",
 			name: "description",
 			content: finalDescription
 		}),
 		finalKeywords && /* @__PURE__ */ jsx("meta", {
+			"head-key": "keywords",
 			name: "keywords",
 			content: finalKeywords
 		}),
 		/* @__PURE__ */ jsx("meta", {
+			"head-key": "author",
 			name: "author",
 			content: "mohamed algbry"
 		}),
 		finalTitle && /* @__PURE__ */ jsx("meta", {
+			"head-key": "og:title",
 			property: "og:title",
 			content: finalTitle
 		}),
 		finalDescription && /* @__PURE__ */ jsx("meta", {
+			"head-key": "og:description",
 			property: "og:description",
 			content: finalDescription
 		}),
 		/* @__PURE__ */ jsx("meta", {
+			"head-key": "og:type",
 			property: "og:type",
 			content: ogType
 		}),
 		/* @__PURE__ */ jsx("meta", {
+			"head-key": "og:site_name",
 			property: "og:site_name",
 			content: siteName
 		}),
@@ -12680,24 +11799,29 @@ function SeoHead({ title, description, keywords, ogImage, ogType = "website", ca
 			content: finalDescription
 		}),
 		finalOgImage && /* @__PURE__ */ jsx("meta", {
+			"head-key": "twitter:image",
 			name: "twitter:image",
 			content: finalOgImage
 		}),
 		/* @__PURE__ */ jsx("link", {
+			"head-key": "canonical",
 			rel: "canonical",
 			href: finalCanonical
 		}),
 		/* @__PURE__ */ jsx("link", {
+			"head-key": "hreflang-ar",
 			rel: "alternate",
 			hreflang: "ar",
 			href: urlAr
 		}),
 		/* @__PURE__ */ jsx("link", {
+			"head-key": "hreflang-en",
 			rel: "alternate",
 			hreflang: "en",
 			href: urlEn
 		}),
 		/* @__PURE__ */ jsx("link", {
+			"head-key": "hreflang-x-default",
 			rel: "alternate",
 			hreflang: "x-default",
 			href: urlAr
@@ -12740,6 +11864,8 @@ function About({ page }) {
 						children: images.map((img, i) => /* @__PURE__ */ jsx("img", {
 							src: `/storage/${img}`,
 							alt: trans("about_image"),
+							width: 800,
+							height: 400,
 							className: "w-full h-48 object-cover rounded-xl",
 							loading: "lazy"
 						}, i))
@@ -12759,7 +11885,7 @@ function About({ page }) {
 }
 //#endregion
 //#region resources/js/Components/UI/UnitCard.jsx
-var PLACEHOLDER$5 = "/images/fallback.jpg";
+var PLACEHOLDER$5 = "/images/fallback.webp";
 function SkeletonCard$2() {
 	return /* @__PURE__ */ jsxs("div", {
 		className: "bg-white rounded-2xl shadow-card overflow-hidden border border-secondary-100/50",
@@ -12790,7 +11916,6 @@ function UnitCard({ unit, loading = false }) {
 	if (!unit) return null;
 	const mainImage = unit?.images?.find((img) => img.is_main || img.is_primary) || unit?.images?.[0];
 	const thumbnail = mainImage?.thumb_url || mainImage?.url || (mainImage?.path ? mainImage.path.startsWith("http") || mainImage.path.startsWith("/") ? mainImage.path : `/storage/${mainImage.path}` : PLACEHOLDER$5);
-	const imageSrcSet = mainImage?.thumb_url && mainImage?.url && mainImage.thumb_url !== mainImage.url ? `${mainImage.thumb_url} 400w, ${mainImage.url} 800w` : void 0;
 	const isFeatured = (unit?.priority_points ?? 0) > 0;
 	const isCompared = compareList.includes(unit?.id);
 	const uploaderWhatsapp = unit?.project?.user?.profile?.whatsapp || unit?.project?.user?.whatsapp || unit?.user?.profile?.whatsapp || unit?.user?.whatsapp;
@@ -12809,7 +11934,6 @@ function UnitCard({ unit, loading = false }) {
 			children: [
 				/* @__PURE__ */ jsx(OptimizedImage, {
 					src: thumbnail,
-					srcSet: imageSrcSet,
 					alt: imageAlt,
 					width: 400,
 					height: 300,
@@ -13091,6 +12215,8 @@ function Show({ agent, units, locale }) {
 							children: avatarSrc ? /* @__PURE__ */ jsx("img", {
 								src: avatarSrc,
 								alt: agent.name,
+								width: 160,
+								height: 160,
 								className: "w-32 h-32 sm:w-40 sm:h-40 rounded-full object-cover shadow-md border-4 border-white"
 							}) : /* @__PURE__ */ jsx("div", {
 								className: "w-32 h-32 sm:w-40 sm:h-40 rounded-full bg-primary-50 flex items-center justify-center text-primary-900 font-bold text-4xl sm:text-5xl border-4 border-white shadow-md",
@@ -13202,7 +12328,7 @@ function Show({ agent, units, locale }) {
 }
 //#endregion
 //#region resources/js/Components/UI/ArticleCard.jsx
-var PLACEHOLDER$4 = "/images/fallback.jpg";
+var PLACEHOLDER$4 = "/images/fallback.webp";
 function SkeletonCard$1() {
 	return /* @__PURE__ */ jsxs("div", {
 		className: "bg-white rounded-2xl border border-secondary-200/60 shadow-xs overflow-hidden h-full flex flex-col animate-pulse",
@@ -13224,7 +12350,6 @@ function ArticleCard({ article, loading = false }) {
 	if (loading) return /* @__PURE__ */ jsx(SkeletonCard$1, {});
 	const headerImg = article?.images?.find((img) => img.position === "header") || article?.images?.[0];
 	const thumbnail = headerImg?.thumb_url || headerImg?.url || (headerImg?.path ? headerImg.path.startsWith("http") || headerImg.path.startsWith("/") ? headerImg.path : `/storage/${headerImg.path}` : PLACEHOLDER$4);
-	const imageSrcSet = headerImg?.thumb_url && headerImg?.url && headerImg.thumb_url !== headerImg.url ? `${headerImg.thumb_url} 400w, ${headerImg.url} 800w` : void 0;
 	const imageAlt = article.alt_text || `${article.title} - ${trans("app_name")}`;
 	const categoryName = article.category ? isRtl ? article.category.name_ar : article.category.name_en : null;
 	const formattedDate = article.published_at ? new Date(article.published_at).toLocaleDateString(isRtl ? "ar-EG" : "en-US", {
@@ -13239,7 +12364,6 @@ function ArticleCard({ article, loading = false }) {
 			className: "relative h-48 w-full overflow-hidden bg-secondary-100",
 			children: [/* @__PURE__ */ jsx(OptimizedImage, {
 				src: thumbnail,
-				srcSet: imageSrcSet,
 				alt: imageAlt,
 				width: 400,
 				height: 300,
@@ -13367,7 +12491,7 @@ function ArticleShow({ article, relatedArticles }) {
 		return {
 			"@context": "https://schema.org",
 			"@type": "Article",
-			headline: article.title,
+			...article.title ? { headline: article.title } : {},
 			...article.excerpt || article.meta_description ? { description: article.excerpt || article.meta_description } : {},
 			...headerImgUrl ? { image: headerImgUrl } : {},
 			...article.published_at ? { datePublished: article.published_at } : {},
@@ -13400,7 +12524,7 @@ function ArticleShow({ article, relatedArticles }) {
 		const shortcodeAr = `[صورة:${index + 1}]`;
 		if (parsedContent.includes(shortcodeEn) || parsedContent.includes(shortcodeAr)) {
 			usedMiddleIndices.add(index);
-			let imageHtml = `<img src="${img.url || (img.path.startsWith("http") || img.path.startsWith("/") ? img.path : `/storage/${img.path}`)}" alt="${(img.alt_text || article.title || "").replace(/"/g, "&quot;")}" class="w-full h-auto rounded-2xl my-6 border border-secondary-200/60 object-cover" loading="lazy" />`;
+			let imageHtml = `<img src="${img.url || (img.path.startsWith("http") || img.path.startsWith("/") ? img.path : `/storage/${img.path}`)}" alt="${(img.alt_text || article.title || "").replace(/"/g, "&quot;")}" width="1200" height="800" class="w-full h-auto rounded-2xl my-6 border border-secondary-200/60 object-cover" loading="lazy" />`;
 			if (img.link_url) imageHtml = `<a href="${img.link_url.replace(/"/g, "&quot;")}" target="_blank" rel="noopener noreferrer" class="block hover:opacity-95 transition-opacity">${imageHtml}</a>`;
 			parsedContent = parsedContent.replaceAll(shortcodeEn, imageHtml);
 			parsedContent = parsedContent.replaceAll(shortcodeAr, imageHtml);
@@ -13420,7 +12544,7 @@ function ArticleShow({ article, relatedArticles }) {
 			}),
 			jsonLd && /* @__PURE__ */ jsx("script", {
 				type: "application/ld+json",
-				dangerouslySetInnerHTML: { __html: JSON.stringify(jsonLd) }
+				dangerouslySetInnerHTML: { __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }
 			}),
 			/* @__PURE__ */ jsx(Header, {}),
 			/* @__PURE__ */ jsxs("main", {
@@ -13458,11 +12582,15 @@ function ArticleShow({ article, relatedArticles }) {
 								children: /* @__PURE__ */ jsx("img", {
 									src: headerImgUrl,
 									alt: article.title,
+									width: 1200,
+									height: 675,
 									className: "w-full h-full object-cover max-h-[480px]"
 								})
 							}) : /* @__PURE__ */ jsx("img", {
 								src: headerImgUrl,
 								alt: article.title,
+								width: 1200,
+								height: 675,
 								className: "w-full h-full object-cover max-h-[480px]"
 							})
 						}),
@@ -13472,6 +12600,8 @@ function ArticleShow({ article, relatedArticles }) {
 								const imgTag = /* @__PURE__ */ jsx("img", {
 									src: img.url || (img.path.startsWith("http") || img.path.startsWith("/") ? img.path : `/storage/${img.path}`),
 									alt: img.alt_text || article.title,
+									width: 800,
+									height: 450,
 									className: "w-full h-56 rounded-2xl object-cover border border-secondary-200/60",
 									loading: "lazy"
 								});
@@ -13494,6 +12624,8 @@ function ArticleShow({ article, relatedArticles }) {
 								const imgTag = /* @__PURE__ */ jsx("img", {
 									src: img.url || (img.path.startsWith("http") || img.path.startsWith("/") ? img.path : `/storage/${img.path}`),
 									alt: img.alt_text || article.title,
+									width: 800,
+									height: 450,
 									className: "w-full h-56 rounded-2xl object-cover border border-secondary-200/60",
 									loading: "lazy"
 								});
@@ -13512,6 +12644,8 @@ function ArticleShow({ article, relatedArticles }) {
 								const imgTag = /* @__PURE__ */ jsx("img", {
 									src: img.url || (img.path.startsWith("http") || img.path.startsWith("/") ? img.path : `/storage/${img.path}`),
 									alt: img.alt_text || article.title,
+									width: 800,
+									height: 450,
 									className: "w-full h-56 rounded-2xl object-cover border border-secondary-200/60",
 									loading: "lazy"
 								});
@@ -13792,6 +12926,8 @@ function ComparisonSection({ type, title, items, maxItems, isRtl, locale, trans 
 								/* @__PURE__ */ jsx("img", {
 									src: getItemImage(item),
 									alt: item.name,
+									width: 400,
+									height: 300,
 									className: "w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
 								}),
 								score && /* @__PURE__ */ jsx("div", {
@@ -14829,6 +13965,8 @@ function Home({ featuredUnits, latestUnits, popularSearches, areas, unitTypes, f
 								}), /* @__PURE__ */ jsx("img", {
 									src: heroImage,
 									alt: "",
+									width: 1920,
+									height: 1080,
 									className: "w-full h-full object-cover scale-105",
 									fetchPriority: "high",
 									loading: "eager",
@@ -14974,7 +14112,7 @@ function Home({ featuredUnits, latestUnits, popularSearches, areas, unitTypes, f
 }
 //#endregion
 //#region resources/js/Components/UI/ProjectCard.jsx
-var PLACEHOLDER$2 = "/images/fallback.jpg";
+var PLACEHOLDER$2 = "/images/fallback.webp";
 function SkeletonCard() {
 	return /* @__PURE__ */ jsxs("div", {
 		className: "bg-white rounded-2xl shadow-card overflow-hidden border border-secondary-100 animate-pulse",
@@ -15000,7 +14138,6 @@ function ProjectCard({ project, loading = false }) {
 	if (!project) return null;
 	const mainImage = project?.images?.find((img) => img.is_main || img.is_primary) || project?.images?.[0];
 	const thumbnail = mainImage?.thumb_url || mainImage?.url || (mainImage?.path ? mainImage.path.startsWith("http") || mainImage.path.startsWith("/") ? mainImage.path : `/storage/${mainImage.path}` : PLACEHOLDER$2);
-	const imageSrcSet = mainImage?.thumb_url && mainImage?.url && mainImage.thumb_url !== mainImage.url ? `${mainImage.thumb_url} 400w, ${mainImage.url} 800w` : void 0;
 	const isCompared = compareList.includes(project?.id);
 	const areaName = project.area?.name || project.area_name || (isRtl ? "مصر" : "Egypt");
 	const imageAlt = project.alt_text || `${project.name || (isRtl ? "مشروع عقاري" : "Project")} ${isRtl ? "في" : "in"} ${areaName} - ${trans("app_name")}`;
@@ -15015,7 +14152,6 @@ function ProjectCard({ project, loading = false }) {
 				className: "block w-full h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
 				children: /* @__PURE__ */ jsx(OptimizedImage, {
 					src: thumbnail,
-					srcSet: imageSrcSet,
 					alt: imageAlt,
 					width: 480,
 					height: 360,
@@ -15468,8 +14604,8 @@ function ProjectShow({ project }) {
 		return {
 			"@context": "https://schema.org",
 			"@type": "RealEstateListing",
-			name: project.name,
-			description: project.description,
+			...project.name ? { name: project.name } : {},
+			...project.description ? { description: project.description } : {},
 			url: `${appUrl || ""}${page.url.split("?")[0]}`,
 			...image ? { image } : {},
 			numberOfUnits: project.units?.length || 0,
@@ -15512,7 +14648,7 @@ function ProjectShow({ project }) {
 			}),
 			jsonLd && /* @__PURE__ */ jsx("script", {
 				type: "application/ld+json",
-				dangerouslySetInnerHTML: { __html: JSON.stringify(jsonLd) }
+				dangerouslySetInnerHTML: { __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }
 			}),
 			/* @__PURE__ */ jsx(Header, {}),
 			/* @__PURE__ */ jsxs("main", {
@@ -15530,7 +14666,12 @@ function ProjectShow({ project }) {
 										/* @__PURE__ */ jsx("img", {
 											src: thumbnail,
 											alt: project.alt_text || project.name,
-											className: "w-full h-64 sm:h-80 lg:h-96 object-cover"
+											width: 1200,
+											height: 900,
+											className: "w-full h-64 sm:h-80 lg:h-96 object-cover",
+											fetchPriority: "high",
+											loading: "eager",
+											decoding: "sync"
 										}),
 										/* @__PURE__ */ jsxs("button", {
 											type: "button",
@@ -15609,7 +14750,10 @@ function ProjectShow({ project }) {
 									children: images.map((img, i) => /* @__PURE__ */ jsx("img", {
 										src: img.thumb_url || img.url || (img.path?.startsWith("http") || img.path?.startsWith("/") ? img.path : `/storage/${img.path}`),
 										alt: img.alt_text || "",
+										width: 80,
+										height: 64,
 										className: `w-20 h-16 object-cover rounded-lg cursor-pointer border-2 transition-all shrink-0 ${i === selectedImageIndex ? "border-primary-900 ring-2 ring-primary-900/30 scale-105" : "border-transparent opacity-70 hover:opacity-100 hover:border-secondary-300"}`,
+										loading: "lazy",
 										onClick: () => setActiveImageIndex(i)
 									}, i))
 								})]
@@ -15622,6 +14766,7 @@ function ProjectShow({ project }) {
 										src: embedUrl,
 										title: project.name,
 										className: "w-full h-full",
+										loading: "lazy",
 										allow: "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture",
 										allowFullScreen: true
 									}) : /* @__PURE__ */ jsx("a", {
@@ -15991,16 +15136,16 @@ function UnitShow({ unit, similarUnits }) {
 		return {
 			"@context": "https://schema.org",
 			"@type": "RealEstateListing",
-			name: unit.name,
-			description: unit.description,
+			...unit.name ? { name: unit.name } : {},
+			...unit.description ? { description: unit.description } : {},
 			url: `${appUrl || ""}${page.url.split("?")[0]}`,
 			...image ? { image } : {},
-			offers: {
+			...unit.price != null ? { offers: {
 				"@type": "Offer",
 				price: unit.price,
 				priceCurrency: "EGP",
 				availability: "https://schema.org/InStock"
-			},
+			} } : {},
 			...unit.area_sqm ? { floorSize: {
 				"@type": "QuantitativeValue",
 				value: unit.area_sqm,
@@ -16059,10 +15204,11 @@ function UnitShow({ unit, similarUnits }) {
 			}),
 			jsonLd && /* @__PURE__ */ jsx("script", {
 				type: "application/ld+json",
-				dangerouslySetInnerHTML: { __html: JSON.stringify(jsonLd) }
+				dangerouslySetInnerHTML: { __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }
 			}),
 			/* @__PURE__ */ jsx(Header, {}),
 			/* @__PURE__ */ jsxs("main", {
+				id: "main-content",
 				className: "flex-1 max-w-container mx-auto px-4 py-8 w-full",
 				children: [!unit ? /* @__PURE__ */ jsx("div", {
 					className: "text-center py-16",
@@ -16083,7 +15229,12 @@ function UnitShow({ unit, similarUnits }) {
 										/* @__PURE__ */ jsx("img", {
 											src: thumbnail,
 											alt: unit.alt_text || unit.name,
-											className: "w-full h-64 sm:h-80 lg:h-96 object-cover"
+											width: 1200,
+											height: 900,
+											className: "w-full h-64 sm:h-80 lg:h-96 object-cover",
+											fetchPriority: "high",
+											loading: "eager",
+											decoding: "sync"
 										}),
 										/* @__PURE__ */ jsxs("button", {
 											type: "button",
@@ -16162,7 +15313,10 @@ function UnitShow({ unit, similarUnits }) {
 									children: images.map((img, i) => /* @__PURE__ */ jsx("img", {
 										src: img.thumb_url || img.url || (img.path?.startsWith("http") || img.path?.startsWith("/") ? img.path : `/storage/${img.path}`),
 										alt: img.alt_text || "",
+										width: 80,
+										height: 64,
 										className: `w-20 h-16 object-cover rounded-lg cursor-pointer border-2 transition-all shrink-0 ${i === activeImageIndex ? "border-primary-900 ring-2 ring-primary-900/30 scale-105" : "border-transparent opacity-70 hover:opacity-100 hover:border-secondary-300"}`,
+										loading: "lazy",
 										onClick: () => setActiveImageIndex(i)
 									}, i))
 								})]
@@ -16173,6 +15327,7 @@ function UnitShow({ unit, similarUnits }) {
 									src: embedUrl,
 									title: unit.name,
 									className: "w-full h-full",
+									loading: "lazy",
 									allow: "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture",
 									allowFullScreen: true
 								}) : unit.video_path ? /* @__PURE__ */ jsx("video", {
@@ -16371,10 +15526,12 @@ function UnitShow({ unit, similarUnits }) {
 											className: "mb-3",
 											children: [
 												/* @__PURE__ */ jsx("label", {
+													htmlFor: "client_name",
 													className: "block text-xs font-medium text-secondary-950 mb-1",
 													children: trans("your_name", {}, "messages")
 												}),
 												/* @__PURE__ */ jsx("input", {
+													id: "client_name",
 													type: "text",
 													value: data.client_name,
 													onChange: (e) => setData("client_name", e.target.value),
@@ -16390,9 +15547,11 @@ function UnitShow({ unit, similarUnits }) {
 										/* @__PURE__ */ jsxs("div", {
 											className: "mb-3",
 											children: [/* @__PURE__ */ jsx("label", {
+												htmlFor: "client_phone",
 												className: "block text-xs font-medium text-secondary-950 mb-1",
 												children: trans("your_phone", {}, "messages")
 											}), /* @__PURE__ */ jsx("input", {
+												id: "client_phone",
 												type: "tel",
 												value: data.client_phone,
 												onChange: (e) => setData("client_phone", e.target.value),
@@ -16402,9 +15561,11 @@ function UnitShow({ unit, similarUnits }) {
 										/* @__PURE__ */ jsxs("div", {
 											className: "mb-3",
 											children: [/* @__PURE__ */ jsx("label", {
+												htmlFor: "client_email",
 												className: "block text-xs font-medium text-secondary-950 mb-1",
 												children: trans("your_email", {}, "messages")
 											}), /* @__PURE__ */ jsx("input", {
+												id: "client_email",
 												type: "email",
 												value: data.client_email,
 												onChange: (e) => setData("client_email", e.target.value),
@@ -16415,10 +15576,12 @@ function UnitShow({ unit, similarUnits }) {
 											className: "mb-4",
 											children: [
 												/* @__PURE__ */ jsx("label", {
+													htmlFor: "content",
 													className: "block text-xs font-medium text-secondary-950 mb-1",
 													children: trans("your_message", {}, "messages")
 												}),
 												/* @__PURE__ */ jsx("textarea", {
+													id: "content",
 													value: data.content,
 													onChange: (e) => setData("content", e.target.value),
 													required: true,
@@ -16979,6 +16142,8 @@ function Profile() {
 							children: user?.avatar ? /* @__PURE__ */ jsx("img", {
 								src: user.avatar,
 								alt: user.name,
+								width: 80,
+								height: 80,
 								className: "w-full h-full object-cover"
 							}) : /* @__PURE__ */ jsx("div", {
 								className: "w-full h-full flex items-center justify-center text-2xl font-bold text-secondary-400 bg-surface",
@@ -17550,54 +16715,95 @@ function Welcome({ auth, laravelVersion, phpVersion }) {
 }
 //#endregion
 //#region resources/js/ssr.jsx
-createServer((page) => createInertiaApp({
-	page,
-	render: renderToString,
-	resolve: (name) => {
-		return (/* @__PURE__ */ Object.assign({
-			"./Pages/Admin/About/Edit.jsx": Edit_exports$1,
-			"./Pages/Admin/Areas/Index.jsx": Index_exports$16,
-			"./Pages/Admin/Articles/Form.jsx": Form_exports$2,
-			"./Pages/Admin/Articles/Index.jsx": Index_exports$15,
-			"./Pages/Admin/Categories/Index.jsx": Index_exports$14,
-			"./Pages/Admin/Dashboard.jsx": Dashboard_exports,
-			"./Pages/Admin/Features/Index.jsx": Index_exports$13,
-			"./Pages/Admin/FinishingTypes/Index.jsx": Index_exports$12,
-			"./Pages/Admin/Messages/Index.jsx": Index_exports$11,
-			"./Pages/Admin/Notifications/Index.jsx": Index_exports$10,
-			"./Pages/Admin/Points/Index.jsx": Index_exports$9,
-			"./Pages/Admin/Points/Ledger.jsx": Ledger_exports,
-			"./Pages/Admin/Profile/Edit.jsx": Edit_exports,
-			"./Pages/Admin/Projects/Form.jsx": Form_exports$1,
-			"./Pages/Admin/Projects/Index.jsx": Index_exports$8,
-			"./Pages/Admin/SeoPages/Index.jsx": Index_exports$7,
-			"./Pages/Admin/Settings/Index.jsx": Index_exports$6,
-			"./Pages/Admin/UnitTypes/Index.jsx": Index_exports$5,
-			"./Pages/Admin/Units/Form.jsx": Form_exports,
-			"./Pages/Admin/Units/Index.jsx": Index_exports$4,
-			"./Pages/Admin/Users/Create.jsx": Create_exports,
-			"./Pages/Admin/Users/Index.jsx": Index_exports$3,
-			"./Pages/Public/About.jsx": About_exports,
-			"./Pages/Public/Agents/Show.jsx": Show_exports$3,
-			"./Pages/Public/Articles/Index.jsx": Index_exports$2,
-			"./Pages/Public/Articles/Show.jsx": Show_exports$2,
-			"./Pages/Public/Comparison.jsx": Comparison_exports,
-			"./Pages/Public/Contact.jsx": Contact_exports,
-			"./Pages/Public/Home.jsx": Home_exports,
-			"./Pages/Public/Projects/Index.jsx": Index_exports$1,
-			"./Pages/Public/Projects/Show.jsx": Show_exports$1,
-			"./Pages/Public/Units/Deals.jsx": Deals_exports,
-			"./Pages/Public/Units/Index.jsx": Index_exports,
-			"./Pages/Public/Units/Show.jsx": Show_exports,
-			"./Pages/Shared/ForgotPassword.jsx": ForgotPassword_exports,
-			"./Pages/Shared/Login.jsx": Login_exports,
-			"./Pages/Shared/Profile.jsx": Profile_exports,
-			"./Pages/Shared/ResetPassword.jsx": ResetPassword_exports,
-			"./Pages/Shared/VerifyOtp.jsx": VerifyOtp_exports,
-			"./Pages/Shared/Welcome.jsx": Welcome_exports
-		}))[`./Pages/${name}.jsx`];
-	},
-	setup: ({ App, props }) => /* @__PURE__ */ jsx(App, { ...props })
-}));
+async function renderPage(page) {
+	await loadLocale(page.props?.locale);
+	return createInertiaApp({
+		page,
+		render: renderToString,
+		resolve: (name) => {
+			return (/* @__PURE__ */ Object.assign({
+				"./Pages/Admin/About/Edit.jsx": Edit_exports$1,
+				"./Pages/Admin/Areas/Index.jsx": Index_exports$16,
+				"./Pages/Admin/Articles/Form.jsx": Form_exports$2,
+				"./Pages/Admin/Articles/Index.jsx": Index_exports$15,
+				"./Pages/Admin/Categories/Index.jsx": Index_exports$14,
+				"./Pages/Admin/Dashboard.jsx": Dashboard_exports,
+				"./Pages/Admin/Features/Index.jsx": Index_exports$13,
+				"./Pages/Admin/FinishingTypes/Index.jsx": Index_exports$12,
+				"./Pages/Admin/Messages/Index.jsx": Index_exports$11,
+				"./Pages/Admin/Notifications/Index.jsx": Index_exports$10,
+				"./Pages/Admin/Points/Index.jsx": Index_exports$9,
+				"./Pages/Admin/Points/Ledger.jsx": Ledger_exports,
+				"./Pages/Admin/Profile/Edit.jsx": Edit_exports,
+				"./Pages/Admin/Projects/Form.jsx": Form_exports$1,
+				"./Pages/Admin/Projects/Index.jsx": Index_exports$8,
+				"./Pages/Admin/SeoPages/Index.jsx": Index_exports$7,
+				"./Pages/Admin/Settings/Index.jsx": Index_exports$6,
+				"./Pages/Admin/UnitTypes/Index.jsx": Index_exports$5,
+				"./Pages/Admin/Units/Form.jsx": Form_exports,
+				"./Pages/Admin/Units/Index.jsx": Index_exports$4,
+				"./Pages/Admin/Users/Create.jsx": Create_exports,
+				"./Pages/Admin/Users/Index.jsx": Index_exports$3,
+				"./Pages/Public/About.jsx": About_exports,
+				"./Pages/Public/Agents/Show.jsx": Show_exports$3,
+				"./Pages/Public/Articles/Index.jsx": Index_exports$2,
+				"./Pages/Public/Articles/Show.jsx": Show_exports$2,
+				"./Pages/Public/Comparison.jsx": Comparison_exports,
+				"./Pages/Public/Contact.jsx": Contact_exports,
+				"./Pages/Public/Home.jsx": Home_exports,
+				"./Pages/Public/Projects/Index.jsx": Index_exports$1,
+				"./Pages/Public/Projects/Show.jsx": Show_exports$1,
+				"./Pages/Public/Units/Deals.jsx": Deals_exports,
+				"./Pages/Public/Units/Index.jsx": Index_exports,
+				"./Pages/Public/Units/Show.jsx": Show_exports,
+				"./Pages/Shared/ForgotPassword.jsx": ForgotPassword_exports,
+				"./Pages/Shared/Login.jsx": Login_exports,
+				"./Pages/Shared/Profile.jsx": Profile_exports,
+				"./Pages/Shared/ResetPassword.jsx": ResetPassword_exports,
+				"./Pages/Shared/VerifyOtp.jsx": VerifyOtp_exports,
+				"./Pages/Shared/Welcome.jsx": Welcome_exports
+			}))[`./Pages/${name}.jsx`];
+		},
+		setup: ({ App, props }) => /* @__PURE__ */ jsx(App, { ...props })
+	});
+}
+var PORT = Number(process.env.PORT || 13714);
+http.createServer(async (req, res) => {
+	if (req.method !== "POST" || req.url !== "/render") {
+		res.writeHead(404, { "Content-Type": "application/json" });
+		res.end(JSON.stringify({ error: "Not found" }));
+		return;
+	}
+	const chunks = [];
+	try {
+		for await (const chunk of req) chunks.push(Buffer.from(chunk));
+	} catch {
+		res.writeHead(400, { "Content-Type": "application/json" });
+		res.end(JSON.stringify({ error: "Failed to read request body" }));
+		return;
+	}
+	let page;
+	try {
+		page = JSON.parse(Buffer.concat(chunks).toString("utf-8"));
+	} catch (e) {
+		res.writeHead(400, { "Content-Type": "application/json" });
+		res.end(JSON.stringify({ error: e.message }));
+		return;
+	}
+	try {
+		const result = await renderPage(page);
+		res.writeHead(200, { "Content-Type": "application/json" });
+		res.end(JSON.stringify(result));
+	} catch (e) {
+		res.writeHead(500, { "Content-Type": "application/json" });
+		res.end(JSON.stringify({
+			error: e.message,
+			url: page?.url,
+			type: "render"
+		}));
+	}
+}).listen(PORT, "0.0.0.0", () => {
+	console.log(`Custom SSR server listening on port ${PORT}...`);
+});
 //#endregion
 export {};

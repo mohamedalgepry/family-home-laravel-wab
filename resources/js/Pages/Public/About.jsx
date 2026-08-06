@@ -28,7 +28,7 @@ export default function About({ page }) {
                 {images.length > 0 && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
                         {images.map((img, i) => (
-                            <img key={i} src={`/storage/${img}`} alt={trans('about_image')} className="w-full h-48 object-cover rounded-xl" loading="lazy" />
+                            <img key={i} src={`/storage/${img}`} alt={trans('about_image')} width={800} height={400} className="w-full h-48 object-cover rounded-xl" loading="lazy" />
                         ))}
                     </div>
                 )}

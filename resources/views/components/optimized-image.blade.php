@@ -10,7 +10,7 @@
 ])
 
 @php
-    $fallbackUrl = $fallback ?? asset('images/fallback.jpg');
+    $fallbackUrl = $fallback ?? asset('images/fallback.webp');
     $altText = $alt !== '' ? $alt : config('app.name') . ' - موقع عقارات عائلية';
 @endphp
 

@@ -124,6 +124,8 @@ function ComparisonSection({ type, title, items, maxItems, isRtl, locale, trans 
                                 <img
                                     src={getItemImage(item)}
                                     alt={item.name}
+                                    width={400}
+                                    height={300}
                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                 />
                                 {score && (

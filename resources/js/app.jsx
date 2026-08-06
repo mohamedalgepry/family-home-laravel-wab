@@ -1,6 +1,7 @@
 import { createInertiaApp, router } from '@inertiajs/react'
 import { createRoot } from 'react-dom/client'
 import { Component } from 'react'
+import { loadLocale } from './Utils/trans'
 
 class ErrorBoundary extends Component {
     constructor(props) {
@@ -81,19 +82,44 @@ if (typeof window !== 'undefined') {
     }, { passive: true });
 }
 
-createInertiaApp({
-    resolve: name => {
-        const pages = import.meta.glob('./Pages/**/*.jsx')
-        return pages[`./Pages/${name}.jsx`]()
-    },
-    setup({ el, App, props }) {
-        createRoot(el).render(
-            <ErrorBoundary>
-                <App {...props} />
-            </ErrorBoundary>
-        )
-    },
-    progress: {
-        color: '#CC0000',
-    },
-})
+async function boot() {
+    const appEl = document.getElementById('app')
+    let initialLocale = 'en'
+    const pageScript = document.querySelector('script[data-page="app"]')
+    
+    if (pageScript) {
+        try {
+            initialLocale = JSON.parse(pageScript.textContent).props?.locale || 'en'
+        } catch {
+            initialLocale = 'en'
+        }
+    } else if (appEl?.dataset.page) {
+        // Fallback for older Inertia versions
+        try {
+            initialLocale = JSON.parse(appEl.dataset.page).props?.locale || 'en'
+        } catch {
+            initialLocale = 'en'
+        }
+    }
+    
+    await loadLocale(initialLocale)
+
+    createInertiaApp({
+        resolve: name => {
+            const pages = import.meta.glob('./Pages/**/*.jsx')
+            return pages[`./Pages/${name}.jsx`]()
+        },
+        setup({ el, App, props }) {
+            createRoot(el).render(
+                <ErrorBoundary>
+                    <App {...props} />
+                </ErrorBoundary>
+            )
+        },
+        progress: {
+            color: '#CC0000',
+        },
+    })
+}
+
+boot()

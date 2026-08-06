@@ -7,7 +7,7 @@ export default function OptimizedImage({
     height,
     className = '',
     lazy = true,
-    fallbackSrc = '/images/fallback.jpg',
+    fallbackSrc = '/images/fallback.webp',
     role,
     srcSet,
     sizes = '(max-width: 480px) 400px, (max-width: 768px) 400px, (max-width: 1024px) 400px, 800px',

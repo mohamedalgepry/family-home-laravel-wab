@@ -8,11 +8,10 @@ export default function SeoHead({
     ogImage,
     ogType = 'website',
     canonical,
-    pageKey,
     jsonLd,
     hreflang,
 }) {
-    const { locale, seo_pages, appUrl, seo_meta } = usePage().props
+    const { locale, seo_page, appUrl, seo_meta } = usePage().props
     const { url } = usePage()
     const trans = useTrans(locale)
     const siteName = trans('site_title')
@@ -21,20 +20,8 @@ export default function SeoHead({
     const cleanPath = (typeof url === 'string' ? url : '/').split('?')[0];
     const pathWithoutLocale = cleanPath.replace(/^\/(ar|en)(\/|$)/, '/');
     const baseUrl = appUrl || (typeof window !== 'undefined' ? window.location.origin : '');
-    
-    // Auto detect pageKey from path if not provided
-    const routeToKeyMap = {
-        '/': 'home',
-        '/about': 'about',
-        '/contact': 'contact',
-        '/units': 'units_index',
-        '/projects': 'projects_index',
-        '/deals': 'deals',
-        '/articles': 'articles_index',
-        '/comparison': 'comparison',
-    };
-    const activeKey = pageKey || routeToKeyMap[pathWithoutLocale] || null;
-    const pageSeo = activeKey && seo_pages?.[activeKey] ? seo_pages[activeKey] : null;
+
+    const pageSeo = seo_page || null;
 
     const finalTitle = pageSeo ? (isRtl ? (pageSeo.meta_title_ar || title) : (pageSeo.meta_title_en || title)) : title;
     const finalDescription = pageSeo ? (isRtl ? (pageSeo.meta_description_ar || description) : (pageSeo.meta_description_en || description)) : description;

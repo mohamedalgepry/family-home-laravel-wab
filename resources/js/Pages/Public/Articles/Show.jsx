@@ -7,7 +7,7 @@ import SeoHead from '../../../Components/UI/SeoHead'
 import ArticleCard from '../../../Components/UI/ArticleCard'
 import { useMemo } from 'react'
 
-const PLACEHOLDER = '/images/fallback.jpg'
+const PLACEHOLDER = '/images/fallback.webp'
 
 export default function ArticleShow({ article, relatedArticles }) {
     const { locale } = usePage().props
@@ -69,7 +69,7 @@ export default function ArticleShow({ article, relatedArticles }) {
             usedMiddleIndices.add(index)
             const imgPath = img.url || (img.path.startsWith('http') || img.path.startsWith('/') ? img.path : `/storage/${img.path}`)
             const altText = (img.alt_text || article.title || '').replace(/"/g, '&quot;')
-            let imageHtml = `<img src="${imgPath}" alt="${altText}" class="w-full h-auto rounded-2xl my-6 border border-secondary-200/60 object-cover" loading="lazy" />`
+                            let imageHtml = `<img src="${imgPath}" alt="${altText}" width="1200" height="800" class="w-full h-auto rounded-2xl my-6 border border-secondary-200/60 object-cover" loading="lazy" />`
             if (img.link_url) {
                 const safeLink = img.link_url.replace(/"/g, '&quot;')
                 imageHtml = `<a href="${safeLink}" target="_blank" rel="noopener noreferrer" class="block hover:opacity-95 transition-opacity">${imageHtml}</a>`
@@ -131,6 +131,8 @@ export default function ArticleShow({ article, relatedArticles }) {
                                     <img
                                         src={headerImgUrl}
                                         alt={article.title}
+                                        width={1200}
+                                        height={675}
                                         className="w-full h-full object-cover max-h-[480px]"
                                     />
                                 </a>
@@ -138,6 +140,8 @@ export default function ArticleShow({ article, relatedArticles }) {
                                 <img
                                     src={headerImgUrl}
                                     alt={article.title}
+                                    width={1200}
+                                    height={675}
                                     className="w-full h-full object-cover max-h-[480px]"
                                 />
                             )}
@@ -153,6 +157,8 @@ export default function ArticleShow({ article, relatedArticles }) {
                                     <img
                                         src={imgSrc}
                                         alt={img.alt_text || article.title}
+                                        width={800}
+                                        height={450}
                                         className="w-full h-56 rounded-2xl object-cover border border-secondary-200/60"
                                         loading="lazy"
                                     />
@@ -188,6 +194,8 @@ export default function ArticleShow({ article, relatedArticles }) {
                                     <img
                                         src={imgSrc}
                                         alt={img.alt_text || article.title}
+                                        width={800}
+                                        height={450}
                                         className="w-full h-56 rounded-2xl object-cover border border-secondary-200/60"
                                         loading="lazy"
                                     />
@@ -212,6 +220,8 @@ export default function ArticleShow({ article, relatedArticles }) {
                                     <img
                                         src={imgSrc}
                                         alt={img.alt_text || article.title}
+                                        width={800}
+                                        height={450}
                                         className="w-full h-56 rounded-2xl object-cover border border-secondary-200/60"
                                         loading="lazy"
                                     />

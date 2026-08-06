@@ -41,9 +41,8 @@ class HttpCacheControl
             return $response;
         }
 
-        // Disable CDN full-page HTML caching because it conflicts with Inertia.js (Hostinger CDN strips Vary: X-Inertia)
-        // $response->headers->set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=60');
-        $response->headers->set('Cache-Control', 'no-cache, private');
+        // Enable CDN full-page HTML caching for TTFB improvements
+        $response->headers->set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=60');
 
         return $response;
     }
