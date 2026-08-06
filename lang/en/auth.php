@@ -13,7 +13,7 @@ return [
     'confirm_password' => 'Confirm Password',
     'already_registered' => 'Already have an account?',
     'reset_password_title' => 'Reset Password',
-    'send_reset_link' => 'Send Reset Link',
+    'send_reset_link' => 'Send Verification Code',
     'check_email' => 'Check your email',
     'password_reset_success' => 'Password reset successfully',
     'password_requirements' => 'Password must be at least 8 characters',

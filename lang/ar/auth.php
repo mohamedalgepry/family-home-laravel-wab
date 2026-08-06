@@ -13,7 +13,7 @@ return [
     'confirm_password' => 'تأكيد كلمة المرور',
     'already_registered' => 'لديك حساب بالفعل؟',
     'reset_password_title' => 'إعادة تعيين كلمة المرور',
-    'send_reset_link' => 'إرسال رابط إعادة التعيين',
+    'send_reset_link' => 'إرسال رمز التحقق',
     'check_email' => 'تحقق من بريدك الإلكتروني',
     'password_reset_success' => 'تم إعادة تعيين كلمة المرور',
     'password_requirements' => 'كلمة المرور يجب أن تكون 8 أحرف على الأقل',
