@@ -64,9 +64,16 @@ class LoginController extends Controller
         $rateLimitKey = 'forgot-password|'.$email.'|'.$request->ip();
 
         $this->ensureIsNotRateLimited($rateLimitKey, maxAttempts: 3, decaySeconds: 300, errorKey: 'email');
-        RateLimiter::hit($rateLimitKey, 300);
 
-        $this->authService->sendOtp($email, app()->getLocale());
+        $code = $this->authService->sendOtp($email, app()->getLocale());
+
+        if ($code === null) {
+            throw ValidationException::withMessages([
+                'email' => __('auth.user_not_found'),
+            ]);
+        }
+
+        RateLimiter::hit($rateLimitKey, 300);
         $request->session()->put('password_reset_email', $email);
 
         return redirect()->route('password.otp')->with('status', __('auth.otp_sent'));

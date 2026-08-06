@@ -65,16 +65,14 @@ test('forgot password notification supports english locale when app locale is se
     app()->setLocale('ar');
 });
 
-test('forgot password does not reveal whether email is registered', function () {
+test('forgot password fails validation when email is not registered', function () {
     Notification::fake();
 
     $response = $this->post('/forgot-password', [
         'email' => 'nonexistent@example.com',
     ]);
 
-    $response->assertSessionHasNoErrors();
-    $response->assertRedirect(route('password.otp'));
-    $response->assertSessionHas('password_reset_email', 'nonexistent@example.com');
+    $response->assertSessionHasErrors(['email']);
     $this->assertDatabaseMissing('password_otps', ['email' => 'nonexistent@example.com']);
 });
 
