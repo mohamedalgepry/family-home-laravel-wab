@@ -13368,10 +13368,10 @@ function ArticleShow({ article, relatedArticles }) {
 			"@context": "https://schema.org",
 			"@type": "Article",
 			headline: article.title,
-			description: article.excerpt || article.meta_description,
-			image: headerImgUrl,
-			datePublished: article.published_at,
-			dateModified: article.updated_at,
+			...article.excerpt || article.meta_description ? { description: article.excerpt || article.meta_description } : {},
+			...headerImgUrl ? { image: headerImgUrl } : {},
+			...article.published_at ? { datePublished: article.published_at } : {},
+			...article.updated_at ? { dateModified: article.updated_at } : {},
 			author: {
 				"@type": "Organization",
 				name: "Family Home"
@@ -15464,13 +15464,14 @@ function ProjectShow({ project }) {
 	const thumbnail = selectedImage?.url || (selectedImage?.path ? selectedImage.path.startsWith("http") || selectedImage.path.startsWith("/") ? selectedImage.path : `/storage/${selectedImage.path}` : PLACEHOLDER$1);
 	const jsonLd = useMemo(() => {
 		if (!project) return null;
+		const image = mainImage?.url || (mainImage?.path ? `/storage/${mainImage.path}` : null);
 		return {
 			"@context": "https://schema.org",
 			"@type": "RealEstateListing",
 			name: project.name,
 			description: project.description,
 			url: `${appUrl || ""}${page.url.split("?")[0]}`,
-			image: mainImage?.url || (mainImage?.path ? `/storage/${mainImage.path}` : null),
+			...image ? { image } : {},
 			numberOfUnits: project.units?.length || 0,
 			...project.location_address ? { address: {
 				"@type": "PostalAddress",
@@ -15986,13 +15987,14 @@ function UnitShow({ unit, similarUnits }) {
 	const [sentSuccess, setSentSuccess] = useState(false);
 	const jsonLd = useMemo(() => {
 		if (!unit) return null;
+		const image = unit.images?.[0]?.url || (unit.images?.[0]?.path ? `/storage/${unit.images[0].path}` : null);
 		return {
 			"@context": "https://schema.org",
 			"@type": "RealEstateListing",
 			name: unit.name,
 			description: unit.description,
 			url: `${appUrl || ""}${page.url.split("?")[0]}`,
-			image: unit.images?.[0]?.url || (unit.images?.[0]?.path ? `/storage/${unit.images[0].path}` : null),
+			...image ? { image } : {},
 			offers: {
 				"@type": "Offer",
 				price: unit.price,
@@ -16004,9 +16006,9 @@ function UnitShow({ unit, similarUnits }) {
 				value: unit.area_sqm,
 				unitCode: "MTK"
 			} } : {},
-			numberOfRooms: unit.rooms,
-			numberOfBathroomsTotal: unit.bathrooms,
-			floorLevel: unit.floor,
+			...unit.rooms != null ? { numberOfRooms: unit.rooms } : {},
+			...unit.bathrooms != null ? { numberOfBathroomsTotal: unit.bathrooms } : {},
+			...unit.floor != null ? { floorLevel: unit.floor } : {},
 			...unit.location_address ? { address: {
 				"@type": "PostalAddress",
 				addressLocality: unit.location_address

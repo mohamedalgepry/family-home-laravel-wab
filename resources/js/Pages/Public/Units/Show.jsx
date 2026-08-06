@@ -28,13 +28,16 @@ export default function UnitShow({ unit, similarUnits }) {
 
     const jsonLd = useMemo(() => {
         if (!unit) return null
+        
+        const image = unit.images?.[0]?.url || (unit.images?.[0]?.path ? `/storage/${unit.images[0].path}` : null);
+        
         return {
             '@context': 'https://schema.org',
             '@type': 'RealEstateListing',
             name: unit.name,
             description: unit.description,
             url: `${appUrl || ''}${page.url.split('?')[0]}`,
-            image: unit.images?.[0]?.url || (unit.images?.[0]?.path ? `/storage/${unit.images[0].path}` : null),
+            ...(image ? { image } : {}),
             offers: {
                 '@type': 'Offer',
                 price: unit.price,
@@ -48,9 +51,9 @@ export default function UnitShow({ unit, similarUnits }) {
                     unitCode: 'MTK',
                 },
             } : {}),
-            numberOfRooms: unit.rooms,
-            numberOfBathroomsTotal: unit.bathrooms,
-            floorLevel: unit.floor,
+            ...(unit.rooms != null ? { numberOfRooms: unit.rooms } : {}),
+            ...(unit.bathrooms != null ? { numberOfBathroomsTotal: unit.bathrooms } : {}),
+            ...(unit.floor != null ? { floorLevel: unit.floor } : {}),
             ...(unit.location_address ? {
                 address: {
                     '@type': 'PostalAddress',

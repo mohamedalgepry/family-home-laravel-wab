@@ -29,6 +29,8 @@
             'url' => $url,
         ];
     }
+    
+    $schema = array_filter($schema, fn($v) => $v !== null);
 @endphp
 
 <script type="application/ld+json">

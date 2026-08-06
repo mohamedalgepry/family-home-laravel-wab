@@ -34,13 +34,14 @@ export default function ProjectShow({ project }) {
 
     const jsonLd = useMemo(() => {
         if (!project) return null
+        const image = mainImage?.url || (mainImage?.path ? `/storage/${mainImage.path}` : null);
         return {
             '@context': 'https://schema.org',
             '@type': 'RealEstateListing',
             name: project.name,
             description: project.description,
             url: `${appUrl || ''}${page.url.split('?')[0]}`,
-            image: mainImage?.url || (mainImage?.path ? `/storage/${mainImage.path}` : null),
+            ...(image ? { image } : {}),
             numberOfUnits: project.units?.length || 0,
             ...(project.location_address ? {
                 address: {
