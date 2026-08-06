@@ -87,6 +87,7 @@ class UnitController
         return Inertia::render('Public/Units/Show', [
             'unit' => $unit,
             'similarUnits' => $similarUnits,
+            'seo_meta' => $meta,
         ])->withViewData(['meta' => $meta, 'lcpImage' => $lcpImage]);
     }
 

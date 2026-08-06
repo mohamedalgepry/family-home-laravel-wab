@@ -94,6 +94,7 @@ class ArticleController
         return Inertia::render('Public/Articles/Show', [
             'article' => $article,
             'relatedArticles' => $relatedArticles,
+            'seo_meta' => $meta,
         ])->withViewData(['meta' => $meta]);
     }
 

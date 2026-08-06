@@ -72,6 +72,7 @@ class ProjectController
 
         return Inertia::render('Public/Projects/Show', [
             'project' => $project,
+            'seo_meta' => $meta,
         ])->withViewData(['meta' => $meta, 'lcpImage' => $lcpImage]);
     }
 }

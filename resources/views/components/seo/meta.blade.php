@@ -28,16 +28,16 @@
     $schemas = $meta['schema'] ?? [];
 @endphp
 
-<title>{{ $title }}</title>
-<meta name="description" content="{{ $description }}">
-<meta name="author" content="mohamed algbry">
+<title inertia>{{ $title }}</title>
+<meta name="description" content="{{ $description }}" inertia>
+<meta name="author" content="mohamed algbry" inertia>
 @if($keywords)
-    <meta name="keywords" content="{{ $keywords }}">
+    <meta name="keywords" content="{{ $keywords }}" inertia>
 @endif
-<link rel="canonical" href="{{ $canonical }}">
+<link rel="canonical" href="{{ $canonical }}" inertia>
 
 @foreach($hreflang as $lang => $url)
-    <link rel="alternate" hreflang="{{ $lang }}" href="{{ $url }}">
+    <link rel="alternate" hreflang="{{ $lang }}" href="{{ $url }}" inertia>
 @endforeach
 
 <!-- Open Graph / WhatsApp / Facebook / Telegram / LinkedIn -->

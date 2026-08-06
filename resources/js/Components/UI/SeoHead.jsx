@@ -12,7 +12,7 @@ export default function SeoHead({
     jsonLd,
     hreflang,
 }) {
-    const { locale, seo_pages, appUrl } = usePage().props
+    const { locale, seo_pages, appUrl, seo_meta } = usePage().props
     const { url } = usePage()
     const trans = useTrans(locale)
     const siteName = trans('site_title')
@@ -45,11 +45,11 @@ export default function SeoHead({
     ) : keywords;
 
     // Clean canonical URL without query string
-    const rawCanonical = canonical || (baseUrl ? `${baseUrl}${cleanPath}` : cleanPath);
+    const rawCanonical = canonical || seo_meta?.canonical || (baseUrl ? `${baseUrl}${cleanPath}` : cleanPath);
     const finalCanonical = rawCanonical.split('?')[0];
 
-    const urlAr = hreflang?.ar || (baseUrl + (pathWithoutLocale === '/' ? '/ar' : `/ar${pathWithoutLocale === '/' ? '' : pathWithoutLocale}`));
-    const urlEn = hreflang?.en || (baseUrl + (pathWithoutLocale === '/' ? '/en' : `/en${pathWithoutLocale === '/' ? '' : pathWithoutLocale}`));
+    const urlAr = hreflang?.ar || seo_meta?.hreflang?.ar || (baseUrl + (pathWithoutLocale === '/' ? '/ar' : `/ar${pathWithoutLocale === '/' ? '' : pathWithoutLocale}`));
+    const urlEn = hreflang?.en || seo_meta?.hreflang?.en || (baseUrl + (pathWithoutLocale === '/' ? '/en' : `/en${pathWithoutLocale === '/' ? '' : pathWithoutLocale}`));
 
     // Resolve full absolute URL for social media image
     let finalOgImage = ogImage;
