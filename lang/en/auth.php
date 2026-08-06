@@ -40,4 +40,11 @@ return [
     'otp_sent' => 'A 6-digit verification code has been sent to your email address.',
     'enter_otp' => 'Enter 6-digit Verification Code',
     'verify_otp' => 'Verify Code',
+    'same_email_error' => 'The entered email is identical to your current email.',
+    'email_already_taken' => 'This email address is already taken by another account.',
+    'email_mismatch' => 'The email address to be verified does not match.',
+    'email_updated_successfully' => 'Email address changed successfully.',
+    'send_code_to_new_email' => 'Send Verification Code to New Email',
+    'verify_and_update_email' => 'Verify & Update Email',
+    'enter_email_otp_hint' => 'Enter the 6-digit verification code sent to your new email to confirm.',
 ];

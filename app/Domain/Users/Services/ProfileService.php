@@ -3,8 +3,10 @@
 namespace App\Domain\Users\Services;
 
 use App\Domain\Users\Models\User;
+use App\Domain\Users\Notifications\SendEmailChangeOtpNotification;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -99,5 +101,73 @@ class ProfileService
         }
 
         return $path;
+    }
+
+    public function sendEmailChangeOtp(User $user, string $newEmail, string $locale = 'ar'): string
+    {
+        $newEmail = strtolower(trim($newEmail));
+
+        if ($newEmail === strtolower($user->email)) {
+            throw ValidationException::withMessages([
+                'new_email' => __('auth.same_email_error'),
+            ]);
+        }
+
+        if (User::where('email', $newEmail)->where('id', '!=', $user->id)->exists()) {
+            throw ValidationException::withMessages([
+                'new_email' => __('auth.email_already_taken'),
+            ]);
+        }
+
+        $code = (string) random_int(100000, 999999);
+
+        Cache::put("email_change_otp_{$user->id}", [
+            'new_email' => $newEmail,
+            'code_hash' => Hash::make($code),
+            'expires_at' => now()->addMinutes(5),
+        ], now()->addMinutes(5));
+
+        $user->notify(new SendEmailChangeOtpNotification($code, $locale));
+
+        return $code;
+    }
+
+    public function verifyAndChangeEmail(User $user, string $newEmail, string $code): void
+    {
+        $newEmail = strtolower(trim($newEmail));
+        $cacheData = Cache::get("email_change_otp_{$user->id}");
+
+        if (! $cacheData || empty($cacheData['code_hash']) || empty($cacheData['new_email'])) {
+            throw ValidationException::withMessages([
+                'code' => __('auth.invalid_otp'),
+            ]);
+        }
+
+        if ($cacheData['new_email'] !== $newEmail) {
+            throw ValidationException::withMessages([
+                'new_email' => __('auth.email_mismatch'),
+            ]);
+        }
+
+        if (now()->gt($cacheData['expires_at'] ?? now())) {
+            throw ValidationException::withMessages([
+                'code' => __('auth.invalid_otp'),
+            ]);
+        }
+
+        if (! Hash::check($code, $cacheData['code_hash'])) {
+            throw ValidationException::withMessages([
+                'code' => __('auth.invalid_otp'),
+            ]);
+        }
+
+        if (User::where('email', $newEmail)->where('id', '!=', $user->id)->exists()) {
+            throw ValidationException::withMessages([
+                'new_email' => __('auth.email_already_taken'),
+            ]);
+        }
+
+        $user->forceFill(['email' => $newEmail])->save();
+        Cache::forget("email_change_otp_{$user->id}");
     }
 }

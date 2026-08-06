@@ -45,4 +45,35 @@ class ProfileController extends Controller
 
         return back()->with('success', __('common.updated_successfully'));
     }
+
+    public function sendEmailOtp(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'new_email' => 'required|email|max:255',
+        ]);
+
+        $this->profileService->sendEmailChangeOtp(
+            $request->user(),
+            $request->input('new_email'),
+            app()->getLocale()
+        );
+
+        return back()->with('success', __('auth.otp_sent'));
+    }
+
+    public function verifyEmailOtp(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'new_email' => 'required|email|max:255',
+            'code' => 'required|string|size:6',
+        ]);
+
+        $this->profileService->verifyAndChangeEmail(
+            $request->user(),
+            $request->input('new_email'),
+            $request->input('code')
+        );
+
+        return back()->with('success', __('auth.email_updated_successfully'));
+    }
 }

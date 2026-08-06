@@ -438,6 +438,10 @@ const translations = {
         delete_notification: 'حذف الإشعار',
         expires_label: 'تاريخ الانتهاء:',
         by_label: 'بواسطة:',
+        send_code_to_new_email: 'إرسال رمز التحقق للبريد الجديد',
+        verify_and_update_email: 'تأكيد وتحديث البريد',
+        enter_email_otp_hint: 'أدخل رمز التحقق (6 أرقام) المرسل إلى البريد الجديد لتأكيده.',
+        email_change_sent: 'تم إرسال رمز التحقق إلى البريد الجديد بنجاح.',
     },
     en: {
         app_name: 'Family Home',
@@ -880,6 +884,10 @@ const translations = {
         delete_notification: 'Delete notification',
         expires_label: 'Expires:',
         by_label: 'By:',
+        send_code_to_new_email: 'Send Verification Code to New Email',
+        verify_and_update_email: 'Verify & Update Email',
+        enter_email_otp_hint: 'Enter the 6-digit verification code sent to your new email to confirm.',
+        email_change_sent: 'Verification code sent to the new email address successfully.',
     },
 }
 

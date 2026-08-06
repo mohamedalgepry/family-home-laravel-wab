@@ -1,10 +1,10 @@
-import { usePage, useForm, Head, Link } from '@inertiajs/react'
+import { usePage, useForm, Head, Link, router } from '@inertiajs/react'
 import { useRef, useState } from 'react'
 import AdminSidebar from '../../../Components/Layout/AdminSidebar'
 import { useTrans } from '../../../Utils/trans'
 
 export default function Edit({ user }) {
-    const { auth, locale, flash } = usePage().props
+    const { auth, locale, flash, errors: pageErrors } = usePage().props
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
     const fileInput = useRef(null)
@@ -12,6 +12,12 @@ export default function Edit({ user }) {
     const currentUser = user || auth?.user || {}
     const initialAvatar = currentUser.avatar ? (currentUser.avatar.startsWith('http') || currentUser.avatar.startsWith('/storage') ? currentUser.avatar : `/storage/${currentUser.avatar}`) : null
     const [preview, setPreview] = useState(initialAvatar)
+
+    const [newEmail, setNewEmail] = useState(currentUser.email || '')
+    const [otpSent, setOtpSent] = useState(false)
+    const [otpCode, setOtpCode] = useState('')
+    const [emailSending, setEmailSending] = useState(false)
+    const [emailVerifying, setEmailVerifying] = useState(false)
 
     const { data, setData, post, processing, errors } = useForm({
         name: currentUser.name || '',
@@ -23,6 +29,8 @@ export default function Edit({ user }) {
         password_confirmation: '',
         avatar: null,
     })
+
+    const isEmailChanged = newEmail.trim().toLowerCase() !== (currentUser.email || '').trim().toLowerCase()
 
     function handleImageChange(e) {
         const file = e.target.files[0]
@@ -39,6 +47,34 @@ export default function Edit({ user }) {
             onSuccess: () => {
                 setData('password', '')
                 setData('password_confirmation', '')
+            }
+        })
+    }
+
+    function handleSendEmailOtp() {
+        setEmailSending(true)
+        router.post('/admin/profile/send-email-otp', {
+            new_email: newEmail,
+        }, {
+            preserveScroll: true,
+            onFinish: () => setEmailSending(false),
+            onSuccess: () => {
+                setOtpSent(true)
+            }
+        })
+    }
+
+    function handleVerifyEmailOtp() {
+        setEmailVerifying(true)
+        router.post('/admin/profile/verify-email-otp', {
+            new_email: newEmail,
+            code: otpCode,
+        }, {
+            preserveScroll: true,
+            onFinish: () => setEmailVerifying(false),
+            onSuccess: () => {
+                setOtpSent(false)
+                setOtpCode('')
             }
         })
     }
@@ -102,17 +138,69 @@ export default function Edit({ user }) {
                             <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('email', {}, 'admin')}</label>
                             <input
                                 type="email"
-                                value={currentUser.email || ''}
-                                readOnly
-                                disabled
-                                className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-secondary-50 text-secondary-600 cursor-not-allowed"
+                                value={newEmail}
+                                onChange={e => {
+                                    setNewEmail(e.target.value)
+                                    setOtpSent(false)
+                                    setOtpCode('')
+                                }}
+                                className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
                                 dir="ltr"
                             />
-                            <p className="text-xs text-muted mt-1">
-                                {isRtl ? 'لا يمكن تغيير البريد الإلكتروني. تواصل مع مدير النظام.' : 'Email cannot be changed. Contact your administrator.'}
-                            </p>
+                            {pageErrors?.new_email && <p className="text-xs text-error mt-1">{pageErrors.new_email}</p>}
                         </div>
                     </div>
+
+                    {/* Email OTP Change Flow */}
+                    {isEmailChanged && (
+                        <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-3">
+                            <p className="text-xs font-semibold text-amber-900">
+                                {isRtl
+                                    ? 'تنبيه: يتطلب تغيير البريد الإلكتروني تأكيد رمز التحقق (OTP) المرسل للبريد الجديد.'
+                                    : 'Notice: Changing your email address requires verifying an OTP code sent to the new email.'}
+                            </p>
+
+                            {!otpSent ? (
+                                <button
+                                    type="button"
+                                    onClick={handleSendEmailOtp}
+                                    disabled={emailSending || !newEmail.trim()}
+                                    className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold transition-all disabled:opacity-50"
+                                >
+                                    {emailSending
+                                        ? (isRtl ? 'جارٍ إرسال الرمز...' : 'Sending code...')
+                                        : trans('send_code_to_new_email')}
+                                </button>
+                            ) : (
+                                <div className="space-y-3 pt-1">
+                                    <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg text-xs font-medium">
+                                        {trans('enter_email_otp_hint')}
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <input
+                                            type="text"
+                                            maxLength={6}
+                                            value={otpCode}
+                                            onChange={e => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                                            placeholder="123456"
+                                            className="w-36 px-3 py-2 border border-secondary-300 rounded-lg text-center font-bold text-base tracking-widest bg-white"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={handleVerifyEmailOtp}
+                                            disabled={emailVerifying || otpCode.length !== 6}
+                                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all disabled:opacity-50"
+                                        >
+                                            {emailVerifying
+                                                ? (isRtl ? 'جارٍ التأكيد...' : 'Verifying...')
+                                                : trans('verify_and_update_email')}
+                                        </button>
+                                    </div>
+                                    {pageErrors?.code && <p className="text-xs text-error mt-1">{pageErrors.code}</p>}
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>

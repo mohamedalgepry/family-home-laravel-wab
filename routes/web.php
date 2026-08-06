@@ -258,6 +258,8 @@ Route::prefix('admin')->middleware(['auth', 'role:admin,manager,agent'])->group(
     Route::prefix('profile')->name('admin.profile.')->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\ProfileController::class, 'edit'])->name('edit');
         Route::post('/', [App\Http\Controllers\Admin\ProfileController::class, 'update'])->name('update');
+        Route::post('/send-email-otp', [App\Http\Controllers\Admin\ProfileController::class, 'sendEmailOtp'])->name('send-email-otp');
+        Route::post('/verify-email-otp', [App\Http\Controllers\Admin\ProfileController::class, 'verifyEmailOtp'])->name('verify-email-otp');
     });
 
     Route::prefix('unit-types')->name('admin.unit-types.')->middleware('role:admin')->group(function () {
