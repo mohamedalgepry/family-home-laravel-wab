@@ -376,8 +376,9 @@ export default function UnitShow({ unit, similarUnits }) {
 
                                 <form onSubmit={handleSubmit} noValidate>
                                     <div className="mb-3">
-                                        <label className="block text-xs font-medium text-secondary-950 mb-1">{trans('your_name', {}, 'messages')}</label>
+                                        <label htmlFor="client_name" className="block text-xs font-medium text-secondary-950 mb-1">{trans('your_name', {}, 'messages')}</label>
                                         <input
+                                            id="client_name"
                                             type="text"
                                             value={data.client_name}
                                             onChange={e => setData('client_name', e.target.value)}
@@ -387,8 +388,9 @@ export default function UnitShow({ unit, similarUnits }) {
                                         {errors.client_name && <p className="text-xs text-error mt-1">{errors.client_name}</p>}
                                     </div>
                                     <div className="mb-3">
-                                        <label className="block text-xs font-medium text-secondary-950 mb-1">{trans('your_phone', {}, 'messages')}</label>
+                                        <label htmlFor="client_phone" className="block text-xs font-medium text-secondary-950 mb-1">{trans('your_phone', {}, 'messages')}</label>
                                         <input
+                                            id="client_phone"
                                             type="tel"
                                             value={data.client_phone}
                                             onChange={e => setData('client_phone', e.target.value)}
@@ -396,8 +398,9 @@ export default function UnitShow({ unit, similarUnits }) {
                                         />
                                     </div>
                                     <div className="mb-3">
-                                        <label className="block text-xs font-medium text-secondary-950 mb-1">{trans('your_email', {}, 'messages')}</label>
+                                        <label htmlFor="client_email" className="block text-xs font-medium text-secondary-950 mb-1">{trans('your_email', {}, 'messages')}</label>
                                         <input
+                                            id="client_email"
                                             type="email"
                                             value={data.client_email}
                                             onChange={e => setData('client_email', e.target.value)}
@@ -405,8 +408,9 @@ export default function UnitShow({ unit, similarUnits }) {
                                         />
                                     </div>
                                     <div className="mb-4">
-                                        <label className="block text-xs font-medium text-secondary-950 mb-1">{trans('your_message', {}, 'messages')}</label>
+                                        <label htmlFor="content" className="block text-xs font-medium text-secondary-950 mb-1">{trans('your_message', {}, 'messages')}</label>
                                         <textarea
+                                            id="content"
                                             value={data.content}
                                             onChange={e => setData('content', e.target.value)}
                                             required

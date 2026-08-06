@@ -63,15 +63,15 @@ export default function SeoHead({
     return (
         <Head>
             {finalTitle && <title>{finalTitle}</title>}
-            {finalDescription && <meta name="description" content={finalDescription} />}
-            {finalKeywords && <meta name="keywords" content={finalKeywords} />}
-            <meta name="author" content="mohamed algbry" />
+            {finalDescription && <meta head-key="description" name="description" content={finalDescription} />}
+            {finalKeywords && <meta head-key="keywords" name="keywords" content={finalKeywords} />}
+            <meta head-key="author" name="author" content="mohamed algbry" />
 
             {/* Open Graph */}
-            {finalTitle && <meta property="og:title" content={finalTitle} />}
-            {finalDescription && <meta property="og:description" content={finalDescription} />}
-            <meta property="og:type" content={ogType} />
-            <meta property="og:site_name" content={siteName} />
+            {finalTitle && <meta head-key="og:title" property="og:title" content={finalTitle} />}
+            {finalDescription && <meta head-key="og:description" property="og:description" content={finalDescription} />}
+            <meta head-key="og:type" property="og:type" content={ogType} />
+            <meta head-key="og:site_name" property="og:site_name" content={siteName} />
             {finalOgImage && <meta property="og:image" content={finalOgImage} />}
             {finalOgImage && <meta property="og:image:secure_url" content={finalOgImage} />}
             <meta property="og:url" content={finalCanonical} />
@@ -80,15 +80,15 @@ export default function SeoHead({
             <meta name="twitter:card" content="summary_large_image" />
             {finalTitle && <meta name="twitter:title" content={finalTitle} />}
             {finalDescription && <meta name="twitter:description" content={finalDescription} />}
-            {finalOgImage && <meta name="twitter:image" content={finalOgImage} />}
+            {finalOgImage && <meta head-key="twitter:image" name="twitter:image" content={finalOgImage} />}
 
             {/* Canonical */}
-            <link rel="canonical" href={finalCanonical} />
+            <link head-key="canonical" rel="canonical" href={finalCanonical} />
             
             {/* Hreflang */}
-            <link rel="alternate" hreflang="ar" href={urlAr} />
-            <link rel="alternate" hreflang="en" href={urlEn} />
-            <link rel="alternate" hreflang="x-default" href={urlAr} />
+            <link head-key="hreflang-ar" rel="alternate" hreflang="ar" href={urlAr} />
+            <link head-key="hreflang-en" rel="alternate" hreflang="en" href={urlEn} />
+            <link head-key="hreflang-x-default" rel="alternate" hreflang="x-default" href={urlAr} />
 
             {/* Structured Data (Schema.org) */}
             {jsonLd && (

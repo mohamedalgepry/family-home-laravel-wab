@@ -29,15 +29,15 @@
 @endphp
 
 <title inertia>{{ $title }}</title>
-<meta name="description" content="{{ $description }}" inertia>
-<meta name="author" content="mohamed algbry" inertia>
+<meta name="description" content="{{ $description }}" inertia head-key="description">
+<meta name="author" content="mohamed algbry" inertia head-key="author">
 @if($keywords)
-    <meta name="keywords" content="{{ $keywords }}" inertia>
+    <meta name="keywords" content="{{ $keywords }}" inertia head-key="keywords">
 @endif
-<link rel="canonical" href="{{ $canonical }}" inertia>
+<link rel="canonical" href="{{ $canonical }}" inertia head-key="canonical">
 
 @foreach($hreflang as $lang => $url)
-    <link rel="alternate" hreflang="{{ $lang }}" href="{{ $url }}" inertia>
+    <link rel="alternate" hreflang="{{ $lang }}" href="{{ $url }}" inertia head-key="hreflang-{{ $lang }}">
 @endforeach
 
 <!-- Open Graph / WhatsApp / Facebook / Telegram / LinkedIn -->
