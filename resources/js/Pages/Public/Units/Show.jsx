@@ -108,7 +108,7 @@ export default function UnitShow({ unit, similarUnits }) {
             )}
             <Header />
 
-            <main className="flex-1 max-w-container mx-auto px-4 py-8 w-full">
+            <main id="main-content" className="flex-1 max-w-container mx-auto px-4 py-8 w-full">
                 {!unit ? (
                     <div className="text-center py-16">
                         <p className="text-muted text-sm">{trans('no_results')}</p>
