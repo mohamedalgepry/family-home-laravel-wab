@@ -44,6 +44,7 @@
     <FilesMatch "\.(js|mjs|css|xml|gz|html)$">
         Header append Vary: Accept-Encoding
     </FilesMatch>
+    Header append Vary: X-Inertia
     <FilesMatch "\.(ico|jpe?g|png|gif|webp|swf|woff2?|ttf|eot|svg|js|mjs|css|json)$">
         Header set Cache-Control "max-age=31536000, public, immutable"
     </FilesMatch>
