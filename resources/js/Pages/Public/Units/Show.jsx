@@ -124,6 +124,9 @@ export default function UnitShow({ unit, similarUnits }) {
                                         src={thumbnail}
                                         alt={unit.alt_text || unit.name}
                                         className="w-full h-64 sm:h-80 lg:h-96 object-cover"
+                                        fetchPriority="high"
+                                        loading="eager"
+                                        decoding="sync"
                                     />
 
                                     {/* Zoom / Expand Button */}
@@ -189,6 +192,7 @@ export default function UnitShow({ unit, similarUnits }) {
                                                 className={`w-20 h-16 object-cover rounded-lg cursor-pointer border-2 transition-all shrink-0 ${
                                                     i === activeImageIndex ? 'border-primary-900 ring-2 ring-primary-900/30 scale-105' : 'border-transparent opacity-70 hover:opacity-100 hover:border-secondary-300'
                                                 }`}
+                                                loading="lazy"
                                                 onClick={() => setActiveImageIndex(i)}
                                             />
                                         ))}
