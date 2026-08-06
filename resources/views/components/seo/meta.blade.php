@@ -19,7 +19,7 @@
 
     if (empty($image)) {
         $siteLogo = app(\App\Domain\Listings\Services\SettingsService::class)->get('site_logo');
-        $image = $siteLogo ? asset('storage/' . ltrim($siteLogo, '/')) : asset('icon.png');
+        $image = $siteLogo ? asset('storage/' . ltrim($siteLogo, '/')) : asset('icon.webp');
     }
 
     $canonical = $meta['canonical'] ?? url()->current();

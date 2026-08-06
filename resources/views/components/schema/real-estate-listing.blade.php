@@ -6,7 +6,7 @@
     $desc = (string) str($listing->meta_description ?? $listing->description ?? '')->stripTags()->limit(160);
     $url = url()->current();
     $primaryImage = $listing->images?->firstWhere('is_primary', true) ?? $listing->images?->first();
-    $imageUrl = $primaryImage ? asset('storage/'.$primaryImage->path) : asset('icon.png');
+    $imageUrl = $primaryImage ? asset('storage/'.$primaryImage->path) : asset('icon.webp');
 
     $schema = [
         '@context' => 'https://schema.org',
