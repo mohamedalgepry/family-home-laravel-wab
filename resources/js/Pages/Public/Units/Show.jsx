@@ -34,16 +34,18 @@ export default function UnitShow({ unit, similarUnits }) {
         return {
             '@context': 'https://schema.org',
             '@type': 'RealEstateListing',
-            name: unit.name,
-            description: unit.description,
+            ...(unit.name ? { name: unit.name } : {}),
+            ...(unit.description ? { description: unit.description } : {}),
             url: `${appUrl || ''}${page.url.split('?')[0]}`,
             ...(image ? { image } : {}),
-            offers: {
-                '@type': 'Offer',
-                price: unit.price,
-                priceCurrency: 'EGP',
-                availability: 'https://schema.org/InStock',
-            },
+            ...(unit.price != null ? {
+                offers: {
+                    '@type': 'Offer',
+                    price: unit.price,
+                    priceCurrency: 'EGP',
+                    availability: 'https://schema.org/InStock',
+                }
+            } : {}),
             ...(unit.area_sqm ? {
                 floorSize: {
                     '@type': 'QuantitativeValue',
@@ -101,7 +103,7 @@ export default function UnitShow({ unit, similarUnits }) {
             {jsonLd && (
                 <script
                     type="application/ld+json"
-                    dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+                    dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
                 />
             )}
             <Header />

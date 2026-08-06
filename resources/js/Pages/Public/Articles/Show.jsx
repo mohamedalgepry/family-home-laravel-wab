@@ -35,7 +35,7 @@ export default function ArticleShow({ article, relatedArticles }) {
         return {
             '@context': 'https://schema.org',
             '@type': 'Article',
-            headline: article.title,
+            ...(article.title ? { headline: article.title } : {}),
             ...((article.excerpt || article.meta_description) ? { description: article.excerpt || article.meta_description } : {}),
             ...(headerImgUrl ? { image: headerImgUrl } : {}),
             ...(article.published_at ? { datePublished: article.published_at } : {}),
@@ -92,7 +92,7 @@ export default function ArticleShow({ article, relatedArticles }) {
             {jsonLd && (
                 <script
                     type="application/ld+json"
-                    dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+                    dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
                 />
             )}
             <Header />

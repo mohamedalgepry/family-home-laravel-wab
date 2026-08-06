@@ -38,8 +38,8 @@ export default function ProjectShow({ project }) {
         return {
             '@context': 'https://schema.org',
             '@type': 'RealEstateListing',
-            name: project.name,
-            description: project.description,
+            ...(project.name ? { name: project.name } : {}),
+            ...(project.description ? { description: project.description } : {}),
             url: `${appUrl || ''}${page.url.split('?')[0]}`,
             ...(image ? { image } : {}),
             numberOfUnits: project.units?.length || 0,
@@ -76,7 +76,7 @@ export default function ProjectShow({ project }) {
             {jsonLd && (
                 <script
                     type="application/ld+json"
-                    dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+                    dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
                 />
             )}
             <Header />
