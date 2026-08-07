@@ -8,6 +8,12 @@ use Symfony\Component\HttpFoundation\Response;
 
 class HttpCacheControl
 {
+    /**
+     * Full no-store directive set — prevents mobile BFCache from persisting
+     * Inertia AJAX JSON responses and serving them as raw documents on tab restore.
+     */
+    private const NO_CACHE = 'no-store, no-cache, must-revalidate, max-age=0, private';
+
     public function handle(Request $request, Closure $next): Response
     {
         $response = $next($request);
@@ -19,15 +25,11 @@ class HttpCacheControl
         // from saving AJAX JSON responses into BFCache/disk cache, which caused raw JSON to be rendered
         // as a text document when returning to an idle tab on mobile phones.
         if ($request->header('X-Inertia')) {
-            $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0, private');
-
-            return $response;
+            return $this->noCache($response);
         }
 
         if (! $request->isMethod('GET') || $request->user()) {
-            $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0, private');
-
-            return $response;
+            return $this->noCache($response);
         }
 
         $path = trim($request->getPathInfo(), '/');
@@ -37,13 +39,18 @@ class HttpCacheControl
         $normalizedPath = trim($normalizedPath, '/');
 
         if ($this->shouldBypassCache($path, $normalizedPath)) {
-            $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0, private');
-
-            return $response;
+            return $this->noCache($response);
         }
 
         // Enable CDN full-page HTML caching for TTFB improvements
         $response->headers->set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=60');
+
+        return $response;
+    }
+
+    private function noCache(Response $response): Response
+    {
+        $response->headers->set('Cache-Control', self::NO_CACHE);
 
         return $response;
     }
