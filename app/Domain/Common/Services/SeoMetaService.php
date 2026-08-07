@@ -63,22 +63,31 @@ class SeoMetaService
 
     private function listingSchema(Unit|Project $listing): array
     {
+        $locale    = app()->getLocale();
+        $slugField = "slug_{$locale}";
+        $section   = $listing instanceof Unit ? 'units' : 'projects';
+        $url       = url("/{$locale}/{$section}/".($listing->$slugField ?? $listing->slug));
+
         $schema = array_filter([
-            '@context' => 'https://schema.org',
-            '@type' => 'RealEstateListing',
-            'name' => $listing->name,
-            'description' => $this->description($listing->meta_description ?? $listing->description),
-            'image' => $this->schemaImage($listing->images),
+            '@context'     => 'https://schema.org',
+            '@type'        => 'RealEstateListing',
+            '@id'          => $url.'#listing',
+            'name'         => $listing->name,
+            'description'  => $this->description($listing->meta_description ?? $listing->description),
+            'image'        => $this->schemaImage($listing->images) ?: null,
+            'url'          => $url,
+            'datePosted'   => $listing->created_at?->toIso8601String(),
+            'dateModified' => $listing->updated_at?->toIso8601String(),
         ], fn($v) => $v !== null && $v !== '');
 
-        if ($listing instanceof Unit) {
-            if ($listing->price !== null) {
-                $schema['offers'] = [
-                    '@type' => 'Offer',
-                    'price' => $listing->price,
-                    'priceCurrency' => 'EGP',
-                ];
-            }
+        if ($listing instanceof Unit && $listing->price !== null) {
+            $schema['offers'] = [
+                '@type'         => 'Offer',
+                'price'         => $listing->price,
+                'priceCurrency' => 'EGP',
+                'availability'  => 'https://schema.org/InStock',
+                'url'           => $url,
+            ];
         }
 
         return $schema;
@@ -87,11 +96,23 @@ class SeoMetaService
     private function articleSchema(Article $article): array
     {
         return array_filter([
-            '@context' => 'https://schema.org',
-            '@type' => 'Article',
-            'headline' => $article->title,
-            'description' => $this->description($article->meta_description ?? $article->content),
-            'image' => $this->schemaImage($article->images),
+            '@context'      => 'https://schema.org',
+            '@type'         => 'Article',
+            'headline'      => $article->title,
+            'description'   => $this->description($article->meta_description ?? $article->content),
+            'image'         => $this->schemaImage($article->images) ?: null,
+            'datePublished' => $article->created_at?->toIso8601String(),
+            'dateModified'  => $article->updated_at?->toIso8601String(),
+            'author'        => [
+                '@type' => 'Organization',
+                'name'  => config('app.name'),
+                'url'   => url('/'),
+            ],
+            'publisher'     => [
+                '@type' => 'Organization',
+                'name'  => config('app.name'),
+                'url'   => url('/'),
+            ],
         ], fn($v) => $v !== null && $v !== '');
     }
 

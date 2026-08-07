@@ -75,10 +75,16 @@ it('builds a localized unit meta with canonical, hreflang and schema', function 
         ->and($schema['name'])->toBe('Unit En')
         ->and($schema['description'])->toBe('Unit meta description')
         ->and($schema['image'])->toBe(asset('storage/'.$primary->path))
+        ->and($schema['@id'])->toEndWith('#listing')
+        ->and($schema['url'])->toBe(url('/en/units/'.$unit->slug_en))
+        ->and($schema['datePosted'])->not->toBeNull()
+        ->and($schema['dateModified'])->not->toBeNull()
         ->and($schema['offers'])->toBe([
-            '@type' => 'Offer',
-            'price' => '1000.00',
+            '@type'         => 'Offer',
+            'price'         => '1000.00',
             'priceCurrency' => 'EGP',
+            'availability'  => 'https://schema.org/InStock',
+            'url'           => url('/en/units/'.$unit->slug_en),
         ]);
 });
 
@@ -109,6 +115,10 @@ it('builds a project meta without offers in the schema', function () {
         ->and($meta['image'])->toBe('projects/main.jpg')
         ->and($schema['@type'])->toBe('RealEstateListing')
         ->and($schema['name'])->toBe('Project En')
+        ->and($schema['@id'])->toEndWith('#listing')
+        ->and($schema['url'])->toBe(url('/en/projects/'.$project->slug_en))
+        ->and($schema['datePosted'])->not->toBeNull()
+        ->and($schema['dateModified'])->not->toBeNull()
         ->and($schema)->not->toHaveKey('offers')
         ->and($meta['schema'])->not->toContain('"offers"');
 });
@@ -137,7 +147,19 @@ it('builds an article meta with an Article schema', function () {
         ->and($meta['image'])->toBe('articles/cover.jpg')
         ->and($schema['@type'])->toBe('Article')
         ->and($schema['headline'])->toBe('Article En')
-        ->and($schema['image'])->toBe(asset('storage/articles/cover.jpg'));
+        ->and($schema['image'])->toBe(asset('storage/articles/cover.jpg'))
+        ->and($schema['datePublished'])->not->toBeNull()
+        ->and($schema['dateModified'])->not->toBeNull()
+        ->and($schema['author'])->toBe([
+            '@type' => 'Organization',
+            'name'  => config('app.name'),
+            'url'   => url('/'),
+        ])
+        ->and($schema['publisher'])->toBe([
+            '@type' => 'Organization',
+            'name'  => config('app.name'),
+            'url'   => url('/'),
+        ]);
 });
 
 it('switches canonical and hreflang when the locale is Arabic', function () {

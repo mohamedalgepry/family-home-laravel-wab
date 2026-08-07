@@ -1,3 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>http://127.0.0.1:8000/ar/units/ohd</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="http://127.0.0.1:8000/ar/units/ohd" />
+    <xhtml:link rel="alternate" hreflang="en" href="http://127.0.0.1:8000/en/units/unit-en" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="http://127.0.0.1:8000/ar/units/ohd" />
+    <lastmod>2026-08-07T13:23:55+00:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>http://127.0.0.1:8000/en/units/unit-en</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="http://127.0.0.1:8000/ar/units/ohd" />
+    <xhtml:link rel="alternate" hreflang="en" href="http://127.0.0.1:8000/en/units/unit-en" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="http://127.0.0.1:8000/ar/units/ohd" />
+    <lastmod>2026-08-07T13:23:55+00:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
 </urlset>

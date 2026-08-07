@@ -36,6 +36,18 @@
       "sourceType": "github",
       "skillPath": "skills/security-review/SKILL.md",
       "computedHash": "9b1791054c648b84ca424fc1342dede2e04759dc73436bb91d21675d5a4c13ea"
+    },
+    "seo-audit": {
+      "source": "brightdata/skills",
+      "sourceType": "github",
+      "skillPath": "skills/seo-audit/SKILL.md",
+      "computedHash": "c95fbfe964618e9164b592745be9a64bcc77fcb1db24818bec566ab1c400e141"
+    },
+    "seo-schema": {
+      "source": "agricidaniel/claude-seo",
+      "sourceType": "github",
+      "skillPath": "skills/seo-schema/SKILL.md",
+      "computedHash": "040a9873e606203293302d54e6ca0794497935a6699d1085bf7a062d51903b11"
     }
   }
 }
