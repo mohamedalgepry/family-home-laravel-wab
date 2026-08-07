@@ -97,6 +97,39 @@ it('accepts a valid unit update request', function () {
         ->and((float) $unit->fresh()->price)->toBe(2000.0);
 });
 
+it('retains meta description ar and en when updating a unit', function () {
+    $unit = new Unit([
+        'user_id' => $this->admin->id,
+        'type_id' => $this->type->id,
+        'area_id' => $this->area->id,
+        'transaction' => 'sale',
+        'price' => 1000,
+        'name' => 'Villa',
+        'name_ar' => 'فيلا',
+        'name_en' => 'Villa',
+        'meta_description_ar' => 'وصف ميتا قديم',
+        'meta_description_en' => 'Old meta description',
+    ]);
+    $unit->save();
+
+    $this->actingAs($this->admin)
+        ->put("/admin/units/{$unit->id}", [
+            'name_ar' => 'فيلا جديدة',
+            'name_en' => 'New Villa',
+            'type_id' => $this->type->id,
+            'area_id' => $this->area->id,
+            'transaction' => 'sale',
+            'price' => 2000,
+            'meta_description_ar' => 'وصف ميتا جديد',
+            'meta_description_en' => 'New meta description',
+        ])
+        ->assertRedirect(route('admin.units.index'));
+
+    $fresh = $unit->fresh();
+    expect($fresh->meta_description_ar)->toBe('وصف ميتا جديد')
+        ->and($fresh->meta_description_en)->toBe('New meta description');
+});
+
 it('accepts a valid project store request with a manager', function () {
     $manager = new User(['name' => 'Manager', 'email' => 'manager@test.com', 'password' => 'x']);
     $manager->role = 'manager';

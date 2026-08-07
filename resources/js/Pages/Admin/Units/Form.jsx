@@ -509,6 +509,7 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
         const hasImages = allImages.length > 0
 
         const payload = {
+            user_id: data.user_id ?? '',
             name_ar: data.name_ar ?? '',
             name_en: data.name_en ?? '',
             description_ar: data.description_ar ?? '',
@@ -523,7 +524,8 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
             bathrooms: data.bathrooms ?? '',
             floor: data.floor ?? '',
             video_url: data.video_url ?? '',
-            meta_description: data.meta_description ?? '',
+            meta_description_ar: data.meta_description_ar ?? '',
+            meta_description_en: data.meta_description_en ?? '',
             map_embed_url: data.map_embed_url ?? '',
             location_address_ar: data.location_address_ar ?? '',
             location_address_en: data.location_address_en ?? '',
