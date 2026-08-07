@@ -45,7 +45,7 @@ class SeoMetaService
         $arSlug = $model->slug_ar ?? $model->slug;
         $enSlug = $model->slug_en ?? $model->slug;
 
-        $relativeImage = $this->imagePath($model->images);
+        $relativeImage = $this->resolveImage($model->images);
 
         return [
             'title' => $title,
@@ -74,7 +74,7 @@ class SeoMetaService
             '@id'          => $url.'#listing',
             'name'         => $listing->name,
             'description'  => $this->description($listing->meta_description ?? $listing->description),
-            'image'        => $this->schemaImage($listing->images) ?: null,
+            'image'        => $this->resolveImage($listing->images, assetUrl: true) ?: null,
             'url'          => $url,
             'datePosted'   => $listing->created_at?->toIso8601String(),
             'dateModified' => $listing->updated_at?->toIso8601String(),
@@ -100,7 +100,7 @@ class SeoMetaService
             '@type'         => 'Article',
             'headline'      => $article->title,
             'description'   => $this->description($article->meta_description ?? $article->content),
-            'image'         => $this->schemaImage($article->images) ?: null,
+            'image'         => $this->resolveImage($article->images, assetUrl: true) ?: null,
             'datePublished' => $article->created_at?->toIso8601String(),
             'dateModified'  => $article->updated_at?->toIso8601String(),
             'author'        => [
@@ -116,16 +116,23 @@ class SeoMetaService
         ], fn($v) => $v !== null && $v !== '');
     }
 
-    private function imagePath($images): ?string
-    {
-        return $images?->firstWhere('is_primary', true)?->path ?? $images?->first()?->path;
-    }
-
-    private function schemaImage($images): string
+    /**
+     * Resolve the primary image path for a model's image collection.
+     *
+     * Falls back to the first image if no primary is set.
+     *
+     * @param  bool  $assetUrl  When true, returns a full public asset URL (for JSON-LD schema).
+     *                          When false, returns the raw storage-relative path (for OG/meta tags).
+     */
+    private function resolveImage($images, bool $assetUrl = false): ?string
     {
         $image = $images?->firstWhere('is_primary', true) ?? $images?->first();
 
-        return $image ? asset('storage/'.$image->path) : '';
+        if (! $image) {
+            return null;
+        }
+
+        return $assetUrl ? asset('storage/'.$image->path) : $image->path;
     }
 
     private function description(?string $text): string

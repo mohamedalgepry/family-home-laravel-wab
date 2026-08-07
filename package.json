@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "php artisan view:clear && vite build && vite build --ssr && node scripts/prerender.js",
+    "build": "php artisan view:clear && vite build",
     "build:client": "php artisan view:clear && vite build",
     "build:ssr": "vite build --ssr",
     "prerender": "node scripts/prerender.js",

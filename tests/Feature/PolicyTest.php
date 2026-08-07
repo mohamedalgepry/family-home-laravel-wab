@@ -67,6 +67,21 @@ it('lets a manager delete and toggle only their own and their agents units', fun
         ->and($this->policy->toggleActive($this->manager, $this->outsiderUnit))->toBeFalse();
 });
 
+it('only allows admin to toggle the deal flag — managers and agents cannot', function () {
+    // Admin can mark any unit as a deal
+    expect($this->policy->toggleDeal($this->admin, $this->outsiderUnit))->toBeTrue()
+        ->and($this->policy->toggleDeal($this->admin, $this->managersUnit))->toBeTrue();
+
+    // Managers cannot toggle deal even on their own team's units
+    expect($this->policy->toggleDeal($this->manager, $this->managersUnit))->toBeFalse()
+        ->and($this->policy->toggleDeal($this->manager, $this->agentsUnit))->toBeFalse()
+        ->and($this->policy->toggleDeal($this->manager, $this->outsiderUnit))->toBeFalse();
+
+    // Agents cannot toggle deal at all
+    expect($this->policy->toggleDeal($this->agent, $this->agentsUnit))->toBeFalse()
+        ->and($this->policy->toggleDeal($this->lonelyAgent, $this->lonelyUnit))->toBeFalse();
+});
+
 it('lets an agent with a manager view the whole team units', function () {
     expect($this->policy->view($this->agent, $this->agentsUnit))->toBeTrue()
         ->and($this->policy->view($this->agent, $this->managersUnit))->toBeTrue()

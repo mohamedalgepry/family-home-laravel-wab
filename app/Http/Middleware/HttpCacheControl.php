@@ -9,8 +9,15 @@ use Symfony\Component\HttpFoundation\Response;
 class HttpCacheControl
 {
     /**
-     * Full no-store directive set — prevents mobile BFCache from persisting
-     * Inertia AJAX JSON responses and serving them as raw documents on tab restore.
+     * Cache-control directives applied to every response that must never be cached:
+     *
+     *  no-store          — forbids disk/memory caching; prevents mobile BFCache from
+     *                      persisting Inertia JSON responses and serving them as raw
+     *                      text documents when a tab is restored from the background.
+     *  no-cache          — forces revalidation with the server even if a copy exists.
+     *  must-revalidate   — stale copies must not be served after max-age expires.
+     *  max-age=0         — marks the response immediately stale.
+     *  private           — disallows shared (CDN/proxy) caches from storing this response.
      */
     private const NO_CACHE = 'no-store, no-cache, must-revalidate, max-age=0, private';
 

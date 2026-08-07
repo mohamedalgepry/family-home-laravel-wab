@@ -71,11 +71,7 @@ class UnitPolicy
 
     public function toggleDeal(User $user, Unit $unit): bool
     {
-        if ($user->isAdmin()) {
-            return true;
-        }
-
-        return $user->isManager() && $this->isOwnedByTeam($user, $unit);
+        return $user->isAdmin();
     }
 
     public function toggleActive(User $user, Unit $unit): bool
