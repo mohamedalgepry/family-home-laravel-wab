@@ -41,22 +41,22 @@
 @endforeach
 
 <!-- Open Graph / WhatsApp / Facebook / Telegram / LinkedIn -->
-<meta property="og:type" content="{{ $ogType }}">
-<meta property="og:url" content="{{ $canonical }}">
-<meta property="og:title" content="{{ $title }}">
-<meta property="og:description" content="{{ $description }}">
-<meta property="og:image" content="{{ $image }}">
-<meta property="og:image:secure_url" content="{{ $image }}">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
-<meta property="og:site_name" content="{{ config('app.name') }}">
+<meta property="og:type" content="{{ $ogType }}" inertia head-key="og:type">
+<meta property="og:url" content="{{ $canonical }}" inertia head-key="og:url">
+<meta property="og:title" content="{{ $title }}" inertia head-key="og:title">
+<meta property="og:description" content="{{ $description }}" inertia head-key="og:description">
+<meta property="og:image" content="{{ $image }}" inertia head-key="og:image">
+<meta property="og:image:secure_url" content="{{ $image }}" inertia head-key="og:image:secure_url">
+<meta property="og:image:width" content="1200" inertia head-key="og:image:width">
+<meta property="og:image:height" content="630" inertia head-key="og:image:height">
+<meta property="og:site_name" content="{{ config('app.name') }}" inertia head-key="og:site_name">
 
 <!-- Twitter Cards -->
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:url" content="{{ $canonical }}">
-<meta name="twitter:title" content="{{ $title }}">
-<meta name="twitter:description" content="{{ $description }}">
-<meta name="twitter:image" content="{{ $image }}">
+<meta name="twitter:card" content="summary_large_image" inertia head-key="twitter:card">
+<meta name="twitter:url" content="{{ $canonical }}" inertia head-key="twitter:url">
+<meta name="twitter:title" content="{{ $title }}" inertia head-key="twitter:title">
+<meta name="twitter:description" content="{{ $description }}" inertia head-key="twitter:description">
+<meta name="twitter:image" content="{{ $image }}" inertia head-key="twitter:image">
 
 <!-- Structured Data / JSON-LD -->
 @if(!empty($schemas))

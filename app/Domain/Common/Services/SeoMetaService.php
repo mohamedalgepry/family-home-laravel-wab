@@ -137,6 +137,22 @@ class SeoMetaService
 
     private function description(?string $text): string
     {
-        return (string) str($text ?? '')->stripTags()->squish()->limit(150);
+        $clean = $text ?? '';
+
+        // 1. Strip HTML tags
+        $clean = strip_tags($clean);
+
+        // 2. Strip markdown syntax characters so unit descriptions stored as
+        //    markdown don't leak symbols like **bold**, ### heading, * list, - dash
+        //    into the meta description / OG description.
+        $clean = preg_replace('/\*{1,3}([^*]*)\*{1,3}/', '$1', $clean);   // **bold** / *italic* / ***bold-italic***
+        $clean = preg_replace('/#{1,6}\s*/', '', $clean);                  // ### headings
+        $clean = preg_replace('/^[\s\-\*\+]\s+/m', '', $clean);           // - list item / * list item / + list item
+        $clean = preg_replace('/\[([^\]]+)\]\([^\)]+\)/', '$1', $clean);  // [link text](url)
+        $clean = preg_replace('/`{1,3}[^`]*`{1,3}/', '', $clean);         // `code` / ```code```
+        $clean = preg_replace('/_{1,2}([^_]*)_{1,2}/', '$1', $clean);     // __bold__ / _italic_
+
+        // 3. Collapse whitespace and trim, then limit to 160 chars for SEO
+        return (string) str($clean)->squish()->limit(160);
     }
 }

@@ -59,14 +59,14 @@ export default function SeoHead({
             {finalDescription && <meta head-key="og:description" property="og:description" content={finalDescription} />}
             <meta head-key="og:type" property="og:type" content={ogType} />
             <meta head-key="og:site_name" property="og:site_name" content={siteName} />
-            {finalOgImage && <meta property="og:image" content={finalOgImage} />}
-            {finalOgImage && <meta property="og:image:secure_url" content={finalOgImage} />}
-            <meta property="og:url" content={finalCanonical} />
+            {finalOgImage && <meta head-key="og:image" property="og:image" content={finalOgImage} />}
+            {finalOgImage && <meta head-key="og:image:secure_url" property="og:image:secure_url" content={finalOgImage} />}
+            <meta head-key="og:url" property="og:url" content={finalCanonical} />
 
             {/* Twitter Card */}
-            <meta name="twitter:card" content="summary_large_image" />
-            {finalTitle && <meta name="twitter:title" content={finalTitle} />}
-            {finalDescription && <meta name="twitter:description" content={finalDescription} />}
+            <meta head-key="twitter:card" name="twitter:card" content="summary_large_image" />
+            {finalTitle && <meta head-key="twitter:title" name="twitter:title" content={finalTitle} />}
+            {finalDescription && <meta head-key="twitter:description" name="twitter:description" content={finalDescription} />}
             {finalOgImage && <meta head-key="twitter:image" name="twitter:image" content={finalOgImage} />}
 
             {/* Canonical */}
