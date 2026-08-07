@@ -12,7 +12,16 @@ class SitemapBuilder
 {
     public function baseUrl(): string
     {
-        return rtrim(config('app.url', 'https://familyhome-co.com'), '/');
+        $url = config('app.url', 'https://familyhome-co.com');
+        if (empty($url) || str_contains($url, '127.0.0.1') || str_contains($url, 'localhost')) {
+            if (! app()->runningInConsole() && request()->hasHeader('host')) {
+                $url = request()->schemeAndHttpHost();
+            } else {
+                $url = 'https://familyhome-co.com';
+            }
+        }
+
+        return rtrim($url, '/');
     }
 
     public function buildIndex(): string

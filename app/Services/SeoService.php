@@ -175,6 +175,12 @@ class SeoService
                 'author' => [
                     '@type' => 'Organization',
                     'name' => config('app.name'),
+                    'url' => url('/'),
+                ],
+                'publisher' => [
+                    '@type' => 'Organization',
+                    'name' => config('app.name'),
+                    'url' => url('/'),
                 ],
             ],
         ];

@@ -1,146 +1,146 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
-    <loc>http://127.0.0.1:8000/ar</loc>
-    <xhtml:link rel="alternate" hreflang="ar" href="http://127.0.0.1:8000/ar" />
-    <xhtml:link rel="alternate" hreflang="en" href="http://127.0.0.1:8000/en" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="http://127.0.0.1:8000/ar" />
-    <lastmod>2026-08-07T13:23:55+00:00</lastmod>
+    <loc>https://familyhome-co.com/ar</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://familyhome-co.com/ar" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://familyhome-co.com/en" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://familyhome-co.com/ar" />
+    <lastmod>2026-08-07T13:51:40+00:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>http://127.0.0.1:8000/en</loc>
-    <xhtml:link rel="alternate" hreflang="ar" href="http://127.0.0.1:8000/ar" />
-    <xhtml:link rel="alternate" hreflang="en" href="http://127.0.0.1:8000/en" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="http://127.0.0.1:8000/ar" />
-    <lastmod>2026-08-07T13:23:55+00:00</lastmod>
+    <loc>https://familyhome-co.com/en</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://familyhome-co.com/ar" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://familyhome-co.com/en" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://familyhome-co.com/ar" />
+    <lastmod>2026-08-07T13:51:40+00:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>http://127.0.0.1:8000/ar/units</loc>
-    <xhtml:link rel="alternate" hreflang="ar" href="http://127.0.0.1:8000/ar/units" />
-    <xhtml:link rel="alternate" hreflang="en" href="http://127.0.0.1:8000/en/units" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="http://127.0.0.1:8000/ar/units" />
-    <lastmod>2026-08-07T13:23:55+00:00</lastmod>
+    <loc>https://familyhome-co.com/ar/units</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://familyhome-co.com/ar/units" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://familyhome-co.com/en/units" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://familyhome-co.com/ar/units" />
+    <lastmod>2026-08-07T13:51:40+00:00</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>http://127.0.0.1:8000/en/units</loc>
-    <xhtml:link rel="alternate" hreflang="ar" href="http://127.0.0.1:8000/ar/units" />
-    <xhtml:link rel="alternate" hreflang="en" href="http://127.0.0.1:8000/en/units" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="http://127.0.0.1:8000/ar/units" />
-    <lastmod>2026-08-07T13:23:55+00:00</lastmod>
+    <loc>https://familyhome-co.com/en/units</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://familyhome-co.com/ar/units" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://familyhome-co.com/en/units" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://familyhome-co.com/ar/units" />
+    <lastmod>2026-08-07T13:51:40+00:00</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>http://127.0.0.1:8000/ar/units/deals</loc>
-    <xhtml:link rel="alternate" hreflang="ar" href="http://127.0.0.1:8000/ar/units/deals" />
-    <xhtml:link rel="alternate" hreflang="en" href="http://127.0.0.1:8000/en/units/deals" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="http://127.0.0.1:8000/ar/units/deals" />
-    <lastmod>2026-08-07T13:23:55+00:00</lastmod>
+    <loc>https://familyhome-co.com/ar/units/deals</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://familyhome-co.com/ar/units/deals" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://familyhome-co.com/en/units/deals" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://familyhome-co.com/ar/units/deals" />
+    <lastmod>2026-08-07T13:51:40+00:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>http://127.0.0.1:8000/en/units/deals</loc>
-    <xhtml:link rel="alternate" hreflang="ar" href="http://127.0.0.1:8000/ar/units/deals" />
-    <xhtml:link rel="alternate" hreflang="en" href="http://127.0.0.1:8000/en/units/deals" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="http://127.0.0.1:8000/ar/units/deals" />
-    <lastmod>2026-08-07T13:23:55+00:00</lastmod>
+    <loc>https://familyhome-co.com/en/units/deals</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://familyhome-co.com/ar/units/deals" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://familyhome-co.com/en/units/deals" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://familyhome-co.com/ar/units/deals" />
+    <lastmod>2026-08-07T13:51:40+00:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>http://127.0.0.1:8000/ar/projects</loc>
-    <xhtml:link rel="alternate" hreflang="ar" href="http://127.0.0.1:8000/ar/projects" />
-    <xhtml:link rel="alternate" hreflang="en" href="http://127.0.0.1:8000/en/projects" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="http://127.0.0.1:8000/ar/projects" />
-    <lastmod>2026-08-07T13:23:55+00:00</lastmod>
+    <loc>https://familyhome-co.com/ar/projects</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://familyhome-co.com/ar/projects" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://familyhome-co.com/en/projects" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://familyhome-co.com/ar/projects" />
+    <lastmod>2026-08-07T13:51:40+00:00</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>http://127.0.0.1:8000/en/projects</loc>
-    <xhtml:link rel="alternate" hreflang="ar" href="http://127.0.0.1:8000/ar/projects" />
-    <xhtml:link rel="alternate" hreflang="en" href="http://127.0.0.1:8000/en/projects" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="http://127.0.0.1:8000/ar/projects" />
-    <lastmod>2026-08-07T13:23:55+00:00</lastmod>
+    <loc>https://familyhome-co.com/en/projects</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://familyhome-co.com/ar/projects" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://familyhome-co.com/en/projects" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://familyhome-co.com/ar/projects" />
+    <lastmod>2026-08-07T13:51:40+00:00</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>http://127.0.0.1:8000/ar/articles</loc>
-    <xhtml:link rel="alternate" hreflang="ar" href="http://127.0.0.1:8000/ar/articles" />
-    <xhtml:link rel="alternate" hreflang="en" href="http://127.0.0.1:8000/en/articles" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="http://127.0.0.1:8000/ar/articles" />
-    <lastmod>2026-08-07T13:23:55+00:00</lastmod>
+    <loc>https://familyhome-co.com/ar/articles</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://familyhome-co.com/ar/articles" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://familyhome-co.com/en/articles" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://familyhome-co.com/ar/articles" />
+    <lastmod>2026-08-07T13:51:40+00:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>http://127.0.0.1:8000/en/articles</loc>
-    <xhtml:link rel="alternate" hreflang="ar" href="http://127.0.0.1:8000/ar/articles" />
-    <xhtml:link rel="alternate" hreflang="en" href="http://127.0.0.1:8000/en/articles" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="http://127.0.0.1:8000/ar/articles" />
-    <lastmod>2026-08-07T13:23:55+00:00</lastmod>
+    <loc>https://familyhome-co.com/en/articles</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://familyhome-co.com/ar/articles" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://familyhome-co.com/en/articles" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://familyhome-co.com/ar/articles" />
+    <lastmod>2026-08-07T13:51:40+00:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>http://127.0.0.1:8000/ar/compare</loc>
-    <xhtml:link rel="alternate" hreflang="ar" href="http://127.0.0.1:8000/ar/compare" />
-    <xhtml:link rel="alternate" hreflang="en" href="http://127.0.0.1:8000/en/compare" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="http://127.0.0.1:8000/ar/compare" />
-    <lastmod>2026-08-07T13:23:55+00:00</lastmod>
+    <loc>https://familyhome-co.com/ar/compare</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://familyhome-co.com/ar/compare" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://familyhome-co.com/en/compare" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://familyhome-co.com/ar/compare" />
+    <lastmod>2026-08-07T13:51:40+00:00</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>http://127.0.0.1:8000/en/compare</loc>
-    <xhtml:link rel="alternate" hreflang="ar" href="http://127.0.0.1:8000/ar/compare" />
-    <xhtml:link rel="alternate" hreflang="en" href="http://127.0.0.1:8000/en/compare" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="http://127.0.0.1:8000/ar/compare" />
-    <lastmod>2026-08-07T13:23:55+00:00</lastmod>
+    <loc>https://familyhome-co.com/en/compare</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://familyhome-co.com/ar/compare" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://familyhome-co.com/en/compare" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://familyhome-co.com/ar/compare" />
+    <lastmod>2026-08-07T13:51:40+00:00</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>http://127.0.0.1:8000/ar/about</loc>
-    <xhtml:link rel="alternate" hreflang="ar" href="http://127.0.0.1:8000/ar/about" />
-    <xhtml:link rel="alternate" hreflang="en" href="http://127.0.0.1:8000/en/about" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="http://127.0.0.1:8000/ar/about" />
-    <lastmod>2026-08-07T13:23:55+00:00</lastmod>
+    <loc>https://familyhome-co.com/ar/about</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://familyhome-co.com/ar/about" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://familyhome-co.com/en/about" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://familyhome-co.com/ar/about" />
+    <lastmod>2026-08-07T13:51:40+00:00</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>http://127.0.0.1:8000/en/about</loc>
-    <xhtml:link rel="alternate" hreflang="ar" href="http://127.0.0.1:8000/ar/about" />
-    <xhtml:link rel="alternate" hreflang="en" href="http://127.0.0.1:8000/en/about" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="http://127.0.0.1:8000/ar/about" />
-    <lastmod>2026-08-07T13:23:55+00:00</lastmod>
+    <loc>https://familyhome-co.com/en/about</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://familyhome-co.com/ar/about" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://familyhome-co.com/en/about" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://familyhome-co.com/ar/about" />
+    <lastmod>2026-08-07T13:51:40+00:00</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>http://127.0.0.1:8000/ar/contact</loc>
-    <xhtml:link rel="alternate" hreflang="ar" href="http://127.0.0.1:8000/ar/contact" />
-    <xhtml:link rel="alternate" hreflang="en" href="http://127.0.0.1:8000/en/contact" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="http://127.0.0.1:8000/ar/contact" />
-    <lastmod>2026-08-07T13:23:55+00:00</lastmod>
+    <loc>https://familyhome-co.com/ar/contact</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://familyhome-co.com/ar/contact" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://familyhome-co.com/en/contact" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://familyhome-co.com/ar/contact" />
+    <lastmod>2026-08-07T13:51:40+00:00</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>http://127.0.0.1:8000/en/contact</loc>
-    <xhtml:link rel="alternate" hreflang="ar" href="http://127.0.0.1:8000/ar/contact" />
-    <xhtml:link rel="alternate" hreflang="en" href="http://127.0.0.1:8000/en/contact" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="http://127.0.0.1:8000/ar/contact" />
-    <lastmod>2026-08-07T13:23:55+00:00</lastmod>
+    <loc>https://familyhome-co.com/en/contact</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://familyhome-co.com/ar/contact" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://familyhome-co.com/en/contact" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://familyhome-co.com/ar/contact" />
+    <lastmod>2026-08-07T13:51:40+00:00</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>

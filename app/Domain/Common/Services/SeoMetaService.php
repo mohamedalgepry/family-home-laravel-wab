@@ -130,6 +130,6 @@ class SeoMetaService
 
     private function description(?string $text): string
     {
-        return (string) str($text ?? '')->stripTags()->limit(150);
+        return (string) str($text ?? '')->stripTags()->squish()->limit(150);
     }
 }
