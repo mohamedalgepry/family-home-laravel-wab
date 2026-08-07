@@ -23,8 +23,26 @@ export default function SeoHead({
 
     const pageSeo = seo_page || null;
 
-    const finalTitle = pageSeo ? (isRtl ? (pageSeo.meta_title_ar || title) : (pageSeo.meta_title_en || title)) : title;
-    const finalDescription = pageSeo ? (isRtl ? (pageSeo.meta_description_ar || description) : (pageSeo.meta_description_en || description)) : description;
+    const cleanMetaDescription = (text) => {
+        if (!text) return '';
+        let clean = String(text)
+            .replace(/<\/?[^>]+(>|$)/g, '')
+            .replace(/\*{1,3}([^*]*)\*{1,3}/g, '$1')
+            .replace(/#{1,6}\s*/g, '')
+            .replace(/^[\s\-\*\+]\s+/gm, '')
+            .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')
+            .replace(/`{1,3}[^`]*`{1,3}/g, '')
+            .replace(/_{1,2}([^_]*)_{1,2}/g, '$1')
+            .replace(/[\r\n]+/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+        return clean.length > 160 ? clean.substring(0, 157) + '...' : clean;
+    };
+
+    const finalTitle = pageSeo ? (isRtl ? (pageSeo.meta_title_ar || title) : (pageSeo.meta_title_en || title)) : (seo_meta?.title || title);
+    const rawDescription = pageSeo ? (isRtl ? (pageSeo.meta_description_ar || description) : (pageSeo.meta_description_en || description)) : (seo_meta?.description || description);
+    const finalDescription = cleanMetaDescription(rawDescription);
+
     const finalKeywords = pageSeo ? (
         isRtl
             ? (Array.isArray(pageSeo.meta_keywords_ar) && pageSeo.meta_keywords_ar.length > 0 ? pageSeo.meta_keywords_ar.join(', ') : keywords)
