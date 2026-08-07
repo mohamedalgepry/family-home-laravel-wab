@@ -15,7 +15,7 @@ it('sets no-cache for inertia partial navigation requests', function () {
         'X-Inertia' => 'true',
     ]));
 
-    expect($response->headers->get('Cache-Control'))->toBe('no-cache, private');
+    expect($response->headers->get('Cache-Control'))->toContain('no-store');
     expect($response->headers->get('Vary'))->toBe('X-Inertia, Accept');
 });
 

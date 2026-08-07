@@ -8,7 +8,7 @@ test('it bypasses public cache and sets no-cache on contact page', function () {
     $response = $this->get('/ar/contact');
 
     $response->assertOk();
-    $response->assertHeader('Cache-Control', 'no-cache, private');
+    $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
     $response->assertHeader('Vary', 'X-Inertia, Accept');
 });
 
@@ -32,7 +32,7 @@ test('it bypasses public cache and sets no-cache on single unit detail page with
     $response = $this->get('/ar/units/'.$unit->slug);
 
     $response->assertOk();
-    $response->assertHeader('Cache-Control', 'no-cache, private');
+    $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
     $response->assertHeader('Vary', 'X-Inertia, Accept');
 });
 

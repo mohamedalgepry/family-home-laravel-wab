@@ -67,6 +67,13 @@ if (typeof window !== 'undefined') {
         window.location.reload();
     });
 
+    // Auto-refresh page state if tab is restored from mobile browser BFCache / background sleep
+    window.addEventListener('pageshow', (event) => {
+        if (event.persisted) {
+            router.reload({ preserveScroll: true });
+        }
+    });
+
     // تأثير تلوين النص عند اللمس على الموبايل (a:active لا يعمل بموثوقية على متصفحات Android/iOS)
     document.addEventListener('touchstart', (e) => {
         const el = e.target.closest('a, button, [role="button"]');

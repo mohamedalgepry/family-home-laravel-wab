@@ -15,16 +15,17 @@ class HttpCacheControl
         // Separate cache entries for full-page HTML vs Inertia JSON (same URL, different Accept/X-Inertia)
         $response->headers->set('Vary', 'X-Inertia, Accept');
 
-        // Never cache Inertia partial navigations — mobile browsers often ignore Vary
-        // and would serve cached HTML to X-Inertia requests, causing a blank white screen.
+        // Never cache Inertia partial navigations — using no-store prevents mobile browsers (Chrome/Safari)
+        // from saving AJAX JSON responses into BFCache/disk cache, which caused raw JSON to be rendered
+        // as a text document when returning to an idle tab on mobile phones.
         if ($request->header('X-Inertia')) {
-            $response->headers->set('Cache-Control', 'no-cache, private');
+            $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0, private');
 
             return $response;
         }
 
         if (! $request->isMethod('GET') || $request->user()) {
-            $response->headers->set('Cache-Control', 'no-cache, private');
+            $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0, private');
 
             return $response;
         }
@@ -36,7 +37,7 @@ class HttpCacheControl
         $normalizedPath = trim($normalizedPath, '/');
 
         if ($this->shouldBypassCache($path, $normalizedPath)) {
-            $response->headers->set('Cache-Control', 'no-cache, private');
+            $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0, private');
 
             return $response;
         }
