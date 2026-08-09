@@ -85,6 +85,17 @@ class ArticleController
             ->limit(4)
             ->get();
 
+        if ($relatedArticles->count() < 4) {
+            $moreArticles = Article::where('is_published', true)
+                ->where('id', '!=', $article->id)
+                ->whereNotIn('id', $relatedArticles->pluck('id'))
+                ->with('images')
+                ->inRandomOrder()
+                ->limit(4 - $relatedArticles->count())
+                ->get();
+            $relatedArticles = $relatedArticles->concat($moreArticles);
+        }
+
         $suggestedUnits = \App\Domain\Listings\Models\Unit::where('is_active', true)
             ->with(['images', 'area'])
             ->inRandomOrder()
