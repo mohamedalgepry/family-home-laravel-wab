@@ -85,7 +85,7 @@ class ArticleController
             ->limit(4)
             ->get();
 
-        $suggestedUnits = \App\Models\Unit::where('is_active', true)
+        $suggestedUnits = \App\Domain\Listings\Models\Unit::where('is_active', true)
             ->with(['images', 'area'])
             ->inRandomOrder()
             ->limit(3)
