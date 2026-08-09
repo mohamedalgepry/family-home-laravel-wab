@@ -30,7 +30,7 @@
 
 <title inertia>{{ $title }}</title>
 <meta name="description" content="{{ $description }}" inertia head-key="description">
-<meta name="author" content="mohamed algbry" inertia head-key="author">
+<meta name="author" content="mohamed algebry" inertia head-key="author">
 @if($keywords)
     <meta name="keywords" content="{{ $keywords }}" inertia head-key="keywords">
 @endif
