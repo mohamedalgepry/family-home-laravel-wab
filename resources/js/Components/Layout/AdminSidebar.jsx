@@ -280,17 +280,17 @@ export default function AdminSidebar({ children }) {
     })
 
     const renderNavContent = () => (
-        <div className="flex-1 overflow-y-auto py-3 px-2 space-y-5">
+        <div className="flex-1 overflow-y-auto py-4 px-3 space-y-6">
             {NAV_GROUPS.map((group) => {
                 const visibleItems = filterItems(group.items)
                 if (visibleItems.length === 0) return null
 
                 return (
-                    <div key={group.key} className="space-y-1">
-                        <div className="px-3 pb-1 text-[11px] font-bold tracking-wider text-secondary-500 uppercase">
+                    <div key={group.key} className="space-y-1.5">
+                        <div className="px-3 pb-1 text-xs font-bold tracking-wider text-secondary-400 uppercase">
                             {trans(group.key)}
                         </div>
-                        <div className="space-y-0.5">
+                        <div className="space-y-1">
                             {visibleItems.map(item => {
                                 const active = isActive(item.href)
                                 return (
@@ -298,22 +298,22 @@ export default function AdminSidebar({ children }) {
                                         key={item.key}
                                         href={item.href}
                                         onClick={() => setMobileOpen(false)}
-                                        className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm transition-all duration-200 ${active
-                                                ? 'bg-primary-900/20 text-white font-semibold border-s-4 border-primary-900 ps-3.5'
-                                                : 'text-secondary-300 hover:bg-secondary-900 hover:text-white ps-4'
+                                        className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 ${active
+                                                ? 'bg-primary-900 text-white shadow-md'
+                                                : 'text-secondary-300 hover:bg-secondary-900/80 hover:text-white'
                                             }`}
                                     >
-                                        <svg className={`w-5 h-5 shrink-0 ${active ? 'text-primary-500' : 'text-secondary-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                        <svg className={`w-4 h-4 shrink-0 ${active ? 'text-white' : 'text-secondary-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
                                             <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
                                         </svg>
                                         <span className="flex-1 truncate">{trans(item.key)}</span>
                                         {item.key === 'sidebar_notifications' && liveNotifCount > 0 && (
-                                            <span className="bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full min-w-[18px] text-center leading-tight animate-pulse">
+                                            <span className="bg-amber-500 text-white text-xs font-extrabold px-2 py-0.5 rounded-full min-w-[18px] text-center leading-tight animate-pulse">
                                                 {liveNotifCount > 99 ? '99+' : liveNotifCount}
                                             </span>
                                         )}
                                         {item.key === 'sidebar_messages' && liveMsgCount > 0 && (
-                                            <span className="bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full min-w-[18px] text-center leading-tight">
+                                            <span className="bg-blue-500 text-white text-xs font-extrabold px-2 py-0.5 rounded-full min-w-[18px] text-center leading-tight">
                                                 {liveMsgCount > 99 ? '99+' : liveMsgCount}
                                             </span>
                                         )}
@@ -335,7 +335,7 @@ export default function AdminSidebar({ children }) {
             {/* Desktop Sidebar */}
             <aside className="w-64 bg-secondary-950 text-white shrink-0 hidden md:flex flex-col border-e border-secondary-800/60">
                 <div className="p-4 border-b border-secondary-800/80 flex items-center justify-between">
-                    <Link href="/admin" className="flex items-center gap-2">
+                    <Link href="/admin" className="flex items-center gap-2.5">
                         <img
                             src={settings?.site_logo ? (settings.site_logo.startsWith('http') || settings.site_logo.startsWith('/storage') ? settings.site_logo : `/storage/${settings.site_logo}`) : '/icon.png'}
                             alt={trans('app_name')}
@@ -343,8 +343,8 @@ export default function AdminSidebar({ children }) {
                             onError={(e) => { e.currentTarget.src = '/icon.png'; }}
                         />
                         <div>
-                            <span className="text-base font-bold text-primary-900 block leading-tight">{trans('app_name')}</span>
-                            <span className="text-[11px] text-secondary-400 block leading-tight">{trans('admin_panel')}</span>
+                            <span className="text-sm font-bold text-white block leading-tight">{trans('app_name')}</span>
+                            <span className="text-xs text-secondary-400 block leading-tight">{trans('admin_panel')}</span>
                         </div>
                     </Link>
                 </div>
@@ -439,7 +439,7 @@ export default function AdminSidebar({ children }) {
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
                                     </svg>
                                     {liveNotifCount > 0 && (
-                                        <span className="absolute -top-0.5 -end-0.5 bg-amber-500 text-white text-[9px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1 leading-none">
+                                        <span className="absolute -top-0.5 -end-0.5 bg-amber-500 text-white text-xs font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1 leading-none">
                                             {liveNotifCount > 99 ? '99+' : liveNotifCount}
                                         </span>
                                     )}
@@ -451,7 +451,7 @@ export default function AdminSidebar({ children }) {
                                             <div className="flex items-center gap-2">
                                                 <span className="text-sm font-bold text-secondary-950">{trans('sidebar_notifications')}</span>
                                                 {liveNotifCount > 0 && (
-                                                    <span className="text-[11px] text-amber-600 font-semibold">{liveNotifCount} {isRtl ? 'جديد' : 'new'}</span>
+                                                    <span className="text-xs text-amber-600 font-semibold">{liveNotifCount} {isRtl ? 'جديد' : 'new'}</span>
                                                 )}
                                             </div>
                                             {recentNotifs.length > 0 && (
@@ -460,7 +460,7 @@ export default function AdminSidebar({ children }) {
                                                         <button
                                                             type="button"
                                                             onClick={markAllNotifsRead}
-                                                            className="text-[11px] text-primary-600 hover:text-primary-800 font-semibold transition-colors"
+                                                            className="text-xs text-primary-600 hover:text-primary-800 font-semibold transition-colors"
                                                             title={isRtl ? 'قراءة الكل' : 'Mark all read'}
                                                         >
                                                             {isRtl ? 'قراءة الكل' : 'Mark read'}
@@ -469,7 +469,7 @@ export default function AdminSidebar({ children }) {
                                                     <button
                                                         type="button"
                                                         onClick={clearAllNotifs}
-                                                        className="text-[11px] text-red-600 hover:text-red-800 font-semibold transition-colors"
+                                                        className="text-xs text-red-600 hover:text-red-800 font-semibold transition-colors"
                                                         title={isRtl ? 'حذف الكل' : 'Clear all'}
                                                     >
                                                         {isRtl ? 'حذف الكل' : 'Clear all'}
@@ -515,7 +515,7 @@ export default function AdminSidebar({ children }) {
                                                                 <p className={`text-xs leading-relaxed ${isUnread ? 'font-semibold text-secondary-950' : 'text-secondary-700'}`}>
                                                                     {n.title || n.message}
                                                                 </p>
-                                                                <span className="text-[10px] text-muted mt-0.5 block">{n.created_at_human}</span>
+                                                                <span className="text-xs text-secondary-400 mt-0.5 block">{n.created_at_human}</span>
                                                             </div>
                                                             {isUnread && (
                                                                 <span className="w-2 h-2 rounded-full bg-primary-900 shrink-0 mt-1.5" />

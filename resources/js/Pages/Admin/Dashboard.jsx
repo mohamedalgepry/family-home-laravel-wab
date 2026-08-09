@@ -13,23 +13,23 @@ function StatCard({ title, value, subtext, icon, color = 'primary', badge }) {
     }
 
     return (
-        <div className="bg-white rounded-2xl p-5 border border-secondary-100 shadow-card hover:shadow-card-hover transition-all duration-200 relative overflow-hidden flex flex-col justify-between">
-            <div className="flex items-start justify-between mb-3">
+        <div className="bg-white rounded-2xl p-6 border border-secondary-200/80 shadow-card hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden flex flex-col justify-between">
+            <div className="flex items-start justify-between mb-4">
                 <div className={`w-12 h-12 rounded-xl border flex items-center justify-center shrink-0 ${colorClasses[color] || colorClasses.primary}`}>
                     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
                         <path strokeLinecap="round" strokeLinejoin="round" d={icon} />
                     </svg>
                 </div>
                 {badge && (
-                    <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 animate-pulse">
+                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 animate-pulse border border-red-200">
                         {badge}
                     </span>
                 )}
             </div>
             <div>
                 <p className="text-3xl font-black text-secondary-950 tracking-tight">{value ?? 0}</p>
-                <h3 className="text-sm font-semibold text-secondary-700 mt-1">{title}</h3>
-                {subtext && <p className="text-xs text-muted mt-1 font-medium">{subtext}</p>}
+                <h3 className="text-xs font-bold text-secondary-800 uppercase tracking-wider mt-1">{title}</h3>
+                {subtext && <p className="text-xs text-secondary-500 mt-1 font-medium">{subtext}</p>}
             </div>
         </div>
     )
@@ -47,7 +47,7 @@ function CustomTooltip({ active, payload, label, locale, isRtl }) {
 
     return (
         <div dir={isRtl ? 'rtl' : 'ltr'} className="bg-secondary-950 text-white p-3.5 rounded-2xl shadow-2xl border border-secondary-800 backdrop-blur-md">
-            <p className="text-[11px] text-secondary-400 font-semibold mb-1">{formattedDate}</p>
+            <p className="text-xs text-secondary-400 font-semibold mb-1">{formattedDate}</p>
             <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-primary-500"></span>
                 <span className="text-sm font-bold text-white">
@@ -188,17 +188,17 @@ export default function Dashboard({ stats, topProjects = [], topUnits = [], rece
                     </div>
 
                     {/* Summary Chips */}
-                    <div className="grid grid-cols-3 gap-3 mb-6 p-3 bg-surface/60 rounded-xl border border-secondary-100 text-center">
+                    <div className="grid grid-cols-3 gap-3 mb-6 p-3.5 bg-surface/60 rounded-2xl border border-secondary-200/60 text-center">
                         <div>
-                            <p className="text-[11px] text-muted font-medium">{isRtl ? 'إجمالي زيارات الفترة' : 'Period Total'}</p>
+                            <p className="text-xs text-secondary-500 font-medium">{isRtl ? 'إجمالي زيارات الفترة' : 'Period Total'}</p>
                             <p className="text-sm font-black text-secondary-950 mt-0.5">{chartSummary.total}</p>
                         </div>
                         <div className="border-x border-secondary-200/60">
-                            <p className="text-[11px] text-muted font-medium">{isRtl ? 'المتوسط اليومي' : 'Daily Avg'}</p>
+                            <p className="text-xs text-secondary-500 font-medium">{isRtl ? 'المتوسط اليومي' : 'Daily Avg'}</p>
                             <p className="text-sm font-black text-primary-900 mt-0.5">{chartSummary.avg}</p>
                         </div>
                         <div>
-                            <p className="text-[11px] text-muted font-medium">{isRtl ? 'أعلى زيارة يومية' : 'Peak Day'}</p>
+                            <p className="text-xs text-secondary-500 font-medium">{isRtl ? 'أعلى زيارة يومية' : 'Peak Day'}</p>
                             <p className="text-sm font-black text-emerald-600 mt-0.5">
                                 {chartSummary.max.count}
                             </p>
@@ -217,13 +217,13 @@ export default function Dashboard({ stats, topProjects = [], topUnits = [], rece
                                 <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
                                 <XAxis
                                     dataKey="date"
-                                    tick={{ fontSize: 11, fill: '#64748B' }}
+                                    tick={{ fontSize: 11, fill: '#6B6B6B' }}
                                     tickFormatter={formatXAxisTick}
                                     interval={rangeDays === 30 ? 4 : (rangeDays === 14 ? 1 : 0)}
                                 />
                                 <YAxis
                                     allowDecimals={false}
-                                    tick={{ fontSize: 11, fill: '#64748B' }}
+                                    tick={{ fontSize: 11, fill: '#6B6B6B' }}
                                 />
                                 <Tooltip content={<CustomTooltip locale={locale} isRtl={isRtl} />} />
                                 <Area
@@ -269,7 +269,7 @@ export default function Dashboard({ stats, topProjects = [], topUnits = [], rece
                                                 </span>
                                                 <div className="flex-1 min-w-0">
                                                     <p className="text-xs font-bold text-secondary-950 truncate">{projName}</p>
-                                                    <p className="text-[11px] text-muted truncate">{project.area?.name_ar || project.area?.name_en || '—'}</p>
+                                                    <p className="text-xs text-secondary-500 truncate font-medium">{project.area?.name_ar || project.area?.name_en || '—'}</p>
                                                 </div>
                                                 <span className="text-xs font-bold text-primary-900 bg-primary-50 px-2 py-1 rounded-lg shrink-0">
                                                     {project.views_count} {isRtl ? 'زيارة' : 'views'}
@@ -328,13 +328,13 @@ export default function Dashboard({ stats, topProjects = [], topUnits = [], rece
                                                     <Link href={`/admin/units/${unit.id}/edit`} className="text-xs font-bold text-secondary-950 truncate hover:text-primary-900 block">
                                                         {unitName}
                                                     </Link>
-                                                    <p className="text-[11px] text-muted truncate">
+                                                    <p className="text-xs text-secondary-500 truncate font-medium">
                                                         {unit.area?.name_ar || unit.area?.name_en || ''} • {unit.price ? Number(unit.price).toLocaleString() + ' EGP' : ''}
                                                     </p>
                                                 </div>
                                                 <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-2 py-1 rounded-lg shrink-0 flex items-center gap-1">
                                                     <span>{unit.views_count || 0}</span>
-                                                    <span className="text-[10px] text-emerald-600 font-normal">{isRtl ? 'زيارة' : 'views'}</span>
+                                                    <span className="text-xs text-emerald-600 font-medium">{isRtl ? 'زيارة' : 'views'}</span>
                                                 </span>
                                             </div>
                                         )
@@ -399,7 +399,7 @@ export default function Dashboard({ stats, topProjects = [], topUnits = [], rece
                                                 )}
                                                 <div className="min-w-0">
                                                     <p className="text-xs font-bold text-secondary-950 truncate">{unitName}</p>
-                                                    <p className="text-[11px] text-muted mt-0.5">
+                                                    <p className="text-xs text-secondary-500 font-medium mt-0.5">
                                                         {unit.price ? Number(unit.price).toLocaleString() + ' EGP' : '—'} • {unit.area?.name_ar || unit.area?.name_en || ''}
                                                     </p>
                                                 </div>
@@ -437,13 +437,13 @@ export default function Dashboard({ stats, topProjects = [], topUnits = [], rece
                                         <div className="min-w-0">
                                             <div className="flex items-center gap-2">
                                                 <p className="text-xs font-bold text-secondary-950 truncate">{msg.client_name}</p>
-                                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${msg.status === 'replied' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                                                <span className={`px-2 py-0.5 rounded text-xs font-bold ${msg.status === 'replied' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
                                                     {msg.status === 'replied' ? (isRtl ? 'تم الرد' : 'Replied') : (isRtl ? 'معلق' : 'Pending')}
                                                 </span>
                                             </div>
-                                            <p className="text-[11px] text-secondary-600 mt-1 truncate">{msg.content || msg.client_phone}</p>
+                                            <p className="text-xs text-secondary-600 mt-1 truncate">{msg.content || msg.client_phone}</p>
                                             {msg.unit && (
-                                                <p className="text-[10px] text-primary-900 font-medium mt-0.5 truncate">
+                                                <p className="text-xs text-primary-900 font-medium mt-0.5 truncate">
                                                     📌 {isRtl ? msg.unit.name_ar : msg.unit.name_en}
                                                 </p>
                                             )}
@@ -452,7 +452,7 @@ export default function Dashboard({ stats, topProjects = [], topUnits = [], rece
                                             href={`https://wa.me/${msg.client_phone?.replace(/[^0-9]/g, '')}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="px-2.5 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-[11px] font-bold transition-colors shrink-0 flex items-center gap-1"
+                                            className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-xs font-bold transition-colors shrink-0 flex items-center gap-1"
                                         >
                                             WhatsApp
                                         </a>
