@@ -10,7 +10,8 @@ export function Select({
     id,
     name,
     defaultValue,
-    'aria-label': ariaLabel
+    'aria-label': ariaLabel,
+    variant = 'default'
 }) {
     const [isOpen, setIsOpen] = useState(false)
     const [search, setSearch] = useState('')
@@ -174,7 +175,11 @@ export function Select({
                 aria-expanded={isOpen}
                 aria-controls={listboxId}
                 aria-label={ariaLabel || (typeof selectedOption?.label === 'string' ? selectedOption.label : 'Select option')}
-                className={`w-full h-full min-h-[40px] px-3 py-1.5 bg-surface border border-transparent rounded-xl text-sm transition-all duration-200 outline-none flex items-center justify-between focus:ring-2 focus:ring-primary-500 focus:border-primary-900 focus:bg-white hover:bg-secondary-200 disabled:opacity-50 disabled:cursor-not-allowed ${isOpen ? 'bg-white border-primary-900 ring-2 ring-primary-500' : ''}`}
+                className={`w-full h-full min-h-[40px] px-3 py-1.5 text-sm transition-all duration-200 outline-none flex items-center justify-between disabled:opacity-50 disabled:cursor-not-allowed ${
+                    variant === 'ghost' 
+                        ? 'bg-transparent border border-transparent rounded-xl hover:bg-secondary-50 ' + (isOpen ? 'bg-secondary-50 text-primary-900' : '') 
+                        : 'bg-surface border border-transparent rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-900 focus:bg-white hover:bg-secondary-200 ' + (isOpen ? 'bg-white border-primary-900 ring-2 ring-primary-500' : '')
+                } ${className}`}
                 style={{ textAlign: 'start' }}
             >
                 <span className={`truncate text-[14px] ${!selectedOption?.value && selectedOption?.value !== 0 ? 'text-secondary-500' : 'text-secondary-900 font-medium'}`}>

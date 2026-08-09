@@ -102,7 +102,7 @@ export default function SearchBar({ areas = [], unitTypes = [], features = [], f
                         <label htmlFor="transaction-filter" className="block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors">
                             {trans('transaction')}
                         </label>
-                        <Select
+                        <Select variant="ghost"
                             id="transaction-filter"
                             value={local.transaction}
                             onChange={e => update('transaction', e.target.value)}
@@ -122,7 +122,7 @@ export default function SearchBar({ areas = [], unitTypes = [], features = [], f
                         <label htmlFor="area-filter" className="block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors">
                             {trans('area')}
                         </label>
-                        <Select
+                        <Select variant="ghost"
                             id="area-filter"
                             value={local.area_id}
                             onChange={e => update('area_id', e.target.value)}
@@ -142,7 +142,7 @@ export default function SearchBar({ areas = [], unitTypes = [], features = [], f
                         <label htmlFor="type-filter" className="block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors">
                             {trans('type')}
                         </label>
-                        <Select
+                        <Select variant="ghost"
                             id="type-filter"
                             value={local.type_id}
                             onChange={e => update('type_id', e.target.value)}
@@ -264,7 +264,7 @@ export default function SearchBar({ areas = [], unitTypes = [], features = [], f
                                 <label htmlFor="payment-method-filter" className="block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-1">
                                     {trans('payment_method') || 'Payment Method'}
                                 </label>
-                                <Select
+                                <Select variant="ghost"
                                     id="payment-method-filter"
                                     value={local.payment_method}
                                     onChange={e => update('payment_method', e.target.value)}
@@ -280,7 +280,7 @@ export default function SearchBar({ areas = [], unitTypes = [], features = [], f
                                 <label htmlFor="finishing-type-filter" className="block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-1">
                                     {trans('finishing_type') || 'Finishing Type'}
                                 </label>
-                                <Select
+                                <Select variant="ghost"
                                     id="finishing-type-filter"
                                     value={local.finishing_type_id}
                                     onChange={e => update('finishing_type_id', e.target.value)}

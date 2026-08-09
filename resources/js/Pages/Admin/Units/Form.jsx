@@ -619,30 +619,36 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
                 )}
 
                 {/* Step Indicator */}
-                <div className="flex items-center gap-2 mb-8">
+                <div className="flex items-center justify-between mb-8 relative">
+                    <div className="absolute top-1/2 start-0 end-0 h-1 bg-[#F5F5F5] -z-10 rounded-full" />
                     {STEPS.map((s, i) => (
-                        <div key={s.key} className="flex items-center gap-2 flex-1">
+                        <div key={s.key} className="flex flex-col items-center gap-2 relative z-10">
                             <button
                                 type="button"
                                 onClick={() => i <= step ? setStep(i) : null}
-                                className={`w-8 h-8 rounded-full text-xs font-bold flex items-center justify-center transition-colors ${i === step ? 'bg-primary-900 text-white' :
-                                    i < step ? 'bg-green-500 text-white' :
-                                        'bg-surface text-secondary-400'
+                                className={`w-10 h-10 rounded-2xl text-sm font-black flex items-center justify-center transition-all duration-300 shadow-sm ${i === step ? 'bg-[#CC0000] text-white scale-110 ring-4 ring-[#FFE3E3]' :
+                                    i < step ? 'bg-[#16a34a] text-white cursor-pointer hover:bg-green-600' :
+                                        'bg-[#F5F5F5] text-secondary-400 cursor-not-allowed border border-secondary-200'
                                     }`}
                             >
-                                {i + 1}
+                                {i < step ? (
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                ) : (
+                                    i + 1
+                                )}
                             </button>
-                            <span className={`text-xs hidden sm:inline ${i === step ? 'text-secondary-950 font-medium' : 'text-muted'}`}>
+                            <span className={`text-xs sm:text-sm font-bold absolute -bottom-7 whitespace-nowrap transition-colors ${i === step ? 'text-[#CC0000]' : 'text-secondary-500'}`}>
                                 {trans(s.title_key) || s.key}
                             </span>
-                            {i < STEPS.length - 1 && <div className="flex-1 h-px bg-secondary-200" />}
                         </div>
                     ))}
                 </div>
 
                 <form
                     onSubmit={e => e.preventDefault()}
-                    className="bg-white rounded-xl shadow-card p-6"
+                    className="bg-white rounded-3xl shadow-sm border border-secondary-100 p-6 md:p-8 mt-12 transition-all duration-300"
                 >
                     {/* ===== Step 0: Basic Info ===== */}
                     {step === 0 && (
@@ -651,12 +657,12 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('name_ar')} *</label>
-                                    <input type="text" value={data.name_ar} onChange={e => handleChange('name_ar', e.target.value)} dir="rtl" required className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900" />
+                                    <input type="text" maxLength={50} value={data.name_ar} onChange={e => handleChange('name_ar', e.target.value)} dir="rtl" required className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none" />
                                     {errors.name_ar && <p className="text-xs text-red-500 mt-1">{errors.name_ar}</p>}
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('name_en')} *</label>
-                                    <input type="text" value={data.name_en} onChange={e => handleChange('name_en', e.target.value)} dir="ltr" required className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900" />
+                                    <input type="text" maxLength={50} value={data.name_en} onChange={e => handleChange('name_en', e.target.value)} dir="ltr" required className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none" />
                                     {errors.name_en && <p className="text-xs text-red-500 mt-1">{errors.name_en}</p>}
                                 </div>
                             </div>
@@ -665,11 +671,11 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('description_ar', {}, 'units')}</label>
-                                    <textarea value={data.description_ar} onChange={e => handleChange('description_ar', e.target.value)} rows={4} dir="rtl" className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900" />
+                                    <textarea value={data.description_ar} onChange={e => handleChange('description_ar', e.target.value)} rows={4} dir="rtl" className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none" />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('description_en', {}, 'units')}</label>
-                                    <textarea value={data.description_en} onChange={e => handleChange('description_en', e.target.value)} rows={4} dir="ltr" className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900" />
+                                    <textarea value={data.description_en} onChange={e => handleChange('description_en', e.target.value)} rows={4} dir="ltr" className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none" />
                                 </div>
                             </div>
 
@@ -677,7 +683,7 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('type', {}, 'units')} *</label>
-                                    <Select value={data.type_id} onChange={e => handleChange('type_id', e.target.value)} required className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white">
+                                    <Select value={data.type_id} onChange={e => handleChange('type_id', e.target.value)} required className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none">
                                         <option value="">—</option>
                                         {unitTypes?.map(t => <option key={t.id} value={t.id}>{locale === 'ar' ? t.name_ar : t.name_en}</option>)}
                                     </Select>
@@ -685,7 +691,7 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('area')} *</label>
-                                    <Select value={data.area_id} onChange={e => handleChange('area_id', e.target.value)} required className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white">
+                                    <Select value={data.area_id} onChange={e => handleChange('area_id', e.target.value)} required className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none">
                                         <option value="">—</option>
                                         {areas?.map(a => <option key={a.id} value={a.id}>{locale === 'ar' ? a.name_ar : a.name_en}</option>)}
                                     </Select>
@@ -697,7 +703,7 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('transaction', {}, 'units')}</label>
-                                    <Select value={data.transaction} onChange={e => handleChange('transaction', e.target.value)} className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white">
+                                    <Select value={data.transaction} onChange={e => handleChange('transaction', e.target.value)} className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none">
                                         <option value="sale">{trans('sale', {}, 'units')}</option>
                                         <option value="rent">{trans('rent', {}, 'units')}</option>
                                     </Select>
@@ -705,7 +711,7 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('price', {}, 'units')} *</label>
-                                    <input type="number" min="0" value={data.price} onChange={e => handleChange('price', e.target.value)} required className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900" />
+                                    <input type="number" min="0" value={data.price} onChange={e => handleChange('price', e.target.value)} required className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none" />
                                     {errors.price && <p className="text-xs text-red-500 mt-1">{errors.price}</p>}
                                 </div>
                             </div>
@@ -714,15 +720,15 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
                             <div className="grid grid-cols-3 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('area_sqm', {}, 'units')}</label>
-                                    <input type="number" min="0" value={data.area_sqm} onChange={e => handleChange('area_sqm', e.target.value)} className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white" />
+                                    <input type="number" min="0" value={data.area_sqm} onChange={e => handleChange('area_sqm', e.target.value)} className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none" />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('rooms', {}, 'units')}</label>
-                                    <input type="number" min="0" value={data.rooms} onChange={e => handleChange('rooms', e.target.value)} className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white" />
+                                    <input type="number" min="0" value={data.rooms} onChange={e => handleChange('rooms', e.target.value)} className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none" />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('bathrooms', {}, 'units')}</label>
-                                    <input type="number" min="0" value={data.bathrooms} onChange={e => handleChange('bathrooms', e.target.value)} className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white" />
+                                    <input type="number" min="0" value={data.bathrooms} onChange={e => handleChange('bathrooms', e.target.value)} className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none" />
                                 </div>
                             </div>
 
@@ -730,7 +736,7 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('project')}</label>
-                                    <Select value={data.project_id} onChange={e => handleChange('project_id', e.target.value)} className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white">
+                                    <Select value={data.project_id} onChange={e => handleChange('project_id', e.target.value)} className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none">
                                         <option value="">—</option>
                                         {projects?.map(p => <option key={p.id} value={p.id}>{locale === 'ar' ? p.name_ar : p.name_en}</option>)}
                                     </Select>
@@ -743,7 +749,7 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
                                         <Select
                                             value={data.user_id || ''}
                                             onChange={e => handleChange('user_id', e.target.value)}
-                                            className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white"
+                                            className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none"
                                         >
                                             <option value="">{locale === 'ar' ? 'اختر الوسيط المختص...' : 'Select Agent...'}</option>
                                             {managers?.map(m => (
@@ -759,7 +765,7 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-secondary-100">
                                 <div>
                                     <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('payment_method') || 'Payment Method'}</label>
-                                    <Select value={data.payment_method} onChange={e => handleChange('payment_method', e.target.value)} className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white">
+                                    <Select value={data.payment_method} onChange={e => handleChange('payment_method', e.target.value)} className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none">
                                         <option value="">—</option>
                                         <option value="cash">{trans('cash') || 'Cash'}</option>
                                         <option value="installment">{trans('installment') || 'Installment'}</option>
@@ -768,7 +774,7 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('finishing_type') || 'Finishing Type'}</label>
-                                    <Select value={data.finishing_type_id} onChange={e => handleChange('finishing_type_id', e.target.value)} className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white">
+                                    <Select value={data.finishing_type_id} onChange={e => handleChange('finishing_type_id', e.target.value)} className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none">
                                         <option value="">—</option>
                                         {finishingTypes?.map(f => <option key={f.id} value={f.id}>{locale === 'ar' ? f.name_ar : f.name_en}</option>)}
                                     </Select>
@@ -777,11 +783,11 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
                                     <>
                                         <div>
                                             <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('down_payment') || 'Down Payment'}</label>
-                                            <input type="text" value={data.down_payment} onChange={e => handleChange('down_payment', e.target.value)} placeholder={locale === 'ar' ? 'مثال: 10% أو 500,000' : 'e.g. 10% or 500,000'} className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900" />
+                                            <input type="text" value={data.down_payment} onChange={e => handleChange('down_payment', e.target.value)} placeholder={locale === 'ar' ? 'مثال: 10% أو 500,000' : 'e.g. 10% or 500,000'} className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none" />
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('installment_years') || 'Installment Years'}</label>
-                                            <input type="number" min="0" value={data.installment_years} onChange={e => handleChange('installment_years', e.target.value)} className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900" />
+                                            <input type="number" min="0" value={data.installment_years} onChange={e => handleChange('installment_years', e.target.value)} className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none" />
                                         </div>
                                     </>
                                 )}
@@ -956,7 +962,7 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
                                     value={data.video_url}
                                     onChange={e => handleChange('video_url', e.target.value)}
                                     placeholder="https://youtube.com/..."
-                                    className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
+                                    className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none"
                                 />
                                 <p className="text-xs text-muted mt-1">{trans('video_url_help', {}, 'units')}</p>
                             </div>
@@ -1072,12 +1078,12 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('meta_description')} ({trans('ar')})</label>
-                                    <textarea value={data.meta_description_ar} onChange={e => handleChange('meta_description_ar', e.target.value)} rows={3} maxLength={500} dir="rtl" className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900" />
+                                    <textarea value={data.meta_description_ar} onChange={e => handleChange('meta_description_ar', e.target.value)} rows={3} maxLength={500} dir="rtl" className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none" />
                                     <p className="text-xs text-muted mt-1 text-end">{data.meta_description_ar.length}/500</p>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('meta_description')} ({trans('en')})</label>
-                                    <textarea value={data.meta_description_en} onChange={e => handleChange('meta_description_en', e.target.value)} rows={3} maxLength={500} dir="ltr" className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900" />
+                                    <textarea value={data.meta_description_en} onChange={e => handleChange('meta_description_en', e.target.value)} rows={3} maxLength={500} dir="ltr" className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none" />
                                     <p className="text-xs text-muted mt-1 text-end">{data.meta_description_en.length}/500</p>
                                 </div>
                             </div>
@@ -1096,7 +1102,7 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
                                         onChange={e => handleChange('location_address_ar', e.target.value)}
                                         onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
                                         dir="rtl"
-                                        className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
+                                        className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none"
                                     />
                                 </div>
                                 <div>
@@ -1107,7 +1113,7 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
                                         onChange={e => handleChange('location_address_en', e.target.value)}
                                         onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
                                         dir="ltr"
-                                        className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
+                                        className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none"
                                     />
                                 </div>
                             </div>
@@ -1117,7 +1123,7 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
                                     value={data.map_embed_url}
                                     onChange={e => handleChange('map_embed_url', e.target.value)}
                                     rows={4}
-                                    className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
+                                    className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none"
                                     placeholder='<iframe src="https://www.google.com/maps/embed?pb=..." ></iframe>'
                                     dir="ltr"
                                 />
@@ -1182,7 +1188,7 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
                                 type="button"
                                 onClick={() => setStep(Math.max(0, step - 1))}
                                 disabled={step === 0 || isSubmitting}
-                                className="px-4 py-2 bg-surface text-secondary-700 rounded-lg text-sm font-medium hover:bg-secondary-200 disabled:opacity-50"
+                                className="px-6 py-3 bg-[#F5F5F5] text-secondary-800 rounded-xl text-sm font-bold transition-all duration-200 hover:bg-[#E4E4E4] disabled:opacity-50 active:scale-[0.97]"
                             >
                                 {trans('back')}
                             </button>
@@ -1191,7 +1197,7 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
                                     type="button"
                                     onClick={() => canNext() && setStep(step + 1)}
                                     disabled={!canNext()}
-                                    className="px-4 py-2 bg-primary-900 text-white rounded-lg text-sm font-medium hover:bg-primary-950 disabled:opacity-50"
+                                    className="px-6 py-3 bg-[#CC0000] text-white rounded-xl text-sm font-bold transition-all duration-200 hover:bg-[#B00000] hover:shadow-lg disabled:opacity-50 active:scale-[0.97] focus:ring-4 focus:ring-[#FFE3E3]"
                                 >
                                     {trans('next')}
                                 </button>
@@ -1200,7 +1206,7 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
                                     type="button"
                                     onClick={handleSubmit}
                                     disabled={processing || isSubmitting}
-                                    className="px-4 py-2 bg-primary-900 text-white rounded-lg text-sm font-medium hover:bg-primary-950 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                    className="px-6 py-3 bg-[#CC0000] text-white rounded-xl text-sm font-bold transition-all duration-200 hover:bg-[#B00000] hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 active:scale-[0.97] focus:ring-4 focus:ring-[#FFE3E3]"
                                 >
                                     {isSubmitting && (
                                         <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">

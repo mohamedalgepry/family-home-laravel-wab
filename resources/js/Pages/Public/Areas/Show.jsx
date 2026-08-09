@@ -45,34 +45,34 @@ export default function AreaShow({ area, units, projects, seo, areas, unitTypes,
 
             <main className="flex-1">
                 {/* Hero / Area Banner Header */}
-                <section className="relative bg-secondary-950 py-12 md:py-16 overflow-hidden">
-                    <div className="absolute inset-0 z-0 bg-gradient-to-r from-secondary-950 via-secondary-900 to-primary-950 opacity-90" />
-                    <div className="absolute -top-24 -right-24 w-96 h-96 bg-primary-500/10 rounded-full blur-3xl" />
-                    <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-primary-600/10 rounded-full blur-3xl" />
+                <section className="relative bg-white py-12 md:py-16 overflow-hidden border-b border-secondary-100">
+                    <div className="absolute inset-0 z-0 bg-white" />
+                    <div className="absolute -top-24 -right-24 w-96 h-96 bg-primary-50 rounded-full blur-3xl" />
+                    <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-secondary-50 rounded-full blur-3xl" />
 
                     <div className="relative z-10 max-w-container mx-auto px-4">
                         {/* Breadcrumbs */}
-                        <nav className="flex items-center gap-2 text-xs text-secondary-300 mb-6" aria-label="Breadcrumb">
-                            <Link href={localizedPath('/', locale)} className="hover:text-white transition-colors">
+                        <nav className="flex items-center gap-2 text-xs text-secondary-500 mb-6" aria-label="Breadcrumb">
+                            <Link href={localizedPath('/', locale)} className="hover:text-secondary-900 transition-colors">
                                 {trans('home')}
                             </Link>
                             <span>/</span>
-                            <span className="text-primary-400 font-semibold">{areaName}</span>
+                            <span className="text-primary-700 font-semibold">{areaName}</span>
                         </nav>
 
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                             <div>
-                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-500/20 text-primary-300 border border-primary-500/30 text-xs font-semibold mb-3">
+                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-50 text-primary-700 border border-primary-100 text-xs font-semibold mb-3">
                                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                                     </svg>
                                     <span>{isRtl ? 'منطقة عقارية' : 'Real Estate Region'}</span>
                                 </div>
-                                <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight leading-tight mb-3">
+                                <h1 className="text-3xl md:text-5xl font-black text-secondary-950 tracking-tight leading-tight mb-3">
                                     {areaName}
                                 </h1>
-                                <p className="text-secondary-300 text-sm md:text-base max-w-2xl font-normal leading-relaxed">
+                                <p className="text-secondary-600 text-sm md:text-base max-w-2xl font-normal leading-relaxed">
                                     {isRtl
                                         ? `اعثر على أفضل الخيارات العقارية السكنية والتجارية والمشاريع الاستثمارية في منطقة ${areaName}.`
                                         : `Find top residential, commercial properties, and investment projects in ${areaName}.`}
@@ -81,13 +81,13 @@ export default function AreaShow({ area, units, projects, seo, areas, unitTypes,
 
                             {/* Stat Badges */}
                             <div className="flex items-center gap-3 shrink-0">
-                                <div className="bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl px-5 py-3 text-center min-w-[110px]">
-                                    <div className="text-2xl font-black text-white">{unitsCount}</div>
-                                    <div className="text-xs text-secondary-300 font-medium mt-0.5">{trans('units')}</div>
+                                <div className="bg-white shadow-sm border border-secondary-200 rounded-2xl px-5 py-3 text-center min-w-[110px]">
+                                    <div className="text-2xl font-black text-secondary-950">{unitsCount}</div>
+                                    <div className="text-xs text-secondary-500 font-medium mt-0.5">{trans('units')}</div>
                                 </div>
-                                <div className="bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl px-5 py-3 text-center min-w-[110px]">
-                                    <div className="text-2xl font-black text-primary-400">{projectsCount}</div>
-                                    <div className="text-xs text-secondary-300 font-medium mt-0.5">{trans('projects')}</div>
+                                <div className="bg-white shadow-sm border border-secondary-200 rounded-2xl px-5 py-3 text-center min-w-[110px]">
+                                    <div className="text-2xl font-black text-primary-700">{projectsCount}</div>
+                                    <div className="text-xs text-secondary-500 font-medium mt-0.5">{trans('projects')}</div>
                                 </div>
                             </div>
                         </div>

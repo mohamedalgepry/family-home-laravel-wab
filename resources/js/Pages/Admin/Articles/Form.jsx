@@ -297,12 +297,12 @@ export default function AdminArticlesForm({ article, categories }) {
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('title_ar')} *</label>
-                                <input type="text" value={data.title_ar} onChange={e => setData('title_ar', e.target.value)} dir="rtl" required className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900" />
+                                <input type="text" maxLength={50} value={data.title_ar} onChange={e => setData('title_ar', e.target.value)} dir="rtl" required className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900" />
                                 {errors.title_ar && <p className="text-xs text-error mt-1">{errors.title_ar}</p>}
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('title_en')}</label>
-                                <input type="text" value={data.title_en} onChange={e => setData('title_en', e.target.value)} required className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900" />
+                                <input type="text" maxLength={50} value={data.title_en} onChange={e => setData('title_en', e.target.value)} required className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900" />
                                 {errors.title_en && <p className="text-xs text-error mt-1">{errors.title_en}</p>}
                             </div>
                         </div>
