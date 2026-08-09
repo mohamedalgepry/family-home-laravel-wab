@@ -192,22 +192,22 @@ export default function AdminUnitsIndex({ units, areas, unitTypes, filters }) {
                 </div>
 
                 {/* ── Desktop Data Table (hidden on mobile) ──────────────── */}
-                <div className="hidden md:block bg-white rounded-2xl border border-secondary-200/80 shadow-card overflow-hidden">
+                <div className="hidden md:block bg-white rounded-2xl md:rounded-3xl border border-secondary-200/80 shadow-card overflow-hidden">
                     <div className="overflow-x-auto">
-                        <table className="w-full text-xs text-start rtl:text-right border-collapse">
+                        <table className="w-full min-w-[1080px] text-xs text-start rtl:text-right border-collapse">
                             <thead>
                                 <tr className="bg-secondary-50/80 border-b border-secondary-200/80 text-secondary-700 font-bold uppercase tracking-wider">
-                                    <th className="px-4 py-4 text-start">{trans('name')}</th>
-                                    <th className="px-3 py-4 text-start">{trans('type', {}, 'units')}</th>
-                                    <th className="px-3 py-4 text-start">{trans('area')}</th>
-                                    <th className="px-3 py-4 text-start">{trans('price', {}, 'units')}</th>
-                                    <th className="px-3 py-4 text-center">{trans('transaction', {}, 'units')}</th>
-                                    <th className="px-3 py-4 text-center">{isRtl ? 'الزيارات' : 'Views'}</th>
-                                    <th className="px-3 py-4 text-center">{trans('priority_points')}</th>
-                                    <th className="px-3 py-4 text-center">{trans('pinned')}</th>
-                                    <th className="px-3 py-4 text-center">{trans('is_deal')}</th>
-                                    {role !== 'agent' && <th className="px-3 py-4 text-center">{trans('active')}</th>}
-                                    <th className="px-4 py-4 text-center">{trans('actions')}</th>
+                                    <th className="px-4 py-4 text-start min-w-[220px]">{trans('name')}</th>
+                                    <th className="px-3 py-4 text-start min-w-[100px]">{trans('type', {}, 'units')}</th>
+                                    <th className="px-3 py-4 text-start min-w-[130px]">{trans('area')}</th>
+                                    <th className="px-3 py-4 text-start min-w-[120px]">{trans('price', {}, 'units')}</th>
+                                    <th className="px-3 py-4 text-center min-w-[100px]">{trans('transaction', {}, 'units')}</th>
+                                    <th className="px-3 py-4 text-center min-w-[90px]">{isRtl ? 'الزيارات' : 'Views'}</th>
+                                    <th className="px-3 py-4 text-center min-w-[100px]">{trans('priority_points')}</th>
+                                    <th className="px-3 py-4 text-center min-w-[100px]">{trans('pinned')}</th>
+                                    <th className="px-3 py-4 text-center min-w-[90px]">{trans('is_deal')}</th>
+                                    {role !== 'agent' && <th className="px-3 py-4 text-center min-w-[90px]">{trans('active')}</th>}
+                                    <th className="px-4 py-4 text-center min-w-[210px]">{trans('actions')}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-secondary-100 font-medium">
