@@ -19,6 +19,12 @@
       "skillPath": ".github/skills/fix-errors/SKILL.md",
       "computedHash": "356d24d2637dd0db3a783381929755dcf7ae563564cd62032bbc0a6d69eb404c"
     },
+    "impeccable": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/impeccable/SKILL.md",
+      "computedHash": "b83d8c84a9974ab785ada2a88a09b756637ac92fe1f208302a2749a8b0c8428e"
+    },
     "laravel-security-audit": {
       "source": "sickn33/antigravity-awesome-skills",
       "sourceType": "github",

@@ -77,147 +77,163 @@ export default function ProjectsIndex({ projects, filters, areas, features, fini
                     </p>
                 </div>
 
-                {/* Filters */}
-                <form 
-                    onSubmit={(e) => { e.preventDefault(); handleSearch(); }}
-                    className="bg-white rounded-2xl md:rounded-full shadow-lg border border-secondary-100 hover:shadow-xl transition-shadow duration-300 w-full mb-10 relative z-20"
-                >
-                    <div className="flex flex-col md:flex-row items-center md:divide-x divide-y md:divide-y-0 rtl:divide-x-reverse divide-secondary-100 p-2 md:p-2.5">
-                        
-                        {/* Keyword */}
-                        <div className="flex-1 w-full px-5 py-3 hover:bg-surface/50 transition-colors group rounded-xl md:rounded-s-full md:rounded-e-none">
-                            <label className="block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors">
-                                {trans('search')}
-                            </label>
-                            <input
-                                type="text"
-                                value={search}
-                                onChange={e => setSearch(e.target.value)}
-                                placeholder={trans('search_projects') || (isRtl ? 'ابحث باسم المشروع...' : 'Search by project name...')}
-                                className="w-full bg-transparent border-none text-sm focus:ring-0 text-secondary-800 placeholder-secondary-400 outline-none p-0"
-                            />
-                        </div>
+                {/* Filters Banner matching Home page SearchBar */}
+                <div className="w-full max-w-5xl mx-auto mb-12 relative z-30">
+                    <form 
+                        onSubmit={(e) => { e.preventDefault(); handleSearch(); }}
+                        className="bg-white/95 backdrop-blur-xl rounded-3xl md:rounded-[2rem] shadow-2xl border border-white/60 transition-all duration-300 w-full hover:shadow-[0_20px_50px_rgba(0,0,0,0.22)]"
+                    >
+                        {/* Main Unified Row */}
+                        <div className="flex flex-col md:flex-row items-center md:divide-x divide-y md:divide-y-0 rtl:divide-x-reverse divide-secondary-100 p-2 md:p-2.5">
+                            
+                            {/* Keyword Input */}
+                            <div className="flex-1 w-full px-5 py-3 hover:bg-surface/60 transition-colors cursor-text group rounded-2xl md:rounded-s-3xl md:rounded-e-none">
+                                <label htmlFor="project-search-input" className="block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors">
+                                    {trans('search')}
+                                </label>
+                                <input
+                                    id="project-search-input"
+                                    type="text"
+                                    value={search}
+                                    onChange={e => setSearch(e.target.value)}
+                                    placeholder={trans('search_projects') || (isRtl ? 'ابحث باسم المشروع...' : 'Search by project name...')}
+                                    className="w-full bg-transparent border-none text-sm focus:ring-0 text-secondary-800 placeholder-secondary-400 outline-none p-0"
+                                />
+                            </div>
 
-                        {/* Area */}
-                        <div className="flex-1 w-full px-5 py-3 hover:bg-surface/50 transition-colors cursor-pointer group rounded-xl md:rounded-none">
-                            <label className="block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors">
-                                {trans('area')}
-                            </label>
-                            <Select
-                                value={areaId}
-                                onChange={e => setAreaId(e.target.value)}
-                                className="w-full text-secondary-800 outline-none cursor-pointer border-none p-0 focus:ring-0 bg-transparent text-sm font-medium"
-                            >
-                                <option value="">{isRtl ? 'جميع المناطق' : 'All Areas'}</option>
-                                {areas?.map(area => (
-                                    <option key={area.id} value={area.id}>
-                                        {locale === 'ar' ? area.name_ar : area.name_en}
-                                    </option>
-                                ))}
-                            </Select>
-                        </div>
+                            {/* Area Select */}
+                            <div className="flex-1 w-full px-5 py-3 hover:bg-surface/60 transition-colors cursor-pointer group rounded-2xl md:rounded-none">
+                                <label htmlFor="project-area-select" className="block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors">
+                                    {trans('area')}
+                                </label>
+                                <Select
+                                    id="project-area-select"
+                                    value={areaId}
+                                    onChange={e => setAreaId(e.target.value)}
+                                    className="w-full text-secondary-800 outline-none cursor-pointer border-none p-0 focus:ring-0 bg-transparent text-sm font-medium"
+                                >
+                                    <option value="">{isRtl ? 'جميع المناطق' : 'All Areas'}</option>
+                                    {areas?.map(area => (
+                                        <option key={area.id} value={area.id}>
+                                            {locale === 'ar' ? area.name_ar : area.name_en}
+                                        </option>
+                                    ))}
+                                </Select>
+                            </div>
 
-                        {/* Action Buttons */}
-                        <div className="w-full md:w-auto p-2 flex items-center justify-between md:justify-center gap-2 shrink-0 md:ps-4">
-                            <button
-                                type="button"
-                                onClick={() => setShowAdvanced(!showAdvanced)}
-                                className={`px-4 py-2.5 rounded-full text-xs font-semibold transition-all ${
-                                    showAdvanced 
-                                        ? 'bg-primary-50 text-primary-900 border border-primary-200' 
-                                        : 'bg-surface text-secondary-700 hover:bg-secondary-100'
-                                }`}
-                            >
-                                {isRtl ? 'تصفية إضافية' : 'More Filters'}
-                            </button>
+                            {/* Payment Method Select */}
+                            <div className="flex-1 w-full px-5 py-3 hover:bg-surface/60 transition-colors cursor-pointer group rounded-2xl md:rounded-none">
+                                <label htmlFor="project-payment-select" className="block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors">
+                                    {trans('payment_method') || (isRtl ? 'طريقة الدفع' : 'Payment Method')}
+                                </label>
+                                <Select
+                                    id="project-payment-select"
+                                    value={paymentMethod}
+                                    onChange={e => setPaymentMethod(e.target.value)}
+                                    className="w-full text-secondary-800 outline-none cursor-pointer border-none p-0 focus:ring-0 bg-transparent text-sm font-medium"
+                                >
+                                    <option value="">{isRtl ? 'الكل' : 'All'}</option>
+                                    <option value="cash">{trans('cash') || (isRtl ? 'كاش' : 'Cash')}</option>
+                                    <option value="installment">{trans('installment') || (isRtl ? 'تقسيط' : 'Installment')}</option>
+                                    <option value="both">{trans('both') || (isRtl ? 'كاش وتقسيط' : 'Cash & Installment')}</option>
+                                </Select>
+                            </div>
 
-                            {(search || areaId || paymentMethod || finishingTypeId || selectedFeatures.length > 0) && (
+                            {/* Action Buttons */}
+                            <div className="w-full md:w-auto p-2 flex items-center justify-between md:justify-center gap-2 shrink-0 md:ps-4">
                                 <button
                                     type="button"
-                                    onClick={handleReset}
-                                    className="px-3 py-2.5 rounded-full text-xs font-medium text-secondary-500 hover:text-secondary-900 transition-colors"
+                                    onClick={() => setShowAdvanced(!showAdvanced)}
+                                    className={`px-4 py-3 rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                                        showAdvanced 
+                                            ? 'bg-primary-50 text-primary-900 border border-primary-200 shadow-xs' 
+                                            : 'bg-secondary-50 text-secondary-700 hover:bg-secondary-100'
+                                    }`}
                                 >
-                                    {trans('clear_filters') || (isRtl ? 'إعادة ضبط' : 'Reset')}
+                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0m-9.75 0h9.75" />
+                                    </svg>
+                                    <span>{isRtl ? 'تصفية إضافية' : 'More Filters'}</span>
                                 </button>
-                            )}
-                            
-                            <button
-                                type="submit"
-                                className="px-6 py-2.5 bg-primary-900 text-white font-semibold text-xs rounded-full hover:bg-primary-950 active:scale-95 transition-all duration-200 shadow-sm"
-                            >
-                                {trans('search') || (isRtl ? 'بحث' : 'Search')}
-                            </button>
-                        </div>
-                    </div>
 
-                    {/* Advanced Filters Drawer */}
-                    <div 
-                        className="transition-all duration-300 ease-in-out origin-top overflow-hidden rounded-b-2xl md:rounded-b-[1.5rem]"
-                        style={{
-                            maxHeight: showAdvanced ? '800px' : '0px',
-                            opacity: showAdvanced ? 1 : 0,
-                        }}
-                    >
-                        <div className="px-6 py-6 bg-surface/40 border-t border-secondary-100 flex flex-col gap-6">
-                            <div className="flex flex-col sm:flex-row gap-6 w-full">
-                                <div className="flex-1 w-full">
-                                    <label className="block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-2">
-                                        {trans('payment_method') || (isRtl ? 'طريقة الدفع' : 'Payment Method')}
-                                    </label>
-                                    <Select
-                                        value={paymentMethod}
-                                        onChange={e => setPaymentMethod(e.target.value)}
-                                        className="w-full px-4 py-2 border border-secondary-200 bg-white rounded-xl text-sm focus:ring-2 focus:ring-primary-900 transition-all outline-none"
+                                {(search || areaId || paymentMethod || finishingTypeId || selectedFeatures.length > 0) && (
+                                    <button
+                                        type="button"
+                                        onClick={handleReset}
+                                        className="px-3 py-3 rounded-2xl text-xs font-medium text-secondary-500 hover:text-secondary-900 transition-colors"
                                     >
-                                        <option value="">{trans('all') || (isRtl ? 'الكل' : 'All')}</option>
-                                        <option value="cash">{trans('cash') || (isRtl ? 'كاش' : 'Cash')}</option>
-                                        <option value="installment">{trans('installment') || (isRtl ? 'تقسيط' : 'Installment')}</option>
-                                        <option value="both">{trans('both') || (isRtl ? 'كاش وتقسيط' : 'Cash & Installment')}</option>
-                                    </Select>
-                                </div>
-
-                                <div className="flex-1 w-full">
-                                    <label className="block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-2">
-                                        {trans('finishing_type') || (isRtl ? 'نوع التشطيب' : 'Finishing Type')}
-                                    </label>
-                                    <Select
-                                        value={finishingTypeId}
-                                        onChange={e => setFinishingTypeId(e.target.value)}
-                                        className="w-full px-4 py-2 border border-secondary-200 bg-white rounded-xl text-sm focus:ring-2 focus:ring-primary-900 transition-all outline-none"
-                                    >
-                                        <option value="">{trans('all') || (isRtl ? 'الكل' : 'All')}</option>
-                                        {finishingTypes?.map(f => (
-                                            <option key={f.id} value={f.id}>{locale === 'ar' ? f.name_ar : f.name_en}</option>
-                                        ))}
-                                    </Select>
-                                </div>
+                                        {trans('clear_filters') || (isRtl ? 'إعادة ضبط' : 'Reset')}
+                                    </button>
+                                )}
+                                
+                                <button
+                                    type="submit"
+                                    className="px-7 py-3 bg-primary-900 hover:bg-primary-950 text-white font-bold text-xs rounded-2xl md:rounded-2xl shadow-md active:scale-95 transition-all duration-200 flex items-center justify-center gap-2"
+                                >
+                                    <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                                    </svg>
+                                    <span>{trans('search') || (isRtl ? 'بحث' : 'Search')}</span>
+                                </button>
                             </div>
-                            
-                            {features?.length > 0 && (
-                                <div className="w-full pt-4 border-t border-secondary-200/60">
-                                    <label className="block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-3">
-                                        {trans('features') || (isRtl ? 'المميزات والخدمات' : 'Features')}
-                                    </label>
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                                        {features.map(feature => (
-                                            <label key={feature.id} className="flex items-center gap-2 cursor-pointer group">
-                                                <input 
-                                                    type="checkbox" 
-                                                    checked={selectedFeatures.includes(String(feature.id)) || selectedFeatures.includes(feature.id)}
-                                                    onChange={() => toggleFeature(feature.id)}
-                                                    className="w-4 h-4 rounded border-secondary-300 text-primary-900 focus:ring-primary-900/20 cursor-pointer"
-                                                />
-                                                <span className="text-sm text-secondary-700 group-hover:text-primary-900 transition-colors">
-                                                    {locale === 'ar' ? feature.name_ar : feature.name_en}
-                                                </span>
-                                            </label>
-                                        ))}
+                        </div>
+
+                        {/* Advanced Filters Drawer */}
+                        <div 
+                            className={`transition-all duration-300 ease-in-out origin-top rounded-b-3xl md:rounded-b-[2rem] ${
+                                showAdvanced ? 'overflow-visible' : 'overflow-hidden'
+                            }`}
+                            style={{
+                                maxHeight: showAdvanced ? '1000px' : '0px',
+                                opacity: showAdvanced ? 1 : 0,
+                            }}
+                        >
+                            <div className="px-6 pt-6 pb-8 bg-surface/40 border-t border-secondary-100 flex flex-col gap-6 rounded-b-3xl md:rounded-b-[2rem]">
+                                <div className="flex flex-col sm:flex-row gap-6 w-full">
+                                    <div className="flex-1 w-full">
+                                        <label htmlFor="project-finishing-select" className="block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-2">
+                                            {trans('finishing_type') || (isRtl ? 'نوع التشطيب' : 'Finishing Type')}
+                                        </label>
+                                        <Select
+                                            id="project-finishing-select"
+                                            value={finishingTypeId}
+                                            onChange={e => setFinishingTypeId(e.target.value)}
+                                            className="w-full"
+                                        >
+                                            <option value="">{trans('all') || (isRtl ? 'الكل' : 'All')}</option>
+                                            {finishingTypes?.map(f => (
+                                                <option key={f.id} value={f.id}>{locale === 'ar' ? f.name_ar : f.name_en}</option>
+                                            ))}
+                                        </Select>
                                     </div>
                                 </div>
-                            )}
+                                
+                                {features?.length > 0 && (
+                                    <div className="w-full pt-4 border-t border-secondary-200/60">
+                                        <label className="block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-3">
+                                            {trans('features') || (isRtl ? 'المميزات والخدمات' : 'Features')}
+                                        </label>
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                                            {features.map(feature => (
+                                                <label key={feature.id} className="flex items-center gap-2 cursor-pointer group">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        checked={selectedFeatures.includes(String(feature.id)) || selectedFeatures.includes(feature.id)}
+                                                        onChange={() => toggleFeature(feature.id)}
+                                                        className="w-4 h-4 rounded border-secondary-300 text-primary-900 focus:ring-primary-900/20 cursor-pointer"
+                                                    />
+                                                    <span className="text-sm text-secondary-700 group-hover:text-primary-900 transition-colors">
+                                                        {locale === 'ar' ? feature.name_ar : feature.name_en}
+                                                    </span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                    </div>
-                </form>
+                    </form>
+                </div>
 
                 {/* Projects Grid */}
                 {isLoading ? (

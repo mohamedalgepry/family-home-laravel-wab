@@ -243,11 +243,18 @@
         -webkit-tap-highlight-color: transparent !important;
     }
 
-    a:focus, button:focus, [role="button"]:focus, input:focus, select:focus, textarea:focus {
+    a:focus,
+    button:focus,
+    [role="button"]:focus,
+    input:focus,
+    select:focus,
+    textarea:focus {
         outline: none;
     }
 
-    a:active, button:active, [role="button"]:active {
+    a:active,
+    button:active,
+    [role="button"]:active {
         color: var(--color-primary-900) !important;
     }
 

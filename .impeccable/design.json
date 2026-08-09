@@ -1,0 +1,131 @@
+﻿{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-09T17:00:00Z",
+  "title": "Design System: Family Home — فاميلي هوم",
+  "extensions": {
+    "colorMeta": {
+      "primary":          { "role": "primary",   "displayName": "Crimson Authority",  "canonical": "#CC0000", "tonalRamp": ["#3D0000","#6B0000","#990000","#B00000","#CC0000","#E03131","#FF6B6B","#FFA8A8","#FFE3E3","#FFF5F5"] },
+      "primary-deep":     { "role": "primary",   "displayName": "Deep Crimson",       "canonical": "#B00000", "tonalRamp": ["#3D0000","#6B0000","#880000","#A00000","#B00000","#CC0000","#E03131","#FF6B6B","#FFC9C9","#FFF5F5"] },
+      "primary-light":    { "role": "tertiary",  "displayName": "Coral Accent",       "canonical": "#FF6B6B", "tonalRamp": ["#7A0000","#B00000","#E03131","#FF4444","#FF6B6B","#FF8787","#FFA8A8","#FFC9C9","#FFE3E3","#FFF5F5"] },
+      "primary-ghost":    { "role": "primary",   "displayName": "Crimson Ghost",      "canonical": "#FFF5F5", "tonalRamp": ["#CC0000","#E03131","#FF6B6B","#FF8787","#FFA8A8","#FFC9C9","#FFE3E3","#FFECEC","#FFF0F0","#FFF5F5"] },
+      "neutral-ink":      { "role": "neutral",   "displayName": "Ink Black",          "canonical": "#1A1A1A", "tonalRamp": ["#0A0A0A","#1A1A1A","#2A2A2A","#3D3D3D","#515151","#6B6B6B","#9A9A9A","#D1D1D1","#E4E4E4","#F8F8F8"] },
+      "neutral-body":     { "role": "neutral",   "displayName": "Charcoal Body",      "canonical": "#3D3D3D", "tonalRamp": ["#0A0A0A","#1A1A1A","#2A2A2A","#3D3D3D","#515151","#6B6B6B","#9A9A9A","#D1D1D1","#F0F0F0","#F8F8F8"] },
+      "neutral-muted":    { "role": "neutral",   "displayName": "Slate Muted",        "canonical": "#6B6B6B", "tonalRamp": ["#1A1A1A","#3D3D3D","#515151","#6B6B6B","#818181","#9A9A9A","#B4B4B4","#D1D1D1","#E4E4E4","#F0F0F0"] },
+      "neutral-surface":  { "role": "neutral",   "displayName": "Pearl Surface",      "canonical": "#F5F5F5", "tonalRamp": ["#515151","#6B6B6B","#9A9A9A","#B4B4B4","#D1D1D1","#E4E4E4","#EEEEEE","#F0F0F0","#F5F5F5","#F8F8F8"] },
+      "neutral-white":    { "role": "neutral",   "displayName": "White Canvas",       "canonical": "#FFFFFF", "tonalRamp": ["#6B6B6B","#9A9A9A","#B4B4B4","#D1D1D1","#E4E4E4","#EEEEEE","#F5F5F5","#F8F8F8","#FAFAFA","#FFFFFF"] },
+      "whatsapp":         { "role": "secondary", "displayName": "WhatsApp Green",     "canonical": "#16a34a", "tonalRamp": ["#052e16","#14532d","#166534","#15803d","#16a34a","#22c55e","#4ade80","#86efac","#bbf7d0","#f0fdf4"] },
+      "amber-featured":   { "role": "tertiary",  "displayName": "Amber Featured",     "canonical": "#d97706", "tonalRamp": ["#451a03","#7c2d12","#92400e","#b45309","#d97706","#f59e0b","#fbbf24","#fcd34d","#fde68a","#fef3c7"] }
+    },
+    "typographyMeta": {
+      "display":  { "displayName": "Display",  "purpose": "Hero headline only — one per page." },
+      "headline": { "displayName": "Headline", "purpose": "Section headings and single unit page titles." },
+      "title":    { "displayName": "Title",    "purpose": "Card titles, form headings, table headers." },
+      "body":     { "displayName": "Body",     "purpose": "Article content, descriptions, instructions." },
+      "label":    { "displayName": "Label",    "purpose": "Badges, button text, column labels, meta tags." }
+    },
+    "shadows": [
+      { "name": "card-rest",    "value": "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)", "purpose": "UnitCard and ProjectCard at rest." },
+      { "name": "card-hover",   "value": "0 25px 50px rgba(0,0,0,0.25)",                            "purpose": "UnitCard on hover, paired with translateY(-6px)." },
+      { "name": "dropdown",     "value": "0 4px 6px rgba(0,0,0,0.07)",                              "purpose": "Dropdown menus and tooltips." },
+      { "name": "modal",        "value": "0 10px 25px rgba(0,0,0,0.12)",                            "purpose": "Modals, dialogs, confirmation sheets." },
+      { "name": "sticky",       "value": "0 4px 6px rgba(0,0,0,0.05)",                              "purpose": "Sticky header on scroll." }
+    ],
+    "motion": [
+      { "name": "ease-standard",   "value": "cubic-bezier(0.4, 0, 0.2, 1)", "purpose": "Default state transitions: buttons, cards, inputs." },
+      { "name": "ease-springy",    "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Dropdown and modal entrances — quick overshoot." },
+      { "name": "duration-fast",   "value": "150ms",  "purpose": "Micro-interactions: menu items, hover tints." },
+      { "name": "duration-base",   "value": "200ms",  "purpose": "Buttons, inputs, badge transitions." },
+      { "name": "duration-slow",   "value": "300-700ms", "purpose": "Card image zoom, page-level fade-in." }
+    ],
+    "breakpoints": [
+      { "name": "sm",  "value": "640px" },
+      { "name": "md",  "value": "768px" },
+      { "name": "lg",  "value": "1024px" },
+      { "name": "xl",  "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Main CTA — contact, submit, search. Deep red, always confident.",
+      "html": "<button class=\"ds-btn-primary\">تواصل معنا</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: #CC0000; color: #FFFFFF; font-family: 'Cairo', sans-serif; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.025em; padding: 12px 20px; border-radius: 12px; border: none; cursor: pointer; min-height: 44px; transition: transform 200ms cubic-bezier(0.4,0,0.2,1), background-color 200ms ease, box-shadow 200ms ease; } .ds-btn-primary:hover { background: #B00000; box-shadow: 0 4px 12px rgba(204,0,0,0.25); } .ds-btn-primary:active { transform: scale(0.97); } .ds-btn-primary:focus-visible { outline: 2px solid #CC0000; outline-offset: 2px; border-radius: 12px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Supporting action. Neutral surface, never competes with primary.",
+      "html": "<button class=\"ds-btn-secondary\">تفاصيل أخرى</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: #F5F5F5; color: #1A1A1A; font-family: 'Cairo', sans-serif; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.025em; padding: 12px 20px; border-radius: 12px; border: none; cursor: pointer; min-height: 44px; transition: background-color 200ms ease, box-shadow 200ms ease, transform 200ms ease; } .ds-btn-secondary:hover { background: #E4E4E4; box-shadow: 0 2px 6px rgba(0,0,0,0.06); } .ds-btn-secondary:active { transform: scale(0.97); }"
+    },
+    {
+      "name": "WhatsApp CTA",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "WhatsApp contact — the #1 conversion action. Never restyled.",
+      "html": "<a class=\"ds-btn-whatsapp\" href=\"#\"><svg class=\"ds-wa-icon\" viewBox=\"0 0 24 24\"><path d=\"M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z\"/></svg>استفسار</a>",
+      "css": ".ds-btn-whatsapp { display: inline-flex; align-items: center; gap: 6px; background: #ecfdf5; color: #16a34a; font-family: 'Cairo', sans-serif; font-size: 0.75rem; font-weight: 700; padding: 8px 12px; border-radius: 12px; text-decoration: none; min-height: 36px; transition: background-color 200ms ease, color 200ms ease; } .ds-btn-whatsapp:hover { background: #16a34a; color: #fff; } .ds-wa-icon { width: 16px; height: 16px; fill: currentColor; }"
+    },
+    {
+      "name": "Unit Card",
+      "kind": "card",
+      "refersTo": "card-unit",
+      "description": "Core product tile. Image leads, price anchors, WhatsApp converts.",
+      "html": "<article class=\"ds-unit-card\"><div class=\"ds-unit-img-wrap\"><div class=\"ds-unit-img-placeholder\"></div><div class=\"ds-unit-overlay\"></div><span class=\"ds-badge-featured\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 20 20\" fill=\"white\"><path d=\"M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z\"/></svg>مميز</span></div><div class=\"ds-unit-body\"><h2 class=\"ds-unit-title\">شقة تشطيب سوبر لوكس</h2><p class=\"ds-unit-meta\">شقة • سوبر لوكس</p><div class=\"ds-unit-price\"><span class=\"ds-price-num\">2,500,000</span><span class=\"ds-price-badge\">ج.م</span></div></div><div class=\"ds-unit-footer\"><button class=\"ds-btn-compare\">مقارنة</button><a class=\"ds-btn-whatsapp-sm\" href=\"#\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"currentColor\"><path d=\"M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z\"/></svg>استفسار</a></div></article>",
+      "css": ".ds-unit-card { background: #fff; border-radius: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04); border: 1px solid rgba(228,228,228,0.7); overflow: hidden; display: flex; flex-direction: column; transition: box-shadow 300ms ease, transform 300ms ease; } .ds-unit-card:hover { box-shadow: 0 25px 50px rgba(0,0,0,0.25); transform: translateY(-6px); } .ds-unit-img-wrap { position: relative; aspect-ratio: 4/3; overflow: hidden; } .ds-unit-img-placeholder { width: 100%; height: 100%; background: linear-gradient(135deg, #E4E4E4 0%, #D1D1D1 100%); } .ds-unit-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(26,26,26,0.6) 0%, transparent 50%, rgba(0,0,0,0.2) 100%); } .ds-badge-featured { position: absolute; top: 12px; left: 12px; background: linear-gradient(to right, #f59e0b, #d97706); color: #fff; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 9999px; display: flex; align-items: center; gap: 4px; } .ds-unit-body { padding: 20px; } .ds-unit-title { font-family: 'Cairo', sans-serif; font-size: 1rem; font-weight: 700; color: #1A1A1A; margin: 0 0 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ds-unit-meta { font-family: 'Cairo', sans-serif; font-size: 0.75rem; font-weight: 500; color: #6B6B6B; margin: 0 0 12px; } .ds-unit-price { display: flex; align-items: baseline; gap: 6px; } .ds-price-num { font-family: 'Cairo', sans-serif; font-size: 1.5rem; font-weight: 900; color: #CC0000; } .ds-price-badge { font-family: 'Cairo', sans-serif; font-size: 0.75rem; font-weight: 700; color: #B00000; background: #FFF5F5; padding: 2px 8px; border-radius: 9999px; } .ds-unit-footer { padding: 12px 20px 20px; display: flex; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px solid rgba(228,228,228,0.6); margin-top: auto; } .ds-btn-compare { display: flex; align-items: center; gap: 6px; background: #F5F5F5; color: #6B6B6B; font-family: 'Cairo', sans-serif; font-size: 0.75rem; font-weight: 600; padding: 8px 12px; border-radius: 12px; border: none; cursor: pointer; transition: background 150ms ease; } .ds-btn-compare:hover { background: #E4E4E4; color: #1A1A1A; } .ds-btn-whatsapp-sm { display: inline-flex; align-items: center; gap: 6px; background: #ecfdf5; color: #16a34a; font-family: 'Cairo', sans-serif; font-size: 0.75rem; font-weight: 700; padding: 8px 12px; border-radius: 12px; text-decoration: none; transition: background 200ms ease, color 200ms ease; } .ds-btn-whatsapp-sm:hover { background: #16a34a; color: #fff; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "Default form field. Borderless at rest, crimson ring on focus.",
+      "html": "<div class=\"ds-field\"><label class=\"ds-label\" for=\"ds-inp\">اسمك</label><input class=\"ds-input\" id=\"ds-inp\" type=\"text\" placeholder=\"محمد أحمد\"></div>",
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 6px; } .ds-label { font-family: 'Cairo', sans-serif; font-size: 0.875rem; font-weight: 500; color: #1A1A1A; } .ds-input { height: 44px; border-radius: 12px; background: #F5F5F5; border: 2px solid transparent; color: #1A1A1A; font-family: 'Cairo', sans-serif; font-size: 0.875rem; padding: 0 16px; transition: background 200ms ease, border-color 200ms ease, box-shadow 200ms ease; } .ds-input:hover { background: #E4E4E4; } .ds-input:focus { background: #FFFFFF; border-color: #CC0000; box-shadow: 0 0 0 4px #FFE3E3; outline: none; } .ds-input::placeholder { color: #9A9A9A; }"
+    },
+    {
+      "name": "Header Navigation",
+      "kind": "nav",
+      "description": "Sticky top bar. White glass, crimson active underline.",
+      "html": "<header class=\"ds-header\" dir=\"rtl\"><a class=\"ds-logo\" href=\"#\"><span class=\"ds-logo-text\">فاميلي هوم</span></a><nav class=\"ds-nav\"><a class=\"ds-nav-link ds-nav-active\" href=\"#\">الرئيسية</a><a class=\"ds-nav-link\" href=\"#\">المشاريع</a><a class=\"ds-nav-link\" href=\"#\">الوحدات</a><a class=\"ds-nav-link\" href=\"#\">تواصل</a></nav><a class=\"ds-lang-toggle\" href=\"#\">EN</a></header>",
+      "css": ".ds-header { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; justify-content: space-between; height: 64px; padding: 0 24px; background: rgba(255,255,255,0.9); backdrop-filter: blur(12px); box-shadow: 0 4px 6px rgba(0,0,0,0.05); } .ds-logo { display: flex; align-items: center; gap: 8px; text-decoration: none; } .ds-logo-text { font-family: 'Cairo', sans-serif; font-size: 1.25rem; font-weight: 700; color: #CC0000; letter-spacing: -0.01em; } .ds-nav { display: flex; align-items: center; gap: 24px; } .ds-nav-link { font-family: 'Cairo', sans-serif; font-size: 0.875rem; color: #3D3D3D; text-decoration: none; padding-bottom: 4px; border-bottom: 2px solid transparent; transition: color 200ms ease, border-color 200ms ease; } .ds-nav-link:hover { color: #CC0000; border-color: rgba(204,0,0,0.5); } .ds-nav-active { color: #CC0000; border-color: #CC0000; font-weight: 600; } .ds-lang-toggle { font-family: 'Cairo', sans-serif; font-size: 0.75rem; font-weight: 500; color: #6B6B6B; border: 1px solid #E4E4E4; border-radius: 8px; padding: 6px 10px; text-decoration: none; transition: color 200ms ease, border-color 200ms ease; } .ds-lang-toggle:hover { color: #CC0000; border-color: #CC0000; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "المنزل الأول",
+    "overview": "فاميلي هوم تصمم من منظور العميل الذي يبحث عن منزله الأول — لحظة حياتية مفعمة بالأمل والترقب. التصميم يُرحّب قبل أن يقنع، ويُشعر المتصفح بالاطمئنان والانتماء قبل أن يضغط على أي زر. هذا ليس متجراً لعرض السلع؛ هو دليل موثوق يقود نحو قرار مصيري.\n\nالواجهة تعتمد خلفية بيضاء ناصعة تتيح لصور العقارات أن تسرد القصة بنفسها. الأحمر — بدرجته الداكنة المضبوطة (#CC0000) — هو صوت الشركة الوحيد المرفوع: يظهر في الأزرار الرئيسية، سعر الوحدة، والروابط النشطة، لكنه يبقى نادراً كي يحتفظ بثقله. كل عنصر آخر هادئ ومتراجع، يُبرز المحتوى لا نفسه.\n\nالكثافة متوسطة-خفيفة: مسافات سخية بين العناصر، بطاقات ذات ظلال ناعمة، وانتقالات سلسة توحي بالاحترافية دون أن تُثقل تجربة الهاتف أو الاستضافة المشتركة.",
+    "keyCharacteristics": [
+      "أبيض سائد، أحمر مُستدعى لا مبثوث",
+      "صور العقارات هي البطل البصري الأول",
+      "واتساب أخضر — CTA لا يُعدل ولا يُهادن",
+      "Cairo يعمل عربياً ولاتينياً: خط واحد، لغتان، لا مساومة",
+      "انتقالات RTL شفافة — العربي سلوك لا ترجمة"
+    ],
+    "rules": [
+      { "name": "The One Red Rule",    "body": "الأحمر يظهر في أقل من 3 عناصر مرئية في أي وقت واحد. كثرته تُفقده معناه.",  "section": "colors" },
+      { "name": "The One Font Rule",   "body": "Cairo وحده في كامل الواجهة — عربي ولاتيني، RTL وLTR. لا تسمح بأي خط آخر حتى لأغراض الزينة.", "section": "typography" },
+      { "name": "The Flat-By-Default Rule", "body": "الأسطح في حالة الراحة شبه مسطحة. الظل الثقيل يظهر فقط كاستجابة للحركة أو الرفع، لا كطبقة ثابتة.", "section": "elevation" },
+      { "name": "The Hierarchy of Roundness", "body": "كلما كان المكوّن أكبر وأثقل، كلما كان تدويره أوسع. البطاقات (2xl) > الأزرار (xl) > العناصر الداخلية (md).", "section": "shapes" }
+    ],
+    "dos": [
+      "Do استخدم #CC0000 حصرياً في الأزرار الرئيسية، السعر، والروابط النشطة — لا تُفرِّقه على عناصر ثانوية.",
+      "Do حافظ على aspect-[4/3] لكل صور الوحدات لمنع القفز البصري عند التحميل.",
+      "Do حافظ على اللون الأخضر للواتساب (#16a34a) في حالته الصارمة — هذا CTA لا يتنافس لونياً.",
+      "Do استخدم rounded-2xl للبطاقات و rounded-xl للأزرار والمدخلات فقط.",
+      "Do أضف hover:-translate-y-1.5 hover:shadow-2xl على كل بطاقة قابلة للنقر.",
+      "Do استخدم font-black (900) للسعر فقط — هو الرقم الذي يُتَّخذ عليه القرار.",
+      "Do احرص على أن أي CTA على الهاتف يبلغ 44px ارتفاعاً — touch target لا تفاوض عليه."
+    ],
+    "donts": [
+      "Don't تُبعثر الأحمر على أكثر من ثلاثة عناصر مرئية في نفس الوقت.",
+      "Don't تستخدم خطاً غير Cairo في أي جزء من الواجهة العامة.",
+      "Don't تُعدّل تدرج الـ Featured Badge أو لون واتساب — كلاهما ثابت النظام الأول.",
+      "Don't تستخدم ظلالاً ملوّنة — الظلال رمادية محايدة فقط.",
+      "Don't تُعرض البطاقات بدون صورة مع سطح فارغ — استخدم fallback.webp دائماً.",
+      "Don't تبدأ نصاً عربياً من اليسار أو عكسه — RTL/LTR محدد دائماً عبر خاصية dir.",
+      "Don't تُقلَّل padding الـ section إلى أقل من py-12 على الجوال."
+    ]
+  }
+}

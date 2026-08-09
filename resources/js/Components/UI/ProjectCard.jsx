@@ -47,7 +47,7 @@ export default function ProjectCard({ project, loading = false }) {
     return (
         <article 
             dir={isRtl ? 'rtl' : 'ltr'} 
-            className="bg-white rounded-2xl shadow-card hover:shadow-xl transition-all duration-300 overflow-hidden group border border-secondary-100/80 flex flex-col h-full"
+            className="bg-white rounded-2xl shadow-card hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-300 overflow-hidden group border border-secondary-100/80 flex flex-col h-full"
         >
             {/* Image Container */}
             <div className="relative overflow-hidden aspect-[4/3] bg-secondary-100">
@@ -62,18 +62,18 @@ export default function ProjectCard({ project, loading = false }) {
                         height={360}
                         lazy={true}
                         fallbackSrc={PLACEHOLDER}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+                        className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-500 ease-out"
                     />
                 </Link>
 
                 {/* Top Badge Overlay */}
                 <div className="absolute top-3 inset-x-3 flex items-center justify-between pointer-events-none z-10">
-                    <span className="bg-white/95 text-secondary-900 text-xs font-semibold px-3 py-1 rounded-full shadow-sm backdrop-blur-md border border-white/40">
+                    <span className="bg-white/95 text-secondary-900 text-xs font-bold px-3 py-1 rounded-full shadow-sm backdrop-blur-md border border-white/40">
                         {areaName}
                     </span>
 
                     {project.payment_method && (
-                        <span className="bg-secondary-900/90 text-white text-[11px] font-medium px-2.5 py-0.5 rounded-full shadow-sm backdrop-blur-md">
+                        <span className="bg-secondary-900/90 text-white text-xs font-semibold px-2.5 py-1 rounded-full shadow-sm backdrop-blur-md">
                             {project.payment_method === 'cash' 
                                 ? (isRtl ? 'كاش' : 'Cash') 
                                 : project.payment_method === 'installment' 
@@ -97,18 +97,18 @@ export default function ProjectCard({ project, loading = false }) {
                     </Link>
 
                     {project.description && (
-                        <p className="text-xs text-secondary-500 line-clamp-2 leading-relaxed mb-3">
+                        <p className="text-xs text-secondary-500 line-clamp-2 leading-relaxed mb-3 font-medium">
                             {project.description}
                         </p>
                     )}
 
                     <div className="flex items-center gap-2 flex-wrap text-xs">
-                        <span className="bg-primary-50 text-primary-900 px-2.5 py-1 rounded-md font-semibold">
+                        <span className="bg-primary-50 text-primary-900 px-2.5 py-1 rounded-lg font-bold">
                             {unitsCount} {trans('units_count') || (isRtl ? 'وحدة متاحة' : 'Units')}
                         </span>
 
                         {project.installment_years > 0 && (
-                            <span className="bg-secondary-50 text-secondary-700 px-2.5 py-1 rounded-md font-medium">
+                            <span className="bg-secondary-100/70 text-secondary-800 px-2.5 py-1 rounded-lg font-semibold">
                                 {isRtl ? `تقسيط حتى ${project.installment_years} سنوات` : `Up to ${project.installment_years} yrs installment`}
                             </span>
                         )}
@@ -116,25 +116,28 @@ export default function ProjectCard({ project, loading = false }) {
                 </div>
 
                 {/* Footer Actions */}
-                <div className="flex items-center justify-between pt-3 border-t border-secondary-100 mt-auto">
+                <div className="flex items-center justify-between pt-3 border-t border-secondary-100/70 mt-auto">
                     <button
                         onClick={e => { e.preventDefault(); toggleCompare(project.id); }}
-                        className={`text-xs px-3 py-1.5 rounded-lg border transition-all duration-200 font-medium ${
+                        className={`text-xs px-3.5 py-1.5 rounded-xl border transition-all duration-200 font-semibold ${
                             isCompared 
                                 ? 'bg-primary-900 text-white border-primary-900 shadow-sm' 
-                                : 'bg-white text-secondary-600 border-secondary-200 hover:border-primary-900 hover:text-primary-900'
+                                : 'bg-secondary-50 text-secondary-700 border-secondary-200 hover:border-primary-900 hover:text-primary-900 hover:bg-white'
                         }`}
                         aria-label={`${trans('compare')} ${project.name}`}
                         aria-pressed={isCompared}
                     >
-                        {isCompared ? (isRtl ? 'تمت الإضافة للمقارنة' : 'Added to Compare') : trans('compare')}
+                        {isCompared ? (isRtl ? 'تمت الإضافة' : 'Added') : trans('compare')}
                     </button>
 
                     <Link
                         href={localizedPath(`/projects/${project.slug}`, locale)}
-                        className="text-xs font-semibold text-primary-900 hover:text-primary-950 hover:underline transition-all"
+                        className="text-xs font-bold text-primary-900 hover:text-primary-700 flex items-center gap-1 group/link transition-colors"
                     >
-                        {trans('show_more') || (isRtl ? 'التفاصيل ←' : 'Details →')}
+                        <span>{trans('show_more') || (isRtl ? 'التفاصيل' : 'Details')}</span>
+                        <svg className="w-3.5 h-3.5 rtl:rotate-180 group-hover/link:translate-x-0.5 rtl:group-hover/link:-translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                        </svg>
                     </Link>
                 </div>
             </div>

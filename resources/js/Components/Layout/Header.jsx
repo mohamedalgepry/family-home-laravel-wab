@@ -82,15 +82,15 @@ export default function Header({ compareCount = 0 }) {
                                 key={item.key}
                                 href={localizedPath(item.href, locale)}
                                 onClick={(e) => handleNavClick(e, item.href)}
-                                className={`text-sm transition-colors py-1 border-b-2 flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded ${
+                                className={`text-sm transition-colors py-1.5 px-3 rounded-lg flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${
                                     active 
-                                        ? 'text-primary-900 border-primary-900 font-semibold' 
-                                        : 'text-secondary-800 border-transparent hover:text-primary-900 hover:border-primary-900/50'
+                                        ? 'text-primary-900 bg-primary-50 font-bold' 
+                                        : 'text-secondary-800 hover:text-primary-900 hover:bg-secondary-50 font-medium'
                                 }`}
                             >
                                 {trans(item.key)}
                                 {item.key === 'compare' && compareCount > 0 && (
-                                    <span className="bg-primary-900 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center mb-0.5" aria-label={`${compareCount} ${isRtl ? 'عناصر للمقارنة' : 'items to compare'}`}>
+                                    <span className="bg-primary-900 text-white text-xs font-bold rounded-full w-4.5 h-4.5 flex items-center justify-center mb-0.5" aria-label={`${compareCount} ${isRtl ? 'عناصر للمقارنة' : 'items to compare'}`}>
                                         {compareCount}
                                     </span>
                                 )}

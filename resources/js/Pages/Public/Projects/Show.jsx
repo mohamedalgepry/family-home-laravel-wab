@@ -301,7 +301,7 @@ export default function ProjectShow({ project }) {
 
                 {/* Units in Project Full Width Section */}
                 {units.length > 0 && (
-                    <section className="bg-white rounded-xl shadow-card p-6 sm:p-8 border-t-4 border-primary-900 mt-12">
+                    <section className="bg-white rounded-2xl shadow-card p-6 sm:p-8 border border-secondary-100/80 mt-12">
                         <div className="flex items-center justify-between mb-8">
                             <div>
                                 <h2 className="text-2xl font-bold text-secondary-950">{trans('units_in_project', {}, 'projects')}</h2>

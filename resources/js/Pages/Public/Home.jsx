@@ -47,20 +47,20 @@ export default function Home({ featuredUnits, latestUnits, latestProjects, popul
                     <div className="absolute inset-0 z-0 overflow-hidden">
                         <picture className="w-full h-full">
                             <source media="(max-width: 640px)" srcSet={heroImageMobile} />
-                            <img 
-                                src={heroImage} 
-                                alt="" 
+                            <img
+                                src={heroImage}
+                                alt=""
                                 width={1920}
                                 height={1080}
-                                className="w-full h-full object-cover scale-105" 
-                                fetchPriority="high" 
-                                loading="eager" 
-                                decoding="sync" 
+                                className="w-full h-full object-cover scale-105"
+                                fetchPriority="high"
+                                loading="eager"
+                                decoding="sync"
                             />
                         </picture>
                         <div className="absolute inset-0 bg-gradient-to-t from-secondary-950 via-secondary-950/85 to-black/60"></div>
                     </div>
-                    
+
                     <div className="relative z-20 max-w-container mx-auto px-4 py-20 sm:py-28 text-center w-full">
 
                         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white mb-6 tracking-tight leading-tight max-w-4xl mx-auto drop-shadow-md">
@@ -69,7 +69,7 @@ export default function Home({ featuredUnits, latestUnits, latestProjects, popul
                         <p className="text-base sm:text-lg lg:text-xl text-secondary-200 mb-10 max-w-2xl mx-auto font-medium leading-relaxed">
                             {heroSubtitle}
                         </p>
-                        
+
                         <SearchBar areas={areas} unitTypes={unitTypes} features={features} finishingTypes={finishingTypes} />
                     </div>
                 </section>
@@ -115,7 +115,7 @@ export default function Home({ featuredUnits, latestUnits, latestProjects, popul
                                     <Link
                                         key={area.id}
                                         href={localizedPath(`/areas/${areaSlug}`, locale)}
-                                        className="group relative bg-white hover:bg-primary-950 rounded-2xl p-4 border border-secondary-200/80 hover:border-primary-900 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col items-center text-center overflow-hidden"
+                                        className="group relative bg-white hover:bg-primary-950 rounded-2xl p-4 border border-secondary-200/80 hover:border-primary-900 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col items-center text-center overflow-hidden"
                                     >
                                         <div className="w-10 h-10 rounded-full bg-primary-50 group-hover:bg-primary-900 text-primary-900 group-hover:text-white flex items-center justify-center mb-3 transition-colors duration-300">
                                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -126,7 +126,7 @@ export default function Home({ featuredUnits, latestUnits, latestProjects, popul
                                         <span className="text-sm font-bold text-secondary-900 group-hover:text-white transition-colors duration-300 line-clamp-1">
                                             {areaName}
                                         </span>
-                                        <span className="text-[11px] font-medium text-secondary-400 group-hover:text-primary-200 mt-1 transition-colors duration-300 flex items-center gap-0.5">
+                                        <span className="text-xs font-medium text-secondary-400 group-hover:text-primary-200 mt-1 transition-colors duration-300 flex items-center gap-0.5">
                                             <span>{isRtl ? 'عرض المكان' : 'Explore'}</span>
                                             <svg className="w-3 h-3 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
