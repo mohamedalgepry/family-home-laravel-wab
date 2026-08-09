@@ -216,7 +216,18 @@ class SeoService
         $desc = $customMeta['description'] ?? $dbSeo['description'] ?? $defaultDesc;
         $keywords = $customMeta['keywords'] ?? $dbSeo['keywords'] ?? __('seo.default_keywords');
 
-        $path = $pageKey === 'home' ? '' : "/{$pageKey}";
+        $pathMap = [
+            'home' => '',
+            'units_index' => '/units',
+            'projects_index' => '/projects',
+            'articles_index' => '/articles',
+            'deals' => '/units/deals',
+            'about' => '/about',
+            'contact' => '/contact',
+            'comparison' => '/compare',
+            'agents' => '/agents',
+        ];
+        $path = $pathMap[$pageKey] ?? ($pageKey === 'home' ? '' : "/{$pageKey}");
         $canonical = $customMeta['canonical'] ?? url("/{$locale}{$path}");
         $hreflang = $customMeta['hreflang'] ?? [
             'ar' => url("/ar{$path}"),

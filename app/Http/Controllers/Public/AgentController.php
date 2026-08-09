@@ -45,6 +45,7 @@ class AgentController extends Controller
                 'role' => $agent->role,
             ],
             'units' => $units,
+            'seo_meta' => $meta,
         ])->withViewData(['meta' => $meta]);
     }
 }

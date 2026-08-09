@@ -41,6 +41,7 @@ class ProjectController
         return Inertia::render('Public/Projects/Index', [
             'projects' => $projects,
             'filters' => $filters,
+            'seo_meta' => $meta,
             'areas' => $this->lookupService->areas(),
             'features' => $this->lookupService->features(),
             'finishingTypes' => $this->lookupService->finishingTypes(),

@@ -68,13 +68,20 @@ class PageController extends Controller
             $about->content_en = Sanitizer::rich($about->content_en ?? '');
         }
 
+        $meta = app(SeoService::class)->forPage('about');
+
         return Inertia::render('Public/About', [
             'page' => $about,
-        ])->withViewData(['meta' => app(SeoService::class)->forPage('about')]);
+            'seo_meta' => $meta,
+        ])->withViewData(['meta' => $meta]);
     }
 
     public function contact()
     {
-        return Inertia::render('Public/Contact')->withViewData(['meta' => app(SeoService::class)->forPage('contact')]);
+        $meta = app(SeoService::class)->forPage('contact');
+
+        return Inertia::render('Public/Contact', [
+            'seo_meta' => $meta,
+        ])->withViewData(['meta' => $meta]);
     }
 }

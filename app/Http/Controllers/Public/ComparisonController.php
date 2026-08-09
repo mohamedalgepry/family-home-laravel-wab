@@ -42,11 +42,14 @@ class ComparisonController
             ]);
         }
 
+        $meta = app(SeoService::class)->forPage('comparison');
+
         return Inertia::render('Public/Comparison', [
             'items' => $items,
             'type' => $type,
             'max_items' => 4,
-        ])->withViewData(['meta' => app(SeoService::class)->forPage('comparison')]);
+            'seo_meta' => $meta,
+        ])->withViewData(['meta' => $meta]);
     }
 
     public function search()

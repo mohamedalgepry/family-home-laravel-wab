@@ -50,6 +50,7 @@ class ArticleController
         return Inertia::render('Public/Articles/Index', [
             'articles' => $articles,
             'categories' => $categories,
+            'seo_meta' => $meta,
             'currentCategory' => $currentCategory ? [
                 'id' => $currentCategory->id,
                 'name_ar' => $currentCategory->name_ar,

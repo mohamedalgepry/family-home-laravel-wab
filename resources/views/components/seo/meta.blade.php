@@ -31,9 +31,6 @@
 <title inertia>{{ $title }}</title>
 <meta name="description" content="{{ $description }}" inertia head-key="description">
 <meta name="author" content="mohamed algebry" inertia head-key="author">
-@if($keywords)
-    <meta name="keywords" content="{{ $keywords }}" inertia head-key="keywords">
-@endif
 <link rel="canonical" href="{{ $canonical }}" inertia head-key="canonical">
 
 @foreach($hreflang as $lang => $url)

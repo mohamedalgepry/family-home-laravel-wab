@@ -74,12 +74,19 @@ class AreaController
             $ogImage = $img->url ?? asset('storage/' . $img->path);
         }
 
-        $canonical = url()->current();
+        $canonical = url("/{$locale}/areas/{$area->slug}");
+        $hreflang = [
+            'ar' => url("/ar/areas/{$area->slug}"),
+            'en' => url("/en/areas/{$area->slug}"),
+            'x-default' => url("/ar/areas/{$area->slug}"),
+        ];
 
         $customMeta = [
             'title' => $metaTitle,
             'description' => $metaDescription,
             'keywords' => is_array($keywordsList) ? implode(', ', $keywordsList) : $keywordsList,
+            'canonical' => $canonical,
+            'hreflang' => $hreflang,
             'ogTitle' => $metaTitle,
             'ogDescription' => $metaDescription,
             'ogImage' => $ogImage,
@@ -96,11 +103,29 @@ class AreaController
         $meta['og_image'] = $ogImage;
         $meta['og_title'] = $metaTitle;
         $meta['og_description'] = $metaDescription;
+        $meta['canonical'] = $canonical;
+        $meta['hreflang'] = $hreflang;
+        $meta['schema'] = [
+            $this->seoService->getBreadcrumbSchema([
+                __('seo.site_name') => url("/{$locale}"),
+                ($locale === 'ar' ? 'المناطق' : 'Areas') => url("/{$locale}/units"),
+                $areaName => $canonical,
+            ]),
+            [
+                '@context' => 'https://schema.org',
+                '@type' => 'Place',
+                '@id' => $canonical.'#place',
+                'name' => $areaName,
+                'description' => $metaDescription,
+                'url' => $canonical,
+            ],
+        ];
 
         return Inertia::render('Public/Areas/Show', [
             'area' => $area,
             'units' => $units,
             'projects' => $projects,
+            'seo_meta' => $meta,
             'seo' => [
                 'title' => $metaTitle,
                 'description' => $metaDescription,

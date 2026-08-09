@@ -32,6 +32,7 @@ class UnitController
         return Inertia::render('Public/Units/Index', [
             'units' => $units,
             'filters' => $filters,
+            'seo_meta' => $meta,
             'areas' => $this->lookupService->areas(),
             'unitTypes' => $this->lookupService->unitTypes(),
             'features' => $this->lookupService->features(),
@@ -52,6 +53,7 @@ class UnitController
         return Inertia::render('Public/Units/Deals', [
             'units' => $units,
             'filters' => $filters,
+            'seo_meta' => $meta,
             'areas' => $this->lookupService->areas(),
             'unitTypes' => $this->lookupService->unitTypes(),
             'features' => $this->lookupService->features(),

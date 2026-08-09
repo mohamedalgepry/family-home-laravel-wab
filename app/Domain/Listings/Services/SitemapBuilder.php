@@ -32,7 +32,7 @@ class SitemapBuilder
         $xml = '<?xml version="1.0" encoding="UTF-8"?>'."\n";
         $xml .= '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'."\n";
 
-        foreach (['static', 'units', 'projects', 'areas', 'articles', 'categories'] as $part) {
+        foreach (['static', 'units', 'projects', 'areas', 'articles'] as $part) {
             $xml .= "    <sitemap>\n";
             $xml .= '        <loc>'.htmlspecialchars("{$baseUrl}/sitemap-{$part}.xml", ENT_XML1, 'UTF-8')."</loc>\n";
             $xml .= "    </sitemap>\n";
@@ -138,25 +138,6 @@ class SitemapBuilder
     {
         $xml = $this->startUrlSet();
 
-        Category::whereHas('articles', fn ($query) => $query->where('is_published', true))
-            ->chunk(500, function ($categories) use (&$xml) {
-                foreach ($categories as $category) {
-                    $arSlug = $category->slug_ar ?? $category->slug;
-                    $enSlug = $category->slug_en ?? $category->slug;
-
-                    if (! $arSlug || ! $enSlug) {
-                        continue;
-                    }
-
-                    $xml .= $this->urlEntry(
-                        ['ar' => "/articles?category={$arSlug}", 'en' => "/articles?category={$enSlug}"],
-                        $category->updated_at,
-                        '0.5',
-                        'weekly'
-                    );
-                }
-            });
-
         return $xml.$this->endUrlSet();
     }
 
@@ -207,6 +188,12 @@ class SitemapBuilder
             'Disallow: /forgot-password',
             'Disallow: /reset-password',
             'Disallow: /verify-otp',
+            'Disallow: /*/login',
+            'Disallow: /*/logout',
+            'Disallow: /*/register',
+            'Disallow: /*/forgot-password',
+            'Disallow: /*/reset-password',
+            'Disallow: /*/verify-otp',
             'Disallow: /storage/temp/',
             '',
             "Sitemap: {$baseUrl}/sitemap.xml",
