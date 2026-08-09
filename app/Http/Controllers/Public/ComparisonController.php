@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Public;
 
 use App\Domain\Listings\Models\Project;
 use App\Domain\Listings\Models\Unit;
+use App\Services\SeoService;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -45,7 +46,7 @@ class ComparisonController
             'items' => $items,
             'type' => $type,
             'max_items' => 4,
-        ]);
+        ])->withViewData(['meta' => app(SeoService::class)->forPage('comparison')]);
     }
 
     public function search()

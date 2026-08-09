@@ -69,9 +69,9 @@ export default function ArticleCard({ article, loading = false }) {
                         <p className="text-xs text-secondary-500 mb-2">{formattedDate}</p>
                     )}
 
-                    <h3 className="text-base font-bold text-secondary-950 group-hover:text-primary-900 transition-colors line-clamp-2 leading-snug mb-2">
+                    <h2 className="text-base font-bold text-secondary-950 group-hover:text-primary-900 transition-colors line-clamp-2 leading-snug mb-2">
                         {article.title}
-                    </h3>
+                    </h2>
 
                     {article.excerpt && (
                         <p className="text-xs sm:text-sm text-secondary-600 line-clamp-2 leading-relaxed">

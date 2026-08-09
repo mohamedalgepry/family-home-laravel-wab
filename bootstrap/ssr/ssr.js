@@ -29,8 +29,8 @@ var __exportAll = (all, no_symbols) => {
 //#region resources/js/Utils/trans.js
 var dictionaries = {};
 var loaders = {
-	ar: () => import("./assets/ar-BVTLrJyb.js"),
-	en: () => import("./assets/en-ZBrXmJRl.js")
+	ar: () => import("./assets/ar-BBykqVvk.js"),
+	en: () => import("./assets/en-Ckag1V4G.js")
 };
 async function loadLocale(locale) {
 	const key = loaders[locale] ? locale : "en";
@@ -1332,32 +1332,56 @@ function AdminAreasIndex({ areas }) {
 	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
 	const [editing, setEditing] = useState(null);
+	const [showSeo, setShowSeo] = useState(false);
 	const { data, setData, post, put, delete: destroy, processing, reset } = useForm({
 		name_ar: "",
 		name_en: "",
 		is_active: true,
-		sort_order: 0
+		sort_order: 0,
+		meta_title_ar: "",
+		meta_title_en: "",
+		meta_description_ar: "",
+		meta_description_en: "",
+		meta_keywords_ar: "",
+		meta_keywords_en: "",
+		image_path: ""
 	});
 	function startCreate() {
 		setEditing("new");
+		setShowSeo(false);
 		reset();
 	}
 	function startEdit(area) {
 		setEditing(area.id);
+		setShowSeo(false);
 		setData({
-			name_ar: area.name_ar,
-			name_en: area.name_en,
-			is_active: area.is_active,
-			sort_order: area.sort_order
+			name_ar: area.name_ar || "",
+			name_en: area.name_en || "",
+			is_active: area.is_active ?? true,
+			sort_order: area.sort_order || 0,
+			meta_title_ar: area.meta_title_ar || "",
+			meta_title_en: area.meta_title_en || "",
+			meta_description_ar: area.meta_description_ar || "",
+			meta_description_en: area.meta_description_en || "",
+			meta_keywords_ar: Array.isArray(area.meta_keywords_ar) ? area.meta_keywords_ar.join(", ") : area.meta_keywords_ar || "",
+			meta_keywords_en: Array.isArray(area.meta_keywords_en) ? area.meta_keywords_en.join(", ") : area.meta_keywords_en || "",
+			image_path: area.image_path || ""
 		});
 	}
 	function cancelEdit() {
 		setEditing(null);
+		setShowSeo(false);
 		reset();
 	}
 	function handleSubmit(e) {
 		e.preventDefault();
+		const payload = {
+			...data,
+			meta_keywords_ar: typeof data.meta_keywords_ar === "string" ? data.meta_keywords_ar.split(",").map((k) => k.trim()).filter(Boolean) : data.meta_keywords_ar,
+			meta_keywords_en: typeof data.meta_keywords_en === "string" ? data.meta_keywords_en.split(",").map((k) => k.trim()).filter(Boolean) : data.meta_keywords_en
+		};
 		if (editing === "new") post("/admin/areas", {
+			data: payload,
 			preserveScroll: true,
 			onSuccess: () => {
 				setEditing(null);
@@ -1365,6 +1389,7 @@ function AdminAreasIndex({ areas }) {
 			}
 		});
 		else put(`/admin/areas/${editing}`, {
+			data: payload,
 			preserveScroll: true,
 			onSuccess: () => {
 				setEditing(null);
@@ -1398,6 +1423,10 @@ function AdminAreasIndex({ areas }) {
 				onSubmit: handleSubmit,
 				className: "bg-white rounded-xl shadow-card p-6 mb-6",
 				children: [
+					/* @__PURE__ */ jsx("h2", {
+						className: "text-lg font-bold text-secondary-950 mb-4",
+						children: editing === "new" ? isRtl ? "إضافة منطقة جديدة" : "Add New Area" : isRtl ? "تعديل المنطقة" : "Edit Area"
+					}),
 					/* @__PURE__ */ jsxs("div", {
 						className: "grid grid-cols-2 gap-4 mb-4",
 						children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
@@ -1446,6 +1475,94 @@ function AdminAreasIndex({ areas }) {
 									children: data.is_active ? trans("active") : trans("inactive")
 								})]
 							})
+						})]
+					}),
+					/* @__PURE__ */ jsxs("div", {
+						className: "border-t border-secondary-200 pt-4 mb-4",
+						children: [/* @__PURE__ */ jsxs("button", {
+							type: "button",
+							onClick: () => setShowSeo(!showSeo),
+							className: "flex items-center justify-between w-full text-sm font-bold text-primary-900 hover:text-primary-950 focus:outline-none mb-3",
+							children: [/* @__PURE__ */ jsxs("span", { children: ["🔍 ", isRtl ? "إعدادات الـ SEO ومعاينة رابط المشاركة (Open Graph)" : "SEO & Social Share Preview Settings"] }), /* @__PURE__ */ jsx("span", { children: showSeo ? "▲" : "▼" })]
+						}), showSeo && /* @__PURE__ */ jsxs("div", {
+							className: "space-y-4 bg-surface p-4 rounded-xl border border-secondary-200",
+							children: [
+								/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+									className: "block text-xs font-semibold text-secondary-700 mb-1",
+									children: isRtl ? "صورة المعاينة عند المشاركة (رابط الصورة / Image URL)" : "Social Share Cover Image URL"
+								}), /* @__PURE__ */ jsx("input", {
+									type: "text",
+									value: data.image_path,
+									onChange: (e) => setData("image_path", e.target.value),
+									placeholder: "https://...",
+									className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-xs bg-white"
+								})] }),
+								/* @__PURE__ */ jsxs("div", {
+									className: "grid grid-cols-2 gap-4",
+									children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+										className: "block text-xs font-semibold text-secondary-700 mb-1",
+										children: isRtl ? "عنوان الـ Meta (عربي)" : "Meta Title (AR)"
+									}), /* @__PURE__ */ jsx("input", {
+										type: "text",
+										value: data.meta_title_ar,
+										onChange: (e) => setData("meta_title_ar", e.target.value),
+										dir: "rtl",
+										className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-xs bg-white"
+									})] }), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+										className: "block text-xs font-semibold text-secondary-700 mb-1",
+										children: isRtl ? "عنوان الـ Meta (إنجليزي)" : "Meta Title (EN)"
+									}), /* @__PURE__ */ jsx("input", {
+										type: "text",
+										value: data.meta_title_en,
+										onChange: (e) => setData("meta_title_en", e.target.value),
+										className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-xs bg-white"
+									})] })]
+								}),
+								/* @__PURE__ */ jsxs("div", {
+									className: "grid grid-cols-2 gap-4",
+									children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+										className: "block text-xs font-semibold text-secondary-700 mb-1",
+										children: isRtl ? "وصف الـ Meta (عربي)" : "Meta Description (AR)"
+									}), /* @__PURE__ */ jsx("textarea", {
+										rows: 2,
+										value: data.meta_description_ar,
+										onChange: (e) => setData("meta_description_ar", e.target.value),
+										dir: "rtl",
+										className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-xs bg-white"
+									})] }), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+										className: "block text-xs font-semibold text-secondary-700 mb-1",
+										children: isRtl ? "وصف الـ Meta (إنجليزي)" : "Meta Description (EN)"
+									}), /* @__PURE__ */ jsx("textarea", {
+										rows: 2,
+										value: data.meta_description_en,
+										onChange: (e) => setData("meta_description_en", e.target.value),
+										className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-xs bg-white"
+									})] })]
+								}),
+								/* @__PURE__ */ jsxs("div", {
+									className: "grid grid-cols-2 gap-4",
+									children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+										className: "block text-xs font-semibold text-secondary-700 mb-1",
+										children: isRtl ? "الكلمات المفتاحية (عربي - مفصولة بفاصلة)" : "Meta Keywords (AR - comma separated)"
+									}), /* @__PURE__ */ jsx("input", {
+										type: "text",
+										value: data.meta_keywords_ar,
+										onChange: (e) => setData("meta_keywords_ar", e.target.value),
+										dir: "rtl",
+										placeholder: "عقارات, شقق, مشاريع",
+										className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-xs bg-white"
+									})] }), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+										className: "block text-xs font-semibold text-secondary-700 mb-1",
+										children: isRtl ? "الكلمات المفتاحية (إنجليزي - مفصولة بفاصلة)" : "Meta Keywords (EN - comma separated)"
+									}), /* @__PURE__ */ jsx("input", {
+										type: "text",
+										value: data.meta_keywords_en,
+										onChange: (e) => setData("meta_keywords_en", e.target.value),
+										placeholder: "real estate, apartments, projects",
+										className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-xs bg-white"
+									})] })]
+								})
+							]
 						})]
 					}),
 					/* @__PURE__ */ jsxs("div", {
@@ -1502,7 +1619,7 @@ function AdminAreasIndex({ areas }) {
 							className: "hover:bg-surface/50",
 							children: [
 								/* @__PURE__ */ jsx("td", {
-									className: "px-4 py-3 text-secondary-950",
+									className: "px-4 py-3 text-secondary-950 font-medium",
 									children: area.name_ar
 								}),
 								/* @__PURE__ */ jsx("td", {
@@ -11751,11 +11868,6 @@ function SeoHead({ title, description, keywords, ogImage, ogType = "website", ca
 			name: "keywords",
 			content: finalKeywords
 		}),
-		/* @__PURE__ */ jsx("meta", {
-			"head-key": "author",
-			name: "author",
-			content: "mohamed algbry"
-		}),
 		finalTitle && /* @__PURE__ */ jsx("meta", {
 			"head-key": "og:title",
 			property: "og:title",
@@ -12174,7 +12286,7 @@ function Pagination({ meta, links: routeLinks }) {
 }
 //#endregion
 //#region resources/js/Pages/Public/Agents/Show.jsx
-var Show_exports$3 = /* @__PURE__ */ __exportAll({ default: () => Show });
+var Show_exports$4 = /* @__PURE__ */ __exportAll({ default: () => Show });
 function Show({ agent, units, locale }) {
 	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
@@ -12329,9 +12441,780 @@ function Show({ agent, units, locale }) {
 	});
 }
 //#endregion
-//#region resources/js/Components/UI/ArticleCard.jsx
+//#region resources/js/Components/UI/SearchBar.jsx
+function SearchBar({ areas = [], unitTypes = [], features = [], finishingTypes = [], filters = {}, onSearch }) {
+	const { locale } = usePage().props;
+	const trans = useTrans(locale);
+	const isRtl = locale === "ar";
+	const [local, setLocal] = useState({
+		area_id: filters.area_id || "",
+		type_id: filters.type_id || "",
+		transaction: filters.transaction || "",
+		price_min: filters.price_min || "",
+		price_max: filters.price_max || "",
+		size_min: filters.size_min || "",
+		size_max: filters.size_max || "",
+		search: filters.search || "",
+		payment_method: filters.payment_method || "",
+		finishing_type_id: filters.finishing_type_id || "",
+		features: filters.features || []
+	});
+	const [isSearching, setIsSearching] = useState(false);
+	const [showAdvanced, setShowAdvanced] = useState(false);
+	function update(key, value) {
+		setLocal((prev) => ({
+			...prev,
+			[key]: value
+		}));
+	}
+	function handleSubmit(e) {
+		e.preventDefault();
+		setIsSearching(true);
+		const params = {};
+		for (const [k, v] of Object.entries(local)) if (k === "features" && Array.isArray(v) && v.length > 0) params[k] = v;
+		else if (v !== "" && v !== null && v !== void 0 && k !== "features") params[k] = v;
+		if (onSearch) {
+			onSearch(params);
+			setTimeout(() => setIsSearching(false), 300);
+		} else router.get(`/${locale}/units`, params, {
+			preserveState: true,
+			onFinish: () => setIsSearching(false)
+		});
+	}
+	function handleReset() {
+		setLocal({
+			area_id: "",
+			type_id: "",
+			transaction: "",
+			price_min: "",
+			price_max: "",
+			size_min: "",
+			size_max: "",
+			search: "",
+			payment_method: "",
+			finishing_type_id: "",
+			features: []
+		});
+		if (onSearch) onSearch({});
+		else router.get(`/${locale}/units`, {}, { preserveState: true });
+	}
+	function toggleFeature(id) {
+		if (id == null) return;
+		const idStr = String(id);
+		setLocal((prev) => {
+			const currentFeatures = Array.isArray(prev.features) ? prev.features : [];
+			if (currentFeatures.some((f) => f?.toString() === idStr)) return {
+				...prev,
+				features: currentFeatures.filter((f) => f?.toString() !== idStr)
+			};
+			else return {
+				...prev,
+				features: [...currentFeatures, idStr]
+			};
+		});
+	}
+	return /* @__PURE__ */ jsx("div", {
+		className: "w-full max-w-5xl mx-auto relative z-[60]",
+		children: /* @__PURE__ */ jsxs("form", {
+			onSubmit: handleSubmit,
+			dir: isRtl ? "rtl" : "ltr",
+			className: "bg-white rounded-3xl md:rounded-[2rem] shadow-xl hover:shadow-2xl transition-shadow duration-300 w-full",
+			children: [/* @__PURE__ */ jsxs("div", {
+				className: "flex flex-col md:flex-row items-center md:divide-x divide-y md:divide-y-0 rtl:divide-x-reverse divide-secondary-100 p-2 md:p-2.5",
+				children: [
+					/* @__PURE__ */ jsxs("div", {
+						className: "flex-1 w-full px-5 py-3 hover:bg-surface/60 transition-colors cursor-text group rounded-2xl md:rounded-s-3xl md:rounded-e-none",
+						children: [/* @__PURE__ */ jsx("label", {
+							htmlFor: "search-input",
+							className: "block text-[10px] font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors",
+							children: trans("search")
+						}), /* @__PURE__ */ jsx("input", {
+							id: "search-input",
+							type: "text",
+							value: local.search,
+							onChange: (e) => update("search", e.target.value),
+							placeholder: locale === "ar" ? "ابحث بالاسم..." : "Search by name...",
+							className: "w-full bg-transparent border-none text-sm focus:ring-0 text-secondary-800 placeholder-secondary-400 outline-none"
+						})]
+					}),
+					/* @__PURE__ */ jsxs("div", {
+						className: "flex-1 w-full px-5 py-3 hover:bg-surface/60 transition-colors cursor-pointer group rounded-2xl md:rounded-none",
+						children: [/* @__PURE__ */ jsx("label", {
+							htmlFor: "transaction-filter",
+							className: "block text-[10px] font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors",
+							children: trans("transaction")
+						}), /* @__PURE__ */ jsxs(Select, {
+							id: "transaction-filter",
+							value: local.transaction,
+							onChange: (e) => update("transaction", e.target.value),
+							className: "w-full text-secondary-800 outline-none cursor-pointer",
+							children: [
+								/* @__PURE__ */ jsx("option", {
+									value: "",
+									children: locale === "ar" ? "الكل" : "All"
+								}),
+								/* @__PURE__ */ jsx("option", {
+									value: "sale",
+									children: trans("sale")
+								}),
+								/* @__PURE__ */ jsx("option", {
+									value: "rent",
+									children: trans("rent")
+								}),
+								/* @__PURE__ */ jsx("option", {
+									value: "new_project",
+									children: locale === "ar" ? "مشروع جديد" : "New Project"
+								}),
+								/* @__PURE__ */ jsx("option", {
+									value: "commercial",
+									children: locale === "ar" ? "تجاري" : "Commercial"
+								}),
+								/* @__PURE__ */ jsx("option", {
+									value: "residential",
+									children: locale === "ar" ? "سكني" : "Residential"
+								})
+							]
+						})]
+					}),
+					/* @__PURE__ */ jsxs("div", {
+						className: "flex-1 w-full px-5 py-3 hover:bg-surface/60 transition-colors cursor-pointer group rounded-2xl md:rounded-none",
+						children: [/* @__PURE__ */ jsx("label", {
+							htmlFor: "area-filter",
+							className: "block text-[10px] font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors",
+							children: trans("area")
+						}), /* @__PURE__ */ jsxs(Select, {
+							id: "area-filter",
+							value: local.area_id,
+							onChange: (e) => update("area_id", e.target.value),
+							className: "w-full text-secondary-800 outline-none cursor-pointer",
+							children: [/* @__PURE__ */ jsx("option", {
+								value: "",
+								children: locale === "ar" ? "كل المناطق" : "All Areas"
+							}), areas?.map((area) => /* @__PURE__ */ jsx("option", {
+								value: area.id,
+								children: locale === "ar" ? area.name_ar : area.name_en
+							}, area.id))]
+						})]
+					}),
+					/* @__PURE__ */ jsxs("div", {
+						className: "flex-1 w-full px-5 py-3 hover:bg-surface/60 transition-colors cursor-pointer group rounded-2xl md:rounded-none",
+						children: [/* @__PURE__ */ jsx("label", {
+							htmlFor: "type-filter",
+							className: "block text-[10px] font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors",
+							children: trans("type")
+						}), /* @__PURE__ */ jsxs(Select, {
+							id: "type-filter",
+							value: local.type_id,
+							onChange: (e) => update("type_id", e.target.value),
+							className: "w-full text-secondary-800 outline-none cursor-pointer",
+							children: [/* @__PURE__ */ jsx("option", {
+								value: "",
+								children: locale === "ar" ? "كل الأنواع" : "All Types"
+							}), unitTypes?.map((ut) => /* @__PURE__ */ jsx("option", {
+								value: ut.id,
+								children: locale === "ar" ? ut.name_ar : ut.name_en
+							}, ut.id))]
+						})]
+					}),
+					/* @__PURE__ */ jsxs("div", {
+						className: "w-full md:w-auto p-2 flex items-center justify-between md:justify-center gap-3 md:gap-2 shrink-0 md:ps-4",
+						children: [/* @__PURE__ */ jsx("button", {
+							type: "button",
+							onClick: () => setShowAdvanced(!showAdvanced),
+							className: `p-3 rounded-full text-secondary-600 hover:text-primary-900 hover:bg-surface/80 transition-colors ${showAdvanced ? "bg-surface text-primary-900" : ""}`,
+							"aria-label": locale === "ar" ? "تصفية متقدمة" : "Advanced Filters",
+							children: /* @__PURE__ */ jsx("svg", {
+								className: `w-5 h-5 transition-transform duration-300 ${showAdvanced ? "rotate-180" : ""}`,
+								fill: "none",
+								viewBox: "0 0 24 24",
+								stroke: "currentColor",
+								strokeWidth: 2,
+								children: /* @__PURE__ */ jsx("path", {
+									strokeLinecap: "round",
+									strokeLinejoin: "round",
+									d: "M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z"
+								})
+							})
+						}), /* @__PURE__ */ jsx("button", {
+							type: "submit",
+							disabled: isSearching,
+							className: "w-12 h-12 bg-primary-900 text-white rounded-full flex items-center justify-center hover:bg-primary-950 active:scale-95 transition-all duration-200 disabled:opacity-80",
+							"aria-label": trans("search"),
+							children: isSearching ? /* @__PURE__ */ jsxs("svg", {
+								className: "animate-spin w-5 h-5",
+								xmlns: "http://www.w3.org/2000/svg",
+								fill: "none",
+								viewBox: "0 0 24 24",
+								children: [/* @__PURE__ */ jsx("circle", {
+									className: "opacity-25",
+									cx: "12",
+									cy: "12",
+									r: "10",
+									stroke: "currentColor",
+									strokeWidth: "4"
+								}), /* @__PURE__ */ jsx("path", {
+									className: "opacity-75",
+									fill: "currentColor",
+									d: "M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+								})]
+							}) : /* @__PURE__ */ jsx("svg", {
+								className: "w-5 h-5",
+								fill: "none",
+								viewBox: "0 0 24 24",
+								stroke: "currentColor",
+								strokeWidth: 2.5,
+								children: /* @__PURE__ */ jsx("path", {
+									strokeLinecap: "round",
+									strokeLinejoin: "round",
+									d: "M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+								})
+							})
+						})]
+					})
+				]
+			}), /* @__PURE__ */ jsx("div", {
+				className: `transition-all duration-300 ease-in-out origin-top rounded-b-3xl md:rounded-b-[2rem] ${showAdvanced ? "overflow-visible" : "overflow-hidden"}`,
+				style: {
+					maxHeight: showAdvanced ? "1500px" : "0px",
+					opacity: showAdvanced ? 1 : 0
+				},
+				children: /* @__PURE__ */ jsxs("div", {
+					className: "px-4 py-4 bg-surface/30 border-t border-secondary-100 flex flex-col gap-4",
+					children: [
+						/* @__PURE__ */ jsxs("div", {
+							className: "flex flex-col sm:flex-row gap-4 w-full",
+							children: [/* @__PURE__ */ jsxs("div", {
+								className: "flex-1 w-full",
+								children: [/* @__PURE__ */ jsx("label", {
+									htmlFor: "price-min-input",
+									className: "block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-1",
+									children: locale === "ar" ? "الحد الأدنى للسعر" : "Minimum Price"
+								}), /* @__PURE__ */ jsx("input", {
+									id: "price-min-input",
+									type: "number",
+									min: "0",
+									value: local.price_min,
+									onChange: (e) => update("price_min", e.target.value),
+									placeholder: "0",
+									className: "w-full px-3 py-0 h-10 border border-secondary-200 bg-white rounded-xl text-sm focus:ring-2 focus:ring-primary-900 transition-all duration-200 outline-none"
+								})]
+							}), /* @__PURE__ */ jsxs("div", {
+								className: "flex-1 w-full",
+								children: [/* @__PURE__ */ jsx("label", {
+									htmlFor: "price-max-input",
+									className: "block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-1",
+									children: locale === "ar" ? "الحد الأقصى للسعر" : "Maximum Price"
+								}), /* @__PURE__ */ jsx("input", {
+									id: "price-max-input",
+									type: "number",
+									min: "0",
+									value: local.price_max,
+									onChange: (e) => update("price_max", e.target.value),
+									placeholder: locale === "ar" ? "لا يوجد حد" : "No limit",
+									className: "w-full px-3 py-0 h-10 border border-secondary-200 bg-white rounded-xl text-sm focus:ring-2 focus:ring-primary-900 transition-all duration-200 outline-none"
+								})]
+							})]
+						}),
+						/* @__PURE__ */ jsxs("div", {
+							className: "flex flex-col sm:flex-row gap-4 w-full",
+							children: [/* @__PURE__ */ jsxs("div", {
+								className: "flex-1 w-full",
+								children: [/* @__PURE__ */ jsx("label", {
+									htmlFor: "size-min-input",
+									className: "block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-1",
+									children: locale === "ar" ? "الحد الأدنى للمساحة" : "Minimum Size"
+								}), /* @__PURE__ */ jsx("input", {
+									id: "size-min-input",
+									type: "number",
+									min: "0",
+									value: local.size_min,
+									onChange: (e) => update("size_min", e.target.value),
+									placeholder: "0",
+									className: "w-full px-3 py-0 h-10 border border-secondary-200 bg-white rounded-xl text-sm focus:ring-2 focus:ring-primary-900 transition-all duration-200 outline-none"
+								})]
+							}), /* @__PURE__ */ jsxs("div", {
+								className: "flex-1 w-full",
+								children: [/* @__PURE__ */ jsx("label", {
+									htmlFor: "size-max-input",
+									className: "block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-1",
+									children: locale === "ar" ? "الحد الأقصى للمساحة" : "Maximum Size"
+								}), /* @__PURE__ */ jsx("input", {
+									id: "size-max-input",
+									type: "number",
+									min: "0",
+									value: local.size_max,
+									onChange: (e) => update("size_max", e.target.value),
+									placeholder: locale === "ar" ? "لا يوجد حد" : "No limit",
+									className: "w-full px-3 py-0 h-10 border border-secondary-200 bg-white rounded-xl text-sm focus:ring-2 focus:ring-primary-900 transition-all duration-200 outline-none"
+								})]
+							})]
+						}),
+						/* @__PURE__ */ jsxs("div", {
+							className: "flex flex-col sm:flex-row gap-4 w-full",
+							children: [/* @__PURE__ */ jsxs("div", {
+								className: "flex-1 w-full",
+								children: [/* @__PURE__ */ jsx("label", {
+									htmlFor: "payment-method-filter",
+									className: "block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-1",
+									children: trans("payment_method") || "Payment Method"
+								}), /* @__PURE__ */ jsxs(Select, {
+									id: "payment-method-filter",
+									value: local.payment_method,
+									onChange: (e) => update("payment_method", e.target.value),
+									className: "w-full",
+									children: [
+										/* @__PURE__ */ jsx("option", {
+											value: "",
+											children: trans("all") || "All"
+										}),
+										/* @__PURE__ */ jsx("option", {
+											value: "cash",
+											children: trans("cash") || "Cash"
+										}),
+										/* @__PURE__ */ jsx("option", {
+											value: "installment",
+											children: trans("installment") || "Installment"
+										}),
+										/* @__PURE__ */ jsx("option", {
+											value: "both",
+											children: trans("both") || "Cash & Installment"
+										})
+									]
+								})]
+							}), /* @__PURE__ */ jsxs("div", {
+								className: "flex-1 w-full",
+								children: [/* @__PURE__ */ jsx("label", {
+									htmlFor: "finishing-type-filter",
+									className: "block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-1",
+									children: trans("finishing_type") || "Finishing Type"
+								}), /* @__PURE__ */ jsxs(Select, {
+									id: "finishing-type-filter",
+									value: local.finishing_type_id,
+									onChange: (e) => update("finishing_type_id", e.target.value),
+									className: "w-full",
+									children: [/* @__PURE__ */ jsx("option", {
+										value: "",
+										children: trans("all") || "All"
+									}), finishingTypes?.map((f) => /* @__PURE__ */ jsx("option", {
+										value: f.id,
+										children: locale === "ar" ? f.name_ar : f.name_en
+									}, f.id))]
+								})]
+							})]
+						}),
+						features?.length > 0 && /* @__PURE__ */ jsxs("div", {
+							className: "w-full pt-3 border-t border-secondary-100/50",
+							children: [/* @__PURE__ */ jsx("label", {
+								className: "block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-2",
+								children: trans("features") || "Features"
+							}), /* @__PURE__ */ jsx("div", {
+								className: "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2",
+								children: features.map((feature) => {
+									const isChecked = Array.isArray(local.features) ? local.features.includes(String(feature.id)) || local.features.includes(feature.id) : false;
+									return /* @__PURE__ */ jsxs("div", {
+										className: "flex items-center gap-2 group",
+										children: [/* @__PURE__ */ jsx("input", {
+											type: "checkbox",
+											id: `feature-${feature.id}`,
+											checked: isChecked,
+											onChange: () => toggleFeature(feature.id),
+											className: "w-5 h-5 rounded border-secondary-300 text-primary-900 focus:ring-primary-900/20 cursor-pointer"
+										}), /* @__PURE__ */ jsx("label", {
+											htmlFor: `feature-${feature.id}`,
+											className: "text-xs text-secondary-700 group-hover:text-primary-900 transition-colors cursor-pointer select-none",
+											children: locale === "ar" ? feature.name_ar : feature.name_en
+										})]
+									}, feature.id);
+								})
+							})]
+						}),
+						/* @__PURE__ */ jsx("div", {
+							className: "w-full flex justify-end pt-3 border-t border-secondary-100/50",
+							children: /* @__PURE__ */ jsxs("button", {
+								type: "button",
+								onClick: handleReset,
+								className: "w-full sm:w-auto px-6 h-10 text-secondary-700 bg-transparent hover:bg-secondary-200/50 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2",
+								children: [/* @__PURE__ */ jsx("svg", {
+									className: "w-4 h-4",
+									fill: "none",
+									viewBox: "0 0 24 24",
+									stroke: "currentColor",
+									strokeWidth: 2,
+									children: /* @__PURE__ */ jsx("path", {
+										strokeLinecap: "round",
+										strokeLinejoin: "round",
+										d: "M6 18L18 6M6 6l12 12"
+									})
+								}), locale === "ar" ? "مسح الفلاتر" : "Clear Filters"]
+							})
+						})
+					]
+				})
+			})]
+		})
+	});
+}
+//#endregion
+//#region resources/js/Components/UI/ProjectCard.jsx
 var PLACEHOLDER$4 = "/images/fallback.webp";
 function SkeletonCard$1() {
+	return /* @__PURE__ */ jsxs("div", {
+		className: "bg-white rounded-2xl shadow-card overflow-hidden border border-secondary-100 animate-pulse",
+		children: [/* @__PURE__ */ jsx("div", { className: "skeleton h-52 w-full bg-secondary-100" }), /* @__PURE__ */ jsxs("div", {
+			className: "p-5 space-y-3",
+			children: [
+				/* @__PURE__ */ jsx("div", { className: "skeleton h-5 w-3/4 rounded-md bg-secondary-100" }),
+				/* @__PURE__ */ jsx("div", { className: "skeleton h-4 w-1/2 rounded bg-secondary-100" }),
+				/* @__PURE__ */ jsxs("div", {
+					className: "pt-3 border-t border-secondary-100 flex items-center justify-between",
+					children: [/* @__PURE__ */ jsx("div", { className: "skeleton h-7 w-20 rounded-lg bg-secondary-100" }), /* @__PURE__ */ jsx("div", { className: "skeleton h-7 w-24 rounded-lg bg-secondary-100" })]
+				})
+			]
+		})]
+	});
+}
+function ProjectCard({ project, loading = false }) {
+	const { locale } = usePage().props;
+	const trans = useTrans(locale);
+	const isRtl = locale === "ar";
+	const { compareList, toggleCompare } = useCompare("project");
+	if (loading) return /* @__PURE__ */ jsx(SkeletonCard$1, {});
+	if (!project) return null;
+	const mainImage = project?.images?.find((img) => img.is_main || img.is_primary) || project?.images?.[0];
+	const thumbnail = mainImage?.thumb_url || mainImage?.url || (mainImage?.path ? mainImage.path.startsWith("http") || mainImage.path.startsWith("/") ? mainImage.path : `/storage/${mainImage.path}` : PLACEHOLDER$4);
+	const isCompared = compareList.includes(project?.id);
+	const areaName = project.area?.name || project.area_name || (isRtl ? "مصر" : "Egypt");
+	const imageAlt = project.alt_text || `${project.name || (isRtl ? "مشروع عقاري" : "Project")} ${isRtl ? "في" : "in"} ${areaName} - ${trans("app_name")}`;
+	const unitsCount = project.units_count ?? project.units?.length ?? 0;
+	return /* @__PURE__ */ jsxs("article", {
+		dir: isRtl ? "rtl" : "ltr",
+		className: "bg-white rounded-2xl shadow-card hover:shadow-xl transition-all duration-300 overflow-hidden group border border-secondary-100/80 flex flex-col h-full",
+		children: [/* @__PURE__ */ jsxs("div", {
+			className: "relative overflow-hidden aspect-[4/3] bg-secondary-100",
+			children: [/* @__PURE__ */ jsx(Link, {
+				href: localizedPath(`/projects/${project.slug}`, locale),
+				className: "block w-full h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
+				children: /* @__PURE__ */ jsx(OptimizedImage, {
+					src: thumbnail,
+					alt: imageAlt,
+					width: 480,
+					height: 360,
+					lazy: true,
+					fallbackSrc: PLACEHOLDER$4,
+					className: "w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+				})
+			}), /* @__PURE__ */ jsxs("div", {
+				className: "absolute top-3 inset-x-3 flex items-center justify-between pointer-events-none z-10",
+				children: [/* @__PURE__ */ jsx("span", {
+					className: "bg-white/95 text-secondary-900 text-xs font-semibold px-3 py-1 rounded-full shadow-sm backdrop-blur-md border border-white/40",
+					children: areaName
+				}), project.payment_method && /* @__PURE__ */ jsx("span", {
+					className: "bg-secondary-900/90 text-white text-[11px] font-medium px-2.5 py-0.5 rounded-full shadow-sm backdrop-blur-md",
+					children: project.payment_method === "cash" ? isRtl ? "كاش" : "Cash" : project.payment_method === "installment" ? isRtl ? "تقسيط" : "Installment" : isRtl ? "كاش وتقسيط" : "Cash & Installment"
+				})]
+			})]
+		}), /* @__PURE__ */ jsxs("div", {
+			className: "p-5 flex flex-col flex-1 justify-between gap-4",
+			children: [/* @__PURE__ */ jsxs("div", { children: [
+				/* @__PURE__ */ jsx(Link, {
+					href: localizedPath(`/projects/${project.slug}`, locale),
+					className: "block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded",
+					children: /* @__PURE__ */ jsx("h2", {
+						className: "text-base font-bold text-secondary-950 group-hover:text-primary-900 transition-colors line-clamp-1 mb-1.5",
+						children: project.name
+					})
+				}),
+				project.description && /* @__PURE__ */ jsx("p", {
+					className: "text-xs text-secondary-500 line-clamp-2 leading-relaxed mb-3",
+					children: project.description
+				}),
+				/* @__PURE__ */ jsxs("div", {
+					className: "flex items-center gap-2 flex-wrap text-xs",
+					children: [/* @__PURE__ */ jsxs("span", {
+						className: "bg-primary-50 text-primary-900 px-2.5 py-1 rounded-md font-semibold",
+						children: [
+							unitsCount,
+							" ",
+							trans("units_count") || (isRtl ? "وحدة متاحة" : "Units")
+						]
+					}), project.installment_years > 0 && /* @__PURE__ */ jsx("span", {
+						className: "bg-secondary-50 text-secondary-700 px-2.5 py-1 rounded-md font-medium",
+						children: isRtl ? `تقسيط حتى ${project.installment_years} سنوات` : `Up to ${project.installment_years} yrs installment`
+					})]
+				})
+			] }), /* @__PURE__ */ jsxs("div", {
+				className: "flex items-center justify-between pt-3 border-t border-secondary-100 mt-auto",
+				children: [/* @__PURE__ */ jsx("button", {
+					onClick: (e) => {
+						e.preventDefault();
+						toggleCompare(project.id);
+					},
+					className: `text-xs px-3 py-1.5 rounded-lg border transition-all duration-200 font-medium ${isCompared ? "bg-primary-900 text-white border-primary-900 shadow-sm" : "bg-white text-secondary-600 border-secondary-200 hover:border-primary-900 hover:text-primary-900"}`,
+					"aria-label": `${trans("compare")} ${project.name}`,
+					"aria-pressed": isCompared,
+					children: isCompared ? isRtl ? "تمت الإضافة للمقارنة" : "Added to Compare" : trans("compare")
+				}), /* @__PURE__ */ jsx(Link, {
+					href: localizedPath(`/projects/${project.slug}`, locale),
+					className: "text-xs font-semibold text-primary-900 hover:text-primary-950 hover:underline transition-all",
+					children: trans("show_more") || (isRtl ? "التفاصيل ←" : "Details →")
+				})]
+			})]
+		})]
+	});
+}
+//#endregion
+//#region resources/js/Pages/Public/Areas/Show.jsx
+var Show_exports$3 = /* @__PURE__ */ __exportAll({ default: () => AreaShow });
+function AreaShow({ area, units, projects, seo, areas, unitTypes, features, finishingTypes }) {
+	const { locale, appUrl } = usePage().props;
+	const { url: currentUrl } = usePage();
+	const trans = useTrans(locale);
+	const isRtl = locale === "ar";
+	const [activeTab, setActiveTab] = useState("all");
+	const areaName = isRtl ? area?.name_ar || area?.name_en || area?.name : area?.name_en || area?.name_ar || area?.name;
+	const unitsCount = units?.total ?? units?.data?.length ?? 0;
+	const projectsCount = projects?.total ?? projects?.data?.length ?? 0;
+	const pageTitle = seo?.title || (isRtl ? `عقارات ومشاريع في ${areaName} - ${trans("app_name")}` : `Properties & Projects in ${areaName} - ${trans("app_name")}`);
+	const pageDescription = seo?.description || (isRtl ? `تصفح أحدث الوحدات العقارية والمشاريع المتاحة للبيع والاستثمار في منطقة ${areaName}.` : `Explore the latest real estate units and projects available in ${areaName}.`);
+	const pageKeywords = Array.isArray(seo?.keywords) ? seo.keywords.join(", ") : seo?.keywords;
+	return /* @__PURE__ */ jsxs("div", {
+		dir: isRtl ? "rtl" : "ltr",
+		className: "min-h-screen bg-surface flex flex-col font-sans",
+		children: [
+			/* @__PURE__ */ jsx(SeoHead, {
+				title: pageTitle,
+				description: pageDescription,
+				keywords: pageKeywords,
+				ogImage: seo?.ogImage,
+				canonical: appUrl && currentUrl ? `${appUrl}${currentUrl.split("?")[0]}` : void 0
+			}),
+			/* @__PURE__ */ jsx(Header, {}),
+			/* @__PURE__ */ jsxs("main", {
+				className: "flex-1",
+				children: [
+					/* @__PURE__ */ jsxs("section", {
+						className: "relative bg-secondary-950 py-12 md:py-16 overflow-hidden",
+						children: [
+							/* @__PURE__ */ jsx("div", { className: "absolute inset-0 z-0 bg-gradient-to-r from-secondary-950 via-secondary-900 to-primary-950 opacity-90" }),
+							/* @__PURE__ */ jsx("div", { className: "absolute -top-24 -right-24 w-96 h-96 bg-primary-500/10 rounded-full blur-3xl" }),
+							/* @__PURE__ */ jsx("div", { className: "absolute -bottom-24 -left-24 w-96 h-96 bg-primary-600/10 rounded-full blur-3xl" }),
+							/* @__PURE__ */ jsxs("div", {
+								className: "relative z-10 max-w-container mx-auto px-4",
+								children: [
+									/* @__PURE__ */ jsxs("nav", {
+										className: "flex items-center gap-2 text-xs text-secondary-300 mb-6",
+										"aria-label": "Breadcrumb",
+										children: [
+											/* @__PURE__ */ jsx(Link, {
+												href: localizedPath("/", locale),
+												className: "hover:text-white transition-colors",
+												children: trans("home")
+											}),
+											/* @__PURE__ */ jsx("span", { children: "/" }),
+											/* @__PURE__ */ jsx("span", {
+												className: "text-primary-400 font-semibold",
+												children: areaName
+											})
+										]
+									}),
+									/* @__PURE__ */ jsxs("div", {
+										className: "flex flex-col md:flex-row md:items-center justify-between gap-6",
+										children: [/* @__PURE__ */ jsxs("div", { children: [
+											/* @__PURE__ */ jsxs("div", {
+												className: "inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-500/20 text-primary-300 border border-primary-500/30 text-xs font-semibold mb-3",
+												children: [/* @__PURE__ */ jsxs("svg", {
+													className: "w-3.5 h-3.5",
+													fill: "none",
+													viewBox: "0 0 24 24",
+													stroke: "currentColor",
+													strokeWidth: 2,
+													children: [/* @__PURE__ */ jsx("path", {
+														strokeLinecap: "round",
+														strokeLinejoin: "round",
+														d: "M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+													}), /* @__PURE__ */ jsx("path", {
+														strokeLinecap: "round",
+														strokeLinejoin: "round",
+														d: "M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+													})]
+												}), /* @__PURE__ */ jsx("span", { children: isRtl ? "منطقة عقارية" : "Real Estate Region" })]
+											}),
+											/* @__PURE__ */ jsx("h1", {
+												className: "text-3xl md:text-5xl font-black text-white tracking-tight leading-tight mb-3",
+												children: areaName
+											}),
+											/* @__PURE__ */ jsx("p", {
+												className: "text-secondary-300 text-sm md:text-base max-w-2xl font-normal leading-relaxed",
+												children: isRtl ? `اعثر على أفضل الخيارات العقارية السكنية والتجارية والمشاريع الاستثمارية في منطقة ${areaName}.` : `Find top residential, commercial properties, and investment projects in ${areaName}.`
+											})
+										] }), /* @__PURE__ */ jsxs("div", {
+											className: "flex items-center gap-3 shrink-0",
+											children: [/* @__PURE__ */ jsxs("div", {
+												className: "bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl px-5 py-3 text-center min-w-[110px]",
+												children: [/* @__PURE__ */ jsx("div", {
+													className: "text-2xl font-black text-white",
+													children: unitsCount
+												}), /* @__PURE__ */ jsx("div", {
+													className: "text-xs text-secondary-300 font-medium mt-0.5",
+													children: trans("units")
+												})]
+											}), /* @__PURE__ */ jsxs("div", {
+												className: "bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl px-5 py-3 text-center min-w-[110px]",
+												children: [/* @__PURE__ */ jsx("div", {
+													className: "text-2xl font-black text-primary-400",
+													children: projectsCount
+												}), /* @__PURE__ */ jsx("div", {
+													className: "text-xs text-secondary-300 font-medium mt-0.5",
+													children: trans("projects")
+												})]
+											})]
+										})]
+									}),
+									/* @__PURE__ */ jsx("div", {
+										className: "mt-8",
+										children: /* @__PURE__ */ jsx(SearchBar, {
+											areas,
+											unitTypes,
+											features,
+											finishingTypes,
+											filters: { area_id: area?.id }
+										})
+									})
+								]
+							})
+						]
+					}),
+					/* @__PURE__ */ jsx("section", {
+						className: "max-w-container mx-auto px-4 pt-8 pb-4",
+						children: /* @__PURE__ */ jsx("div", {
+							className: "flex items-center justify-between border-b border-secondary-200 pb-4",
+							children: /* @__PURE__ */ jsxs("div", {
+								className: "flex items-center gap-2 overflow-x-auto no-scrollbar",
+								children: [
+									/* @__PURE__ */ jsxs("button", {
+										onClick: () => setActiveTab("all"),
+										className: `px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 ${activeTab === "all" ? "bg-primary-900 text-white shadow-md" : "bg-white text-secondary-700 hover:bg-secondary-100 border border-secondary-200"}`,
+										children: [
+											isRtl ? "عرض الكل" : "All Listings",
+											" (",
+											unitsCount + projectsCount,
+											")"
+										]
+									}),
+									/* @__PURE__ */ jsxs("button", {
+										onClick: () => setActiveTab("units"),
+										className: `px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 ${activeTab === "units" ? "bg-primary-900 text-white shadow-md" : "bg-white text-secondary-700 hover:bg-secondary-100 border border-secondary-200"}`,
+										children: [
+											trans("units"),
+											" (",
+											unitsCount,
+											")"
+										]
+									}),
+									/* @__PURE__ */ jsxs("button", {
+										onClick: () => setActiveTab("projects"),
+										className: `px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 ${activeTab === "projects" ? "bg-primary-900 text-white shadow-md" : "bg-white text-secondary-700 hover:bg-secondary-100 border border-secondary-200"}`,
+										children: [
+											trans("projects"),
+											" (",
+											projectsCount,
+											")"
+										]
+									})
+								]
+							})
+						})
+					}),
+					(activeTab === "all" || activeTab === "projects") && /* @__PURE__ */ jsxs("section", {
+						className: "max-w-container mx-auto px-4 py-8",
+						children: [/* @__PURE__ */ jsxs("div", {
+							className: "flex items-center justify-between mb-6",
+							children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsxs("h2", {
+								className: "text-2xl font-black text-secondary-950 tracking-tight flex items-center gap-2",
+								children: [/* @__PURE__ */ jsx("span", { className: "w-2.5 h-6 bg-primary-900 rounded-full inline-block" }), isRtl ? `المشاريع في ${areaName}` : `Projects in ${areaName}`]
+							}), /* @__PURE__ */ jsx("p", {
+								className: "text-xs text-secondary-500 mt-1",
+								children: isRtl ? "أحدث المجمعات والمشاريع السكنية والتجارية" : "Latest residential and commercial projects"
+							})] }), projectsCount > 0 && /* @__PURE__ */ jsxs(Link, {
+								href: localizedPath(`/projects?area_id=${area.id}`, locale),
+								className: "text-xs font-bold text-primary-900 hover:text-primary-700 flex items-center gap-1",
+								children: [trans("show_more"), /* @__PURE__ */ jsx("svg", {
+									className: "w-3.5 h-3.5 rtl:rotate-180",
+									fill: "none",
+									viewBox: "0 0 24 24",
+									stroke: "currentColor",
+									strokeWidth: 2.5,
+									children: /* @__PURE__ */ jsx("path", {
+										strokeLinecap: "round",
+										strokeLinejoin: "round",
+										d: "M8.25 4.5l7.5 7.5-7.5 7.5"
+									})
+								})]
+							})]
+						}), projects?.data?.length > 0 ? /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("div", {
+							className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6",
+							children: projects.data.map((project) => /* @__PURE__ */ jsx(ProjectCard, { project }, project.id))
+						}), /* @__PURE__ */ jsx(Pagination, {
+							meta: projects,
+							pageParam: "projects_page"
+						})] }) : /* @__PURE__ */ jsx("div", {
+							className: "bg-white rounded-2xl p-8 text-center border border-secondary-100",
+							children: /* @__PURE__ */ jsx("p", {
+								className: "text-sm text-secondary-500 font-medium",
+								children: isRtl ? `لا توجد مشاريع مضافة حالياً في منطقة ${areaName}` : `No projects available in ${areaName} currently`
+							})
+						})]
+					}),
+					(activeTab === "all" || activeTab === "units") && /* @__PURE__ */ jsxs("section", {
+						className: "max-w-container mx-auto px-4 py-8 border-t border-secondary-100",
+						children: [/* @__PURE__ */ jsxs("div", {
+							className: "flex items-center justify-between mb-6",
+							children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsxs("h2", {
+								className: "text-2xl font-black text-secondary-950 tracking-tight flex items-center gap-2",
+								children: [/* @__PURE__ */ jsx("span", { className: "w-2.5 h-6 bg-primary-600 rounded-full inline-block" }), isRtl ? `الوحدات المعروضة في ${areaName}` : `Units available in ${areaName}`]
+							}), /* @__PURE__ */ jsx("p", {
+								className: "text-xs text-secondary-500 mt-1",
+								children: isRtl ? "وحدات سكنية وتجارية ممتازة للبيع وللاستثمار" : "Residential and commercial units for sale and investment"
+							})] }), unitsCount > 0 && /* @__PURE__ */ jsxs(Link, {
+								href: localizedPath(`/units?area_id=${area.id}`, locale),
+								className: "text-xs font-bold text-primary-900 hover:text-primary-700 flex items-center gap-1",
+								children: [trans("show_more"), /* @__PURE__ */ jsx("svg", {
+									className: "w-3.5 h-3.5 rtl:rotate-180",
+									fill: "none",
+									viewBox: "0 0 24 24",
+									stroke: "currentColor",
+									strokeWidth: 2.5,
+									children: /* @__PURE__ */ jsx("path", {
+										strokeLinecap: "round",
+										strokeLinejoin: "round",
+										d: "M8.25 4.5l7.5 7.5-7.5 7.5"
+									})
+								})]
+							})]
+						}), units?.data?.length > 0 ? /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("div", {
+							className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5",
+							children: units.data.map((unit) => /* @__PURE__ */ jsx(UnitCard, { unit }, unit.id))
+						}), /* @__PURE__ */ jsx(Pagination, {
+							meta: units,
+							pageParam: "units_page"
+						})] }) : /* @__PURE__ */ jsx("div", {
+							className: "bg-white rounded-2xl p-8 text-center border border-secondary-100",
+							children: /* @__PURE__ */ jsx("p", {
+								className: "text-sm text-secondary-500 font-medium",
+								children: isRtl ? `لا توجد وحدات معروضة حالياً في منطقة ${areaName}` : `No units available in ${areaName} currently`
+							})
+						})]
+					})
+				]
+			}),
+			/* @__PURE__ */ jsx(Footer, {})
+		]
+	});
+}
+//#endregion
+//#region resources/js/Components/UI/ArticleCard.jsx
+var PLACEHOLDER$3 = "/images/fallback.webp";
+function SkeletonCard() {
 	return /* @__PURE__ */ jsxs("div", {
 		className: "bg-white rounded-2xl border border-secondary-200/60 shadow-xs overflow-hidden h-full flex flex-col animate-pulse",
 		children: [/* @__PURE__ */ jsx("div", { className: "skeleton h-48 w-full bg-secondary-100" }), /* @__PURE__ */ jsxs("div", {
@@ -12349,9 +13232,9 @@ function ArticleCard({ article, loading = false }) {
 	const { locale } = usePage().props;
 	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
-	if (loading) return /* @__PURE__ */ jsx(SkeletonCard$1, {});
+	if (loading) return /* @__PURE__ */ jsx(SkeletonCard, {});
 	const headerImg = article?.images?.find((img) => img.position === "header") || article?.images?.[0];
-	const thumbnail = headerImg?.thumb_url || headerImg?.url || (headerImg?.path ? headerImg.path.startsWith("http") || headerImg.path.startsWith("/") ? headerImg.path : `/storage/${headerImg.path}` : PLACEHOLDER$4);
+	const thumbnail = headerImg?.thumb_url || headerImg?.url || (headerImg?.path ? headerImg.path.startsWith("http") || headerImg.path.startsWith("/") ? headerImg.path : `/storage/${headerImg.path}` : PLACEHOLDER$3);
 	const imageAlt = article.alt_text || `${article.title} - ${trans("app_name")}`;
 	const categoryName = article.category ? isRtl ? article.category.name_ar : article.category.name_en : null;
 	const formattedDate = article.published_at ? new Date(article.published_at).toLocaleDateString(isRtl ? "ar-EG" : "en-US", {
@@ -12370,7 +13253,7 @@ function ArticleCard({ article, loading = false }) {
 				width: 400,
 				height: 300,
 				lazy: true,
-				fallbackSrc: PLACEHOLDER$4,
+				fallbackSrc: PLACEHOLDER$3,
 				className: "w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
 			}), categoryName && /* @__PURE__ */ jsx("span", {
 				className: "absolute top-3 start-3 px-2.5 py-1 text-xs font-semibold text-secondary-900 bg-white/90 backdrop-blur-sm rounded-lg shadow-xs border border-white/60",
@@ -12383,7 +13266,7 @@ function ArticleCard({ article, loading = false }) {
 					className: "text-xs text-secondary-500 mb-2",
 					children: formattedDate
 				}),
-				/* @__PURE__ */ jsx("h3", {
+				/* @__PURE__ */ jsx("h2", {
 					className: "text-base font-bold text-secondary-950 group-hover:text-primary-900 transition-colors line-clamp-2 leading-snug mb-2",
 					children: article.title
 				}),
@@ -12795,10 +13678,10 @@ function CompareSearch({ type, currentIds }) {
 //#endregion
 //#region resources/js/Pages/Public/Comparison.jsx
 var Comparison_exports = /* @__PURE__ */ __exportAll({ default: () => Comparison });
-var PLACEHOLDER$3 = "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 400 300\"%3E%3Crect fill=\"%23F0F0F0\" width=\"400\" height=\"300\"/%3E%3C/svg%3E";
+var PLACEHOLDER$2 = "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 400 300\"%3E%3Crect fill=\"%23F0F0F0\" width=\"400\" height=\"300\"/%3E%3C/svg%3E";
 function getItemImage(item) {
 	const img = item.images?.[0];
-	return img?.url || (img?.path ? img.path.startsWith("http") || img.path.startsWith("/storage") ? img.path : `/storage/${img.path}` : PLACEHOLDER$3);
+	return img?.url || (img?.path ? img.path.startsWith("http") || img.path.startsWith("/storage") ? img.path : `/storage/${img.path}` : PLACEHOLDER$2);
 }
 function calcScore(item, best) {
 	if (!best) return null;
@@ -13420,10 +14303,12 @@ function Contact() {
 									className: "mb-4",
 									children: [
 										/* @__PURE__ */ jsx("label", {
+											htmlFor: "client_name",
 											className: "block text-sm font-medium text-secondary-950 mb-1",
 											children: trans("your_name", {}, "messages")
 										}),
 										/* @__PURE__ */ jsx("input", {
+											id: "client_name",
 											type: "text",
 											value: data.client_name,
 											onChange: (e) => setData("client_name", e.target.value),
@@ -13439,17 +14324,21 @@ function Contact() {
 								/* @__PURE__ */ jsxs("div", {
 									className: "grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4",
 									children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+										htmlFor: "client_phone",
 										className: "block text-sm font-medium text-secondary-950 mb-1",
 										children: trans("your_phone", {}, "messages")
 									}), /* @__PURE__ */ jsx("input", {
+										id: "client_phone",
 										type: "tel",
 										value: data.client_phone,
 										onChange: (e) => setData("client_phone", e.target.value),
 										className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
 									})] }), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+										htmlFor: "client_email",
 										className: "block text-sm font-medium text-secondary-950 mb-1",
 										children: trans("your_email", {}, "messages")
 									}), /* @__PURE__ */ jsx("input", {
+										id: "client_email",
 										type: "email",
 										value: data.client_email,
 										onChange: (e) => setData("client_email", e.target.value),
@@ -13460,10 +14349,12 @@ function Contact() {
 									className: "mb-6",
 									children: [
 										/* @__PURE__ */ jsx("label", {
+											htmlFor: "content",
 											className: "block text-sm font-medium text-secondary-950 mb-1",
 											children: trans("your_message", {}, "messages")
 										}),
 										/* @__PURE__ */ jsx("textarea", {
+											id: "content",
 											value: data.content,
 											onChange: (e) => setData("content", e.target.value),
 											required: true,
@@ -13508,425 +14399,11 @@ function Contact() {
 	});
 }
 //#endregion
-//#region resources/js/Components/UI/SearchBar.jsx
-function SearchBar({ areas = [], unitTypes = [], features = [], finishingTypes = [], filters = {}, onSearch }) {
-	const { locale } = usePage().props;
-	const trans = useTrans(locale);
-	const isRtl = locale === "ar";
-	const [local, setLocal] = useState({
-		area_id: filters.area_id || "",
-		type_id: filters.type_id || "",
-		transaction: filters.transaction || "",
-		price_min: filters.price_min || "",
-		price_max: filters.price_max || "",
-		size_min: filters.size_min || "",
-		size_max: filters.size_max || "",
-		search: filters.search || "",
-		payment_method: filters.payment_method || "",
-		finishing_type_id: filters.finishing_type_id || "",
-		features: filters.features || []
-	});
-	const [isSearching, setIsSearching] = useState(false);
-	const [showAdvanced, setShowAdvanced] = useState(false);
-	function update(key, value) {
-		setLocal((prev) => ({
-			...prev,
-			[key]: value
-		}));
-	}
-	function handleSubmit(e) {
-		e.preventDefault();
-		setIsSearching(true);
-		const params = {};
-		for (const [k, v] of Object.entries(local)) if (k === "features" && Array.isArray(v) && v.length > 0) params[k] = v;
-		else if (v !== "" && v !== null && v !== void 0 && k !== "features") params[k] = v;
-		if (onSearch) {
-			onSearch(params);
-			setTimeout(() => setIsSearching(false), 300);
-		} else router.get(`/${locale}/units`, params, {
-			preserveState: true,
-			onFinish: () => setIsSearching(false)
-		});
-	}
-	function handleReset() {
-		setLocal({
-			area_id: "",
-			type_id: "",
-			transaction: "",
-			price_min: "",
-			price_max: "",
-			size_min: "",
-			size_max: "",
-			search: "",
-			payment_method: "",
-			finishing_type_id: "",
-			features: []
-		});
-		if (onSearch) onSearch({});
-		else router.get(`/${locale}/units`, {}, { preserveState: true });
-	}
-	function toggleFeature(id) {
-		if (id == null) return;
-		const idStr = String(id);
-		setLocal((prev) => {
-			const currentFeatures = Array.isArray(prev.features) ? prev.features : [];
-			if (currentFeatures.some((f) => f?.toString() === idStr)) return {
-				...prev,
-				features: currentFeatures.filter((f) => f?.toString() !== idStr)
-			};
-			else return {
-				...prev,
-				features: [...currentFeatures, idStr]
-			};
-		});
-	}
-	return /* @__PURE__ */ jsx("div", {
-		className: "w-full max-w-5xl mx-auto relative z-[60]",
-		children: /* @__PURE__ */ jsxs("form", {
-			onSubmit: handleSubmit,
-			dir: isRtl ? "rtl" : "ltr",
-			className: "bg-white rounded-3xl md:rounded-[2rem] shadow-xl hover:shadow-2xl transition-shadow duration-300 w-full",
-			children: [/* @__PURE__ */ jsxs("div", {
-				className: "flex flex-col md:flex-row items-center md:divide-x divide-y md:divide-y-0 rtl:divide-x-reverse divide-secondary-100 p-2 md:p-2.5",
-				children: [
-					/* @__PURE__ */ jsxs("div", {
-						className: "flex-1 w-full px-5 py-3 hover:bg-surface/60 transition-colors cursor-text group rounded-2xl md:rounded-s-3xl md:rounded-e-none",
-						children: [/* @__PURE__ */ jsx("label", {
-							htmlFor: "search-input",
-							className: "block text-[10px] font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors",
-							children: trans("search")
-						}), /* @__PURE__ */ jsx("input", {
-							id: "search-input",
-							type: "text",
-							value: local.search,
-							onChange: (e) => update("search", e.target.value),
-							placeholder: locale === "ar" ? "ابحث بالاسم..." : "Search by name...",
-							className: "w-full bg-transparent border-none text-sm focus:ring-0 text-secondary-800 placeholder-secondary-400 outline-none"
-						})]
-					}),
-					/* @__PURE__ */ jsxs("div", {
-						className: "flex-1 w-full px-5 py-3 hover:bg-surface/60 transition-colors cursor-pointer group rounded-2xl md:rounded-none",
-						children: [/* @__PURE__ */ jsx("label", {
-							htmlFor: "transaction-filter",
-							className: "block text-[10px] font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors",
-							children: trans("transaction")
-						}), /* @__PURE__ */ jsxs(Select, {
-							id: "transaction-filter",
-							value: local.transaction,
-							onChange: (e) => update("transaction", e.target.value),
-							className: "w-full text-secondary-800 outline-none cursor-pointer",
-							children: [
-								/* @__PURE__ */ jsx("option", {
-									value: "",
-									children: locale === "ar" ? "الكل" : "All"
-								}),
-								/* @__PURE__ */ jsx("option", {
-									value: "sale",
-									children: trans("sale")
-								}),
-								/* @__PURE__ */ jsx("option", {
-									value: "rent",
-									children: trans("rent")
-								}),
-								/* @__PURE__ */ jsx("option", {
-									value: "new_project",
-									children: locale === "ar" ? "مشروع جديد" : "New Project"
-								}),
-								/* @__PURE__ */ jsx("option", {
-									value: "commercial",
-									children: locale === "ar" ? "تجاري" : "Commercial"
-								}),
-								/* @__PURE__ */ jsx("option", {
-									value: "residential",
-									children: locale === "ar" ? "سكني" : "Residential"
-								})
-							]
-						})]
-					}),
-					/* @__PURE__ */ jsxs("div", {
-						className: "flex-1 w-full px-5 py-3 hover:bg-surface/60 transition-colors cursor-pointer group rounded-2xl md:rounded-none",
-						children: [/* @__PURE__ */ jsx("label", {
-							htmlFor: "area-filter",
-							className: "block text-[10px] font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors",
-							children: trans("area")
-						}), /* @__PURE__ */ jsxs(Select, {
-							id: "area-filter",
-							value: local.area_id,
-							onChange: (e) => update("area_id", e.target.value),
-							className: "w-full text-secondary-800 outline-none cursor-pointer",
-							children: [/* @__PURE__ */ jsx("option", {
-								value: "",
-								children: locale === "ar" ? "كل المناطق" : "All Areas"
-							}), areas?.map((area) => /* @__PURE__ */ jsx("option", {
-								value: area.id,
-								children: locale === "ar" ? area.name_ar : area.name_en
-							}, area.id))]
-						})]
-					}),
-					/* @__PURE__ */ jsxs("div", {
-						className: "flex-1 w-full px-5 py-3 hover:bg-surface/60 transition-colors cursor-pointer group rounded-2xl md:rounded-none",
-						children: [/* @__PURE__ */ jsx("label", {
-							htmlFor: "type-filter",
-							className: "block text-[10px] font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors",
-							children: trans("type")
-						}), /* @__PURE__ */ jsxs(Select, {
-							id: "type-filter",
-							value: local.type_id,
-							onChange: (e) => update("type_id", e.target.value),
-							className: "w-full text-secondary-800 outline-none cursor-pointer",
-							children: [/* @__PURE__ */ jsx("option", {
-								value: "",
-								children: locale === "ar" ? "كل الأنواع" : "All Types"
-							}), unitTypes?.map((ut) => /* @__PURE__ */ jsx("option", {
-								value: ut.id,
-								children: locale === "ar" ? ut.name_ar : ut.name_en
-							}, ut.id))]
-						})]
-					}),
-					/* @__PURE__ */ jsxs("div", {
-						className: "w-full md:w-auto p-2 flex items-center justify-between md:justify-center gap-3 md:gap-2 shrink-0 md:ps-4",
-						children: [/* @__PURE__ */ jsx("button", {
-							type: "button",
-							onClick: () => setShowAdvanced(!showAdvanced),
-							className: `p-3 rounded-full text-secondary-600 hover:text-primary-900 hover:bg-surface/80 transition-colors ${showAdvanced ? "bg-surface text-primary-900" : ""}`,
-							"aria-label": locale === "ar" ? "تصفية متقدمة" : "Advanced Filters",
-							children: /* @__PURE__ */ jsx("svg", {
-								className: `w-5 h-5 transition-transform duration-300 ${showAdvanced ? "rotate-180" : ""}`,
-								fill: "none",
-								viewBox: "0 0 24 24",
-								stroke: "currentColor",
-								strokeWidth: 2,
-								children: /* @__PURE__ */ jsx("path", {
-									strokeLinecap: "round",
-									strokeLinejoin: "round",
-									d: "M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z"
-								})
-							})
-						}), /* @__PURE__ */ jsx("button", {
-							type: "submit",
-							disabled: isSearching,
-							className: "w-12 h-12 bg-primary-900 text-white rounded-full flex items-center justify-center hover:bg-primary-950 active:scale-95 transition-all duration-200 disabled:opacity-80",
-							"aria-label": trans("search"),
-							children: isSearching ? /* @__PURE__ */ jsxs("svg", {
-								className: "animate-spin w-5 h-5",
-								xmlns: "http://www.w3.org/2000/svg",
-								fill: "none",
-								viewBox: "0 0 24 24",
-								children: [/* @__PURE__ */ jsx("circle", {
-									className: "opacity-25",
-									cx: "12",
-									cy: "12",
-									r: "10",
-									stroke: "currentColor",
-									strokeWidth: "4"
-								}), /* @__PURE__ */ jsx("path", {
-									className: "opacity-75",
-									fill: "currentColor",
-									d: "M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-								})]
-							}) : /* @__PURE__ */ jsx("svg", {
-								className: "w-5 h-5",
-								fill: "none",
-								viewBox: "0 0 24 24",
-								stroke: "currentColor",
-								strokeWidth: 2.5,
-								children: /* @__PURE__ */ jsx("path", {
-									strokeLinecap: "round",
-									strokeLinejoin: "round",
-									d: "M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
-								})
-							})
-						})]
-					})
-				]
-			}), /* @__PURE__ */ jsx("div", {
-				className: `transition-all duration-300 ease-in-out origin-top rounded-b-3xl md:rounded-b-[2rem] ${showAdvanced ? "overflow-visible" : "overflow-hidden"}`,
-				style: {
-					maxHeight: showAdvanced ? "1500px" : "0px",
-					opacity: showAdvanced ? 1 : 0
-				},
-				children: /* @__PURE__ */ jsxs("div", {
-					className: "px-4 py-4 bg-surface/30 border-t border-secondary-100 flex flex-col gap-4",
-					children: [
-						/* @__PURE__ */ jsxs("div", {
-							className: "flex flex-col sm:flex-row gap-4 w-full",
-							children: [/* @__PURE__ */ jsxs("div", {
-								className: "flex-1 w-full",
-								children: [/* @__PURE__ */ jsx("label", {
-									htmlFor: "price-min-input",
-									className: "block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-1",
-									children: locale === "ar" ? "الحد الأدنى للسعر" : "Minimum Price"
-								}), /* @__PURE__ */ jsx("input", {
-									id: "price-min-input",
-									type: "number",
-									min: "0",
-									value: local.price_min,
-									onChange: (e) => update("price_min", e.target.value),
-									placeholder: "0",
-									className: "w-full px-3 py-0 h-10 border border-secondary-200 bg-white rounded-xl text-sm focus:ring-2 focus:ring-primary-900 transition-all duration-200 outline-none"
-								})]
-							}), /* @__PURE__ */ jsxs("div", {
-								className: "flex-1 w-full",
-								children: [/* @__PURE__ */ jsx("label", {
-									htmlFor: "price-max-input",
-									className: "block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-1",
-									children: locale === "ar" ? "الحد الأقصى للسعر" : "Maximum Price"
-								}), /* @__PURE__ */ jsx("input", {
-									id: "price-max-input",
-									type: "number",
-									min: "0",
-									value: local.price_max,
-									onChange: (e) => update("price_max", e.target.value),
-									placeholder: locale === "ar" ? "لا يوجد حد" : "No limit",
-									className: "w-full px-3 py-0 h-10 border border-secondary-200 bg-white rounded-xl text-sm focus:ring-2 focus:ring-primary-900 transition-all duration-200 outline-none"
-								})]
-							})]
-						}),
-						/* @__PURE__ */ jsxs("div", {
-							className: "flex flex-col sm:flex-row gap-4 w-full",
-							children: [/* @__PURE__ */ jsxs("div", {
-								className: "flex-1 w-full",
-								children: [/* @__PURE__ */ jsx("label", {
-									htmlFor: "size-min-input",
-									className: "block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-1",
-									children: locale === "ar" ? "الحد الأدنى للمساحة" : "Minimum Size"
-								}), /* @__PURE__ */ jsx("input", {
-									id: "size-min-input",
-									type: "number",
-									min: "0",
-									value: local.size_min,
-									onChange: (e) => update("size_min", e.target.value),
-									placeholder: "0",
-									className: "w-full px-3 py-0 h-10 border border-secondary-200 bg-white rounded-xl text-sm focus:ring-2 focus:ring-primary-900 transition-all duration-200 outline-none"
-								})]
-							}), /* @__PURE__ */ jsxs("div", {
-								className: "flex-1 w-full",
-								children: [/* @__PURE__ */ jsx("label", {
-									htmlFor: "size-max-input",
-									className: "block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-1",
-									children: locale === "ar" ? "الحد الأقصى للمساحة" : "Maximum Size"
-								}), /* @__PURE__ */ jsx("input", {
-									id: "size-max-input",
-									type: "number",
-									min: "0",
-									value: local.size_max,
-									onChange: (e) => update("size_max", e.target.value),
-									placeholder: locale === "ar" ? "لا يوجد حد" : "No limit",
-									className: "w-full px-3 py-0 h-10 border border-secondary-200 bg-white rounded-xl text-sm focus:ring-2 focus:ring-primary-900 transition-all duration-200 outline-none"
-								})]
-							})]
-						}),
-						/* @__PURE__ */ jsxs("div", {
-							className: "flex flex-col sm:flex-row gap-4 w-full",
-							children: [/* @__PURE__ */ jsxs("div", {
-								className: "flex-1 w-full",
-								children: [/* @__PURE__ */ jsx("label", {
-									htmlFor: "payment-method-filter",
-									className: "block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-1",
-									children: trans("payment_method") || "Payment Method"
-								}), /* @__PURE__ */ jsxs(Select, {
-									id: "payment-method-filter",
-									value: local.payment_method,
-									onChange: (e) => update("payment_method", e.target.value),
-									className: "w-full",
-									children: [
-										/* @__PURE__ */ jsx("option", {
-											value: "",
-											children: trans("all") || "All"
-										}),
-										/* @__PURE__ */ jsx("option", {
-											value: "cash",
-											children: trans("cash") || "Cash"
-										}),
-										/* @__PURE__ */ jsx("option", {
-											value: "installment",
-											children: trans("installment") || "Installment"
-										}),
-										/* @__PURE__ */ jsx("option", {
-											value: "both",
-											children: trans("both") || "Cash & Installment"
-										})
-									]
-								})]
-							}), /* @__PURE__ */ jsxs("div", {
-								className: "flex-1 w-full",
-								children: [/* @__PURE__ */ jsx("label", {
-									htmlFor: "finishing-type-filter",
-									className: "block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-1",
-									children: trans("finishing_type") || "Finishing Type"
-								}), /* @__PURE__ */ jsxs(Select, {
-									id: "finishing-type-filter",
-									value: local.finishing_type_id,
-									onChange: (e) => update("finishing_type_id", e.target.value),
-									className: "w-full",
-									children: [/* @__PURE__ */ jsx("option", {
-										value: "",
-										children: trans("all") || "All"
-									}), finishingTypes?.map((f) => /* @__PURE__ */ jsx("option", {
-										value: f.id,
-										children: locale === "ar" ? f.name_ar : f.name_en
-									}, f.id))]
-								})]
-							})]
-						}),
-						features?.length > 0 && /* @__PURE__ */ jsxs("div", {
-							className: "w-full pt-3 border-t border-secondary-100/50",
-							children: [/* @__PURE__ */ jsx("label", {
-								className: "block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-2",
-								children: trans("features") || "Features"
-							}), /* @__PURE__ */ jsx("div", {
-								className: "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2",
-								children: features.map((feature) => {
-									const isChecked = Array.isArray(local.features) ? local.features.includes(String(feature.id)) || local.features.includes(feature.id) : false;
-									return /* @__PURE__ */ jsxs("div", {
-										className: "flex items-center gap-2 group",
-										children: [/* @__PURE__ */ jsx("input", {
-											type: "checkbox",
-											id: `feature-${feature.id}`,
-											checked: isChecked,
-											onChange: () => toggleFeature(feature.id),
-											className: "w-5 h-5 rounded border-secondary-300 text-primary-900 focus:ring-primary-900/20 cursor-pointer"
-										}), /* @__PURE__ */ jsx("label", {
-											htmlFor: `feature-${feature.id}`,
-											className: "text-xs text-secondary-700 group-hover:text-primary-900 transition-colors cursor-pointer select-none",
-											children: locale === "ar" ? feature.name_ar : feature.name_en
-										})]
-									}, feature.id);
-								})
-							})]
-						}),
-						/* @__PURE__ */ jsx("div", {
-							className: "w-full flex justify-end pt-3 border-t border-secondary-100/50",
-							children: /* @__PURE__ */ jsxs("button", {
-								type: "button",
-								onClick: handleReset,
-								className: "w-full sm:w-auto px-6 h-10 text-secondary-700 bg-transparent hover:bg-secondary-200/50 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2",
-								children: [/* @__PURE__ */ jsx("svg", {
-									className: "w-4 h-4",
-									fill: "none",
-									viewBox: "0 0 24 24",
-									stroke: "currentColor",
-									strokeWidth: 2,
-									children: /* @__PURE__ */ jsx("path", {
-										strokeLinecap: "round",
-										strokeLinejoin: "round",
-										d: "M6 18L18 6M6 6l12 12"
-									})
-								}), locale === "ar" ? "مسح الفلاتر" : "Clear Filters"]
-							})
-						})
-					]
-				})
-			})]
-		})
-	});
-}
-//#endregion
 //#region resources/js/Pages/Public/Home.jsx
 var Home_exports = /* @__PURE__ */ __exportAll({ default: () => Home });
 var HERO_BG = "/images/hero.webp";
 var HERO_BG_MOBILE = "/images/hero-mobile.webp";
-function Home({ featuredUnits, latestUnits, popularSearches, areas, unitTypes, features, finishingTypes }) {
+function Home({ featuredUnits, latestUnits, latestProjects, popularSearches, areas, unitTypes, features, finishingTypes }) {
 	const { locale, settings, appUrl } = usePage().props;
 	const { url: currentUrl } = usePage();
 	const trans = useTrans(locale);
@@ -13935,14 +14412,15 @@ function Home({ featuredUnits, latestUnits, popularSearches, areas, unitTypes, f
 	const heroSubtitle = isRtl ? settings?.hero_subtitle_ar || trans("hero_subtitle") : settings?.hero_subtitle_en || trans("hero_subtitle");
 	const heroImage = settings?.hero_image ? `/storage/${settings.hero_image}` : HERO_BG;
 	const heroImageMobile = settings?.hero_image_mobile ? `/storage/${settings.hero_image_mobile}` : settings?.hero_image ? `/storage/${settings.hero_image}` : HERO_BG_MOBILE;
-	const isLoading = !featuredUnits && !latestUnits;
+	const isLoading = !featuredUnits && !latestUnits && !latestProjects;
 	const hasFeatured = featuredUnits?.data?.length > 0;
 	const hasLatest = latestUnits?.data?.length > 0;
+	const hasProjects = latestProjects?.data?.length > 0;
 	const firstFeaturedImg = featuredUnits?.data?.[0]?.images?.[0];
 	const homeOgImage = firstFeaturedImg?.url || (firstFeaturedImg?.path ? `/storage/${firstFeaturedImg.path}` : null);
 	return /* @__PURE__ */ jsxs("div", {
 		dir: isRtl ? "rtl" : "ltr",
-		className: "min-h-screen bg-surface flex flex-col",
+		className: "min-h-screen bg-surface flex flex-col font-sans",
 		children: [
 			/* @__PURE__ */ jsx(SeoHead, {
 				title: trans("site_title"),
@@ -13962,8 +14440,7 @@ function Home({ featuredUnits, latestUnits, popularSearches, areas, unitTypes, f
 								className: "w-full h-full",
 								children: [/* @__PURE__ */ jsx("source", {
 									media: "(max-width: 640px)",
-									srcSet: heroImageMobile,
-									type: "image/webp"
+									srcSet: heroImageMobile
 								}), /* @__PURE__ */ jsx("img", {
 									src: heroImage,
 									alt: "",
@@ -14023,8 +14500,113 @@ function Home({ featuredUnits, latestUnits, popularSearches, areas, unitTypes, f
 							}, ps.keyword))
 						})]
 					}),
-					/* @__PURE__ */ jsxs("section", {
+					areas?.length > 0 && /* @__PURE__ */ jsxs("section", {
 						className: "max-w-container mx-auto px-4 py-8",
+						children: [/* @__PURE__ */ jsx("div", {
+							className: "flex items-center justify-between mb-6",
+							children: /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("h2", {
+								className: "text-2xl font-black text-secondary-950 tracking-tight",
+								children: trans("explore_areas")
+							}), /* @__PURE__ */ jsx("p", {
+								className: "text-xs text-secondary-500 mt-1",
+								children: trans("explore_areas_subtitle")
+							})] })
+						}), /* @__PURE__ */ jsx("div", {
+							className: "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4",
+							children: areas.map((area) => {
+								const areaName = isRtl ? area.name_ar || area.name_en || area.name : area.name_en || area.name_ar || area.name;
+								return /* @__PURE__ */ jsxs(Link, {
+									href: localizedPath(`/areas/${area.slug || area.id}`, locale),
+									className: "group relative bg-white hover:bg-primary-950 rounded-2xl p-4 border border-secondary-200/80 hover:border-primary-900 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col items-center text-center overflow-hidden",
+									children: [
+										/* @__PURE__ */ jsx("div", {
+											className: "w-10 h-10 rounded-full bg-primary-50 group-hover:bg-primary-900 text-primary-900 group-hover:text-white flex items-center justify-center mb-3 transition-colors duration-300",
+											children: /* @__PURE__ */ jsxs("svg", {
+												className: "w-5 h-5",
+												fill: "none",
+												viewBox: "0 0 24 24",
+												stroke: "currentColor",
+												strokeWidth: 2,
+												children: [/* @__PURE__ */ jsx("path", {
+													strokeLinecap: "round",
+													strokeLinejoin: "round",
+													d: "M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+												}), /* @__PURE__ */ jsx("path", {
+													strokeLinecap: "round",
+													strokeLinejoin: "round",
+													d: "M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+												})]
+											})
+										}),
+										/* @__PURE__ */ jsx("span", {
+											className: "text-sm font-bold text-secondary-900 group-hover:text-white transition-colors duration-300 line-clamp-1",
+											children: areaName
+										}),
+										/* @__PURE__ */ jsxs("span", {
+											className: "text-[11px] font-medium text-secondary-400 group-hover:text-primary-200 mt-1 transition-colors duration-300 flex items-center gap-0.5",
+											children: [/* @__PURE__ */ jsx("span", { children: isRtl ? "عرض المكان" : "Explore" }), /* @__PURE__ */ jsx("svg", {
+												className: "w-3 h-3 rtl:rotate-180",
+												fill: "none",
+												viewBox: "0 0 24 24",
+												stroke: "currentColor",
+												strokeWidth: 2,
+												children: /* @__PURE__ */ jsx("path", {
+													strokeLinecap: "round",
+													strokeLinejoin: "round",
+													d: "M8.25 4.5l7.5 7.5-7.5 7.5"
+												})
+											})]
+										})
+									]
+								}, area.id);
+							})
+						})]
+					}),
+					/* @__PURE__ */ jsx("section", {
+						className: "bg-surface py-12 border-t border-secondary-100",
+						children: /* @__PURE__ */ jsxs("div", {
+							className: "max-w-container mx-auto px-4",
+							children: [/* @__PURE__ */ jsxs("div", {
+								className: "flex items-center justify-between mb-6",
+								children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("h2", {
+									className: "text-2xl font-black text-secondary-950 tracking-tight",
+									children: trans("latest_projects")
+								}), /* @__PURE__ */ jsx("p", {
+									className: "text-xs text-secondary-500 mt-1",
+									children: trans("latest_projects_subtitle")
+								})] }), /* @__PURE__ */ jsxs(Link, {
+									href: localizedPath("/projects", locale),
+									className: "text-xs font-bold text-primary-900 hover:text-primary-700 flex items-center gap-1",
+									children: [trans("show_more"), /* @__PURE__ */ jsx("svg", {
+										className: "w-3.5 h-3.5 rtl:rotate-180",
+										fill: "none",
+										viewBox: "0 0 24 24",
+										stroke: "currentColor",
+										strokeWidth: 2.5,
+										children: /* @__PURE__ */ jsx("path", {
+											strokeLinecap: "round",
+											strokeLinejoin: "round",
+											d: "M8.25 4.5l7.5 7.5-7.5 7.5"
+										})
+									})]
+								})]
+							}), isLoading ? /* @__PURE__ */ jsx("div", {
+								className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5",
+								children: Array.from({ length: 4 }).map((_, i) => /* @__PURE__ */ jsx(ProjectCard, { loading: true }, i))
+							}) : hasProjects && Array.isArray(latestProjects?.data) ? /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("div", {
+								className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5",
+								children: latestProjects.data.map((project) => /* @__PURE__ */ jsx(ProjectCard, { project }, project.id))
+							}), /* @__PURE__ */ jsx(Pagination, {
+								meta: latestProjects,
+								links: latestProjects?.links
+							})] }) : /* @__PURE__ */ jsx("p", {
+								className: "text-sm text-muted text-center py-12",
+								children: trans("no_results")
+							})]
+						})
+					}),
+					/* @__PURE__ */ jsxs("section", {
+						className: "max-w-container mx-auto px-4 py-12 border-t border-secondary-100",
 						children: [/* @__PURE__ */ jsxs("div", {
 							className: "flex items-center justify-between mb-6",
 							children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("h2", {
@@ -14110,114 +14692,6 @@ function Home({ featuredUnits, latestUnits, popularSearches, areas, unitTypes, f
 			}),
 			/* @__PURE__ */ jsx(Footer, {})
 		]
-	});
-}
-//#endregion
-//#region resources/js/Components/UI/ProjectCard.jsx
-var PLACEHOLDER$2 = "/images/fallback.webp";
-function SkeletonCard() {
-	return /* @__PURE__ */ jsxs("div", {
-		className: "bg-white rounded-2xl shadow-card overflow-hidden border border-secondary-100 animate-pulse",
-		children: [/* @__PURE__ */ jsx("div", { className: "skeleton h-52 w-full bg-secondary-100" }), /* @__PURE__ */ jsxs("div", {
-			className: "p-5 space-y-3",
-			children: [
-				/* @__PURE__ */ jsx("div", { className: "skeleton h-5 w-3/4 rounded-md bg-secondary-100" }),
-				/* @__PURE__ */ jsx("div", { className: "skeleton h-4 w-1/2 rounded bg-secondary-100" }),
-				/* @__PURE__ */ jsxs("div", {
-					className: "pt-3 border-t border-secondary-100 flex items-center justify-between",
-					children: [/* @__PURE__ */ jsx("div", { className: "skeleton h-7 w-20 rounded-lg bg-secondary-100" }), /* @__PURE__ */ jsx("div", { className: "skeleton h-7 w-24 rounded-lg bg-secondary-100" })]
-				})
-			]
-		})]
-	});
-}
-function ProjectCard({ project, loading = false }) {
-	const { locale } = usePage().props;
-	const trans = useTrans(locale);
-	const isRtl = locale === "ar";
-	const { compareList, toggleCompare } = useCompare("project");
-	if (loading) return /* @__PURE__ */ jsx(SkeletonCard, {});
-	if (!project) return null;
-	const mainImage = project?.images?.find((img) => img.is_main || img.is_primary) || project?.images?.[0];
-	const thumbnail = mainImage?.thumb_url || mainImage?.url || (mainImage?.path ? mainImage.path.startsWith("http") || mainImage.path.startsWith("/") ? mainImage.path : `/storage/${mainImage.path}` : PLACEHOLDER$2);
-	const isCompared = compareList.includes(project?.id);
-	const areaName = project.area?.name || project.area_name || (isRtl ? "مصر" : "Egypt");
-	const imageAlt = project.alt_text || `${project.name || (isRtl ? "مشروع عقاري" : "Project")} ${isRtl ? "في" : "in"} ${areaName} - ${trans("app_name")}`;
-	const unitsCount = project.units_count ?? project.units?.length ?? 0;
-	return /* @__PURE__ */ jsxs("article", {
-		dir: isRtl ? "rtl" : "ltr",
-		className: "bg-white rounded-2xl shadow-card hover:shadow-xl transition-all duration-300 overflow-hidden group border border-secondary-100/80 flex flex-col h-full",
-		children: [/* @__PURE__ */ jsxs("div", {
-			className: "relative overflow-hidden aspect-[4/3] bg-secondary-100",
-			children: [/* @__PURE__ */ jsx(Link, {
-				href: localizedPath(`/projects/${project.slug}`, locale),
-				className: "block w-full h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
-				children: /* @__PURE__ */ jsx(OptimizedImage, {
-					src: thumbnail,
-					alt: imageAlt,
-					width: 480,
-					height: 360,
-					lazy: true,
-					fallbackSrc: PLACEHOLDER$2,
-					className: "w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
-				})
-			}), /* @__PURE__ */ jsxs("div", {
-				className: "absolute top-3 inset-x-3 flex items-center justify-between pointer-events-none z-10",
-				children: [/* @__PURE__ */ jsx("span", {
-					className: "bg-white/95 text-secondary-900 text-xs font-semibold px-3 py-1 rounded-full shadow-sm backdrop-blur-md border border-white/40",
-					children: areaName
-				}), project.payment_method && /* @__PURE__ */ jsx("span", {
-					className: "bg-secondary-900/90 text-white text-[11px] font-medium px-2.5 py-0.5 rounded-full shadow-sm backdrop-blur-md",
-					children: project.payment_method === "cash" ? isRtl ? "كاش" : "Cash" : project.payment_method === "installment" ? isRtl ? "تقسيط" : "Installment" : isRtl ? "كاش وتقسيط" : "Cash & Installment"
-				})]
-			})]
-		}), /* @__PURE__ */ jsxs("div", {
-			className: "p-5 flex flex-col flex-1 justify-between gap-4",
-			children: [/* @__PURE__ */ jsxs("div", { children: [
-				/* @__PURE__ */ jsx(Link, {
-					href: localizedPath(`/projects/${project.slug}`, locale),
-					className: "block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded",
-					children: /* @__PURE__ */ jsx("h2", {
-						className: "text-base font-bold text-secondary-950 group-hover:text-primary-900 transition-colors line-clamp-1 mb-1.5",
-						children: project.name
-					})
-				}),
-				project.description && /* @__PURE__ */ jsx("p", {
-					className: "text-xs text-secondary-500 line-clamp-2 leading-relaxed mb-3",
-					children: project.description
-				}),
-				/* @__PURE__ */ jsxs("div", {
-					className: "flex items-center gap-2 flex-wrap text-xs",
-					children: [/* @__PURE__ */ jsxs("span", {
-						className: "bg-primary-50 text-primary-900 px-2.5 py-1 rounded-md font-semibold",
-						children: [
-							unitsCount,
-							" ",
-							trans("units_count") || (isRtl ? "وحدة متاحة" : "Units")
-						]
-					}), project.installment_years > 0 && /* @__PURE__ */ jsx("span", {
-						className: "bg-secondary-50 text-secondary-700 px-2.5 py-1 rounded-md font-medium",
-						children: isRtl ? `تقسيط حتى ${project.installment_years} سنوات` : `Up to ${project.installment_years} yrs installment`
-					})]
-				})
-			] }), /* @__PURE__ */ jsxs("div", {
-				className: "flex items-center justify-between pt-3 border-t border-secondary-100 mt-auto",
-				children: [/* @__PURE__ */ jsx("button", {
-					onClick: (e) => {
-						e.preventDefault();
-						toggleCompare(project.id);
-					},
-					className: `text-xs px-3 py-1.5 rounded-lg border transition-all duration-200 font-medium ${isCompared ? "bg-primary-900 text-white border-primary-900 shadow-sm" : "bg-white text-secondary-600 border-secondary-200 hover:border-primary-900 hover:text-primary-900"}`,
-					"aria-label": `${trans("compare")} ${project.name}`,
-					"aria-pressed": isCompared,
-					children: isCompared ? isRtl ? "تمت الإضافة للمقارنة" : "Added to Compare" : trans("compare")
-				}), /* @__PURE__ */ jsx(Link, {
-					href: localizedPath(`/projects/${project.slug}`, locale),
-					className: "text-xs font-semibold text-primary-900 hover:text-primary-950 hover:underline transition-all",
-					children: trans("show_more") || (isRtl ? "التفاصيل ←" : "Details →")
-				})]
-			})]
-		})]
 	});
 }
 //#endregion
@@ -14980,6 +15454,7 @@ function ProjectShow({ project }) {
 								e.stopPropagation();
 								setLightboxIndex(i);
 							},
+							"aria-label": isRtl ? `صورة ${i + 1}` : `Image ${i + 1}`,
 							className: `w-3 h-3 rounded-full ${i === lightboxIndex ? "bg-white" : "bg-white/40"}`
 						}, i))
 					})
@@ -15201,7 +15676,7 @@ function UnitShow({ unit, similarUnits }) {
 				title: `${unit?.name || ""} - ${trans("site_title")}`,
 				description: unit?.meta_description || unit?.description || "",
 				keywords: unit?.keywords || "",
-				ogImage: unit?.images?.[0]?.path ? `/storage/${unit.images[0].path}` : null,
+				ogImage: unit?.images?.find((img) => img.is_main || img.is_primary)?.url || unit?.images?.[0]?.url || null,
 				ogType: "website"
 			}),
 			jsonLd && /* @__PURE__ */ jsx("script", {
@@ -15680,6 +16155,7 @@ function UnitShow({ unit, similarUnits }) {
 								e.stopPropagation();
 								setLightboxIndex(i);
 							},
+							"aria-label": isRtl ? `صورة ${i + 1}` : `Image ${i + 1}`,
 							className: `w-3 h-3 rounded-full ${i === lightboxIndex ? "bg-white" : "bg-white/40"}`
 						}, i))
 					})
@@ -16747,7 +17223,8 @@ async function renderPage(page) {
 				"./Pages/Admin/Users/Create.jsx": Create_exports,
 				"./Pages/Admin/Users/Index.jsx": Index_exports$3,
 				"./Pages/Public/About.jsx": About_exports,
-				"./Pages/Public/Agents/Show.jsx": Show_exports$3,
+				"./Pages/Public/Agents/Show.jsx": Show_exports$4,
+				"./Pages/Public/Areas/Show.jsx": Show_exports$3,
 				"./Pages/Public/Articles/Index.jsx": Index_exports$2,
 				"./Pages/Public/Articles/Show.jsx": Show_exports$2,
 				"./Pages/Public/Comparison.jsx": Comparison_exports,

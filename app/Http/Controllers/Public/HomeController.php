@@ -31,6 +31,7 @@ class HomeController
                 return [
                     'featuredUnits' => $this->listingService->getFeaturedUnits(8),
                     'latestUnits' => $this->listingService->getLatestUnits(12),
+                    'latestProjects' => $this->listingService->getLatestProjects(8),
                     'popularSearches' => $this->searchService->getPopularSearches(),
                     'areas' => $this->lookupService->areas(),
                     'unitTypes' => $this->lookupService->unitTypes(),

@@ -97,7 +97,7 @@ export default function UnitShow({ unit, similarUnits }) {
                 title={`${unit?.name || ''} - ${trans('site_title')}`}
                 description={unit?.meta_description || unit?.description || ''}
                 keywords={unit?.keywords || ''}
-                ogImage={unit?.images?.[0]?.path ? `/storage/${unit.images[0].path}` : null}
+                ogImage={unit?.images?.find(img => img.is_main || img.is_primary)?.url || unit?.images?.[0]?.url || null}
                 ogType="website"
             />
             {jsonLd && (
@@ -501,6 +501,7 @@ export default function UnitShow({ unit, similarUnits }) {
                                 <button
                                     key={i}
                                     onClick={e => { e.stopPropagation(); setLightboxIndex(i) }}
+                                    aria-label={isRtl ? `صورة ${i + 1}` : `Image ${i + 1}`}
                                     className={`w-3 h-3 rounded-full ${
                                         i === lightboxIndex ? 'bg-white' : 'bg-white/40'
                                     }`}

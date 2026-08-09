@@ -44,19 +44,25 @@ class SeoMetaService
         $slugField = "slug_{$locale}";
         $arSlug = $model->slug_ar ?? $model->slug;
         $enSlug = $model->slug_en ?? $model->slug;
+<<<<<<< HEAD
 
         $relativeImage = $this->resolveImage($model->images);
+=======
+        $ogType = $model instanceof Article || $model instanceof Unit ? 'article' : 'website';
+>>>>>>> 074cfdd (اصلاح seo)
 
         return [
             'title' => $title,
             'description' => $description,
-            'image' => $relativeImage,
+            'keywords' => $this->keywords($model->keywords),
+            'image' => $this->imagePath($model->images),
             'canonical' => url("/{$locale}/{$section}/".($model->$slugField ?? $model->slug)),
             'hreflang' => [
                 'ar' => url("/ar/{$section}/{$arSlug}"),
                 'en' => url("/en/{$section}/{$enSlug}"),
                 'x-default' => url("/ar/{$section}/{$arSlug}"),
             ],
+            'og_type' => $ogType,
             'schema' => $schema,
         ];
     }
@@ -68,10 +74,12 @@ class SeoMetaService
         $section   = $listing instanceof Unit ? 'units' : 'projects';
         $url       = url("/{$locale}/{$section}/".($listing->$slugField ?? $listing->slug));
 
+        $isUnit = $listing instanceof Unit;
+
         $schema = array_filter([
             '@context'     => 'https://schema.org',
-            '@type'        => 'RealEstateListing',
-            '@id'          => $url.'#listing',
+            '@type'        => $isUnit ? 'RealEstateListing' : 'RealEstate',
+            '@id'          => $url.'#'.($isUnit ? 'listing' : 'project'),
             'name'         => $listing->name,
             'description'  => $this->description($listing->meta_description ?? $listing->description),
             'image'        => $this->resolveImage($listing->images, assetUrl: true) ?: null,
@@ -80,11 +88,11 @@ class SeoMetaService
             'dateModified' => $listing->updated_at?->toIso8601String(),
         ], fn($v) => $v !== null && $v !== '');
 
-        if ($listing instanceof Unit && $listing->price !== null) {
+        if ($isUnit && $listing->price !== null) {
             $schema['offers'] = [
                 '@type'         => 'Offer',
                 'price'         => $listing->price,
-                'priceCurrency' => 'EGP',
+                'priceCurrency' => config('app.currency', 'EGP'),
                 'availability'  => 'https://schema.org/InStock',
                 'url'           => $url,
             ];
@@ -154,5 +162,14 @@ class SeoMetaService
 
         // 3. Collapse whitespace and trim, then limit to 160 chars for SEO
         return (string) str($clean)->squish()->limit(160);
+    }
+
+    private function keywords(mixed $keywords): string
+    {
+        if (is_array($keywords)) {
+            return implode(', ', array_filter($keywords));
+        }
+
+        return (string) $keywords;
     }
 }

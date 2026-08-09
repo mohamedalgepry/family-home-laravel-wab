@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\ProfileController;
+use App\Http\Controllers\Public\AreaController as PublicAreaController;
 use App\Http\Controllers\Public\ArticleController;
 use App\Http\Controllers\Public\ComparisonController;
 use App\Http\Controllers\Public\HomeController;
@@ -27,6 +28,7 @@ Route::get('/sitemap.xml', [SitemapController::class, 'index']);
 Route::get('/sitemap-static.xml', [SitemapController::class, 'static']);
 Route::get('/sitemap-units.xml', [SitemapController::class, 'units']);
 Route::get('/sitemap-projects.xml', [SitemapController::class, 'projects']);
+Route::get('/sitemap-areas.xml', [SitemapController::class, 'areas']);
 Route::get('/sitemap-articles.xml', [SitemapController::class, 'articles']);
 Route::get('/sitemap-categories.xml', [SitemapController::class, 'categories']);
 Route::get('/robots.txt', [SitemapController::class, 'robots']);
@@ -115,22 +117,26 @@ Route::prefix('{locale}')->whereIn('locale', ['ar', 'en'])->middleware(SetLocale
     Route::prefix('units')->group(function () {
         Route::get('/', [UnitController::class, 'index'])->middleware('throttle:search');
         Route::get('/deals', [UnitController::class, 'deals'])->middleware('throttle:search');
-        Route::get('/{slug}', [UnitController::class, 'show']);
+        Route::get('/{slug}', [UnitController::class, 'show'])->middleware('throttle:property-search');
     });
 
     Route::prefix('projects')->group(function () {
         Route::get('/', [ProjectController::class, 'index'])->middleware('throttle:search');
-        Route::get('/{slug}', [ProjectController::class, 'show']);
+        Route::get('/{slug}', [ProjectController::class, 'show'])->middleware('throttle:property-search');
+    });
+
+    Route::prefix('areas')->group(function () {
+        Route::get('/{slug}', [PublicAreaController::class, 'show'])->middleware('throttle:property-search')->name('areas.show');
     });
 
     Route::prefix('articles')->group(function () {
         Route::get('/', [ArticleController::class, 'index'])->middleware('throttle:search');
-        Route::get('/{slug}', [ArticleController::class, 'show']);
+        Route::get('/{slug}', [ArticleController::class, 'show'])->middleware('throttle:property-search');
     });
 
-    Route::get('/agents/{id}', [AgentController::class, 'show'])->name('agents.show');
+    Route::get('/agents/{id}', [AgentController::class, 'show'])->middleware('throttle:property-search')->name('agents.show');
 
-    Route::get('/compare', [ComparisonController::class, 'index']);
+    Route::get('/compare', [ComparisonController::class, 'index'])->middleware('throttle:property-search');
     Route::get('/compare/search', [ComparisonController::class, 'search'])
         ->middleware('throttle:search')
         ->name('compare.search');

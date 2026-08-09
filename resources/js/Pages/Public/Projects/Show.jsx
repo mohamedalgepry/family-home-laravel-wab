@@ -371,6 +371,7 @@ export default function ProjectShow({ project }) {
                                 <button
                                     key={i}
                                     onClick={e => { e.stopPropagation(); setLightboxIndex(i) }}
+                                    aria-label={isRtl ? `صورة ${i + 1}` : `Image ${i + 1}`}
                                     className={`w-3 h-3 rounded-full ${
                                         i === lightboxIndex ? 'bg-white' : 'bg-white/40'
                                     }`}

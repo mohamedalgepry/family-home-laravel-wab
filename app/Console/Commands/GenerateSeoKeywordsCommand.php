@@ -184,8 +184,8 @@ class GenerateSeoKeywordsCommand extends Command
                     continue;
                 }
 
-                $titleAr = $unit->title_ar ?? $unit->title ?? '';
-                $titleEn = $unit->title_en ?? $unit->title ?? '';
+                $titleAr = $unit->name_ar ?? $unit->title ?? $unit->name ?? '';
+                $titleEn = $unit->name_en ?? $unit->title ?? $unit->name ?? '';
                 $type = $unit->type?->name ?? 'شقة';
                 $area = $unit->area?->name ?? 'مصر';
 
@@ -312,8 +312,9 @@ class GenerateSeoKeywordsCommand extends Command
             ]);
         }
 
-        // Flush inertia / pageSeo cache if present
-        Cache::forget('page_seo');
+        // Flush inertia / pageSeo cache if present (must match the key used by
+        // SeoService::getPageSeoFromDb and HandleInertiaRequests, otherwise stale SEO persists).
+        Cache::forget('seo_pages_cache');
 
         $this->info('Successfully completed SEO keywords generation!');
 

@@ -113,9 +113,9 @@ it('builds a project meta without offers in the schema', function () {
 
     expect($meta['canonical'])->toBe(url('/en/projects/'.$project->slug_en))
         ->and($meta['image'])->toBe('projects/main.jpg')
-        ->and($schema['@type'])->toBe('RealEstateListing')
+        ->and($schema['@type'])->toBe('RealEstate')
         ->and($schema['name'])->toBe('Project En')
-        ->and($schema['@id'])->toEndWith('#listing')
+        ->and($schema['@id'])->toEndWith('#project')
         ->and($schema['url'])->toBe(url('/en/projects/'.$project->slug_en))
         ->and($schema['datePosted'])->not->toBeNull()
         ->and($schema['dateModified'])->not->toBeNull()

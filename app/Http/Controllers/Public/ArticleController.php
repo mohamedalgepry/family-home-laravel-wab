@@ -85,9 +85,12 @@ class ArticleController
             ->limit(4)
             ->get();
 
-        $article->content_ar = Sanitizer::rich($article->content_ar ?? '');
-        $article->content_en = Sanitizer::rich($article->content_en ?? '');
-        $article->content = Sanitizer::rich($article->content ?? '');
+        // نمرّر لغة واحدة فقط (لغة العرض الحالية) بدلاً من إرسال content_ar + content_en + content معاً
+        $rawContent = app()->getLocale() === 'ar'
+            ? ($article->content_ar ?: $article->content)
+            : ($article->content_en ?: $article->content);
+        $article->content = Sanitizer::rich($rawContent);
+        unset($article->content_ar, $article->content_en);
 
         $meta = $this->seoMetaService->forArticle($article);
 
@@ -102,7 +105,7 @@ class ArticleController
     {
         return Article::where('is_published', true)
             ->when($categoryId, fn ($query) => $query->where('category_id', $categoryId))
-            ->with('images')
+            ->with(['images', 'category'])
             ->orderByDesc('published_at')
             ->paginate(12);
     }

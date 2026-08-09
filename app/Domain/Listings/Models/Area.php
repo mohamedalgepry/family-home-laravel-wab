@@ -7,7 +7,13 @@ use Illuminate\Support\Str;
 
 class Area extends Model
 {
-    protected $fillable = ['name_ar', 'name_en', 'slug', 'is_active', 'sort_order'];
+    protected $fillable = [
+        'name_ar', 'name_en', 'slug', 'is_active', 'sort_order',
+        'meta_title_ar', 'meta_title_en',
+        'meta_description_ar', 'meta_description_en',
+        'meta_keywords_ar', 'meta_keywords_en',
+        'image_path',
+    ];
 
     protected $appends = ['name'];
 
@@ -23,6 +29,8 @@ class Area extends Model
         return [
             'is_active' => 'boolean',
             'sort_order' => 'integer',
+            'meta_keywords_ar' => 'array',
+            'meta_keywords_en' => 'array',
         ];
     }
 
@@ -41,5 +49,15 @@ class Area extends Model
     public function scopeSorted($query)
     {
         return $query->orderBy('sort_order')->orderBy('name_en');
+    }
+
+    public function units()
+    {
+        return $this->hasMany(Unit::class);
+    }
+
+    public function projects()
+    {
+        return $this->hasMany(Project::class);
     }
 }

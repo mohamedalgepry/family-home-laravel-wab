@@ -46,6 +46,13 @@ class SitemapController
         );
     }
 
+    public function areas(): Response
+    {
+        return $this->xmlResponse(
+            $this->sitemapService->remember('sitemap_areas_xml', fn () => $this->builder->buildAreas())
+        );
+    }
+
     public function articles(): Response
     {
         return $this->xmlResponse(

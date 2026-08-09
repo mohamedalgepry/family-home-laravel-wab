@@ -2,6 +2,7 @@
 
 namespace App\Domain\Listings\Services;
 
+use App\Domain\Listings\Models\Area;
 use App\Domain\Listings\Models\Article;
 use App\Domain\Listings\Models\Category;
 use App\Domain\Listings\Models\Project;
@@ -31,7 +32,7 @@ class SitemapBuilder
         $xml = '<?xml version="1.0" encoding="UTF-8"?>'."\n";
         $xml .= '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'."\n";
 
-        foreach (['static', 'units', 'projects', 'articles', 'categories'] as $part) {
+        foreach (['static', 'units', 'projects', 'areas', 'articles', 'categories'] as $part) {
             $xml .= "    <sitemap>\n";
             $xml .= '        <loc>'.htmlspecialchars("{$baseUrl}/sitemap-{$part}.xml", ENT_XML1, 'UTF-8')."</loc>\n";
             $xml .= "    </sitemap>\n";
@@ -159,6 +160,29 @@ class SitemapBuilder
         return $xml.$this->endUrlSet();
     }
 
+    public function buildAreas(): string
+    {
+        $xml = $this->startUrlSet();
+
+        Area::active()->chunk(500, function ($areas) use (&$xml) {
+            foreach ($areas as $area) {
+                $slug = $area->slug;
+                if (! $slug) {
+                    continue;
+                }
+
+                $xml .= $this->urlEntry(
+                    ['ar' => "/areas/{$slug}", 'en' => "/areas/{$slug}"],
+                    $area->updated_at,
+                    '0.7',
+                    'weekly'
+                );
+            }
+        });
+
+        return $xml.$this->endUrlSet();
+    }
+
     public function buildRobots(): string
     {
         $baseUrl = $this->baseUrl();
@@ -170,6 +194,7 @@ class SitemapBuilder
             'Allow: /en/',
             'Allow: /units/',
             'Allow: /projects/',
+            'Allow: /areas/',
             'Allow: /articles/',
             'Allow: /about',
             'Allow: /contact',

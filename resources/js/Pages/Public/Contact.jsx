@@ -59,8 +59,9 @@ export default function Contact() {
                 <div className="bg-white rounded-xl shadow-card p-6 sm:p-8">
                     <form onSubmit={handleSubmit} noValidate>
                         <div className="mb-4">
-                            <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('your_name', {}, 'messages')}</label>
+                            <label htmlFor="client_name" className="block text-sm font-medium text-secondary-950 mb-1">{trans('your_name', {}, 'messages')}</label>
                             <input
+                                id="client_name"
                                 type="text"
                                 value={data.client_name}
                                 onChange={e => setData('client_name', e.target.value)}
@@ -72,8 +73,9 @@ export default function Contact() {
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                             <div>
-                                <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('your_phone', {}, 'messages')}</label>
+                                <label htmlFor="client_phone" className="block text-sm font-medium text-secondary-950 mb-1">{trans('your_phone', {}, 'messages')}</label>
                                 <input
+                                    id="client_phone"
                                     type="tel"
                                     value={data.client_phone}
                                     onChange={e => setData('client_phone', e.target.value)}
@@ -81,8 +83,9 @@ export default function Contact() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('your_email', {}, 'messages')}</label>
+                                <label htmlFor="client_email" className="block text-sm font-medium text-secondary-950 mb-1">{trans('your_email', {}, 'messages')}</label>
                                 <input
+                                    id="client_email"
                                     type="email"
                                     value={data.client_email}
                                     onChange={e => setData('client_email', e.target.value)}
@@ -92,8 +95,9 @@ export default function Contact() {
                         </div>
 
                         <div className="mb-6">
-                            <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('your_message', {}, 'messages')}</label>
+                            <label htmlFor="content" className="block text-sm font-medium text-secondary-950 mb-1">{trans('your_message', {}, 'messages')}</label>
                             <textarea
+                                id="content"
                                 value={data.content}
                                 onChange={e => setData('content', e.target.value)}
                                 required

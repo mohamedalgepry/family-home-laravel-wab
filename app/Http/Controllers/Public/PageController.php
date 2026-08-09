@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Public;
 use App\Domain\Common\Support\Sanitizer;
 use App\Domain\Listings\Models\AboutPage;
 use App\Http\Controllers\Controller;
+use App\Services\SeoService;
 use Illuminate\Support\Facades\App;
 use Inertia\Inertia;
 
@@ -54,7 +55,8 @@ class PageController extends Controller
             $locale = 'ar';
         }
 
-        return redirect()->route('home', ['locale' => $locale]);
+        // 301 دائم للواحة الحفانية باللغة لمنع المشعّبات والجزء من الـ SEO
+        return redirect()->route('home', ['locale' => $locale], 301);
     }
 
     public function about()
@@ -68,11 +70,11 @@ class PageController extends Controller
 
         return Inertia::render('Public/About', [
             'page' => $about,
-        ]);
+        ])->withViewData(['meta' => app(SeoService::class)->forPage('about')]);
     }
 
     public function contact()
     {
-        return Inertia::render('Public/Contact');
+        return Inertia::render('Public/Contact')->withViewData(['meta' => app(SeoService::class)->forPage('contact')]);
     }
 }

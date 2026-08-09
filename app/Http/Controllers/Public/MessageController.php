@@ -16,6 +16,11 @@ class MessageController
 
     public function store(StoreMessageRequest $request, Unit $unit): RedirectResponse
     {
+        // لا نستقبل تواصل لوحدات غير فعّالة/منتهية
+        if (! $unit->is_active) {
+            abort(404);
+        }
+
         $data = CreateMessageData::validateAndCreate([
             'unit_id' => $unit->id,
             ...$request->validated(),

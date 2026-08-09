@@ -44,6 +44,7 @@
   "resources/js/Pages/Admin/Users/Index.jsx": [],
   "resources/js/Pages/Public/About.jsx": [],
   "resources/js/Pages/Public/Agents/Show.jsx": [],
+  "resources/js/Pages/Public/Areas/Show.jsx": [],
   "resources/js/Pages/Public/Articles/Index.jsx": [],
   "resources/js/Pages/Public/Articles/Show.jsx": [],
   "resources/js/Pages/Public/Comparison.jsx": [],
@@ -61,10 +62,10 @@
   "resources/js/Pages/Shared/VerifyOtp.jsx": [],
   "resources/js/Pages/Shared/Welcome.jsx": [],
   "resources/js/Utils/locales/ar.js": [
-    "/build/assets/ar-BVTLrJyb.js"
+    "/build/assets/ar-BBykqVvk.js"
   ],
   "resources/js/Utils/locales/en.js": [
-    "/build/assets/en-ZBrXmJRl.js"
+    "/build/assets/en-Ckag1V4G.js"
   ],
   "resources/js/Utils/route.js": [],
   "resources/js/Utils/tiptapFontSize.js": [],

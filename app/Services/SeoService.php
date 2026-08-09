@@ -217,8 +217,8 @@ class SeoService
         $keywords = $customMeta['keywords'] ?? $dbSeo['keywords'] ?? __('seo.default_keywords');
 
         $path = $pageKey === 'home' ? '' : "/{$pageKey}";
-        $canonical = url("/{$locale}{$path}");
-        $hreflang = [
+        $canonical = $customMeta['canonical'] ?? url("/{$locale}{$path}");
+        $hreflang = $customMeta['hreflang'] ?? [
             'ar' => url("/ar{$path}"),
             'en' => url("/en{$path}"),
             'x-default' => url("/ar{$path}"),

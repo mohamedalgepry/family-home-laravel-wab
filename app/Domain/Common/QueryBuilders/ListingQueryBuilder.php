@@ -46,6 +46,13 @@ class ListingQueryBuilder
             return;
         }
 
+        // تهريب عمليات MySQL boolean FULLTEXT ( + - > < ( ) ~ * " @ ) حتى لا تُفسَّر كعوامل
+        // عند تمريرها مباشرة إلى AGAINST. إزالتها تحافظ على سلوك بحث نصي عادي دون أخطاء.
+        $fulltextTerm = self::sanitizeFulltextTerm((string) $search);
+
+        // تهريب الـ wildcards في LIKE حتى لا يتمكن المستخدم من استخدام % أو _ كجوكر
+        $likeTerm = str_replace(['\\', '%', '_'], ['\\\\', '\%', '\_'], (string) $search);
+
         // الأعمدة التي عليها FULLTEXT index (units و projects)
         $fulltextColumns = ['name_ar', 'name_en', 'description_ar', 'description_en'];
 
@@ -57,30 +64,38 @@ class ListingQueryBuilder
         $useFulltext = self::hasFulltextIndex($table)
             && count(array_intersect($fields, $fulltextColumns)) > 0;
 
-        $query->where(function (Builder $q) use ($search, $fields, $slugFields, $fulltextColumns, $useFulltext, $relation) {
-            if ($useFulltext) {
+        $query->where(function (Builder $q) use ($search, $fulltextTerm, $likeTerm, $fields, $slugFields, $fulltextColumns, $useFulltext, $relation) {
+            if ($useFulltext && $fulltextTerm !== '') {
                 // FULLTEXT بحث سريع على الأعمدة النصية الرئيسية
-                $q->whereFullText($fulltextColumns, $search);
+                $q->whereFullText($fulltextColumns, $fulltextTerm);
 
                 // Slug fields: LIKE بدون wildcard في البداية للاستفادة من الـ unique index
                 foreach ($slugFields as $field) {
-                    $q->orWhere($field, 'like', "{$search}%");
+                    $q->orWhere($field, 'like', "{$likeTerm}%");
                 }
             } else {
                 // Fallback لـ SQLite (بيئة الاختبار) أو في حال عدم وجود الفهرس على MySQL
                 foreach ($fields as $field) {
-                    $q->orWhere($field, 'like', "%{$search}%");
+                    $q->orWhere($field, 'like', "%{$likeTerm}%");
                 }
             }
 
             // البحث في اسم المشروع/الوحدة المرتبطة — يبقى كما هو (جدول مختلف)
             if ($relation) {
-                $q->orWhereHas($relation, function (Builder $rel) use ($search) {
-                    $rel->where('name_en', 'like', "%{$search}%")
-                        ->orWhere('name_ar', 'like', "%{$search}%");
+                $q->orWhereHas($relation, function (Builder $rel) use ($likeTerm) {
+                    $rel->where('name_en', 'like', "%{$likeTerm}%")
+                        ->orWhere('name_ar', 'like', "%{$likeTerm}%");
                 });
             }
         });
+    }
+
+    private static function sanitizeFulltextTerm(string $term): string
+    {
+        $term = preg_replace('/[+\-<>()~*"@]/u', ' ', $term);
+        $term = preg_replace('/\s+/u', ' ', $term);
+
+        return trim($term);
     }
 
     private static function hasFulltextIndex(string $table): bool

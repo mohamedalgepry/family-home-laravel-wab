@@ -8,43 +8,74 @@ export default function AdminAreasIndex({ areas }) {
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
     const [editing, setEditing] = useState(null)
+    const [showSeo, setShowSeo] = useState(false)
 
     const { data, setData, post, put, delete: destroy, processing, reset } = useForm({
         name_ar: '',
         name_en: '',
         is_active: true,
         sort_order: 0,
+        meta_title_ar: '',
+        meta_title_en: '',
+        meta_description_ar: '',
+        meta_description_en: '',
+        meta_keywords_ar: '',
+        meta_keywords_en: '',
+        image_path: '',
     })
 
     function startCreate() {
         setEditing('new')
+        setShowSeo(false)
         reset()
     }
 
     function startEdit(area) {
         setEditing(area.id)
+        setShowSeo(false)
         setData({
-            name_ar: area.name_ar,
-            name_en: area.name_en,
-            is_active: area.is_active,
-            sort_order: area.sort_order,
+            name_ar: area.name_ar || '',
+            name_en: area.name_en || '',
+            is_active: area.is_active ?? true,
+            sort_order: area.sort_order || 0,
+            meta_title_ar: area.meta_title_ar || '',
+            meta_title_en: area.meta_title_en || '',
+            meta_description_ar: area.meta_description_ar || '',
+            meta_description_en: area.meta_description_en || '',
+            meta_keywords_ar: Array.isArray(area.meta_keywords_ar) ? area.meta_keywords_ar.join(', ') : (area.meta_keywords_ar || ''),
+            meta_keywords_en: Array.isArray(area.meta_keywords_en) ? area.meta_keywords_en.join(', ') : (area.meta_keywords_en || ''),
+            image_path: area.image_path || '',
         })
     }
 
     function cancelEdit() {
         setEditing(null)
+        setShowSeo(false)
         reset()
     }
 
     function handleSubmit(e) {
         e.preventDefault()
+
+        const payload = {
+            ...data,
+            meta_keywords_ar: typeof data.meta_keywords_ar === 'string' 
+                ? data.meta_keywords_ar.split(',').map(k => k.trim()).filter(Boolean)
+                : data.meta_keywords_ar,
+            meta_keywords_en: typeof data.meta_keywords_en === 'string'
+                ? data.meta_keywords_en.split(',').map(k => k.trim()).filter(Boolean)
+                : data.meta_keywords_en,
+        }
+
         if (editing === 'new') {
             post('/admin/areas', {
+                data: payload,
                 preserveScroll: true,
                 onSuccess: () => { setEditing(null); reset() },
             })
         } else {
             put(`/admin/areas/${editing}`, {
+                data: payload,
                 preserveScroll: true,
                 onSuccess: () => { setEditing(null); reset() },
             })
@@ -77,6 +108,10 @@ export default function AdminAreasIndex({ areas }) {
                 {/* Create / Edit Form */}
                 {(editing === 'new' || typeof editing === 'number') && (
                     <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-card p-6 mb-6">
+                        <h2 className="text-lg font-bold text-secondary-950 mb-4">
+                            {editing === 'new' ? (isRtl ? 'إضافة منطقة جديدة' : 'Add New Area') : (isRtl ? 'تعديل المنطقة' : 'Edit Area')}
+                        </h2>
+
                         <div className="grid grid-cols-2 gap-4 mb-4">
                             <div>
                                 <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('name_ar')}</label>
@@ -87,6 +122,7 @@ export default function AdminAreasIndex({ areas }) {
                                 <input type="text" value={data.name_en} onChange={e => setData('name_en', e.target.value)} required className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900" />
                             </div>
                         </div>
+
                         <div className="grid grid-cols-2 gap-4 mb-4">
                             <div>
                                 <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('sort_order')}</label>
@@ -99,6 +135,81 @@ export default function AdminAreasIndex({ areas }) {
                                 </label>
                             </div>
                         </div>
+
+                        {/* Collapsible SEO Fields Section */}
+                        <div className="border-t border-secondary-200 pt-4 mb-4">
+                            <button
+                                type="button"
+                                onClick={() => setShowSeo(!showSeo)}
+                                className="flex items-center justify-between w-full text-sm font-bold text-primary-900 hover:text-primary-950 focus:outline-none mb-3"
+                            >
+                                <span>🔍 {isRtl ? 'إعدادات الـ SEO ومعاينة رابط المشاركة (Open Graph)' : 'SEO & Social Share Preview Settings'}</span>
+                                <span>{showSeo ? '▲' : '▼'}</span>
+                            </button>
+
+                            {showSeo && (
+                                <div className="space-y-4 bg-surface p-4 rounded-xl border border-secondary-200">
+                                    <div>
+                                        <label className="block text-xs font-semibold text-secondary-700 mb-1">
+                                            {isRtl ? 'صورة المعاينة عند المشاركة (رابط الصورة / Image URL)' : 'Social Share Cover Image URL'}
+                                        </label>
+                                        <input 
+                                            type="text" 
+                                            value={data.image_path} 
+                                            onChange={e => setData('image_path', e.target.value)} 
+                                            placeholder="https://..." 
+                                            className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-xs bg-white" 
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-semibold text-secondary-700 mb-1">
+                                                {isRtl ? 'عنوان الـ Meta (عربي)' : 'Meta Title (AR)'}
+                                            </label>
+                                            <input type="text" value={data.meta_title_ar} onChange={e => setData('meta_title_ar', e.target.value)} dir="rtl" className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-xs bg-white" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-semibold text-secondary-700 mb-1">
+                                                {isRtl ? 'عنوان الـ Meta (إنجليزي)' : 'Meta Title (EN)'}
+                                            </label>
+                                            <input type="text" value={data.meta_title_en} onChange={e => setData('meta_title_en', e.target.value)} className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-xs bg-white" />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-semibold text-secondary-700 mb-1">
+                                                {isRtl ? 'وصف الـ Meta (عربي)' : 'Meta Description (AR)'}
+                                            </label>
+                                            <textarea rows={2} value={data.meta_description_ar} onChange={e => setData('meta_description_ar', e.target.value)} dir="rtl" className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-xs bg-white" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-semibold text-secondary-700 mb-1">
+                                                {isRtl ? 'وصف الـ Meta (إنجليزي)' : 'Meta Description (EN)'}
+                                            </label>
+                                            <textarea rows={2} value={data.meta_description_en} onChange={e => setData('meta_description_en', e.target.value)} className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-xs bg-white" />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-semibold text-secondary-700 mb-1">
+                                                {isRtl ? 'الكلمات المفتاحية (عربي - مفصولة بفاصلة)' : 'Meta Keywords (AR - comma separated)'}
+                                            </label>
+                                            <input type="text" value={data.meta_keywords_ar} onChange={e => setData('meta_keywords_ar', e.target.value)} dir="rtl" placeholder="عقارات, شقق, مشاريع" className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-xs bg-white" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-semibold text-secondary-700 mb-1">
+                                                {isRtl ? 'الكلمات المفتاحية (إنجليزي - مفصولة بفاصلة)' : 'Meta Keywords (EN - comma separated)'}
+                                            </label>
+                                            <input type="text" value={data.meta_keywords_en} onChange={e => setData('meta_keywords_en', e.target.value)} placeholder="real estate, apartments, projects" className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-xs bg-white" />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
                         <div className="flex gap-2">
                             <button type="submit" disabled={processing} className="px-4 py-2 bg-primary-900 text-white rounded-lg text-sm font-medium hover:bg-primary-950 disabled:opacity-50">
                                 {processing ? trans('loading') : trans('save')}
@@ -128,7 +239,7 @@ export default function AdminAreasIndex({ areas }) {
                             )}
                             {areas?.map(area => (
                                 <tr key={area.id} className="hover:bg-surface/50">
-                                    <td className="px-4 py-3 text-secondary-950">{area.name_ar}</td>
+                                    <td className="px-4 py-3 text-secondary-950 font-medium">{area.name_ar}</td>
                                     <td className="px-4 py-3 text-secondary-950">{area.name_en}</td>
                                     <td className="px-4 py-3">
                                         <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${area.is_active ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>

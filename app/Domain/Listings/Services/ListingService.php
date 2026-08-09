@@ -102,6 +102,21 @@ class ListingService
         });
     }
 
+    public function getLatestProjects(int $limit = 8): Paginator
+    {
+        $page = request()->input('page', 1);
+
+        return Cache::remember(self::CACHE_PREFIX."latest_projects_{$limit}_page_{$page}_v{$this->version()}", self::CACHE_TTL, function () use ($limit) {
+            return Project::where('is_active', true)
+                ->with(['area', 'images'])
+                ->withCount(['units' => function ($q) {
+                    $q->active();
+                }])
+                ->orderByDesc('created_at')
+                ->simplePaginate($limit);
+        });
+    }
+
     private function applyProjectFilters($query, array $filters): void
     {
         ListingQueryBuilder::applyExactMatches($query, $filters, ['area_id', 'payment_method', 'finishing_type_id']);
