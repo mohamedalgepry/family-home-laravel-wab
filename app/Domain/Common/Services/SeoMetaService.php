@@ -44,18 +44,14 @@ class SeoMetaService
         $slugField = "slug_{$locale}";
         $arSlug = $model->slug_ar ?? $model->slug;
         $enSlug = $model->slug_en ?? $model->slug;
-<<<<<<< HEAD
-
         $relativeImage = $this->resolveImage($model->images);
-=======
         $ogType = $model instanceof Article || $model instanceof Unit ? 'article' : 'website';
->>>>>>> 074cfdd (اصلاح seo)
 
         return [
             'title' => $title,
             'description' => $description,
             'keywords' => $this->keywords($model->keywords),
-            'image' => $this->imagePath($model->images),
+            'image' => $relativeImage,
             'canonical' => url("/{$locale}/{$section}/".($model->$slugField ?? $model->slug)),
             'hreflang' => [
                 'ar' => url("/ar/{$section}/{$arSlug}"),
