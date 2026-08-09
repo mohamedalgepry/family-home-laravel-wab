@@ -619,34 +619,30 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
                 )}
 
                 {/* Step Indicator */}
-                <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-secondary-200/80 shadow-card mb-8">
-                    <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
-                        {STEPS.map((s, i) => (
-                            <div key={s.key} className="flex items-center gap-2 flex-1 min-w-[130px] sm:min-w-0">
-                                <button
-                                    type="button"
-                                    onClick={() => i <= step ? setStep(i) : null}
-                                    className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${i === step ? 'bg-primary-900 text-white shadow-md' :
-                                            i < step ? 'bg-emerald-100 text-emerald-800' :
-                                                'bg-surface text-secondary-500 hover:bg-secondary-100'
-                                        }`}
-                                >
-                                    <span className={`w-5 h-5 rounded-full text-xs font-black flex items-center justify-center ${i === step ? 'bg-white/20 text-white' : i < step ? 'bg-emerald-600 text-white' : 'bg-secondary-200 text-secondary-700'}`}>
-                                        {i + 1}
-                                    </span>
-                                    <span className="truncate">
-                                        {trans(s.title_key) || s.key}
-                                    </span>
-                                </button>
-                                {i < STEPS.length - 1 && <div className="flex-1 h-px bg-secondary-200 hidden sm:block" />}
-                            </div>
-                        ))}
-                    </div>
+                <div className="flex items-center gap-2 mb-8">
+                    {STEPS.map((s, i) => (
+                        <div key={s.key} className="flex items-center gap-2 flex-1">
+                            <button
+                                type="button"
+                                onClick={() => i <= step ? setStep(i) : null}
+                                className={`w-8 h-8 rounded-full text-xs font-bold flex items-center justify-center transition-colors ${i === step ? 'bg-primary-900 text-white' :
+                                    i < step ? 'bg-green-500 text-white' :
+                                        'bg-surface text-secondary-400'
+                                    }`}
+                            >
+                                {i + 1}
+                            </button>
+                            <span className={`text-xs hidden sm:inline ${i === step ? 'text-secondary-950 font-medium' : 'text-muted'}`}>
+                                {trans(s.title_key) || s.key}
+                            </span>
+                            {i < STEPS.length - 1 && <div className="flex-1 h-px bg-secondary-200" />}
+                        </div>
+                    ))}
                 </div>
 
                 <form
                     onSubmit={e => e.preventDefault()}
-                    className="bg-white rounded-2xl md:rounded-3xl border border-secondary-200/80 shadow-card p-6 sm:p-8"
+                    className="bg-white rounded-xl shadow-card p-6"
                 >
                     {/* ===== Step 0: Basic Info ===== */}
                     {step === 0 && (
