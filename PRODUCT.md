@@ -1,4 +1,4 @@
-﻿# Product
+# Product
 
 <!-- impeccable:product-schema 1 -->
 
@@ -7,74 +7,33 @@
 web
 
 ## Users
-
-**العملاء (Buyers/Renters):** أفراد يبحثون عن شقق أو وحدات أو مشاريع عقارية للشراء أو الإيجار، يتصفحون الموقع العام ويتواصلون مع المعلِنين عبر واتساب أو هاتف.
-
-**الوسطاء العقاريون (Agents):** محترفو عقار يعلنون عن وحداتهم، يحتاجون إلى لوحة تحكم شخصية لإدارة إعلاناتهم، متابعة الرسائل، ومراقبة نقاط الأولوية.
-
-**المطورون العقاريون (Developers):** شركات أو أفراد يمتلكون مشاريع عقارية متكاملة (compounds/مجمعات) ويرغبون في تسويق وحداتها.
-
-**مديرو المنصة (Admin/Manager):** فريق شركة التسويق العقاري — يديرون كامل المحتوى والمستخدمين والإعدادات والسيو والنقاط.
+Anyone related to real estate (buyers, sellers, agents, investors). The admin panel is used by system administrators to manage platform data (like Regions/Areas) and permissions.
 
 ## Product Purpose
-
-**فاميلي هوم** منصة تسويق عقاري تتيح لشركة التسويق إدارة ونشر إعلانات الوحدات والمشاريع العقارية، وجذب العملاء للتواصل المباشر عبر واتساب أو هاتف. المنصة لا تُتمّ صفقات مالية إلكترونياً — الهدف الأساسي هو توليد العملاء المحتملين (Lead Generation) وإيصالهم بالبائع.
-
-النجاح يُقاس بـ: عدد نقرات واتساب، عدد رسائل الاستفسار، ونسبة ظهور الموقع في نتائج البحث (SEO).
+A real estate platform for listing and discovering properties. The system includes a public-facing site for discovery and an admin dashboard for platform management and configuration.
 
 ## Positioning
-
-المنصة تتميز بـ:
-- رقم واتساب المُعلِن يظهر مباشرةً على كل وحدة، مما يُقصّر مسار التحويل إلى خطوة واحدة.
-- نظام نقاط الأولوية الذي يُحوّل ترتيب الإعلانات إلى خدمة مُسعَّرة داخلياً.
-- دعم كامل للـ SEO ثنائي اللغة في السوق العربي والخليجي.
+[TBD - A comprehensive and user-friendly platform tailored for the local real estate market]
 
 ## Operating Context
-
-- الاستضافة: Hostinger (Shared Hosting) — قيود على الموارد تحكم كل قرار تقني.
-- السوق: مصر + أسواق خليجية عربية — واجهة ثنائية اللغة (عربي RTL أساسي + إنجليزي LTR).
-- التواصل مع العملاء: واتساب وهاتف — لا بوابة دفع ولا عقود إلكترونية.
-- الوسطاء يعملون عبر لوحة تحكم مخصصة، وكل وسيط يرى بياناته فقط.
+Users browse properties on web and mobile devices. Administrators use desktop environments to manage regions, properties, and permissions.
 
 ## Capabilities and Constraints
-
-**الميزات المنجزة:**
-- إدارة الوحدات والمشاريع بنموذج متعدد الخطوات (بيانات، وسائط، SEO، خريطة).
-- نظام نقاط الأولوية مع خصم يومي تلقائي وإعادة شهرية.
-- أدوار ثلاثة: `admin` (كل شيء) / `manager` (محتوى + إدارة) / `agent` (وحداته الخاصة).
-- إشعارات، رسائل داخلية، مقالات، أخبار، إعدادات عامة.
-- مقارنة الوحدات، بحث فوري، Fulltext Search على قاعدة البيانات.
-- صفحة Agents عامة وصفحة Areas وصفحة Projects.
-
-**القيود:**
-- لا بوابة دفع ولا عقود رقمية.
-- لا يوجد CRM خارجي — إدارة داخلية فقط.
-- الأدوار الحالية (admin/manager/agent) لن تتغير في هذه المرحلة.
+- Built with Laravel, React (Inertia.js), and Tailwind CSS.
+- RTL (Right-to-Left) support is essential (Arabic interface).
+- Complex permission systems are deprioritized for now.
 
 ## Brand Commitments
-
-- **الاسم:** فاميلي هوم العقارية / Family Home
-- **الخط:** Cairo (محلي، woff2، عربي أولاً)
-- **الهوية البصرية:** تحتاج إلى مراجعة وتحسين — هذا هو الهدف الحالي.
-- **اللغة:** عربي أساسي (RTL) + إنجليزي (LTR) — Tailwind CSS v4 مع design tokens.
+- Uses Cairo font.
+- Primary color: `#CC0000` (Red)
+- Secondary/Action: `#16a34a` (WhatsApp Green)
+- Friendly but professional aesthetic with rounded corners (12px to 24px) and subtle elevations.
 
 ## Evidence on Hand
-
-- 117 اختبار Pest v4 ناجح — البنية الخلفية مستقرة.
-- PageSpeed 81+ على الهاتف.
-- كود Frontend: React 19 + Inertia.js v3 + Tailwind CSS v4.
-- المشروع منشور على Hostinger وفي الإنتاج الفعلي.
+- Existing `DESIGN.md` dictates specific shadows, rounded corners, and button styles.
+- Codebase contains Inertia React pages for Admin (`Pages/Admin`).
 
 ## Product Principles
-
-1. **البساطة في المسار:** أقصر طريق من التصفح إلى التواصل — واتساب بنقرة واحدة.
-2. **الثقة البصرية أولاً:** السوق العقاري العربي يشتري بالعين — الصورة والتصميم يبيعان قبل الكلام.
-3. **السرعة فوق كل شيء:** استضافة مشتركة تعني أن كل millisecond تُحسب — لا زخرفة بلا قيمة.
-4. **RTL بلا تنازلات:** العربي ليس ترجمة — هو اللغة الأصلية للمنصة والسوق.
-5. **الشفافية للوسيط:** كل وسيط يعرف أين يقف — نقاطه، وحداته، ورسائله في لمحة.
-
-## Accessibility & Inclusion
-
-- دعم RTL/LTR كامل مطلوب.
-- خط Cairo محلي لضمان القراءة العربية بدون طلبات خارجية.
-- أهداف اللمس كبيرة كافية للهاتف (touch targets — مطبق بالفعل).
+1. **Clarity over complexity:** The admin panel should be highly scannable and easy to operate.
+2. **Consistent tactile feedback:** Buttons and interactive elements must feel responsive and unified.
+3. **Focus on content:** Property data and regional organization should be the primary focus of the UI.
