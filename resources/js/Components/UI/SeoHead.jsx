@@ -69,6 +69,7 @@ export default function SeoHead({
         <Head>
             {finalTitle && <title>{finalTitle}</title>}
             {finalDescription && <meta head-key="description" name="description" content={finalDescription} />}
+            {finalKeywords && <meta head-key="keywords" name="keywords" content={finalKeywords} />}
 
             {/* Open Graph */}
             {finalTitle && <meta head-key="og:title" property="og:title" content={finalTitle} />}
