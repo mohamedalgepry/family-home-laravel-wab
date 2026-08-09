@@ -594,7 +594,7 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
     return (
         <AdminSidebar>
             <Head title={trans('add_unit') + ' — ' + trans('app_name')} />
-            <div dir={isRtl ? 'rtl' : 'ltr'} className="p-6 max-w-3xl mx-auto">
+            <div dir={isRtl ? 'rtl' : 'ltr'} className="p-6 max-w-5xl mx-auto">
                 <div className="flex items-center gap-3 mb-6">
                     <Link href="/admin/units" className="text-sm text-muted hover:text-primary-900">&larr; {trans('sidebar_units')}</Link>
                     <h1 className="text-2xl font-bold text-secondary-950">

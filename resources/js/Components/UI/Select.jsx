@@ -218,7 +218,7 @@ export function Select({
                                 onChange={(e) => setSearch(e.target.value)}
                                 placeholder="Search..."
                                 aria-label="Filter options"
-                                className="w-full pl-9 rtl:pr-9 rtl:pl-3 py-2.5 bg-secondary-50 border border-transparent rounded-xl text-sm text-secondary-900 focus:ring-2 focus:ring-primary-500 focus:bg-white focus:border-primary-900 transition-all outline-none"
+                                className="w-full pl-9 rtl:pr-9 rtl:pl-3 py-2.5 bg-secondary-50 border border-transparent rounded-xl text-sm text-secondary-900 focus:ring-2 focus:ring-secondary-200 focus:bg-white focus:border-secondary-300 transition-all outline-none"
                                 onClick={(e) => e.stopPropagation()} 
                             />
                         </div>

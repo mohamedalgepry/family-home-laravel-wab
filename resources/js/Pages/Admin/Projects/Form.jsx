@@ -362,7 +362,7 @@ export default function AdminProjectForm({ project, areas, features, finishingTy
     return (
         <AdminSidebar>
             <Head title={trans('add_project') + ' — ' + trans('app_name')} />
-            <div dir={isRtl ? 'rtl' : 'ltr'} className="p-6 max-w-3xl mx-auto">
+            <div dir={isRtl ? 'rtl' : 'ltr'} className="p-6 max-w-5xl mx-auto">
                 <div className="flex items-center gap-3 mb-6">
                     <Link href="/admin/projects" className="text-sm text-muted hover:text-primary-900">&larr; {trans('sidebar_projects')}</Link>
                     <h1 className="text-2xl font-bold text-secondary-950">
