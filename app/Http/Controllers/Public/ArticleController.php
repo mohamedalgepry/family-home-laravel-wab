@@ -85,6 +85,12 @@ class ArticleController
             ->limit(4)
             ->get();
 
+        $suggestedUnits = \App\Models\Unit::where('is_active', true)
+            ->with(['images', 'area'])
+            ->inRandomOrder()
+            ->limit(3)
+            ->get();
+
         // نمرّر لغة واحدة فقط (لغة العرض الحالية) بدلاً من إرسال content_ar + content_en + content معاً
         $rawContent = app()->getLocale() === 'ar'
             ? ($article->content_ar ?: $article->content)
@@ -97,6 +103,7 @@ class ArticleController
         return Inertia::render('Public/Articles/Show', [
             'article' => $article,
             'relatedArticles' => $relatedArticles,
+            'suggestedUnits' => $suggestedUnits,
             'seo_meta' => $meta,
         ])->withViewData(['meta' => $meta]);
     }

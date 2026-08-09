@@ -15,7 +15,7 @@ import SeoHead from '../../../Components/UI/SeoHead'
 import ArticleCard from '../../../Components/UI/ArticleCard'
 import { useState, useMemo } from 'react'
 
-export default function ArticleShow({ article, relatedArticles }) {
+export default function ArticleShow({ article, relatedArticles, suggestedUnits }) {
     const { locale, appUrl } = usePage().props
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
@@ -129,13 +129,13 @@ export default function ArticleShow({ article, relatedArticles }) {
             )}
             <Header />
 
-            <main className="flex-1 w-full py-8 sm:py-14 bg-secondary-50/30">
+            <main className="flex-1 w-full py-8 sm:py-14 bg-white">
                 
-                <div className="max-w-[1280px] mx-auto px-4 sm:px-6">
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+                <div className="max-w-[1400px] mx-auto px-4 sm:px-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-start">
                         
                         {/* ── Right Column: Article Content ──── */}
-                        <article className="lg:col-span-8 w-full bg-white rounded-3xl p-6 md:p-10 shadow-sm border border-secondary-200/60">
+                        <article className="lg:col-span-9 w-full">
                     
                     {/* Breadcrumb Navigation */}
                     <nav className="flex items-center gap-2 text-xs font-semibold text-secondary-500 mb-6" aria-label="Breadcrumb">
@@ -344,7 +344,7 @@ export default function ArticleShow({ article, relatedArticles }) {
                         </article>
 
                         {/* ── Left Column: Sidebar ──── */}
-                        <aside className="lg:col-span-4 w-full space-y-6 sticky top-24">
+                        <aside className="lg:col-span-3 w-full space-y-8 sticky top-24">
                             
                             {/* Quick Shortcuts */}
                             <div className="bg-white rounded-3xl p-6 shadow-sm border border-secondary-200/60">
@@ -375,6 +375,48 @@ export default function ArticleShow({ article, relatedArticles }) {
                                     </li>
                                 </ul>
                             </div>
+
+                            {/* Suggested Units */}
+                            {suggestedUnits?.length > 0 && (
+                                <div className="bg-white rounded-3xl p-6 shadow-sm border border-secondary-200/60">
+                                    <h3 className="font-bold text-secondary-950 mb-4 text-sm flex items-center justify-between">
+                                        <span className="flex items-center gap-2">
+                                            <svg className="w-4 h-4 text-primary-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                                            </svg>
+                                            {isRtl ? 'عقارات مقترحة' : 'Suggested Properties'}
+                                        </span>
+                                        <Link href={localizedPath('/units', locale)} className="text-[10px] text-secondary-400 hover:text-primary-700">
+                                            {isRtl ? 'عرض الكل' : 'View All'}
+                                        </Link>
+                                    </h3>
+                                    <ul className="space-y-4">
+                                        {suggestedUnits.map(unit => {
+                                            const unitImg = unit?.images?.find(img => img.is_primary) || unit?.images?.[0];
+                                            const unitImgUrl = unitImg?.url || (unitImg?.path ? (unitImg.path.startsWith('http') || unitImg.path.startsWith('/') ? unitImg.path : `/storage/${unitImg.path}`) : null);
+                                            return (
+                                                <li key={unit.id}>
+                                                    <Link href={localizedPath(`/units/${unit.slug}`, locale)} className="group flex gap-3 items-center">
+                                                        {unitImgUrl && (
+                                                            <div className="shrink-0 w-16 h-16 rounded-xl overflow-hidden bg-secondary-100 border border-secondary-200/50 shadow-xs">
+                                                                <img src={unitImgUrl} alt={unit.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                                                            </div>
+                                                        )}
+                                                        <div className="flex-1">
+                                                            <h4 className="text-xs font-bold text-secondary-900 group-hover:text-primary-700 line-clamp-2 leading-relaxed transition-colors">
+                                                                {unit.title}
+                                                            </h4>
+                                                            <span className="text-[10px] text-primary-700 font-black mt-1.5 block">
+                                                                {new Intl.NumberFormat(isRtl ? 'ar-EG' : 'en-US').format(unit.price)} {isRtl ? 'ج.م' : 'EGP'}
+                                                            </span>
+                                                        </div>
+                                                    </Link>
+                                                </li>
+                                            )
+                                        })}
+                                    </ul>
+                                </div>
+                            )}
 
                             {/* Related Articles */}
                             {relatedArticles?.length > 0 && (
