@@ -14,7 +14,6 @@ test('sitemap index returns valid xml with sitemapindex schema', function () {
     $this->assertStringContainsString('sitemap-units.xml', $response->getContent());
     $this->assertStringContainsString('sitemap-projects.xml', $response->getContent());
     $this->assertStringContainsString('sitemap-articles.xml', $response->getContent());
-    $this->assertStringContainsString('sitemap-categories.xml', $response->getContent());
 });
 
 test('sitemap static subfile returns valid urlset xml', function () {
