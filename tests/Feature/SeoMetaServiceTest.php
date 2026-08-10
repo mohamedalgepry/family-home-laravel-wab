@@ -158,6 +158,10 @@ it('builds an article meta with an Article schema', function () {
         ->and($schema['publisher'])->toBe([
             '@type' => 'Organization',
             'name'  => config('app.name'),
+            'logo'  => [
+                '@type' => 'ImageObject',
+                'url'   => url('/icon.png'),
+            ],
             'url'   => url('/'),
         ]);
 });

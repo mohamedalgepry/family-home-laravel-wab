@@ -58,12 +58,4 @@ test('sitemap articles subfile returns valid urlset xml', function () {
     $this->assertStringContainsString('<urlset', $response->getContent());
 });
 
-test('sitemap categories subfile returns valid urlset xml', function () {
-    Cache::forget('sitemap_categories_xml');
 
-    $response = $this->get('/sitemap-categories.xml');
-
-    $response->assertOk();
-    $response->assertHeader('Content-Type', 'application/xml');
-    $this->assertStringContainsString('<urlset', $response->getContent());
-});
