@@ -20,7 +20,6 @@ class ProjectService
         private readonly CreateProjectAction $createAction,
         private readonly UpdateProjectAction $updateAction,
         private readonly DeleteProjectAction $deleteAction,
-        private readonly SitemapService $sitemapService,
         private readonly ListingImageService $listingImageService,
     ) {}
 
@@ -51,7 +50,6 @@ class ProjectService
         });
 
         // إضافة المشروع فوراً لـ Sitemap
-        $this->sitemapService->regenerate();
 
         return $project;
     }
@@ -84,7 +82,6 @@ class ProjectService
             return $project->load(['area', 'images']);
         });
 
-        $this->sitemapService->regenerate();
 
         return $project;
     }

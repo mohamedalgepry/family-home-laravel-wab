@@ -149,7 +149,7 @@ class ListingService
         return Cache::remember(self::CACHE_PREFIX."project_{$slug}_v{$this->version()}", self::CACHE_TTL, function () use ($slug) {
             return Project::byAnySlug($slug)
                 ->with(['area', 'images', 'user.profile', 'features', 'finishingType', 'units' => function ($q) {
-                    $q->active()->with(['type', 'area', 'images']);
+                    $q->active()->with(['type', 'area', 'images'])->limit(24);
                 }])
                 ->first();
         });

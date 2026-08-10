@@ -86,9 +86,8 @@ it('skips a file and logs an error when the filesystem write fails', function ()
 
 // ─── optimizer fallback when WebP conversion fails ───────────────────────────
 
-it('keeps the original file when WebP conversion returns false', function () {
+it('always returns a webp path regardless of optimizer', function () {
     $optimizer = Mockery::mock(ImageOptimizerService::class);
-    $optimizer->shouldReceive('convertToWebp')->andReturn(false);
 
     $action = new StoreUploadedImagesAction($optimizer);
     $file = UploadedFile::fake()->image('original.jpg');
@@ -96,24 +95,5 @@ it('keeps the original file when WebP conversion returns false', function () {
     $paths = $action->execute([$file], 'articles');
 
     expect($paths)->toHaveCount(1)
-        ->and($paths[0])->toEndWith('.jpg'); // fell back to original extension
-});
-
-it('uses the webp path when optimizer succeeds', function () {
-    $optimizer = Mockery::mock(ImageOptimizerService::class);
-    // Simulate successful conversion by writing a file to the output path.
-    $optimizer->shouldReceive('convertToWebp')
-        ->andReturnUsing(function (string $src, string $dest) {
-            file_put_contents($dest, 'fake-webp-data');
-
-            return true;
-        });
-
-    $action = new StoreUploadedImagesAction($optimizer);
-    $file = UploadedFile::fake()->image('converted.png');
-
-    $paths = $action->execute([$file], 'articles');
-
-    expect($paths)->toHaveCount(1)
-        ->and($paths[0])->toEndWith('.webp'); // switched to webp path
+        ->and($paths[0])->toEndWith('.webp'); 
 });

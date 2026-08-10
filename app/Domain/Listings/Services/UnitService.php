@@ -22,7 +22,6 @@ class UnitService
         private readonly CreateUnitAction $createUnitAction,
         private readonly UpdateUnitAction $updateUnitAction,
         private readonly DeleteUnitAction $deleteUnitAction,
-        private readonly SitemapService $sitemapService,
         private readonly ListingImageService $listingImageService,
     ) {}
 
@@ -58,7 +57,6 @@ class UnitService
         $this->notifyPendingApproval($unit, $user);
 
         // إضافة الوحدة فوراً لـ Sitemap
-        $this->sitemapService->regenerate();
 
         return $unit;
     }
@@ -97,7 +95,6 @@ class UnitService
             return $unit->load(['type', 'area', 'images']);
         });
 
-        $this->sitemapService->regenerate();
 
         return $unit;
     }
@@ -118,7 +115,6 @@ class UnitService
         $this->listingImageService->deleteImageFiles($imagePaths);
 
         // إعادة توليد ملف sitemap.xml فوراً
-        $this->sitemapService->regenerate();
     }
 
     public function togglePin(int $unitId): Unit

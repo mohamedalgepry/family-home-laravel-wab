@@ -16,14 +16,20 @@ class SecurityHeadersMiddleware
         $response->headers->set('X-Frame-Options', 'SAMEORIGIN');
         $response->headers->set('X-Content-Type-Options', 'nosniff');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
-        $response->headers->set('X-XSS-Protection', '1; mode=block');
         $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), interest-cohort=()');
 
         if ($request->isSecure() || app()->environment('production')) {
             $response->headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
         }
 
-        $csp = "default-src 'self' data: blob: https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' https:; form-action 'self';";
+        $csp = "default-src 'self'; "
+            ."script-src 'self' 'unsafe-inline'; "
+            ."style-src 'self' 'unsafe-inline'; "
+            ."img-src 'self' data: blob: https:; "
+            ."font-src 'self' data:; "
+            ."connect-src 'self'; "
+            ."form-action 'self'; "
+            ."frame-ancestors 'self';";
 
         if (app()->environment('local')) {
             $csp = "default-src 'self' data: blob: http: https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' http: https:; style-src 'self' 'unsafe-inline' http: https:; img-src 'self' data: blob: http: https:; font-src 'self' data: http: https:; connect-src 'self' http: https: ws: wss:; form-action 'self';";

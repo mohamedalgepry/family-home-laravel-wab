@@ -17,7 +17,7 @@ class UpdateAboutPageRequest extends FormRequest
             'content_ar' => 'nullable|string',
             'content_en' => 'nullable|string',
             'images' => 'nullable|array',
-            'images.*' => 'file|image|max:5120',
+            'images.*' => 'file|image|mimes:jpg,jpeg,png,webp|max:5120|dimensions:max_width=6000,max_height=6000',
             'deleted_images' => 'nullable|array',
             'deleted_images.*' => 'string',
         ];

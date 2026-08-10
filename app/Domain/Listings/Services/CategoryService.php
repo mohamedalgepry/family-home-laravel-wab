@@ -9,7 +9,6 @@ use Illuminate\Support\Str;
 class CategoryService
 {
     public function __construct(
-        private readonly SitemapService $sitemapService,
     ) {}
 
     public function getAll(): array
@@ -27,7 +26,6 @@ class CategoryService
             'slug' => $slug,
         ]);
 
-        $this->sitemapService->regenerate();
 
         return $category;
     }
@@ -47,7 +45,6 @@ class CategoryService
             'slug' => $slug,
         ]);
 
-        $this->sitemapService->regenerate();
 
         return $category->fresh();
     }

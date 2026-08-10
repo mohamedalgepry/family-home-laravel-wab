@@ -6,7 +6,6 @@ use App\Domain\Listings\Models\Project;
 use App\Domain\Listings\Models\Setting;
 use App\Domain\Listings\Models\Unit;
 use App\Domain\Listings\Services\ListingService;
-use App\Domain\Listings\Services\SitemapService;
 use App\Domain\Listings\Services\UnitService;
 use App\Domain\Users\Models\User;
 use App\Domain\Users\Services\NotificationService;
@@ -21,7 +20,6 @@ use Inertia\Response;
 class NotificationController extends Controller
 {
     public function __construct(
-        private readonly SitemapService $sitemapService,
         private readonly NotificationService $notificationService,
         private readonly UnitService $unitService,
     ) {}
@@ -55,7 +53,7 @@ class NotificationController extends Controller
         abort_unless($request->user()->isAdmin(), 403);
 
         $project->update(['is_active' => true]);
-        $this->sitemapService->regenerate();
+        dispatch(new \App\Domain\Listings\Jobs\RegenerateSitemapJob())->afterCommit();
         $this->clearListingsCache();
 
         $this->notificationService->markEntityNotificationsAsRead(
@@ -191,7 +189,7 @@ class NotificationController extends Controller
             'auto_delete_at' => now()->addDays($this->extensionDays()),
         ]);
 
-        $this->sitemapService->regenerate();
+        dispatch(new \App\Domain\Listings\Jobs\RegenerateSitemapJob())->afterCommit();
         $this->clearListingsCache();
 
         $this->notificationService->markEntityNotificationsAsRead($user, $entityColumn, $listing->id);

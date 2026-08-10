@@ -17,7 +17,6 @@ class ArticleService
     public function __construct(
         private readonly CreateArticleAction $createAction,
         private readonly UpdateArticleAction $updateAction,
-        private readonly SitemapService $sitemapService,
         private readonly ListingImageService $listingImageService,
     ) {}
 
@@ -52,7 +51,6 @@ class ArticleService
             return $article->load(['category', 'images']);
         });
 
-        $this->sitemapService->regenerate();
 
         return $article;
     }
@@ -82,7 +80,6 @@ class ArticleService
             return $article->load(['category', 'images']);
         });
 
-        $this->sitemapService->regenerate();
 
         return $article;
     }
@@ -99,7 +96,6 @@ class ArticleService
         });
 
         $this->listingImageService->deleteImageFiles($imagePaths);
-        $this->sitemapService->regenerate();
     }
 
     public function togglePublish(int $articleId): Article

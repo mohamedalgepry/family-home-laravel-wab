@@ -153,7 +153,7 @@ class ProjectController extends Controller
 
     public function autofill(Project $project)
     {
-        $this->authorize('viewAny', Project::class);
+        $this->authorize('view', $project);
 
         return response()->json([
             'features' => $project->features->pluck('id')->toArray(),

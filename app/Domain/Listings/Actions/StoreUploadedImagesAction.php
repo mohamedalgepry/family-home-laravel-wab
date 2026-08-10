@@ -35,24 +35,8 @@ class StoreUploadedImagesAction
                 continue;
             }
 
-            $optimizedPath = preg_replace('/\.[^.]+$/', '.webp', $originalPath);
-            $disk = Storage::disk('public');
-
-            if (
-                $optimizedPath !== $originalPath
-                && $this->imageOptimizer->convertToWebp(
-                    $disk->path($originalPath),
-                    $disk->path($optimizedPath),
-                )
-            ) {
-                $disk->delete($originalPath);
-                $paths[] = $optimizedPath;
-
-                continue;
-            }
-
-            // Preserve the upload if the server cannot encode WebP.
-            $paths[] = $originalPath;
+            $expectedWebpPath = preg_replace('/\.[^.]+$/', '.webp', $originalPath);
+            $paths[] = $expectedWebpPath !== $originalPath ? $expectedWebpPath : $originalPath;
         }
 
         return $paths;

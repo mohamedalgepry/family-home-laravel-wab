@@ -16,6 +16,8 @@ class GenerateThumbnailsJob implements ShouldQueue
 {
     use Queueable;
 
+    private const MAX_ORIGINAL_WIDTH_PX = 1600;
+
     private const THUMB_WIDTH_PX = 400;
 
     private const THUMB_QUALITY = 80;
@@ -133,7 +135,32 @@ class GenerateThumbnailsJob implements ShouldQueue
         $nameWithoutExt = pathinfo($fullPath, PATHINFO_FILENAME);
         $webpFullPath = $dir.DIRECTORY_SEPARATOR.$nameWithoutExt.'.webp';
 
-        imagewebp($source, $webpFullPath, self::ORIGINAL_QUALITY);
+        $scaled = $this->scaleDownToMaxWidth($source, self::MAX_ORIGINAL_WIDTH_PX);
+        imagewebp($scaled, $webpFullPath, self::ORIGINAL_QUALITY);
+
+        if ($scaled !== $source) {
+            imagedestroy($scaled);
+        }
+
+        if (file_exists($webpFullPath)) {
+            @unlink($fullPath);
+        }
+    }
+
+    private function scaleDownToMaxWidth(\GdImage $source, int $maxWidth): \GdImage
+    {
+        $sourceWidth = imagesx($source);
+        if ($sourceWidth <= $maxWidth) {
+            return $source;
+        }
+
+        $sourceHeight = imagesy($source);
+        $targetHeight = (int) round(($sourceHeight / $sourceWidth) * $maxWidth);
+
+        $scaled = imagecreatetruecolor($maxWidth, $targetHeight);
+        imagecopyresampled($scaled, $source, 0, 0, 0, 0, $maxWidth, $targetHeight, $sourceWidth, $sourceHeight);
+
+        return $scaled;
     }
 
     private function generateThumbnailWithIntervention(ImageManager $manager, string $fullPath, string $thumbFullPath): void

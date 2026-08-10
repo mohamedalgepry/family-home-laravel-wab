@@ -2,11 +2,12 @@ import { createInertiaApp, router } from '@inertiajs/react'
 import { createRoot } from 'react-dom/client'
 import { Component } from 'react'
 import { loadLocale } from './Utils/trans'
+import { CompareProvider } from './Contexts/CompareContext'
 
 class ErrorBoundary extends Component {
     constructor(props) {
         super(props)
-        this.state = { hasError: false }
+        this.state = { hasError: false, retryCount: 0 }
     }
 
     static getDerivedStateFromError() {
@@ -15,9 +16,16 @@ class ErrorBoundary extends Component {
 
     componentDidCatch(error, info) {
         console.error('Unhandled React Error:', error, info)
-        if (typeof window !== 'undefined') {
-            window.location.reload()
+    }
+
+    handleRetry = () => {
+        if (this.state.retryCount >= 1) {
+            if (typeof window !== 'undefined') {
+                window.location.reload()
+            }
+            return
         }
+        this.setState((prev) => ({ hasError: false, retryCount: prev.retryCount + 1 }))
     }
 
     render() {
@@ -25,8 +33,14 @@ class ErrorBoundary extends Component {
             return (
                 <div className="min-h-screen flex items-center justify-center bg-surface p-6 text-center">
                     <div>
-                        <p className="text-secondary-800 font-medium mb-2">جاري إعادة تحميل الصفحة...</p>
-                        <p className="text-sm text-secondary-500">Reloading page...</p>
+                        <p className="text-secondary-800 font-medium mb-2">حدث خطأ غير متوقع</p>
+                        <p className="text-sm text-secondary-500 mb-4">Something went wrong.</p>
+                        <button
+                            onClick={this.handleRetry}
+                            className="px-4 py-2 rounded bg-secondary-800 text-white"
+                        >
+                            إعادة المحاولة / Retry
+                        </button>
                     </div>
                 </div>
             )
@@ -119,7 +133,9 @@ async function boot() {
         setup({ el, App, props }) {
             createRoot(el).render(
                 <ErrorBoundary>
-                    <App {...props} />
+                    <CompareProvider>
+                        <App {...props} />
+                    </CompareProvider>
                 </ErrorBoundary>
             )
         },
