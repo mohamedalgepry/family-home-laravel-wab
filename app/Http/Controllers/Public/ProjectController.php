@@ -73,7 +73,7 @@ class ProjectController
         $lcpImage = $mainImage ? $mainImage->url : null;
 
         return Inertia::render('Public/Projects/Show', [
-            'project' => ProjectPublicResource::make($project),
+            'project' => ProjectPublicResource::make($project)->resolve(),
             'seo_meta' => $meta,
         ])->withViewData(['meta' => $meta, 'lcpImage' => $lcpImage]);
     }

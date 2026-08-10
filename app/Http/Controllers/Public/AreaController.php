@@ -177,7 +177,7 @@ class AreaController
             ->get();
 
         return Inertia::render('Public/Areas/Show', [
-            'area' => AreaPublicResource::make($area),
+            'area' => AreaPublicResource::make($area)->resolve(),
             'relatedAreas' => AreaPublicResource::collection($relatedAreas),
             'units' => UnitPublicResource::collection($units),
             'projects' => ProjectPublicResource::collection($projects),

@@ -115,7 +115,7 @@ class ArticleController
         $meta = $this->seoMetaService->forArticle($article);
 
         return Inertia::render('Public/Articles/Show', [
-            'article' => ArticlePublicResource::make($article),
+            'article' => ArticlePublicResource::make($article)->resolve(),
             'relatedArticles' => ArticlePublicResource::collection($relatedArticles),
             'suggestedUnits' => UnitPublicResource::collection($suggestedUnits),
             'seo_meta' => $meta,

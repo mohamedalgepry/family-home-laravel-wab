@@ -88,7 +88,7 @@ class UnitController
         $lcpImage = $mainImage ? $mainImage->url : null;
 
         return Inertia::render('Public/Units/Show', [
-            'unit' => UnitPublicResource::make($unit),
+            'unit' => UnitPublicResource::make($unit)->resolve(),
             'similarUnits' => UnitPublicResource::collection($similarUnits),
             'seo_meta' => $meta,
         ])->withViewData(['meta' => $meta, 'lcpImage' => $lcpImage]);
