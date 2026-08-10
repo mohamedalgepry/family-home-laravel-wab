@@ -60,12 +60,7 @@ class SitemapController
         );
     }
 
-    public function categories(): Response
-    {
-        return $this->xmlResponse(
-            $this->sitemapService->remember('sitemap_categories_xml', fn () => $this->builder->buildCategories())
-        );
-    }
+
 
     public function robots(): Response
     {

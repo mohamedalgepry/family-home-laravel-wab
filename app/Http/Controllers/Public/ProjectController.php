@@ -7,6 +7,7 @@ use App\Domain\Listings\Models\Project;
 use App\Domain\Listings\Services\ListingLookupService;
 use App\Domain\Listings\Services\ListingService;
 use App\Domain\Listings\Services\PageViewService;
+use App\Http\Resources\Public\ProjectPublicResource;
 use App\Services\SeoService;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -39,7 +40,7 @@ class ProjectController
         $meta = app(SeoService::class)->forPage('projects_index', $customMeta);
 
         return Inertia::render('Public/Projects/Index', [
-            'projects' => $projects,
+            'projects' => ProjectPublicResource::collection($projects),
             'filters' => $filters,
             'seo_meta' => $meta,
             'areas' => $this->lookupService->areas(),
@@ -72,7 +73,7 @@ class ProjectController
         $lcpImage = $mainImage ? $mainImage->url : null;
 
         return Inertia::render('Public/Projects/Show', [
-            'project' => $project,
+            'project' => ProjectPublicResource::make($project),
             'seo_meta' => $meta,
         ])->withViewData(['meta' => $meta, 'lcpImage' => $lcpImage]);
     }

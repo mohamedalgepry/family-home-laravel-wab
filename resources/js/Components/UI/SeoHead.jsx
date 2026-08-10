@@ -4,7 +4,6 @@ import { useTrans } from '../../Utils/trans'
 export default function SeoHead({
     title,
     description,
-    keywords,
     ogImage,
     ogType = 'website',
     canonical,
@@ -43,11 +42,6 @@ export default function SeoHead({
     const rawDescription = pageSeo ? (isRtl ? (pageSeo.meta_description_ar || description) : (pageSeo.meta_description_en || description)) : (seo_meta?.description || description);
     const finalDescription = cleanMetaDescription(rawDescription);
 
-    const finalKeywords = pageSeo ? (
-        isRtl
-            ? (Array.isArray(pageSeo.meta_keywords_ar) && pageSeo.meta_keywords_ar.length > 0 ? pageSeo.meta_keywords_ar.join(', ') : keywords)
-            : (Array.isArray(pageSeo.meta_keywords_en) && pageSeo.meta_keywords_en.length > 0 ? pageSeo.meta_keywords_en.join(', ') : keywords)
-    ) : keywords;
 
     // Clean canonical URL without query string
     const rawCanonical = canonical || seo_meta?.canonical || (baseUrl ? `${baseUrl}${cleanPath}` : cleanPath);
@@ -69,7 +63,6 @@ export default function SeoHead({
         <Head>
             {finalTitle && <title>{finalTitle}</title>}
             {finalDescription && <meta head-key="description" name="description" content={finalDescription} />}
-            {finalKeywords && <meta head-key="keywords" name="keywords" content={finalKeywords} />}
 
             {/* Open Graph */}
             {finalTitle && <meta head-key="og:title" property="og:title" content={finalTitle} />}

@@ -48,6 +48,8 @@ export default function AdminProjectForm({ project, areas, features, finishingTy
         meta_description_ar: project?.meta_description_ar || '',
         meta_description_en: project?.meta_description_en || '',
         map_embed_url: project?.map_embed_url || '',
+        latitude: project?.latitude || '',
+        longitude: project?.longitude || '',
         location_address_ar: project?.location_address_ar || '',
         location_address_en: project?.location_address_en || '',
         images: [],
@@ -800,17 +802,29 @@ export default function AdminProjectForm({ project, areas, features, finishingTy
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('map_embed_url', {}, 'units')}</label>
-                                <textarea
+                                <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('map_url', {}, 'units') || 'رابط خريطة جوجل (Google Maps Link)'}</label>
+                                <input
+                                    type="text"
                                     value={data.map_embed_url}
                                     onChange={e => handleChange('map_embed_url', e.target.value)}
-                                    rows={4}
                                     dir="ltr"
-                                    placeholder='<iframe src="..."></iframe>'
+                                    placeholder="https://www.google.com/maps/place/..."
                                     className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 font-mono text-xs"
                                 />
-                                <p className="text-xs text-muted mt-1">{trans('map_embed_url_help', {}, 'units')}</p>
+                                <p className="text-xs text-muted mt-1">سيتم استخراج خط الطول ودائرة العرض من الرابط تلقائياً.</p>
                             </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-secondary-950 mb-1">دائرة العرض (Latitude)</label>
+                                    <input type="text" value={data.latitude} onChange={e => handleChange('latitude', e.target.value)} dir="ltr" className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-gray-50 focus:ring-0" placeholder="30.0594" readOnly />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-secondary-950 mb-1">خط الطول (Longitude)</label>
+                                    <input type="text" value={data.longitude} onChange={e => handleChange('longitude', e.target.value)} dir="ltr" className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-gray-50 focus:ring-0" placeholder="31.2234" readOnly />
+                                </div>
+                            </div>
+                            
                             {data.map_embed_url && (
                                 <iframe
                                     src={(() => {

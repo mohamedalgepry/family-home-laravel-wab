@@ -37,7 +37,7 @@ class ListingService
         return Cache::remember(self::CACHE_PREFIX."featured_{$limit}_page_{$page}_v{$this->version()}", self::CACHE_TTL, function () use ($limit) {
             return Unit::featured()
                 ->with(['type', 'area', 'images', 'user.profile'])
-                ->simplePaginate($limit);
+                ->paginate($limit);
         });
     }
 
@@ -48,7 +48,7 @@ class ListingService
         return Cache::remember(self::CACHE_PREFIX."latest_{$limit}_page_{$page}_v{$this->version()}", self::CACHE_TTL, function () use ($limit) {
             return $this->unitBaseQuery()
                 ->orderByFeatured()
-                ->simplePaginate($limit);
+                ->paginate($limit);
         });
     }
 
@@ -61,7 +61,7 @@ class ListingService
             $query = $this->unitBaseQuery();
             $this->applyUnitFilters($query, $filters);
 
-            return $query->orderByFeatured()->simplePaginate($perPage);
+            return $query->orderByFeatured()->paginate($perPage);
         });
     }
 
@@ -98,7 +98,7 @@ class ListingService
 
             $this->applyProjectFilters($query, $filters);
 
-            return $query->orderByDesc('created_at')->simplePaginate($perPage);
+            return $query->orderByDesc('created_at')->paginate($perPage);
         });
     }
 
@@ -113,7 +113,7 @@ class ListingService
                     $q->active();
                 }])
                 ->orderByDesc('created_at')
-                ->simplePaginate($limit);
+                ->paginate($limit);
         });
     }
 

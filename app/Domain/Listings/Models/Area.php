@@ -13,6 +13,14 @@ class Area extends Model
         'meta_description_ar', 'meta_description_en',
         'meta_keywords_ar', 'meta_keywords_en',
         'image_path',
+        'short_description_ar', 'short_description_en',
+        'hero_title_ar', 'hero_title_en',
+        'hero_description_ar', 'hero_description_en',
+        'hero_image', 'gallery',
+        'about_ar', 'about_en',
+        'address_ar', 'address_en',
+        'latitude', 'longitude', 'map_url',
+        'parent_id',
     ];
 
     protected $appends = ['name'];
@@ -31,6 +39,9 @@ class Area extends Model
             'sort_order' => 'integer',
             'meta_keywords_ar' => 'array',
             'meta_keywords_en' => 'array',
+            'gallery' => 'array',
+            'latitude' => 'decimal:7',
+            'longitude' => 'decimal:7',
         ];
     }
 
@@ -59,5 +70,20 @@ class Area extends Model
     public function projects()
     {
         return $this->hasMany(Project::class);
+    }
+
+    public function features()
+    {
+        return $this->hasMany(AreaFeature::class);
+    }
+
+    public function nearbyPlaces()
+    {
+        return $this->hasMany(AreaNearbyPlace::class);
+    }
+
+    public function faqs()
+    {
+        return $this->hasMany(AreaFaq::class);
     }
 }

@@ -258,6 +258,8 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
         meta_description_ar: unit?.meta_description_ar || '',
         meta_description_en: unit?.meta_description_en || '',
         map_embed_url: unit?.map_embed_url || '',
+        latitude: unit?.latitude || '',
+        longitude: unit?.longitude || '',
         location_address_ar: unit?.location_address_ar || '',
         location_address_en: unit?.location_address_en || '',
         images: [],
@@ -1118,16 +1120,29 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('map_embed_url', {}, 'units')}</label>
-                                <textarea
+                                <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('map_url', {}, 'units') || 'رابط خريطة جوجل (Google Maps Link)'}</label>
+                                <input
+                                    type="text"
                                     value={data.map_embed_url}
                                     onChange={e => handleChange('map_embed_url', e.target.value)}
-                                    rows={4}
-                                    className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none"
-                                    placeholder='<iframe src="https://www.google.com/maps/embed?pb=..." ></iframe>'
+                                    className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none font-mono text-xs"
+                                    placeholder="https://www.google.com/maps/place/..."
                                     dir="ltr"
                                 />
+                                <p className="text-xs text-muted mt-1">سيتم استخراج خط الطول ودائرة العرض من الرابط تلقائياً.</p>
                             </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-secondary-950 mb-1">دائرة العرض (Latitude)</label>
+                                    <input type="text" value={data.latitude} onChange={e => handleChange('latitude', e.target.value)} dir="ltr" className="w-full px-4 py-3 bg-gray-50 border-2 border-transparent rounded-xl text-sm focus:ring-0" placeholder="30.0594" readOnly />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-secondary-950 mb-1">خط الطول (Longitude)</label>
+                                    <input type="text" value={data.longitude} onChange={e => handleChange('longitude', e.target.value)} dir="ltr" className="w-full px-4 py-3 bg-gray-50 border-2 border-transparent rounded-xl text-sm focus:ring-0" placeholder="31.2234" readOnly />
+                                </div>
+                            </div>
+                            
                             {data.map_embed_url && (
                                 <iframe
                                     src={(() => {

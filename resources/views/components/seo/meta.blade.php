@@ -4,7 +4,6 @@
     $defaultTitle = config('app.name');
     $title = $meta['title'] ?? $defaultTitle;
     $description = $meta['description'] ?? '';
-    $keywords = $meta['keywords'] ?? '';
     $rawImage = $meta['image'] ?? null;
     $image = null;
     if (!empty($rawImage)) {
@@ -31,9 +30,6 @@
 <title inertia>{{ $title }}</title>
 <meta name="description" content="{{ $description }}" inertia head-key="description">
 <meta name="author" content="mohamed algebry" inertia head-key="author">
-@if($keywords)
-    <meta name="keywords" content="{{ $keywords }}" inertia head-key="keywords">
-@endif
 <link rel="canonical" href="{{ $canonical }}" inertia head-key="canonical">
 
 @foreach($hreflang as $lang => $url)

@@ -180,6 +180,10 @@ class SeoService
                 'publisher' => [
                     '@type' => 'Organization',
                     'name' => config('app.name'),
+                    'logo' => [
+                        '@type' => 'ImageObject',
+                        'url' => $this->settingsService->get('site_logo') ? asset('storage/'.$this->settingsService->get('site_logo')) : asset('icon.png'),
+                    ],
                     'url' => url('/'),
                 ],
             ],
@@ -248,6 +252,25 @@ class SeoService
                 $title => $canonical,
             ]);
         }
+        
+        $pageTypeMap = [
+            'about' => 'AboutPage',
+            'contact' => 'ContactPage',
+            'deals' => 'CollectionPage',
+            'units_index' => 'CollectionPage',
+            'projects_index' => 'CollectionPage',
+            'articles_index' => 'CollectionPage',
+        ];
+        $webPageType = $pageTypeMap[$pageKey] ?? 'WebPage';
+        
+        $schemas[] = [
+            '@context' => 'https://schema.org',
+            '@type' => $webPageType,
+            '@id' => $canonical.'#webpage',
+            'name' => $title,
+            'description' => $this->cleanText($desc),
+            'url' => $canonical,
+        ];
 
         return $this->buildMeta([
             'title' => $title,

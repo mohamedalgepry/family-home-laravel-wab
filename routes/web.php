@@ -30,7 +30,7 @@ Route::get('/sitemap-units.xml', [SitemapController::class, 'units']);
 Route::get('/sitemap-projects.xml', [SitemapController::class, 'projects']);
 Route::get('/sitemap-areas.xml', [SitemapController::class, 'areas']);
 Route::get('/sitemap-articles.xml', [SitemapController::class, 'articles']);
-Route::get('/sitemap-categories.xml', [SitemapController::class, 'categories']);
+
 Route::get('/robots.txt', [SitemapController::class, 'robots']);
 
 Route::get('/storage/{path}', function ($path) {
@@ -256,6 +256,8 @@ Route::prefix('admin')->middleware(['auth', 'role:admin,manager,agent'])->group(
 
     Route::prefix('areas')->name('admin.areas.')->middleware('role:admin')->group(function () {
         Route::get('/', [AreaController::class, 'index'])->name('index');
+        Route::get('/create', [AreaController::class, 'create'])->name('create');
+        Route::get('/{area}/edit', [AreaController::class, 'edit'])->name('edit');
         Route::post('/', [AreaController::class, 'store'])->name('store');
         Route::put('/{area}', [AreaController::class, 'update'])->name('update');
         Route::delete('/{area}', [AreaController::class, 'destroy'])->name('destroy');

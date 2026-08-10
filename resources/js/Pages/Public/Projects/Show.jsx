@@ -264,22 +264,24 @@ export default function ProjectShow({ project }) {
                             )}
 
                             {/* Location */}
-                            {project.map_embed_url && (
+                            {(project.latitude && project.longitude) || project.map_embed_url ? (
                                 <div>
                                     <h2 className="text-lg font-semibold text-secondary-950 mb-2">{trans('location', {}, 'projects')}</h2>
                                     {project.location_address && (
                                         <p className="text-sm text-muted mb-2">{project.location_address}</p>
                                     )}
                                     <iframe
-                                        src={extractEmbedSrc(project.map_embed_url)}
-                                        className="w-full aspect-video rounded-lg"
+                                        src={(project.latitude && project.longitude && project.latitude != '0' && project.longitude != '0') 
+                                            ? `https://maps.google.com/maps?q=${project.latitude},${project.longitude}&hl=${locale}&z=14&output=embed` 
+                                            : extractEmbedSrc(project.map_embed_url)}
+                                        className="w-full aspect-video rounded-lg border-0"
                                         allowFullScreen
                                         loading="lazy"
                                         referrerPolicy="no-referrer-when-downgrade"
                                         title="Google Maps"
                                     />
                                 </div>
-                            )}
+                            ) : null}
                         </div>
 
                     </div>

@@ -50,7 +50,6 @@ class SeoMetaService
         return [
             'title' => $title,
             'description' => $description,
-            'keywords' => $this->keywords($model->keywords),
             'image' => $relativeImage,
             'canonical' => url("/{$locale}/{$section}/".($model->$slugField ?? $model->slug)),
             'hreflang' => [
@@ -94,11 +93,23 @@ class SeoMetaService
             ];
         }
 
+        if (!empty($listing->latitude) && !empty($listing->longitude) && $listing->latitude != '0' && $listing->longitude != '0') {
+            $schema['geo'] = [
+                '@type' => 'GeoCoordinates',
+                'latitude' => $listing->latitude,
+                'longitude' => $listing->longitude,
+            ];
+        }
+
         return $schema;
     }
 
     private function articleSchema(Article $article): array
     {
+        $settingsService = app(\App\Domain\Listings\Services\SettingsService::class);
+        $logoPath = $settingsService->get('site_logo');
+        $logoUrl = $logoPath ? asset('storage/'.$logoPath) : asset('icon.png');
+
         return array_filter([
             '@context'      => 'https://schema.org',
             '@type'         => 'Article',
@@ -115,6 +126,10 @@ class SeoMetaService
             'publisher'     => [
                 '@type' => 'Organization',
                 'name'  => config('app.name'),
+                'logo'  => [
+                    '@type' => 'ImageObject',
+                    'url'   => $logoUrl,
+                ],
                 'url'   => url('/'),
             ],
         ], fn($v) => $v !== null && $v !== '');
@@ -160,12 +175,5 @@ class SeoMetaService
         return (string) str($clean)->squish()->limit(160);
     }
 
-    private function keywords(mixed $keywords): string
-    {
-        if (is_array($keywords)) {
-            return implode(', ', array_filter($keywords));
-        }
 
-        return (string) $keywords;
-    }
 }

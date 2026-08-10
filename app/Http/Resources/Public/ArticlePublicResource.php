@@ -1,0 +1,60 @@
+<?php
+
+namespace App\Http\Resources\Public;
+
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+
+class ArticlePublicResource extends JsonResource
+{
+    /**
+     * Transform the resource into an array.
+     *
+     * @return array<string, mixed>
+     */
+    public function toArray(Request $request): array
+    {
+        return [
+            'id' => $this->id,
+            'title' => $this->title,
+            'title_ar' => $this->title_ar,
+            'title_en' => $this->title_en,
+            'slug' => $this->slug,
+            'slug_ar' => $this->slug_ar,
+            'slug_en' => $this->slug_en,
+            'content' => $this->content,
+            'content_ar' => $this->content_ar,
+            'content_en' => $this->content_en,
+            'meta_description' => $this->meta_description,
+            'is_published' => $this->is_published,
+            'created_at' => $this->created_at,
+            'updated_at' => $this->updated_at,
+            
+            // Relations
+            'category' => $this->whenLoaded('category', function () {
+                return [
+                    'id' => $this->category->id,
+                    'name_ar' => $this->category->name_ar,
+                    'name_en' => $this->category->name_en,
+                    'slug' => $this->category->slug,
+                ];
+            }),
+            'images' => $this->whenLoaded('images', function () {
+                return $this->images->map(function ($image) {
+                    return [
+                        'id' => $image->id,
+                        'path' => $image->path,
+                        'url' => asset('storage/' . $image->path),
+                        'thumb_url' => $image->thumb_path ? asset('storage/' . $image->thumb_path) : null,
+                        'is_main' => $image->is_main,
+                        'is_primary' => $image->is_primary,
+                        'alt_text' => $image->alt_text,
+                    ];
+                });
+            }),
+            'user' => $this->whenLoaded('user', function () {
+                return AgentPublicResource::make($this->user);
+            }),
+        ];
+    }
+}

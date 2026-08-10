@@ -249,7 +249,7 @@ export default function ProjectsIndex({ projects, filters, areas, features, fini
                                 <ProjectCard key={project.id} project={project} />
                             ))}
                         </div>
-                        <Pagination meta={projects} links={projects.links} />
+                        <Pagination meta={projects.meta || projects} links={projects.links} />
                     </>
                 ) : (
                     <div className="bg-white rounded-2xl border border-secondary-100 p-12 text-center max-w-md mx-auto my-8">

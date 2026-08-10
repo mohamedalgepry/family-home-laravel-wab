@@ -136,9 +136,7 @@ class SitemapBuilder
 
     public function buildCategories(): string
     {
-        $xml = $this->startUrlSet();
-
-        return $xml.$this->endUrlSet();
+        return '';
     }
 
     public function buildAreas(): string

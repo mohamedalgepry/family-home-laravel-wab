@@ -2,15 +2,24 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Domain\Listings\Models\Area;
 use Illuminate\Foundation\Http\FormRequest;
+use App\Http\Requests\Traits\ExtractsCoordinatesFromUrl;
 
 class UpdateAreaRequest extends FormRequest
 {
+    use ExtractsCoordinatesFromUrl;
+
     public function authorize(): bool
     {
         $area = $this->route('area');
 
         return $this->user()?->can('update', $area) ?? false;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->prepareCoordinatesFromMapUrl();
     }
 
     public function rules(): array
@@ -20,6 +29,27 @@ class UpdateAreaRequest extends FormRequest
             'name_en' => 'required|string|max:100',
             'is_active' => 'boolean',
             'sort_order' => 'integer|min:0',
+            'parent_id' => 'nullable|exists:areas,id',
+            
+            'short_description_ar' => 'nullable|string',
+            'short_description_en' => 'nullable|string',
+            'hero_title_ar' => 'nullable|string|max:255',
+            'hero_title_en' => 'nullable|string|max:255',
+            'hero_description_ar' => 'nullable|string',
+            'hero_description_en' => 'nullable|string',
+            'hero_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+            'gallery' => 'nullable|array',
+            'gallery.*' => 'image|mimes:jpeg,png,jpg,webp|max:2048',
+            
+            'about_ar' => 'nullable|string',
+            'about_en' => 'nullable|string',
+            
+            'address_ar' => 'nullable|string|max:255',
+            'address_en' => 'nullable|string|max:255',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
+            'map_url' => 'nullable|url',
+            
             'meta_title_ar' => 'nullable|string|max:255',
             'meta_title_en' => 'nullable|string|max:255',
             'meta_description_ar' => 'nullable|string',
@@ -28,7 +58,37 @@ class UpdateAreaRequest extends FormRequest
             'meta_keywords_ar.*' => 'string|max:100',
             'meta_keywords_en' => 'nullable|array',
             'meta_keywords_en.*' => 'string|max:100',
-            'image_path' => 'nullable|string|max:255',
+            
+            'features' => 'nullable|array',
+            'features.*.id' => 'nullable|exists:area_features,id',
+            'features.*.title_ar' => 'required_with:features|string|max:255',
+            'features.*.title_en' => 'nullable|string|max:255',
+            'features.*.description_ar' => 'nullable|string',
+            'features.*.description_en' => 'nullable|string',
+            'features.*.icon' => 'nullable|string|max:255',
+            'features.*.sort_order' => 'nullable|integer',
+            'features.*.is_active' => 'boolean',
+            
+            'nearby_places' => 'nullable|array',
+            'nearby_places.*.id' => 'nullable|exists:area_nearby_places,id',
+            'nearby_places.*.name_ar' => 'required_with:nearby_places|string|max:255',
+            'nearby_places.*.name_en' => 'nullable|string|max:255',
+            'nearby_places.*.description_ar' => 'nullable|string',
+            'nearby_places.*.description_en' => 'nullable|string',
+            'nearby_places.*.distance' => 'nullable|string|max:100',
+            'nearby_places.*.distance_unit' => 'nullable|string|max:100',
+            'nearby_places.*.icon' => 'nullable|string|max:255',
+            'nearby_places.*.sort_order' => 'nullable|integer',
+            'nearby_places.*.is_active' => 'boolean',
+            
+            'faqs' => 'nullable|array',
+            'faqs.*.id' => 'nullable|exists:area_faqs,id',
+            'faqs.*.question_ar' => 'required_with:faqs|string',
+            'faqs.*.question_en' => 'nullable|string',
+            'faqs.*.answer_ar' => 'nullable|string',
+            'faqs.*.answer_en' => 'nullable|string',
+            'faqs.*.sort_order' => 'nullable|integer',
+            'faqs.*.is_active' => 'boolean',
         ];
     }
 }

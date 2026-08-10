@@ -336,22 +336,24 @@ export default function UnitShow({ unit, similarUnits }) {
 
 
                                 {/* Location */}
-                                {unit.map_embed_url && (
+                                {(unit.latitude && unit.longitude) || unit.map_embed_url ? (
                                     <div>
                                         <h2 className="text-lg font-semibold text-secondary-950 mb-2">{trans('location', {}, 'units')}</h2>
                                         {unit.location_address && (
                                             <p className="text-sm text-muted mb-2">{unit.location_address}</p>
                                         )}
                                         <iframe
-                                            src={extractEmbedSrc(unit.map_embed_url)}
-                                            className="w-full aspect-video rounded-lg"
+                                            src={(unit.latitude && unit.longitude && unit.latitude != '0' && unit.longitude != '0') 
+                                                ? `https://maps.google.com/maps?q=${unit.latitude},${unit.longitude}&hl=${locale}&z=14&output=embed` 
+                                                : extractEmbedSrc(unit.map_embed_url)}
+                                            className="w-full aspect-video rounded-lg border-0"
                                             allowFullScreen
                                             loading="lazy"
                                             referrerPolicy="no-referrer-when-downgrade"
                                             title="Google Maps"
                                         />
                                     </div>
-                                )}
+                                ) : null}
                             </div>
                         </div>
 

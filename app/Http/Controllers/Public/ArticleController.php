@@ -7,6 +7,8 @@ use App\Domain\Common\Support\Sanitizer;
 use App\Domain\Listings\Models\Article;
 use App\Domain\Listings\Models\Category;
 use App\Domain\Listings\Services\PageViewService;
+use App\Http\Resources\Public\ArticlePublicResource;
+use App\Http\Resources\Public\UnitPublicResource;
 use App\Services\SeoService;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -48,7 +50,7 @@ class ArticleController
         $meta = app(SeoService::class)->forPage('articles_index', $customMeta);
 
         return Inertia::render('Public/Articles/Index', [
-            'articles' => $articles,
+            'articles' => ArticlePublicResource::collection($articles),
             'categories' => $categories,
             'seo_meta' => $meta,
             'currentCategory' => $currentCategory ? [
@@ -113,9 +115,9 @@ class ArticleController
         $meta = $this->seoMetaService->forArticle($article);
 
         return Inertia::render('Public/Articles/Show', [
-            'article' => $article,
-            'relatedArticles' => $relatedArticles,
-            'suggestedUnits' => $suggestedUnits,
+            'article' => ArticlePublicResource::make($article),
+            'relatedArticles' => ArticlePublicResource::collection($relatedArticles),
+            'suggestedUnits' => UnitPublicResource::collection($suggestedUnits),
             'seo_meta' => $meta,
         ])->withViewData(['meta' => $meta]);
     }

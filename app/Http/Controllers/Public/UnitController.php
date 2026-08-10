@@ -7,6 +7,7 @@ use App\Domain\Listings\Models\Unit;
 use App\Domain\Listings\Services\ListingLookupService;
 use App\Domain\Listings\Services\ListingService;
 use App\Domain\Listings\Services\PageViewService;
+use App\Http\Resources\Public\UnitPublicResource;
 use App\Services\SeoService;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -30,7 +31,7 @@ class UnitController
         $meta = $this->buildFilteredUnitsMeta($filters);
 
         return Inertia::render('Public/Units/Index', [
-            'units' => $units,
+            'units' => UnitPublicResource::collection($units),
             'filters' => $filters,
             'seo_meta' => $meta,
             'areas' => $this->lookupService->areas(),
@@ -51,7 +52,7 @@ class UnitController
         $meta = $this->buildFilteredUnitsMeta($filters, true);
 
         return Inertia::render('Public/Units/Deals', [
-            'units' => $units,
+            'units' => UnitPublicResource::collection($units),
             'filters' => $filters,
             'seo_meta' => $meta,
             'areas' => $this->lookupService->areas(),
@@ -87,8 +88,8 @@ class UnitController
         $lcpImage = $mainImage ? $mainImage->url : null;
 
         return Inertia::render('Public/Units/Show', [
-            'unit' => $unit,
-            'similarUnits' => $similarUnits,
+            'unit' => UnitPublicResource::make($unit),
+            'similarUnits' => UnitPublicResource::collection($similarUnits),
             'seo_meta' => $meta,
         ])->withViewData(['meta' => $meta, 'lcpImage' => $lcpImage]);
     }

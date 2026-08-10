@@ -49,7 +49,7 @@ export default function UnitsIndex({ units, filters, areas, unitTypes, features,
                                 <UnitCard key={unit.id} unit={unit} />
                             ))}
                         </div>
-                        <Pagination meta={units} links={units.links} />
+                        <Pagination meta={units.meta || units} links={units.links} />
                     </>
                 ) : (
                     <div className="text-center py-16">

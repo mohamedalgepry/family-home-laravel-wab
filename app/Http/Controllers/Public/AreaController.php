@@ -6,6 +6,9 @@ use App\Domain\Listings\Models\Area;
 use App\Domain\Listings\Models\Project;
 use App\Domain\Listings\Models\Unit;
 use App\Domain\Listings\Services\ListingLookupService;
+use App\Http\Resources\Public\AreaPublicResource;
+use App\Http\Resources\Public\ProjectPublicResource;
+use App\Http\Resources\Public\UnitPublicResource;
 use App\Services\SeoService;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -20,6 +23,12 @@ class AreaController
     public function show(string $slug): Response
     {
         $area = Area::active()
+            ->with(['features', 'nearbyPlaces', 'faqs'])
+            ->withCount(['projects' => function ($q) {
+                $q->active();
+            }, 'units' => function ($q) {
+                $q->active();
+            }])
             ->where(function ($query) use ($slug) {
                 $query->where('slug', $slug)
                     ->orWhere('id', is_numeric($slug) ? (int) $slug : 0);
@@ -37,7 +46,7 @@ class AreaController
             ->where('area_id', $area->id)
             ->with(['type', 'area', 'images', 'user.profile', 'project.user.profile'])
             ->orderByFeatured()
-            ->simplePaginate(12, ['*'], 'units_page', $unitsPage);
+            ->paginate(12, ['*'], 'units_page', $unitsPage);
 
         $projects = Project::where('is_active', true)
             ->where('area_id', $area->id)
@@ -46,7 +55,7 @@ class AreaController
                 $q->active();
             }])
             ->orderByDesc('created_at')
-            ->simplePaginate(12, ['*'], 'projects_page', $projectsPage);
+            ->paginate(12, ['*'], 'projects_page', $projectsPage);
 
         $locale = app()->getLocale();
         $areaName = $locale === 'ar' ? ($area->name_ar ?? $area->name_en) : ($area->name_en ?? $area->name_ar);
@@ -59,9 +68,6 @@ class AreaController
             ? ($area->meta_description_ar ?: "تصفح أفضل الوحدات والمشاريع العقارية المتاحة للبيع والاستثمار في منطقة {$areaName}.")
             : ($area->meta_description_en ?: "Explore the best real estate units and projects available in {$areaName}.");
 
-        $keywordsList = $locale === 'ar'
-            ? ($area->meta_keywords_ar ?? ["عقارات {$areaName}", "شقق للبيع في {$areaName}", "مشاريع {$areaName}"])
-            : ($area->meta_keywords_en ?? ["Real Estate {$areaName}", "Apartments in {$areaName}", "Projects {$areaName}"]);
 
         $ogImage = null;
         if ($area->image_path) {
@@ -84,7 +90,6 @@ class AreaController
         $customMeta = [
             'title' => $metaTitle,
             'description' => $metaDescription,
-            'keywords' => is_array($keywordsList) ? implode(', ', $keywordsList) : $keywordsList,
             'canonical' => $canonical,
             'hreflang' => $hreflang,
             'ogTitle' => $metaTitle,
@@ -99,37 +104,87 @@ class AreaController
         ];
 
         $meta = $this->seoService->forPage('home', $customMeta);
-        $meta['keywords'] = is_array($keywordsList) ? implode(', ', $keywordsList) : $keywordsList;
         $meta['og_image'] = $ogImage;
         $meta['og_title'] = $metaTitle;
         $meta['og_description'] = $metaDescription;
         $meta['canonical'] = $canonical;
         $meta['hreflang'] = $hreflang;
-        $meta['schema'] = [
+        $placeSchema = [
+            '@context' => 'https://schema.org',
+            '@type' => 'Place',
+            '@id' => $canonical.'#place',
+            'name' => $areaName,
+            'description' => $metaDescription,
+            'url' => $canonical,
+        ];
+        
+        if ($ogImage) {
+            $placeSchema['image'] = [$ogImage];
+        }
+        
+        if (!empty($area->latitude) && !empty($area->longitude) && $area->latitude != '0' && $area->longitude != '0') {
+            $placeSchema['geo'] = [
+                '@type' => 'GeoCoordinates',
+                'latitude' => $area->latitude,
+                'longitude' => $area->longitude,
+            ];
+        }
+
+        $schemas = [
             $this->seoService->getBreadcrumbSchema([
                 __('seo.site_name') => url("/{$locale}"),
                 ($locale === 'ar' ? 'المناطق' : 'Areas') => url("/{$locale}/units"),
                 $areaName => $canonical,
             ]),
-            [
-                '@context' => 'https://schema.org',
-                '@type' => 'Place',
-                '@id' => $canonical.'#place',
-                'name' => $areaName,
-                'description' => $metaDescription,
-                'url' => $canonical,
-            ],
+            $placeSchema,
         ];
 
+        if ($area->faqs && $area->faqs->count() > 0) {
+            $faqElements = [];
+            foreach ($area->faqs as $faq) {
+                if ($faq->is_active) {
+                    $question = $locale === 'ar' ? $faq->question_ar : ($faq->question_en ?: $faq->question_ar);
+                    $answer = $locale === 'ar' ? $faq->answer_ar : ($faq->answer_en ?: $faq->answer_ar);
+                    if ($question && $answer) {
+                        $faqElements[] = [
+                            '@type' => 'Question',
+                            'name' => $question,
+                            'acceptedAnswer' => [
+                                '@type' => 'Answer',
+                                'text' => $answer,
+                            ],
+                        ];
+                    }
+                }
+            }
+            if (count($faqElements) > 0) {
+                $schemas[] = [
+                    '@context' => 'https://schema.org',
+                    '@type' => 'FAQPage',
+                    'mainEntity' => $faqElements,
+                ];
+            }
+        }
+
+        $meta['schema'] = $schemas;
+
+        // Fallback related areas (active areas other than current, randomized)
+        $relatedAreas = Area::active()
+            ->where('id', '!=', $area->id)
+            ->withCount(['projects' => fn($q) => $q->active()])
+            ->inRandomOrder()
+            ->take(3)
+            ->get();
+
         return Inertia::render('Public/Areas/Show', [
-            'area' => $area,
-            'units' => $units,
-            'projects' => $projects,
+            'area' => AreaPublicResource::make($area),
+            'relatedAreas' => AreaPublicResource::collection($relatedAreas),
+            'units' => UnitPublicResource::collection($units),
+            'projects' => ProjectPublicResource::collection($projects),
             'seo_meta' => $meta,
             'seo' => [
                 'title' => $metaTitle,
                 'description' => $metaDescription,
-                'keywords' => $keywordsList,
                 'ogImage' => $ogImage,
             ],
             'areas' => $this->lookupService->areas(),

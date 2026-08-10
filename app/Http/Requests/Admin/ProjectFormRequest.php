@@ -4,10 +4,16 @@ namespace App\Http\Requests\Admin;
 
 use App\Http\Requests\Admin\Concerns\HasMapEmbedRule;
 use Illuminate\Foundation\Http\FormRequest;
+use App\Http\Requests\Traits\ExtractsCoordinatesFromUrl;
 
 abstract class ProjectFormRequest extends FormRequest
 {
-    use HasMapEmbedRule;
+    use HasMapEmbedRule, ExtractsCoordinatesFromUrl;
+
+    protected function prepareForValidation(): void
+    {
+        $this->prepareCoordinatesFromMapUrl();
+    }
 
     public function rules(): array
     {
@@ -30,9 +36,10 @@ abstract class ProjectFormRequest extends FormRequest
             'keywords_ar' => 'nullable|array',
             'keywords_ar.*' => 'string|max:100',
             'keywords_en' => 'nullable|array',
-            'keywords_en.*' => 'string|max:100',
             'video_url' => 'nullable|url|max:500',
-            'map_embed_url' => $this->mapEmbedUrlRule(),
+            'map_embed_url' => 'nullable|url|max:1000',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
             'location_address_ar' => 'nullable|string|max:500',
             'location_address_en' => 'nullable|string|max:500',
             'images' => 'nullable|array|max:20',

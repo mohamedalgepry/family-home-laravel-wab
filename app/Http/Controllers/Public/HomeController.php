@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Public;
 use App\Domain\Listings\Services\ListingLookupService;
 use App\Domain\Listings\Services\ListingService;
 use App\Domain\Listings\Services\SearchService;
+use App\Http\Resources\Public\ProjectPublicResource;
+use App\Http\Resources\Public\UnitPublicResource;
 use App\Services\SeoService;
 use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
@@ -40,6 +42,10 @@ class HomeController
                 ];
             }
         );
+
+        $homeData['featuredUnits'] = UnitPublicResource::collection($homeData['featuredUnits']);
+        $homeData['latestUnits'] = UnitPublicResource::collection($homeData['latestUnits']);
+        $homeData['latestProjects'] = ProjectPublicResource::collection($homeData['latestProjects']);
 
         $meta = $this->seoService->forPage('home');
 
