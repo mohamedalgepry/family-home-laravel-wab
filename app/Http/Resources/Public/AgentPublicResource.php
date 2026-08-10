@@ -14,17 +14,19 @@ class AgentPublicResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        return [
+        $data = [
             'id' => $this->id,
             'name' => $this->name,
-            'profile' => $this->whenLoaded('profile', function () {
-                return [
-                    'avatar' => $this->profile->avatar,
-                    'phone' => $this->profile->phone,
-                    'whatsapp' => $this->profile->whatsapp,
-                    'facebook' => $this->profile->facebook,
-                ];
-            }),
         ];
+
+        if ($this->relationLoaded('profile') && $this->profile) {
+            $data['avatar'] = $this->profile->avatar;
+            $data['phone'] = $this->profile->phone;
+            $data['whatsapp'] = $this->profile->whatsapp;
+            $data['facebook'] = $this->profile->facebook;
+            $data['linkedin'] = $this->profile->linkedin;
+        }
+
+        return $data;
     }
 }
