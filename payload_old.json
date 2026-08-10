@@ -1,0 +1,33 @@
+{
+    "project": {
+        "id": 41,
+        "name": "Investment Project 1",
+        "name_ar": "\u0645\u0634\u0631\u0648\u0639 \u0627\u0633\u062a\u062b\u0645\u0627\u0631\u064a 1",
+        "name_en": "Investment Project 1",
+        "slug": "investment-project-1",
+        "slug_ar": "mshroaa-astthmary-1",
+        "slug_en": "investment-project-1-k4Pc0",
+        "description": "Detailed description of project 1 with all its wonderful facilities.",
+        "description_ar": "\u0648\u0635\u0641 \u062a\u0641\u0635\u064a\u0644\u064a \u0644\u0644\u0645\u0634\u0631\u0648\u0639 1 \u0628\u062c\u0645\u064a\u0639 \u0645\u0631\u0627\u0641\u0642\u0647 \u0648\u062e\u062f\u0645\u0627\u062a\u0647 \u0627\u0644\u0631\u0627\u0626\u0639\u0629.",
+        "description_en": "Detailed description of project 1 with all its wonderful facilities.",
+        "alt_text": null,
+        "is_active": true,
+        "units_count": null,
+        "location_address": "90th St, Fifth Settlement",
+        "latitude": null,
+        "longitude": null,
+        "map_embed_url": null,
+        "video_url": null,
+        "video_path": null,
+        "payment_method": "installment",
+        "down_payment": "10",
+        "installment_years": 5,
+        "delivery_date": null,
+        "meta_description": null,
+        "user": {
+            "id": 1,
+            "name": "\u0645\u062f\u064a\u0631 \u0627\u0644\u0646\u0638\u0627\u0645",
+            "profile": null
+        }
+    }
+}
