@@ -321,14 +321,7 @@ export default function ProjectShow({ project }) {
                     {/* Sidebar */}
                     <div>
                         {project.user && (
-                            <AgentCard agent={{
-                                id: project.user.id,
-                                name: project.user.name,
-                                avatar: project.user.profile?.avatar,
-                                phone: project.user.profile?.phone,
-                                whatsapp: project.user.profile?.whatsapp,
-                                facebook: project.user.profile?.facebook,
-                            }} />
+                            <AgentCard agent={project.user} />
                         )}
                     </div>
                 </div>

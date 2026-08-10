@@ -391,14 +391,7 @@ export default function UnitShow({ unit, similarUnits }) {
                         <div className="space-y-6">
                             {/* Agent */}
                             {unit.user && (
-                                <AgentCard agent={{
-                                    id: unit.user.id,
-                                    name: unit.user.name,
-                                    avatar: unit.user.profile?.avatar,
-                                    phone: unit.user.profile?.phone,
-                                    whatsapp: unit.user.profile?.whatsapp,
-                                    facebook: unit.user.profile?.facebook,
-                                }} />
+                                <AgentCard agent={unit.user} />
                             )}
 
                             {/* Contact Form */}
