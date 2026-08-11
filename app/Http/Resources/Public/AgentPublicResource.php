@@ -17,6 +17,12 @@ class AgentPublicResource extends JsonResource
         $data = [
             'id' => $this->id,
             'name' => $this->name,
+            'role' => $this->role,
+            'avatar' => null,
+            'phone' => null,
+            'whatsapp' => null,
+            'facebook' => null,
+            'linkedin' => null,
         ];
 
         if ($this->relationLoaded('profile') && $this->profile) {

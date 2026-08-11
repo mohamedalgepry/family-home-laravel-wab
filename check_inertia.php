@@ -3,12 +3,12 @@ require 'vendor/autoload.php';
 $app = require __DIR__.'/bootstrap/app.php';
 $kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
 $request = Illuminate\Http\Request::create('/ar/projects/investment-project-1', 'GET');
+$request->headers->set('X-Inertia', 'true');
 $response = $kernel->handle($request);
-$html = $response->getContent();
 
-preg_match('/data-page="([^"]+)"/', $html, $matches);
-$json = html_entity_decode($matches[1], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+$json = $response->getContent();
 $data = json_decode($json, true);
+
 if ($data) {
     echo "USER DUMP:\n";
     echo json_encode($data['props']['project']['user'] ?? 'No user property', JSON_PRETTY_PRINT);

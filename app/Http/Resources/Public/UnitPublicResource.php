@@ -105,10 +105,10 @@ class UnitPublicResource extends JsonResource
                 });
             }),
             'project' => $this->whenLoaded('project', function () {
-                return ProjectPublicResource::make($this->project);
+                return ProjectPublicResource::make($this->project)->resolve();
             }),
             'user' => $this->whenLoaded('user', function () {
-                return AgentPublicResource::make($this->user);
+                return AgentPublicResource::make($this->user)->resolve();
             }),
         ];
     }

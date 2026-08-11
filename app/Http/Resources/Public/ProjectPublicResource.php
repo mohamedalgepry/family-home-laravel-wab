@@ -86,7 +86,7 @@ class ProjectPublicResource extends JsonResource
                 return UnitPublicResource::collection($this->units);
             }),
             'user' => $this->whenLoaded('user', function () {
-                return AgentPublicResource::make($this->user);
+                return AgentPublicResource::make($this->user)->resolve();
             }),
         ];
     }
