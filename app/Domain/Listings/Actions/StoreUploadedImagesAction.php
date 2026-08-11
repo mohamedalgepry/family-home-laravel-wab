@@ -35,8 +35,7 @@ class StoreUploadedImagesAction
                 continue;
             }
 
-            $expectedWebpPath = preg_replace('/\.[^.]+$/', '.webp', $originalPath);
-            $paths[] = $expectedWebpPath !== $originalPath ? $expectedWebpPath : $originalPath;
+            $paths[] = $originalPath;
         }
 
         return $paths;

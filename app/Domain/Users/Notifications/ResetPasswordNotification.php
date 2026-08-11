@@ -2,6 +2,7 @@
 
 namespace App\Domain\Users\Notifications;
 
+use App\Domain\Listings\Services\SettingsService;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Notifications\Messages\MailMessage;
 
@@ -17,14 +18,26 @@ class ResetPasswordNotification extends ResetPassword
 
     public function toMail($notifiable): MailMessage
     {
-        $url = $this->buildMailUrl($notifiable);
+        $isEnglish = strtolower(app()->getLocale()) === 'en';
+        $userName = $notifiable->name ?? ($isEnglish ? 'User' : 'عزيزنا المستخدم');
+
+        $settingsService = app(SettingsService::class);
+        $siteLogo = $settingsService->get('site_logo');
+        $logoUrl = $siteLogo ? asset('storage/'.$siteLogo) : asset('icon.png');
+
+        $expireMinutes = config('auth.passwords.'.config('auth.defaults.passwords').'.expire', 60);
 
         return (new MailMessage)
-            ->subject('إعادة ضبط كلمة السر - Family Home')
-            ->greeting('مرحباً '.$notifiable->name)
-            ->line('لقد تلقينا طلباً لإعادة ضبط كلمة السر الخاصة بحسابك في منصة Family Home.')
-            ->action('إعادة ضبط كلمة السر الآن', $url)
-            ->line('ملاحظة: هذا الرابط صالـح لمدة '.config('auth.passwords.'.config('auth.defaults.passwords').'.expire', 60).' دقيقة فقط.')
-            ->line('إذا لم تقم بطلب إعادة ضبط كلمة السر بنفسك، فيمكنك تجاهل هذه الرسالة بأمان.');
+            ->subject($isEnglish
+                ? 'Reset Your Password - Family Home'
+                : 'إعادة ضبط كلمة السر - Family Home')
+            ->view('emails.reset-password', [
+                'locale' => app()->getLocale(),
+                'isEnglish' => $isEnglish,
+                'userName' => $userName,
+                'resetUrl' => $this->buildMailUrl($notifiable),
+                'expireMinutes' => $expireMinutes,
+                'logoUrl' => $logoUrl,
+            ]);
     }
 }

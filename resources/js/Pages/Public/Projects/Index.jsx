@@ -55,7 +55,7 @@ export default function ProjectsIndex({ projects, filters, areas, features, fini
     return (
         <div dir={isRtl ? 'rtl' : 'ltr'} className="min-h-screen bg-surface flex flex-col font-sans">
             <SeoHead
-                title={`${trans('projects_page_title') || (isRtl ? 'المشاريع العقارية' : 'Real Estate Projects')} - ${trans('site_title')}`}
+                title={`${trans('projects_page_title')} - ${trans('site_title')}`}
                 description={trans('projects_description')}
             />
             <Header />
@@ -65,10 +65,10 @@ export default function ProjectsIndex({ projects, filters, areas, features, fini
                 {/* Header Banner */}
                 <div className="mb-8 text-center max-w-3xl mx-auto">
                     <span className="inline-block bg-primary-50 text-primary-900 text-xs font-bold px-3 py-1 rounded-full mb-3 tracking-wide">
-                        {isRtl ? 'المشاريع العقارية' : 'Real Estate Projects'}
+                        {trans('real_estate_projects')}
                     </span>
                     <h1 className="text-3xl md:text-4xl font-extrabold text-secondary-950 tracking-tight leading-tight mb-3">
-                        {trans('projects_page_title') || (isRtl ? 'أبرز المشاريع والمجمعات السكنية' : 'Featured Projects')}
+                        {trans('projects_page_title')}
                     </h1>
                     <p className="text-sm md:text-base text-secondary-600 leading-relaxed">
                         {isRtl 
@@ -96,7 +96,7 @@ export default function ProjectsIndex({ projects, filters, areas, features, fini
                                     type="text"
                                     value={search}
                                     onChange={e => setSearch(e.target.value)}
-                                    placeholder={trans('search_projects') || (isRtl ? 'ابحث باسم المشروع...' : 'Search by project name...')}
+                                    placeholder={trans('search_projects')}
                                     className="w-full bg-transparent border-none text-sm focus:ring-0 text-secondary-800 placeholder-secondary-400 outline-none p-0"
                                 />
                             </div>
@@ -112,7 +112,7 @@ export default function ProjectsIndex({ projects, filters, areas, features, fini
                                     onChange={e => setAreaId(e.target.value)}
                                     className="w-full text-secondary-800 outline-none cursor-pointer border-none p-0 focus:ring-0 bg-transparent text-sm font-medium"
                                 >
-                                    <option value="">{isRtl ? 'جميع المناطق' : 'All Areas'}</option>
+                                    <option value="">{trans('all_areas')}</option>
                                     {areas?.map(area => (
                                         <option key={area.id} value={area.id}>
                                             {locale === 'ar' ? area.name_ar : area.name_en}
@@ -124,7 +124,7 @@ export default function ProjectsIndex({ projects, filters, areas, features, fini
                             {/* Payment Method Select */}
                             <div className="flex-1 w-full px-5 py-3 hover:bg-surface/60 transition-colors cursor-pointer group rounded-2xl md:rounded-none">
                                 <label htmlFor="project-payment-select" className="block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors">
-                                    {trans('payment_method') || (isRtl ? 'طريقة الدفع' : 'Payment Method')}
+                                    {trans('payment_method')}
                                 </label>
                                 <Select
                                     id="project-payment-select"
@@ -132,10 +132,10 @@ export default function ProjectsIndex({ projects, filters, areas, features, fini
                                     onChange={e => setPaymentMethod(e.target.value)}
                                     className="w-full text-secondary-800 outline-none cursor-pointer border-none p-0 focus:ring-0 bg-transparent text-sm font-medium"
                                 >
-                                    <option value="">{isRtl ? 'الكل' : 'All'}</option>
-                                    <option value="cash">{trans('cash') || (isRtl ? 'كاش' : 'Cash')}</option>
-                                    <option value="installment">{trans('installment') || (isRtl ? 'تقسيط' : 'Installment')}</option>
-                                    <option value="both">{trans('both') || (isRtl ? 'كاش وتقسيط' : 'Cash & Installment')}</option>
+                                    <option value="">{trans('all')}</option>
+                                    <option value="cash">{trans('cash')}</option>
+                                    <option value="installment">{trans('installment')}</option>
+                                    <option value="both">{trans('both')}</option>
                                 </Select>
                             </div>
 
@@ -153,7 +153,7 @@ export default function ProjectsIndex({ projects, filters, areas, features, fini
                                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0m-9.75 0h9.75" />
                                     </svg>
-                                    <span>{isRtl ? 'تصفية إضافية' : 'More Filters'}</span>
+                                    <span>{trans('more_filters')}</span>
                                 </button>
 
                                 {(search || areaId || paymentMethod || finishingTypeId || selectedFeatures.length > 0) && (
@@ -162,7 +162,7 @@ export default function ProjectsIndex({ projects, filters, areas, features, fini
                                         onClick={handleReset}
                                         className="px-3 py-3 rounded-2xl text-xs font-medium text-secondary-500 hover:text-secondary-900 transition-colors"
                                     >
-                                        {trans('clear_filters') || (isRtl ? 'إعادة ضبط' : 'Reset')}
+                                        {trans('clear_filters')}
                                     </button>
                                 )}
                                 
@@ -173,7 +173,7 @@ export default function ProjectsIndex({ projects, filters, areas, features, fini
                                     <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                                     </svg>
-                                    <span>{trans('search') || (isRtl ? 'بحث' : 'Search')}</span>
+                                    <span>{trans('search')}</span>
                                 </button>
                             </div>
                         </div>
@@ -192,7 +192,7 @@ export default function ProjectsIndex({ projects, filters, areas, features, fini
                                 <div className="flex flex-col sm:flex-row gap-6 w-full">
                                     <div className="flex-1 w-full">
                                         <label htmlFor="project-finishing-select" className="block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-2">
-                                            {trans('finishing_type') || (isRtl ? 'نوع التشطيب' : 'Finishing Type')}
+                                            {trans('finishing_type')}
                                         </label>
                                         <Select
                                             id="project-finishing-select"
@@ -200,7 +200,7 @@ export default function ProjectsIndex({ projects, filters, areas, features, fini
                                             onChange={e => setFinishingTypeId(e.target.value)}
                                             className="w-full"
                                         >
-                                            <option value="">{trans('all') || (isRtl ? 'الكل' : 'All')}</option>
+                                            <option value="">{trans('all')}</option>
                                             {finishingTypes?.map(f => (
                                                 <option key={f.id} value={f.id}>{locale === 'ar' ? f.name_ar : f.name_en}</option>
                                             ))}
@@ -211,7 +211,7 @@ export default function ProjectsIndex({ projects, filters, areas, features, fini
                                 {features?.length > 0 && (
                                     <div className="w-full pt-4 border-t border-secondary-200/60">
                                         <label className="block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-3">
-                                            {trans('features') || (isRtl ? 'المميزات والخدمات' : 'Features')}
+                                            {trans('features')}
                                         </label>
                                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                                             {features.map(feature => (
@@ -254,16 +254,16 @@ export default function ProjectsIndex({ projects, filters, areas, features, fini
                 ) : (
                     <div className="bg-white rounded-2xl border border-secondary-100 p-12 text-center max-w-md mx-auto my-8">
                         <h3 className="text-base font-bold text-secondary-900 mb-2">
-                            {isRtl ? 'لم يتم العثور على مشاريع مطابقة' : 'No Projects Found'}
+                            {trans('no_projects_found')}
                         </h3>
                         <p className="text-xs text-secondary-500 mb-6 leading-relaxed">
-                            {isRtl ? 'جرب البحث بكلمات مختلفة أو قم بإزالة بعض الفلاتر' : 'Try adjusting your search criteria or resetting filters'}
+                            {trans('try_adjusting_your_search_crit')}
                         </p>
                         <button
                             onClick={handleReset}
                             className="px-5 py-2.5 bg-secondary-900 text-white rounded-xl text-xs font-semibold hover:bg-secondary-950 transition-colors"
                         >
-                            {isRtl ? 'عرض كل المشاريع' : 'Show All Projects'}
+                            {trans('show_all_projects')}
                         </button>
                     </div>
                 )}

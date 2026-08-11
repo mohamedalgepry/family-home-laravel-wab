@@ -13,7 +13,7 @@ class MediaController
         abort_unless($request->user() && ($request->user()->isAdmin() || $request->user()->isManager()), 403);
 
         $request->validate([
-            'image' => ['required', 'image', 'max:5120'], // 5MB max
+            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'], // 5MB max
         ]);
 
         $file = $request->file('image');

@@ -21,6 +21,7 @@ class ProjectService
         private readonly UpdateProjectAction $updateAction,
         private readonly DeleteProjectAction $deleteAction,
         private readonly ListingImageService $listingImageService,
+        private readonly SitemapService $sitemapService,
     ) {}
 
     public function getPaginatedProjects(array $filters = [], ?User $user = null): LengthAwarePaginator

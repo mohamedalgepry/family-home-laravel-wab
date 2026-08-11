@@ -134,4 +134,5 @@ return [
     'meta_title_en' => 'العنوان (English)',
     'meta_description_ar' => 'الوصف (عربي)',
     'meta_description_en' => 'الوصف (English)',
+    'invalid_map_url' => 'رابط خرائط جوجل غير صالح أو لم يتم العثور على الإحداثيات',
 ];

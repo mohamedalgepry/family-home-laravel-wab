@@ -28,6 +28,8 @@ class CreateUnitData extends Data
         public readonly ?array $keywords_ar = [],
         public readonly ?array $keywords_en = [],
         public readonly ?string $map_embed_url = null,
+        public readonly ?float $latitude = null,
+        public readonly ?float $longitude = null,
         public readonly ?string $location_address_ar = null,
         public readonly ?string $location_address_en = null,
         public readonly bool $is_pinned = false,

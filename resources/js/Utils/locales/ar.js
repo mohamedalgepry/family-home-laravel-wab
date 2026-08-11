@@ -51,6 +51,7 @@ const ar = {
         compare_properties: 'قارن بين العقارات',
         compare_options_subtitle: 'قارن بين الخيارات واختر الأفضل',
         zoom: 'تكبير',
+        view_on_map: 'عرض على الخريطة',
         unit_message_sent_success: 'تم إرسال رسالتك بنجاح، وسيتواصل معك المستشار العقاري قريباً.',
         contact_message_sent_success: 'تم إرسال رسالتك بنجاح، وسنتواصل معك في أقرب وقت.',
         featured_units_subtitle: 'أفضل الفرص الاستثمارية والسكنية المختارة خصيصاً لك',
@@ -501,6 +502,17 @@ const ar = {
         everything_about_area: 'كل ما تحتاج معرفته عن :name',
         areas_you_might_like: 'مناطق قد تهمك',
         explore_all_areas: 'تصفح كل المناطق',
+        real_estate_projects: 'المشاريع العقارية',
+        featured_projects: 'أبرز المشاريع والمجمعات السكنية',
+        search_by_project_name: 'ابحث باسم المشروع...',
+        all_areas: 'جميع المناطق',
+        cash_installment: 'كاش وتقسيط',
+        more_filters: 'تصفية إضافية',
+        no_projects_found: 'لم يتم العثور على مشاريع مطابقة',
+        try_adjusting_your_search_crit: 'جرب البحث بكلمات مختلفة أو قم بإزالة بعض الفلاتر',
+        show_all_projects: 'عرض كل المشاريع',
+        add_units_to_compare: 'أضف وحدات أو مشاريع إلى المقارنة لترى الفروقات بينها وتختار الأنسب لك.',
+        image_number: 'صورة :number',
     }
 
 export default ar

@@ -4,7 +4,6 @@ namespace App\Domain\Listings\Services;
 
 use App\Domain\Listings\Models\Area;
 use App\Domain\Listings\Models\Article;
-use App\Domain\Listings\Models\Category;
 use App\Domain\Listings\Models\Project;
 use App\Domain\Listings\Models\Unit;
 use Illuminate\Support\Carbon;
@@ -47,14 +46,20 @@ class SitemapBuilder
     {
         $xml = $this->startUrlSet();
 
-        $xml .= $this->urlEntry('/', now(), '1.0', 'daily');
-        $xml .= $this->urlEntry('/units', now(), '0.8', 'hourly');
-        $xml .= $this->urlEntry('/units/deals', now(), '0.6', 'daily');
-        $xml .= $this->urlEntry('/projects', now(), '0.8', 'hourly');
-        $xml .= $this->urlEntry('/articles', now(), '0.8', 'daily');
-        $xml .= $this->urlEntry('/compare', now(), '0.5', 'weekly');
-        $xml .= $this->urlEntry('/about', now(), '0.5', 'monthly');
-        $xml .= $this->urlEntry('/contact', now(), '0.5', 'monthly');
+        $latestUnit = Unit::max('updated_at');
+        $latestProject = Project::max('updated_at');
+        $latestArticle = Article::max('updated_at');
+
+        $latestOverall = collect([$latestUnit, $latestProject, $latestArticle])->filter()->max();
+
+        $xml .= $this->urlEntry('/', $latestOverall, '1.0', 'daily');
+        $xml .= $this->urlEntry('/units', $latestUnit, '0.8', 'hourly');
+        $xml .= $this->urlEntry('/units/deals', $latestUnit, '0.6', 'daily');
+        $xml .= $this->urlEntry('/projects', $latestProject, '0.8', 'hourly');
+        $xml .= $this->urlEntry('/articles', $latestArticle, '0.8', 'daily');
+        $xml .= $this->urlEntry('/compare', null, '0.5', 'weekly');
+        $xml .= $this->urlEntry('/about', null, '0.5', 'monthly');
+        $xml .= $this->urlEntry('/contact', null, '0.5', 'monthly');
 
         return $xml.$this->endUrlSet();
     }
@@ -132,11 +137,6 @@ class SitemapBuilder
         });
 
         return $xml.$this->endUrlSet();
-    }
-
-    public function buildCategories(): string
-    {
-        return '';
     }
 
     public function buildAreas(): string

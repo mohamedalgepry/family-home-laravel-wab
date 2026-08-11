@@ -9,6 +9,7 @@ use Illuminate\Support\Str;
 class CategoryService
 {
     public function __construct(
+        private readonly SitemapService $sitemapService,
     ) {}
 
     public function getAll(): array

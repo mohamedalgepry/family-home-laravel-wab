@@ -93,7 +93,7 @@ export default function ArticlesIndex({ articles, categories, currentCategory })
                             href={localizedPath('/articles', locale)}
                             className="inline-flex items-center px-4 py-2 bg-primary-900 text-white rounded-xl text-sm font-medium hover:bg-primary-950 transition-colors"
                         >
-                            {isRtl ? 'عرض كل المقالات' : 'View All Articles'}
+                            {trans('view_all_articles')}
                         </Link>
                     </div>
                 )}

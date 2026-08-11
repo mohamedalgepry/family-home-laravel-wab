@@ -5,6 +5,7 @@ namespace Tests\Unit;
 use Tests\TestCase;
 use App\Http\Requests\Traits\ExtractsCoordinatesFromUrl;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 
 class TestRequest extends Request
 {
@@ -52,11 +53,20 @@ class ExtractCoordinatesFromUrlTest extends TestCase
     
     public function test_can_extract_from_short_url()
     {
+        Http::fake([
+            'goo.gl/*' => Http::response('', 302, [
+                'Location' => 'https://www.google.com/maps/@29.9611066,30.9295985,15z?entry=ttu',
+            ]),
+            'google.com/*' => Http::response('<html><body>ok</body></html>', 200),
+        ]);
+
         $request = new TestRequest();
         $coords = $request->testExtract('https://maps.app.goo.gl/LdTTTvXNRbj5brtj8');
         // The expanded URL should contain latitude 29.9611... and longitude 30.9295...
         $this->assertNotNull($coords);
         $this->assertEquals(29.9611066, $coords['latitude']);
         $this->assertEquals(30.9295985, $coords['longitude']);
+
+        Http::assertSentCount(2);
     }
 }

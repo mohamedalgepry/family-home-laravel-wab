@@ -32,7 +32,6 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
 
     const pageTitle = seo?.title || `${heroTitle} - ${trans('app_name')}`
     const pageDescription = seo?.description || heroDesc
-    const pageKeywords = Array.isArray(seo?.keywords) ? seo.keywords.join(', ') : seo?.keywords
 
     const toggleFaq = (index) => {
         setOpenFaq(openFaq === index ? null : index)
@@ -43,7 +42,6 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
             <SeoHead
                 title={pageTitle}
                 description={pageDescription}
-                keywords={pageKeywords}
                 ogImage={seo?.ogImage || heroImage}
                 canonical={appUrl && currentUrl ? `${appUrl}${currentUrl.split('?')[0]}` : undefined}
             />
@@ -109,10 +107,10 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
-                                {isRtl ? 'عن المنطقة' : 'About Area'}
+                                {trans('about_area')}
                             </div>
                             <h2 className="text-3xl md:text-4xl font-black text-secondary-950 leading-tight">
-                                {isRtl ? `اكتشف الحياة في ${areaName}` : `Discover Life in ${areaName}`}
+                                {trans('discover_life_in_area', { areaName })}
                             </h2>
                             <div className="prose prose-lg prose-secondary max-w-none text-secondary-600 leading-relaxed font-medium">
                                 {aboutArea ? (
@@ -120,7 +118,7 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                                         <p key={idx}>{paragraph}</p>
                                     ))
                                 ) : (
-                                    <p>{heroDesc || (isRtl ? `تعرف على أبرز تفاصيل منطقة ${areaName} ومميزاتها.` : `Learn more about the details and features of ${areaName}.`)}</p>
+                                    <p>{heroDesc || (trans('learn_more_about_area', { areaName }))}</p>
                                 )}
                             </div>
                             
@@ -175,7 +173,7 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                     <div className="max-w-container mx-auto px-4">
                         <div className="text-center mb-10">
                             <h2 className="text-3xl md:text-4xl font-black text-secondary-950 mb-4">
-                                {isRtl ? `العقارات المتاحة في ${areaName}` : `Properties in ${areaName}`}
+                                {trans('properties_in_area', { areaName })}
                             </h2>
                             <div className="inline-flex bg-white p-1.5 rounded-2xl shadow-sm border border-secondary-100">
                                 <button
@@ -286,9 +284,7 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                                 {address && <span className="text-sm text-secondary-500 font-medium max-w-[200px] md:max-w-none truncate">{address}</span>}
                             </h2>
                             <div className="w-full h-[300px] md:h-[400px] bg-secondary-100 rounded-3xl overflow-hidden border border-secondary-200 shadow-sm relative">
-                                {area?.map_url ? (
-                                    <iframe src={area.map_url} width="100%" height="100%" style={{ border: 0 }} allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade" title="Map"></iframe>
-                                ) : (area?.latitude && area?.longitude) ? (
+                                {(area?.latitude && area?.longitude && area?.latitude != '0' && area?.longitude != '0') ? (
                                     <iframe width="100%" height="100%" style={{ border: 0 }} src={`https://maps.google.com/maps?q=${area.latitude},${area.longitude}&z=14&output=embed`} allowFullScreen></iframe>
                                 ) : (
                                     <div className="absolute inset-0 flex items-center justify-center text-secondary-400 flex-col gap-2">
@@ -310,7 +306,7 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                                     {trans('frequently_asked_questions')}
                                 </h2>
                                 <p className="text-secondary-500 font-medium">
-                                    {isRtl ? `كل ما تحتاج معرفته عن ${areaName}` : `Everything you need to know about ${areaName}`}
+                                    {trans('everything_about_area', { areaName })}
                                 </p>
                             </div>
 

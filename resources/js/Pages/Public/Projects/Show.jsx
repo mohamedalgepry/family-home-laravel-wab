@@ -4,14 +4,7 @@ import Header from '../../../Components/Layout/Header'
 import Footer from '../../../Components/Layout/Footer'
 import UnitCard from '../../../Components/UI/UnitCard'
 
-function extractEmbedSrc(value) {
-    if (!value || typeof value !== 'string') return ''
-    const match = value.match(/src\s*=\s*"([^"]+)"/i) || value.match(/src\s*=\s*'([^']+)'/i)
-    if (match) return match[1]
-    if (value.includes('<iframe')) return ''
-    if (value.startsWith('http')) return value
-    return ''
-}
+
 import AgentCard from '../../../Components/Features/AgentCard'
 import SeoHead from '../../../Components/UI/SeoHead'
 import { getYouTubeEmbedUrl } from '../../../Utils/youtube'
@@ -72,7 +65,6 @@ export default function ProjectShow({ project }) {
             <SeoHead
                 title={`${project?.name || ''} - ${trans('site_title')}`}
                 description={project?.meta_description || project?.description || ''}
-                keywords={project?.keywords || ''}
                 ogImage={mainImage?.url || (mainImage?.path ? `/storage/${mainImage.path}` : null)}
                 ogType="website"
             />
@@ -266,52 +258,31 @@ export default function ProjectShow({ project }) {
                                 </div>
                             )}
 
-                            {/* Location */}
-                            {(project.latitude && project.longitude && project.latitude != '0' && project.longitude != '0') || project.map_embed_url ? (
-                                <div className="mt-8 pt-6 border-t border-secondary-100">
-                                    <h2 className="text-lg font-semibold text-secondary-950 mb-4">{trans('location', {}, 'projects')}</h2>
-                                    {project.location_address && (
-                                        <p className="text-sm text-muted mb-4">{project.location_address}</p>
-                                    )}
+                            {/* Location Section */}
+                            {(project.latitude && project.longitude && project.latitude != '0' && project.longitude != '0') ? (
+                                <div className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 md:p-8 mt-8">
+                                    <h2 className="text-xl font-bold text-secondary-950 mb-6 flex items-center gap-3">
+                                        <div className="w-1.5 h-6 bg-primary-600 rounded-full"></div>
+                                        {trans('location_on_map', {}, 'projects') || (isRtl ? 'الموقع على الخريطة' : 'Location on Map')}
+                                    </h2>
                                     
-                                    {(project.latitude && project.longitude && project.latitude != '0' && project.longitude != '0') ? (
-                                        <iframe
-                                            src={`https://maps.google.com/maps?q=${project.latitude},${project.longitude}&hl=${locale}&z=14&output=embed`}
-                                            className="w-full aspect-video rounded-xl border border-secondary-200 shadow-sm"
-                                            allowFullScreen
-                                            loading="lazy"
-                                            referrerPolicy="no-referrer-when-downgrade"
-                                            title="Google Maps Location"
-                                        />
-                                    ) : (
-                                        project.map_embed_url && (
-                                            (() => {
-                                                const src = extractEmbedSrc(project.map_embed_url)
-                                                if (!src) return null
-                                                if (src.includes('google.com/maps/embed') || src.includes('output=embed')) {
-                                                    return (
-                                                        <iframe
-                                                            src={src}
-                                                            className="w-full aspect-video rounded-xl border border-secondary-200 shadow-sm"
-                                                            allowFullScreen
-                                                            loading="lazy"
-                                                            referrerPolicy="no-referrer-when-downgrade"
-                                                            title="Google Maps Location"
-                                                        />
-                                                    )
-                                                }
-                                                return (
-                                                    <a href={src} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2 bg-secondary-50 text-secondary-900 rounded-lg hover:bg-secondary-100 transition-colors border border-secondary-200">
-                                                        <svg className="w-5 h-5 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                        </svg>
-                                                        <span>{trans('view_on_map', {}, 'projects') || 'عرض على الخريطة'}</span>
-                                                    </a>
-                                                )
-                                            })()
-                                        )
+                                    {project.location_address && (
+                                        <p className="text-sm text-secondary-600 mb-6 flex items-center gap-2">
+                                            <svg className="w-5 h-5 shrink-0 text-secondary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            </svg>
+                                            <span>{project.location_address}</span>
+                                        </p>
                                     )}
+                                    <iframe
+                                        src={`https://maps.google.com/maps?q=${project.latitude},${project.longitude}&hl=${locale}&z=14&output=embed`}
+                                        className="w-full aspect-video md:aspect-[21/9] rounded-xl border border-secondary-200 shadow-inner"
+                                        allowFullScreen
+                                        loading="lazy"
+                                        referrerPolicy="no-referrer-when-downgrade"
+                                        title="Google Maps Location"
+                                    />
                                 </div>
                             ) : null}
                         </div>
@@ -398,7 +369,7 @@ export default function ProjectShow({ project }) {
                                 <button
                                     key={i}
                                     onClick={e => { e.stopPropagation(); setLightboxIndex(i) }}
-                                    aria-label={isRtl ? `صورة ${i + 1}` : `Image ${i + 1}`}
+                                    aria-label={trans('image_number', { number: i + 1 })}
                                     className={`w-3 h-3 rounded-full ${
                                         i === lightboxIndex ? 'bg-white' : 'bg-white/40'
                                     }`}

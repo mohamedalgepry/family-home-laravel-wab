@@ -330,9 +330,7 @@ export default function Comparison({ items, type, max_items }) {
                             {trans('compare_properties')}
                         </h2>
                         <p className="text-sm text-secondary-500 mb-6 leading-relaxed">
-                            {isRtl
-                                ? 'أضف وحدات أو مشاريع إلى المقارنة لترى الفروقات بينها وتختار الأنسب لك.'
-                                : 'Add units or projects to compare and find the best option for you.'}
+                            {trans('add_units_to_compare')}
                         </p>
                         <div className="flex items-center justify-center gap-3">
                             <Link href={localizedPath('/units', locale)} className="px-5 py-2.5 bg-primary-900 text-white text-sm font-semibold rounded-xl hover:bg-primary-950 transition-colors">

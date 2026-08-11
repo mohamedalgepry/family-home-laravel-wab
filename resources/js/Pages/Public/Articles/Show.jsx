@@ -79,7 +79,7 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                     <div>
                         <p className="text-secondary-600 font-semibold text-base mb-4">{trans('no_results')}</p>
                         <Link href={localizedPath('/articles', locale)} className="px-5 py-2.5 bg-primary-900 text-white rounded-xl text-xs font-bold">
-                            {isRtl ? 'العودة للمقالات' : 'Back to Articles'}
+                            {trans('back_to_articles')}
                         </Link>
                     </div>
                 </main>
@@ -117,7 +117,6 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
             <SeoHead
                 title={`${article?.title || ''} - ${trans('site_title')}`}
                 description={article?.meta_description || article?.excerpt || ''}
-                keywords={article?.keywords || ''}
                 ogImage={headerImgUrl}
                 ogType="article"
             />
@@ -140,11 +139,11 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                     {/* Breadcrumb Navigation */}
                     <nav className="flex items-center gap-2 text-xs font-semibold text-secondary-500 mb-6" aria-label="Breadcrumb">
                         <Link href={localizedPath('/', locale)} className="hover:text-primary-900 transition-colors">
-                            {isRtl ? 'الرئيسية' : 'Home'}
+                            {trans('home')}
                         </Link>
                         <span>/</span>
                         <Link href={localizedPath('/articles', locale)} className="hover:text-primary-900 transition-colors">
-                            {trans('articles') || (isRtl ? 'المقالات' : 'Articles')}
+                            {trans('articles') || (trans('articles'))}
                         </Link>
                         {categoryName && (
                             <>
@@ -169,7 +168,7 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                             <svg className="w-3.5 h-3.5 text-secondary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            {readingTimeMin} {isRtl ? 'دقائق قراءة' : 'min read'}
+                            {readingTimeMin} {trans('min_read')}
                         </span>
                     </div>
 
@@ -185,8 +184,8 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                                 FH
                             </div>
                             <div>
-                                <span className="font-bold text-secondary-950 block text-xs">فاميلي هوم العقارية</span>
-                                <span className="text-xs text-secondary-500 font-medium">فريق التحرير العقاري</span>
+                                <span className="font-bold text-secondary-950 block text-xs">{trans('family_home_real_estate')}</span>
+                                <span className="text-xs text-secondary-500 font-medium">{trans('editorial_team')}</span>
                             </div>
                         </div>
 
@@ -197,12 +196,12 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white rounded-xl text-xs font-bold transition-all duration-200"
-                                title={isRtl ? 'مشاركة عبر واتساب' : 'Share on WhatsApp'}
+                                title={trans('share_whatsapp')}
                             >
                                 <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24" aria-hidden="true">
                                     <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
                                 </svg>
-                                <span>{isRtl ? 'مشاركة' : 'Share'}</span>
+                                <span>{trans('share')}</span>
                             </a>
 
                             <button
@@ -210,7 +209,7 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                                 onClick={handleCopyLink}
                                 className="px-3.5 py-2 bg-secondary-100 hover:bg-secondary-200 text-secondary-800 rounded-xl text-xs font-semibold transition-colors"
                             >
-                                {copied ? (isRtl ? 'تم النسخ!' : 'Copied!') : (isRtl ? 'نسخ الرابط' : 'Copy Link')}
+                                {copied ? (trans('copied')) : (trans('copy_link'))}
                             </button>
                         </div>
                     </div>
@@ -237,7 +236,7 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6" />
                                 </svg>
-                                <span>{isRtl ? 'تكبير' : 'Expand'}</span>
+                                <span>{trans('expand')}</span>
                             </button>
                         </div>
                     )}
@@ -323,10 +322,10 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                     <div className="mt-14 pt-8 border-t border-secondary-200 flex flex-col sm:flex-row items-center justify-between gap-4 bg-secondary-50 p-6 rounded-2xl">
                         <div>
                             <h3 className="text-sm font-bold text-secondary-950">
-                                {isRtl ? 'شارِك المقال مع أصدقائك' : 'Share this article'}
+                                {trans('share_this_article')}
                             </h3>
                             <p className="text-xs text-secondary-500 mt-0.5">
-                                {isRtl ? 'شارِك المعرفة والتحليلات العقارية الهامة' : 'Spread valuable real estate knowledge'}
+                                {trans('spread_knowledge')}
                             </p>
                         </div>
                         <a
@@ -338,7 +337,7 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                             <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24" aria-hidden="true">
                                 <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
                             </svg>
-                            <span>{isRtl ? 'مشاركة عبر واتساب' : 'Share on WhatsApp'}</span>
+                            <span>{trans('share_whatsapp')}</span>
                         </a>
                     </div>
                         </article>
@@ -352,25 +351,25 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                                     <svg className="w-4 h-4 text-primary-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                                     </svg>
-                                    {isRtl ? 'روابط سريعة' : 'Quick Links'}
+                                    {trans('quick_links')}
                                 </h3>
                                 <ul className="space-y-2">
                                     <li>
                                         <Link href={localizedPath('/', locale)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-secondary-700 hover:text-primary-900 hover:bg-primary-50 transition-colors border border-transparent hover:border-primary-100">
                                             <span className="w-1.5 h-1.5 rounded-full bg-secondary-300"></span>
-                                            {isRtl ? 'الرئيسية' : 'Home'}
+                                            {trans('home')}
                                         </Link>
                                     </li>
                                     <li>
                                         <Link href={localizedPath('/units', locale)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-secondary-700 hover:text-primary-900 hover:bg-primary-50 transition-colors border border-transparent hover:border-primary-100">
                                             <span className="w-1.5 h-1.5 rounded-full bg-secondary-300"></span>
-                                            {isRtl ? 'تصفح الوحدات المعروضة' : 'Browse Available Units'}
+                                            {trans('browse_available_units')}
                                         </Link>
                                     </li>
                                     <li>
                                         <Link href={localizedPath('/projects', locale)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-secondary-700 hover:text-primary-900 hover:bg-primary-50 transition-colors border border-transparent hover:border-primary-100">
                                             <span className="w-1.5 h-1.5 rounded-full bg-secondary-300"></span>
-                                            {isRtl ? 'استكشف أحدث المشاريع' : 'Explore Latest Projects'}
+                                            {trans('explore_latest_projects')}
                                         </Link>
                                     </li>
                                 </ul>
@@ -384,10 +383,10 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                                             <svg className="w-4 h-4 text-primary-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                                             </svg>
-                                            {isRtl ? 'عقارات مقترحة' : 'Suggested Properties'}
+                                            {trans('suggested_properties')}
                                         </span>
                                         <Link href={localizedPath('/units', locale)} className="text-[10px] text-secondary-400 hover:text-primary-700">
-                                            {isRtl ? 'عرض الكل' : 'View All'}
+                                            {trans('view_all')}
                                         </Link>
                                     </h3>
                                     <ul className="space-y-4">
@@ -407,7 +406,7 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                                                                 {unit.title}
                                                             </h4>
                                                             <span className="text-[10px] text-primary-700 font-black mt-1.5 block">
-                                                                {new Intl.NumberFormat(isRtl ? 'ar-EG' : 'en-US').format(unit.price)} {isRtl ? 'ج.م' : 'EGP'}
+                                                                {new Intl.NumberFormat(isRtl ? 'ar-EG' : 'en-US').format(unit.price)} {trans('egp')}
                                                             </span>
                                                         </div>
                                                     </Link>
@@ -426,10 +425,10 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                                             <svg className="w-4 h-4 text-primary-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
                                             </svg>
-                                            {isRtl ? 'مقالات مقترحة' : 'Suggested Articles'}
+                                            {trans('suggested_articles')}
                                         </span>
                                         <Link href={localizedPath('/articles', locale)} className="text-[10px] text-secondary-400 hover:text-primary-700">
-                                            {isRtl ? 'عرض الكل' : 'View All'}
+                                            {trans('view_all')}
                                         </Link>
                                     </h3>
                                     <ul className="space-y-4">

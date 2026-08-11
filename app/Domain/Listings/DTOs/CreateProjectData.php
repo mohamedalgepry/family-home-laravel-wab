@@ -15,6 +15,8 @@ class CreateProjectData extends Data
         public readonly ?string $alt_text = null,
         public readonly ?string $video_url = null,
         public readonly ?string $map_embed_url = null,
+        public readonly ?float $latitude = null,
+        public readonly ?float $longitude = null,
         public readonly ?string $location_address_ar = null,
         public readonly ?string $location_address_en = null,
         public readonly ?array $keywords_ar = [],

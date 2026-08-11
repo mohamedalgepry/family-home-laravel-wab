@@ -88,22 +88,26 @@ class PointsService
             ->chunk(100, function ($units) use ($value, $now, &$processedCount) {
                 $transactions = [];
 
+                $managerIds = $units->map(fn($u) => $u->user?->manager_id ?? $u->user_id)->unique()->filter();
+                $managers = User::whereIn('id', $managerIds)->pluck('points_balance', 'id');
+
                 foreach ($units as $unit) {
                     $deduction = min($unit->priority_points, $value);
                     $newPoints = max(0, $unit->priority_points - $deduction);
 
                     $unit->update(['priority_points' => $newPoints]);
 
+                    $managerId = $unit->user?->manager_id ?? $unit->user_id;
+
                     $transactions[] = [
-                        'manager_id' => $unit->user?->manager_id ?? $unit->user_id,
+                        'manager_id' => $managerId,
                         'unit_id' => $unit->id,
                         'points' => -$deduction,
                         'type' => 'daily_deduct',
-                        'balance_after' => $newPoints,
-                        'notes' => 'auto_daily_deduction',
+                        'balance_after' => $managers[$managerId] ?? 0,
+                        'notes' => 'auto_daily_deduction (Unit Remaining: ' . $newPoints . ')',
                         'performed_by' => $unit->user_id,
                         'created_at' => $now,
-                        'updated_at' => $now,
                     ];
 
                     $processedCount++;

@@ -1,0 +1,2236 @@
+﻿diff --git a/app/Console/Commands/ExtractCoordinatesCommand.php b/app/Console/Commands/ExtractCoordinatesCommand.php
+index e1792b0..cf18b6c 100644
+--- a/app/Console/Commands/ExtractCoordinatesCommand.php
++++ b/app/Console/Commands/ExtractCoordinatesCommand.php
+@@ -5,12 +5,11 @@ namespace App\Console\Commands;
+ use Illuminate\Console\Command;
+ use App\Domain\Listings\Models\Project;
+ use App\Domain\Listings\Models\Unit;
+-use App\Http\Requests\Traits\ExtractsCoordinatesFromUrl;
++use App\Domain\Listings\Models\Area;
++use App\Domain\Listings\Services\GoogleMapsUrlResolverService;
+ 
+ class ExtractCoordinatesCommand extends Command
+ {
+-    use ExtractsCoordinatesFromUrl;
+-
+     /**
+      * The name and signature of the console command.
+      *
+@@ -23,17 +22,18 @@ class ExtractCoordinatesCommand extends Command
+      *
+      * @var string
+      */
+-    protected $description = 'Extract latitude and longitude from existing map_embed_url for projects and units';
++    protected $description = 'Extract latitude and longitude from existing map URLs for projects, units, and areas';
+ 
+     /**
+      * Execute the console command.
+      */
+-    public function handle()
++    public function handle(GoogleMapsUrlResolverService $resolver)
+     {
+         $this->info('Starting coordinate extraction...');
+ 
+         $projectCount = 0;
+         $unitCount = 0;
++        $areaCount = 0;
+ 
+         // Process Projects
+         $projects = Project::whereNotNull('map_embed_url')
+@@ -42,7 +42,7 @@ class ExtractCoordinatesCommand extends Command
+                            })->get();
+ 
+         foreach ($projects as $project) {
+-            $coords = $this->extractCoordinates($project->map_embed_url);
++            $coords = $resolver->resolveAndExtract($project->map_embed_url);
+             if ($coords) {
+                 $project->latitude = $coords['latitude'];
+                 $project->longitude = $coords['longitude'];
+@@ -59,7 +59,7 @@ class ExtractCoordinatesCommand extends Command
+                      })->get();
+ 
+         foreach ($units as $unit) {
+-            $coords = $this->extractCoordinates($unit->map_embed_url);
++            $coords = $resolver->resolveAndExtract($unit->map_embed_url);
+             if ($coords) {
+                 $unit->latitude = $coords['latitude'];
+                 $unit->longitude = $coords['longitude'];
+@@ -69,6 +69,24 @@ class ExtractCoordinatesCommand extends Command
+             }
+         }
+ 
+-        $this->info("Extraction complete. Updated $projectCount Projects and $unitCount Units.");
++        // Process Areas
++        $areas = Area::whereNotNull('map_url')
++                     ->where(function($q) {
++                         $q->whereNull('latitude')->orWhere('latitude', '0');
++                     })->get();
++
++        foreach ($areas as $area) {
++            $coords = $resolver->resolveAndExtract($area->map_url);
++            if ($coords) {
++                $area->latitude = $coords['latitude'];
++                $area->longitude = $coords['longitude'];
++                $area->save();
++                $areaCount++;
++                $this->line("Updated Area ID {$area->id}");
++            }
++        }
++
++        $this->info("Extraction complete. Updated $projectCount Projects, $unitCount Units, $areaCount Areas.");
+     }
+ }
++
+diff --git a/app/Domain/Listings/Actions/StoreUploadedImagesAction.php b/app/Domain/Listings/Actions/StoreUploadedImagesAction.php
+index af41d71..9c3b261 100644
+--- a/app/Domain/Listings/Actions/StoreUploadedImagesAction.php
++++ b/app/Domain/Listings/Actions/StoreUploadedImagesAction.php
+@@ -35,8 +35,7 @@ class StoreUploadedImagesAction
+                 continue;
+             }
+ 
+-            $expectedWebpPath = preg_replace('/\.[^.]+$/', '.webp', $originalPath);
+-            $paths[] = $expectedWebpPath !== $originalPath ? $expectedWebpPath : $originalPath;
++            $paths[] = $originalPath;
+         }
+ 
+         return $paths;
+diff --git a/app/Domain/Listings/DTOs/CreateProjectData.php b/app/Domain/Listings/DTOs/CreateProjectData.php
+index 11632a6..a17048a 100644
+--- a/app/Domain/Listings/DTOs/CreateProjectData.php
++++ b/app/Domain/Listings/DTOs/CreateProjectData.php
+@@ -15,6 +15,8 @@ class CreateProjectData extends Data
+         public readonly ?string $alt_text = null,
+         public readonly ?string $video_url = null,
+         public readonly ?string $map_embed_url = null,
++        public readonly ?float $latitude = null,
++        public readonly ?float $longitude = null,
+         public readonly ?string $location_address_ar = null,
+         public readonly ?string $location_address_en = null,
+         public readonly ?array $keywords_ar = [],
+diff --git a/app/Domain/Listings/DTOs/CreateUnitData.php b/app/Domain/Listings/DTOs/CreateUnitData.php
+index 3390414..306ea5c 100644
+--- a/app/Domain/Listings/DTOs/CreateUnitData.php
++++ b/app/Domain/Listings/DTOs/CreateUnitData.php
+@@ -28,6 +28,8 @@ class CreateUnitData extends Data
+         public readonly ?array $keywords_ar = [],
+         public readonly ?array $keywords_en = [],
+         public readonly ?string $map_embed_url = null,
++        public readonly ?float $latitude = null,
++        public readonly ?float $longitude = null,
+         public readonly ?string $location_address_ar = null,
+         public readonly ?string $location_address_en = null,
+         public readonly bool $is_pinned = false,
+diff --git a/app/Domain/Listings/Services/ArticleService.php b/app/Domain/Listings/Services/ArticleService.php
+index 152a170..f1a6887 100644
+--- a/app/Domain/Listings/Services/ArticleService.php
++++ b/app/Domain/Listings/Services/ArticleService.php
+@@ -18,6 +18,7 @@ class ArticleService
+         private readonly CreateArticleAction $createAction,
+         private readonly UpdateArticleAction $updateAction,
+         private readonly ListingImageService $listingImageService,
++        private readonly SitemapService $sitemapService,
+     ) {}
+ 
+     public function getPaginatedArticles(array $filters = []): LengthAwarePaginator
+diff --git a/app/Domain/Listings/Services/CategoryService.php b/app/Domain/Listings/Services/CategoryService.php
+index 8cb327e..b5cb3b9 100644
+--- a/app/Domain/Listings/Services/CategoryService.php
++++ b/app/Domain/Listings/Services/CategoryService.php
+@@ -9,6 +9,7 @@ use Illuminate\Support\Str;
+ class CategoryService
+ {
+     public function __construct(
++        private readonly SitemapService $sitemapService,
+     ) {}
+ 
+     public function getAll(): array
+diff --git a/app/Domain/Listings/Services/ListingService.php b/app/Domain/Listings/Services/ListingService.php
+index 0b21577..2381b17 100644
+--- a/app/Domain/Listings/Services/ListingService.php
++++ b/app/Domain/Listings/Services/ListingService.php
+@@ -91,7 +91,7 @@ class ListingService
+ 
+         return Cache::remember($key, self::CACHE_TTL, function () use ($filters, $perPage) {
+             $query = Project::where('is_active', true)
+-                ->with('area', 'images')
++                ->with('area', 'images', 'user.profile')
+                 ->withCount(['units' => function ($q) {
+                     $q->active();
+                 }]);
+@@ -108,7 +108,7 @@ class ListingService
+ 
+         return Cache::remember(self::CACHE_PREFIX."latest_projects_{$limit}_page_{$page}_v{$this->version()}", self::CACHE_TTL, function () use ($limit) {
+             return Project::where('is_active', true)
+-                ->with(['area', 'images'])
++                ->with(['area', 'images', 'user.profile'])
+                 ->withCount(['units' => function ($q) {
+                     $q->active();
+                 }])
+diff --git a/app/Domain/Listings/Services/ProjectService.php b/app/Domain/Listings/Services/ProjectService.php
+index db16ed9..5f20acc 100644
+--- a/app/Domain/Listings/Services/ProjectService.php
++++ b/app/Domain/Listings/Services/ProjectService.php
+@@ -21,6 +21,7 @@ class ProjectService
+         private readonly UpdateProjectAction $updateAction,
+         private readonly DeleteProjectAction $deleteAction,
+         private readonly ListingImageService $listingImageService,
++        private readonly SitemapService $sitemapService,
+     ) {}
+ 
+     public function getPaginatedProjects(array $filters = [], ?User $user = null): LengthAwarePaginator
+diff --git a/app/Domain/Listings/Services/SitemapBuilder.php b/app/Domain/Listings/Services/SitemapBuilder.php
+index 16a72a5..9a9e444 100644
+--- a/app/Domain/Listings/Services/SitemapBuilder.php
++++ b/app/Domain/Listings/Services/SitemapBuilder.php
+@@ -4,7 +4,6 @@ namespace App\Domain\Listings\Services;
+ 
+ use App\Domain\Listings\Models\Area;
+ use App\Domain\Listings\Models\Article;
+-use App\Domain\Listings\Models\Category;
+ use App\Domain\Listings\Models\Project;
+ use App\Domain\Listings\Models\Unit;
+ use Illuminate\Support\Carbon;
+@@ -47,14 +46,20 @@ class SitemapBuilder
+     {
+         $xml = $this->startUrlSet();
+ 
+-        $xml .= $this->urlEntry('/', now(), '1.0', 'daily');
+-        $xml .= $this->urlEntry('/units', now(), '0.8', 'hourly');
+-        $xml .= $this->urlEntry('/units/deals', now(), '0.6', 'daily');
+-        $xml .= $this->urlEntry('/projects', now(), '0.8', 'hourly');
+-        $xml .= $this->urlEntry('/articles', now(), '0.8', 'daily');
+-        $xml .= $this->urlEntry('/compare', now(), '0.5', 'weekly');
+-        $xml .= $this->urlEntry('/about', now(), '0.5', 'monthly');
+-        $xml .= $this->urlEntry('/contact', now(), '0.5', 'monthly');
++        $latestUnit = Unit::max('updated_at');
++        $latestProject = Project::max('updated_at');
++        $latestArticle = Article::max('updated_at');
++
++        $latestOverall = collect([$latestUnit, $latestProject, $latestArticle])->filter()->max();
++
++        $xml .= $this->urlEntry('/', $latestOverall, '1.0', 'daily');
++        $xml .= $this->urlEntry('/units', $latestUnit, '0.8', 'hourly');
++        $xml .= $this->urlEntry('/units/deals', $latestUnit, '0.6', 'daily');
++        $xml .= $this->urlEntry('/projects', $latestProject, '0.8', 'hourly');
++        $xml .= $this->urlEntry('/articles', $latestArticle, '0.8', 'daily');
++        $xml .= $this->urlEntry('/compare', null, '0.5', 'weekly');
++        $xml .= $this->urlEntry('/about', null, '0.5', 'monthly');
++        $xml .= $this->urlEntry('/contact', null, '0.5', 'monthly');
+ 
+         return $xml.$this->endUrlSet();
+     }
+@@ -134,11 +139,6 @@ class SitemapBuilder
+         return $xml.$this->endUrlSet();
+     }
+ 
+-    public function buildCategories(): string
+-    {
+-        return '';
+-    }
+-
+     public function buildAreas(): string
+     {
+         $xml = $this->startUrlSet();
+diff --git a/app/Domain/Listings/Services/SitemapService.php b/app/Domain/Listings/Services/SitemapService.php
+index c309f39..51dc705 100644
+--- a/app/Domain/Listings/Services/SitemapService.php
++++ b/app/Domain/Listings/Services/SitemapService.php
+@@ -45,7 +45,6 @@ class SitemapService
+             'sitemap-units.xml' => $this->builder->buildUnits(),
+             'sitemap-projects.xml' => $this->builder->buildProjects(),
+             'sitemap-articles.xml' => $this->builder->buildArticles(),
+-            'sitemap-categories.xml' => $this->builder->buildCategories(),
+             'robots.txt' => $this->builder->buildRobots(),
+         ];
+ 
+@@ -63,7 +62,6 @@ class SitemapService
+             'sitemap_units_xml',
+             'sitemap_projects_xml',
+             'sitemap_articles_xml',
+-            'sitemap_categories_xml',
+         ];
+     }
+ }
+diff --git a/app/Domain/Listings/Services/UnitService.php b/app/Domain/Listings/Services/UnitService.php
+index 03dc1b8..dd03b17 100644
+--- a/app/Domain/Listings/Services/UnitService.php
++++ b/app/Domain/Listings/Services/UnitService.php
+@@ -23,6 +23,7 @@ class UnitService
+         private readonly UpdateUnitAction $updateUnitAction,
+         private readonly DeleteUnitAction $deleteUnitAction,
+         private readonly ListingImageService $listingImageService,
++        private readonly SitemapService $sitemapService,
+     ) {}
+ 
+     public function getPaginatedUnits(array $filters = [], ?User $user = null): LengthAwarePaginator
+@@ -115,6 +116,7 @@ class UnitService
+         $this->listingImageService->deleteImageFiles($imagePaths);
+ 
+         // إعادة توليد ملف sitemap.xml فوراً
++        $this->sitemapService->regenerate();
+     }
+ 
+     public function togglePin(int $unitId): Unit
+diff --git a/app/Domain/Media/Jobs/GenerateThumbnailsJob.php b/app/Domain/Media/Jobs/GenerateThumbnailsJob.php
+index cb33de6..c3e1670 100644
+--- a/app/Domain/Media/Jobs/GenerateThumbnailsJob.php
++++ b/app/Domain/Media/Jobs/GenerateThumbnailsJob.php
+@@ -106,7 +106,6 @@ class GenerateThumbnailsJob implements ShouldQueue
+         imagewebp($thumbImage, $thumbFullPath, self::THUMB_QUALITY);
+         imagedestroy($thumbImage);
+ 
+-        $this->convertOriginalToWebpIfRasterizable($sourceImage, $fullPath, $relativePath);
+         imagedestroy($sourceImage);
+     }
+ 
+diff --git a/app/Domain/Points/Services/PointsService.php b/app/Domain/Points/Services/PointsService.php
+index 6b8e799..78a2540 100644
+--- a/app/Domain/Points/Services/PointsService.php
++++ b/app/Domain/Points/Services/PointsService.php
+@@ -88,22 +88,26 @@ class PointsService
+             ->chunk(100, function ($units) use ($value, $now, &$processedCount) {
+                 $transactions = [];
+ 
++                $managerIds = $units->map(fn($u) => $u->user?->manager_id ?? $u->user_id)->unique()->filter();
++                $managers = User::whereIn('id', $managerIds)->pluck('points_balance', 'id');
++
+                 foreach ($units as $unit) {
+                     $deduction = min($unit->priority_points, $value);
+                     $newPoints = max(0, $unit->priority_points - $deduction);
+ 
+                     $unit->update(['priority_points' => $newPoints]);
+ 
++                    $managerId = $unit->user?->manager_id ?? $unit->user_id;
++
+                     $transactions[] = [
+-                        'manager_id' => $unit->user?->manager_id ?? $unit->user_id,
++                        'manager_id' => $managerId,
+                         'unit_id' => $unit->id,
+                         'points' => -$deduction,
+                         'type' => 'daily_deduct',
+-                        'balance_after' => $newPoints,
+-                        'notes' => 'auto_daily_deduction',
++                        'balance_after' => $managers[$managerId] ?? 0,
++                        'notes' => 'auto_daily_deduction (Unit Remaining: ' . $newPoints . ')',
+                         'performed_by' => $unit->user_id,
+                         'created_at' => $now,
+-                        'updated_at' => $now,
+                     ];
+ 
+                     $processedCount++;
+diff --git a/app/Domain/Users/Models/User.php b/app/Domain/Users/Models/User.php
+index 91246a6..57ad4b1 100644
+--- a/app/Domain/Users/Models/User.php
++++ b/app/Domain/Users/Models/User.php
+@@ -16,9 +16,41 @@ class User extends Authenticatable
+     use HasFactory, Notifiable;
+ 
+     protected $fillable = [
+-        'name', 'email', 'password', 'manager_id',
++        'name', 'slug', 'email', 'password', 'manager_id',
+     ];
+ 
++    protected static function booted()
++    {
++        static::creating(function ($user) {
++            if (empty($user->slug)) {
++                $user->slug = static::generateUniqueSlug($user->name);
++            }
++        });
++
++        static::updating(function ($user) {
++            if ($user->isDirty('name') && empty($user->slug)) {
++                $user->slug = static::generateUniqueSlug($user->name);
++            }
++        });
++    }
++
++    public static function generateUniqueSlug(string $name): string
++    {
++        $baseSlug = \Illuminate\Support\Str::slug($name);
++        if (empty($baseSlug)) {
++            $baseSlug = 'user'; // fallback for fully arabic names if slug fails, although Str::slug supports arabic somewhat, it's better to be safe. But wait, Laravel's Str::slug supports Arabic natively in recent versions, but sometimes we need to pass a dictionary. Actually, Laravel 9+ supports Arabic well.
++        }
++        $slug = $baseSlug;
++        $count = 1;
++        
++        while (static::where('slug', $slug)->exists()) {
++            $slug = $baseSlug . '-' . $count;
++            $count++;
++        }
++        
++        return $slug;
++    }
++
+     protected $hidden = ['password', 'remember_token'];
+ 
+     public function sendPasswordResetNotification($token): void
+diff --git a/app/Domain/Users/Notifications/ResetPasswordNotification.php b/app/Domain/Users/Notifications/ResetPasswordNotification.php
+index b8bcd23..47dd817 100644
+--- a/app/Domain/Users/Notifications/ResetPasswordNotification.php
++++ b/app/Domain/Users/Notifications/ResetPasswordNotification.php
+@@ -2,6 +2,7 @@
+ 
+ namespace App\Domain\Users\Notifications;
+ 
++use App\Domain\Listings\Services\SettingsService;
+ use Illuminate\Auth\Notifications\ResetPassword;
+ use Illuminate\Notifications\Messages\MailMessage;
+ 
+@@ -17,14 +18,26 @@ class ResetPasswordNotification extends ResetPassword
+ 
+     public function toMail($notifiable): MailMessage
+     {
+-        $url = $this->buildMailUrl($notifiable);
++        $isEnglish = strtolower(app()->getLocale()) === 'en';
++        $userName = $notifiable->name ?? ($isEnglish ? 'User' : 'عزيزنا المستخدم');
++
++        $settingsService = app(SettingsService::class);
++        $siteLogo = $settingsService->get('site_logo');
++        $logoUrl = $siteLogo ? asset('storage/'.$siteLogo) : asset('icon.png');
++
++        $expireMinutes = config('auth.passwords.'.config('auth.defaults.passwords').'.expire', 60);
+ 
+         return (new MailMessage)
+-            ->subject('إعادة ضبط كلمة السر - Family Home')
+-            ->greeting('مرحباً '.$notifiable->name)
+-            ->line('لقد تلقينا طلباً لإعادة ضبط كلمة السر الخاصة بحسابك في منصة Family Home.')
+-            ->action('إعادة ضبط كلمة السر الآن', $url)
+-            ->line('ملاحظة: هذا الرابط صالـح لمدة '.config('auth.passwords.'.config('auth.defaults.passwords').'.expire', 60).' دقيقة فقط.')
+-            ->line('إذا لم تقم بطلب إعادة ضبط كلمة السر بنفسك، فيمكنك تجاهل هذه الرسالة بأمان.');
++            ->subject($isEnglish
++                ? 'Reset Your Password - Family Home'
++                : 'إعادة ضبط كلمة السر - Family Home')
++            ->view('emails.reset-password', [
++                'locale' => app()->getLocale(),
++                'isEnglish' => $isEnglish,
++                'userName' => $userName,
++                'resetUrl' => $this->buildMailUrl($notifiable),
++                'expireMinutes' => $expireMinutes,
++                'logoUrl' => $logoUrl,
++            ]);
+     }
+-}
++}
+\ No newline at end of file
+diff --git a/app/Http/Controllers/Admin/AreaController.php b/app/Http/Controllers/Admin/AreaController.php
+index 6f39a5f..96f19f2 100644
+--- a/app/Http/Controllers/Admin/AreaController.php
++++ b/app/Http/Controllers/Admin/AreaController.php
+@@ -8,6 +8,8 @@ use App\Http\Requests\Admin\StoreAreaRequest;
+ use App\Http\Requests\Admin\UpdateAreaRequest;
+ use Illuminate\Http\RedirectResponse;
+ use Illuminate\Support\Facades\Storage;
++use Illuminate\Support\Facades\Cache;
++use App\Domain\Listings\Services\ListingService;
+ use Illuminate\Support\Str;
+ use Inertia\Inertia;
+ use Inertia\Response;
+@@ -72,6 +74,8 @@ class AreaController extends Controller
+         // Sync Relations
+         $this->syncRelations($area, $request);
+ 
++        Cache::increment(ListingService::CACHE_VERSION_KEY);
++
+         return redirect()->route('admin.areas.index')->with('success', __('common.added_successfully'));
+     }
+ 
+@@ -124,6 +128,8 @@ class AreaController extends Controller
+         // Sync Relations
+         $this->syncRelations($area, $request);
+ 
++        Cache::increment(ListingService::CACHE_VERSION_KEY);
++
+         return redirect()->route('admin.areas.index')->with('success', __('common.updated_successfully'));
+     }
+ 
+@@ -142,6 +148,8 @@ class AreaController extends Controller
+ 
+         $area->delete();
+ 
++        Cache::increment(ListingService::CACHE_VERSION_KEY);
++
+         return redirect()->back()->with('success', __('common.deleted_successfully'));
+     }
+ 
+diff --git a/app/Http/Controllers/Admin/MediaController.php b/app/Http/Controllers/Admin/MediaController.php
+index 3fc5142..954a2e0 100644
+--- a/app/Http/Controllers/Admin/MediaController.php
++++ b/app/Http/Controllers/Admin/MediaController.php
+@@ -13,7 +13,7 @@ class MediaController
+         abort_unless($request->user() && ($request->user()->isAdmin() || $request->user()->isManager()), 403);
+ 
+         $request->validate([
+-            'image' => ['required', 'image', 'max:5120'], // 5MB max
++            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'], // 5MB max
+         ]);
+ 
+         $file = $request->file('image');
+diff --git a/app/Http/Controllers/Public/AgentController.php b/app/Http/Controllers/Public/AgentController.php
+index 80ce638..5235595 100644
+--- a/app/Http/Controllers/Public/AgentController.php
++++ b/app/Http/Controllers/Public/AgentController.php
+@@ -12,9 +12,9 @@ use Inertia\Response;
+ 
+ class AgentController extends Controller
+ {
+-    public function show(int $id, Request $request): Response
++    public function show(string $slug, Request $request): Response
+     {
+-        $agent = User::with('profile')->where('is_active', true)->findOrFail($id);
++        $agent = User::with('profile')->where('is_active', true)->where('slug', $slug)->firstOrFail();
+ 
+         $units = Unit::active()
+             ->where('user_id', $agent->id)
+@@ -25,17 +25,18 @@ class AgentController extends Controller
+ 
+         $meta = app(SeoService::class)->forPage('agents', [
+             'title' => $agent->name.' - '.config('app.name'),
+-            'canonical' => url('/'.app()->getLocale()."/agents/{$agent->id}"),
++            'canonical' => url('/'.app()->getLocale()."/agents/{$agent->slug}"),
+             'hreflang' => [
+-                'ar' => url("/ar/agents/{$agent->id}"),
+-                'en' => url("/en/agents/{$agent->id}"),
+-                'x-default' => url("/ar/agents/{$agent->id}"),
++                'ar' => url("/ar/agents/{$agent->slug}"),
++                'en' => url("/en/agents/{$agent->slug}"),
++                'x-default' => url("/ar/agents/{$agent->slug}"),
+             ],
+         ]);
+ 
+         return Inertia::render('Public/Agents/Show', [
+             'agent' => [
+                 'id' => $agent->id,
++                'slug' => $agent->slug,
+                 'name' => $agent->name,
+                 'avatar' => $agent->profile?->avatar,
+                 'phone' => $agent->profile?->phone,
+diff --git a/app/Http/Middleware/SecurityHeadersMiddleware.php b/app/Http/Middleware/SecurityHeadersMiddleware.php
+index 491376c..d548347 100644
+--- a/app/Http/Middleware/SecurityHeadersMiddleware.php
++++ b/app/Http/Middleware/SecurityHeadersMiddleware.php
+@@ -23,11 +23,12 @@ class SecurityHeadersMiddleware
+         }
+ 
+         $csp = "default-src 'self'; "
+-            ."script-src 'self' 'unsafe-inline'; "
+-            ."style-src 'self' 'unsafe-inline'; "
+-            ."img-src 'self' data: blob: https:; "
+-            ."font-src 'self' data:; "
+-            ."connect-src 'self'; "
++            ."script-src 'self' 'unsafe-inline' https://*.google-analytics.com https://*.googletagmanager.com https://*.googleapis.com https://maps.googleapis.com; "
++            ."style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
++            ."img-src 'self' data: blob: https: https://*.googleapis.com https://maps.gstatic.com; "
++            ."font-src 'self' data: https://fonts.gstatic.com; "
++            ."connect-src 'self' https://*.google-analytics.com https://*.googletagmanager.com https://*.googleapis.com https://maps.googleapis.com; "
++            ."frame-src https://maps.google.com https://www.google.com https://www.youtube.com; "
+             ."form-action 'self'; "
+             ."frame-ancestors 'self';";
+ 
+diff --git a/app/Http/Requests/Admin/Concerns/HasMapEmbedRule.php b/app/Http/Requests/Admin/Concerns/HasMapEmbedRule.php
+index 070c66e..cf09ad0 100644
+--- a/app/Http/Requests/Admin/Concerns/HasMapEmbedRule.php
++++ b/app/Http/Requests/Admin/Concerns/HasMapEmbedRule.php
+@@ -2,8 +2,6 @@
+ 
+ namespace App\Http\Requests\Admin\Concerns;
+ 
+-use App\Domain\Common\Support\Sanitizer;
+-
+ trait HasMapEmbedRule
+ {
+     protected function mapEmbedUrlRule(): array
+@@ -11,12 +9,9 @@ trait HasMapEmbedRule
+         return [
+             'nullable',
+             'string',
++            'url',
+             'max:2000',
+-            function ($attribute, $value, $fail) {
+-                if (! empty($value) && ! Sanitizer::isValidMapEmbed($value)) {
+-                    $fail(__('messages.map_embed_invalid'));
+-                }
+-            },
+         ];
+     }
+ }
++
+diff --git a/app/Http/Requests/Traits/ExtractsCoordinatesFromUrl.php b/app/Http/Requests/Traits/ExtractsCoordinatesFromUrl.php
+index 6639a5d..94518cc 100644
+--- a/app/Http/Requests/Traits/ExtractsCoordinatesFromUrl.php
++++ b/app/Http/Requests/Traits/ExtractsCoordinatesFromUrl.php
+@@ -2,65 +2,30 @@
+ 
+ namespace App\Http\Requests\Traits;
+ 
++use App\Domain\Listings\Services\GoogleMapsUrlResolverService;
++use Illuminate\Validation\ValidationException;
++
+ trait ExtractsCoordinatesFromUrl
+ {
+-    protected function extractCoordinates(string $url): ?array
+-    {
+-        // Resolve short Google Maps URLs (e.g., maps.app.goo.gl or g.page)
+-        if (str_contains($url, 'goo.gl') || str_contains($url, 'g.page')) {
+-            $url = $this->resolveShortUrl($url) ?? $url;
+-        }
+-
+-        // Pattern 1: !3dlat!4dlng (exact pin from expanded maps URL)
+-        if (preg_match('/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/', $url, $matches)) {
+-            return ['latitude' => $matches[1], 'longitude' => $matches[2]];
+-        }
+-
+-        // Pattern 2: /@lat,lng (viewport center)
+-        if (preg_match('/@(-?\d+\.\d+),(-?\d+\.\d+)/', $url, $matches)) {
+-            return ['latitude' => $matches[1], 'longitude' => $matches[2]];
+-        }
+-        
+-        // Pattern 3: embed ?pb=... !2dlng!3dlat
+-        if (preg_match('/!2d(-?\d+\.\d+).*?!3d(-?\d+\.\d+)/', $url, $matches)) {
+-            return ['latitude' => $matches[2], 'longitude' => $matches[1]];
+-        }
+-        
+-        // Pattern 4: ?q=lat,lng or ?query=lat,lng
+-        if (preg_match('/[?&](q|query)=(-?\d+\.\d+),(-?\d+\.\d+)/', $url, $matches)) {
+-            return ['latitude' => $matches[2], 'longitude' => $matches[3]];
+-        }
+-        
+-        return null;
+-    }
+-
+-    protected function resolveShortUrl(string $url): ?string
+-    {
+-        $ch = curl_init($url);
+-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+-        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0');
+-        curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+-        
+-        curl_exec($ch);
+-        $finalUrl = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
+-        curl_close($ch);
+-        
+-        return $finalUrl;
+-    }
+-
+     protected function prepareCoordinatesFromMapUrl(): void
+     {
+-        $mapUrl = $this->input('map_url') ?: $this->input('map_embed_url');
+-        
++        $field = $this->has('map_embed_url') ? 'map_embed_url' : 'map_url';
++        $mapUrl = $this->input($field);
++
+         if ($mapUrl) {
+-            $coords = $this->extractCoordinates($mapUrl);
++            /** @var GoogleMapsUrlResolverService $resolver */
++            $resolver = app(GoogleMapsUrlResolverService::class);
++            $coords = $resolver->resolveAndExtract($mapUrl);
++
+             if ($coords) {
+                 $this->merge([
+                     'latitude' => $coords['latitude'],
+                     'longitude' => $coords['longitude'],
+                 ]);
++            } else {
++                throw ValidationException::withMessages([
++                    $field => __('common.invalid_map_url') ?? 'Invalid Google Maps Location URL.',
++                ]);
+             }
+         }
+     }
+diff --git a/app/Http/Resources/Public/AgentPublicResource.php b/app/Http/Resources/Public/AgentPublicResource.php
+index 81a19f3..bd587b2 100644
+--- a/app/Http/Resources/Public/AgentPublicResource.php
++++ b/app/Http/Resources/Public/AgentPublicResource.php
+@@ -16,7 +16,13 @@ class AgentPublicResource extends JsonResource
+     {
+         $data = [
+             'id' => $this->id,
++            'slug' => $this->slug,
+             'name' => $this->name,
++            'avatar' => null,
++            'phone' => null,
++            'whatsapp' => null,
++            'facebook' => null,
++            'linkedin' => null,
+         ];
+ 
+         if ($this->relationLoaded('profile') && $this->profile) {
+diff --git a/app/Http/Resources/Public/AreaPublicResource.php b/app/Http/Resources/Public/AreaPublicResource.php
+index 03013c9..809330d 100644
+--- a/app/Http/Resources/Public/AreaPublicResource.php
++++ b/app/Http/Resources/Public/AreaPublicResource.php
+@@ -30,7 +30,9 @@ class AreaPublicResource extends JsonResource
+             'about_area_text_en' => $this->about_area_text_en,
+             'address_ar' => $this->address_ar,
+             'address_en' => $this->address_en,
+-            'map_embed_url' => $this->map_embed_url,
++            'map_url' => $this->map_url,
++            'latitude' => (string) $this->latitude,
++            'longitude' => (string) $this->longitude,
+             'image_path' => $this->image_path ? asset('storage/' . $this->image_path) : null,
+             'projects_count' => $this->projects_count,
+             'units_count' => $this->units_count,
+diff --git a/app/Http/Resources/Public/ProjectPublicResource.php b/app/Http/Resources/Public/ProjectPublicResource.php
+index 742841b..29c9ff8 100644
+--- a/app/Http/Resources/Public/ProjectPublicResource.php
++++ b/app/Http/Resources/Public/ProjectPublicResource.php
+@@ -86,7 +86,7 @@ class ProjectPublicResource extends JsonResource
+                 return UnitPublicResource::collection($this->units);
+             }),
+             'user' => $this->whenLoaded('user', function () {
+-                return AgentPublicResource::make($this->user);
++                return AgentPublicResource::make($this->user)->resolve();
+             }),
+         ];
+     }
+diff --git a/app/Http/Resources/Public/UnitPublicResource.php b/app/Http/Resources/Public/UnitPublicResource.php
+index 9f3e4c6..d90c747 100644
+--- a/app/Http/Resources/Public/UnitPublicResource.php
++++ b/app/Http/Resources/Public/UnitPublicResource.php
+@@ -105,10 +105,10 @@ class UnitPublicResource extends JsonResource
+                 });
+             }),
+             'project' => $this->whenLoaded('project', function () {
+-                return ProjectPublicResource::make($this->project);
++                return ProjectPublicResource::make($this->project)->resolve();
+             }),
+             'user' => $this->whenLoaded('user', function () {
+-                return AgentPublicResource::make($this->user);
++                return AgentPublicResource::make($this->user)->resolve();
+             }),
+         ];
+     }
+diff --git a/database/migrations/2026_08_11_002146_add_slug_to_users_table.php b/database/migrations/2026_08_11_002146_add_slug_to_users_table.php
+new file mode 100644
+index 0000000..287f906
+--- /dev/null
++++ b/database/migrations/2026_08_11_002146_add_slug_to_users_table.php
+@@ -0,0 +1,49 @@
++<?php
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\Schema;
++use Illuminate\Support\Facades\DB;
++use Illuminate\Support\Str;
++
++return new class extends Migration
++{
++    /**
++     * Run the migrations.
++     */
++    public function up(): void
++    {
++        Schema::table('users', function (Blueprint $table) {
++            $table->string('slug')->nullable()->after('name');
++        });
++
++        // Backfill slugs for existing users
++        $users = DB::table('users')->get();
++        foreach ($users as $user) {
++            $baseSlug = Str::slug($user->name);
++            $slug = $baseSlug;
++            $count = 1;
++            while (DB::table('users')->where('slug', $slug)->where('id', '!=', $user->id)->exists()) {
++                $slug = $baseSlug . '-' . $count;
++                $count++;
++            }
++            DB::table('users')->where('id', $user->id)->update(['slug' => $slug]);
++        }
++
++        // Make it unique
++        Schema::table('users', function (Blueprint $table) {
++            $table->unique('slug');
++        });
++    }
++
++    /**
++     * Reverse the migrations.
++     */
++    public function down(): void
++    {
++        Schema::table('users', function (Blueprint $table) {
++            $table->dropUnique(['slug']);
++            $table->dropColumn('slug');
++        });
++    }
++};
+diff --git a/database/seeders/FamilyHomeAreasSeeder.php b/database/seeders/FamilyHomeAreasSeeder.php
+index e5c0d3a..b9a2edd 100644
+--- a/database/seeders/FamilyHomeAreasSeeder.php
++++ b/database/seeders/FamilyHomeAreasSeeder.php
+@@ -4,21 +4,19 @@ namespace Database\Seeders;
+ 
+ use Illuminate\Database\Seeder;
+ use App\Domain\Listings\Models\Area;
+-use Illuminate\Support\Str;
++use Illuminate\Support\Facades\DB;
+ 
+ class FamilyHomeAreasSeeder extends Seeder
+ {
+-    /**
+-     * Run the database seeds.
+-     */
+     public function run(): void
+     {
++        // We don't truncate because of foreign keys, just updateOrCreate
+         $areas = [
+             [
+                 'name_ar' => 'الشيخ زايد',
+                 'name_en' => 'Sheikh Zayed City',
+                 'slug' => 'sheikh-zayed',
+-                'sort_order' => 1,
++                'sort_order' => '1',
+                 'latitude' => '30.0488',
+                 'longitude' => '30.9936',
+                 'address_ar' => 'مدينة الشيخ زايد، محافظة الجيزة، مصر',
+@@ -28,12 +26,27 @@ class FamilyHomeAreasSeeder extends Seeder
+                 'short_description_en' => 'An upscale new city in Giza Governorate known for its tranquility, green spaces, and luxury housing, making it a top destination for real estate investment in West Cairo.',
+                 'about_ar' => 'مدينة الشيخ زايد هي واحدة من أبرز المدن الجديدة في مصر، وتقع في محافظة الجيزة غرب القاهرة. تمتاز بالتخطيط العمراني المتطور والبيئة الهادئة التي توفر الخصوصية والرفاهية لساكنيها. تحتوي المدينة على العديد من الكمبوندات السكنية الفاخرة مثل بيفرلي هيلز وزايد ديونز، وتضم مراكز تجارية وترفيهية كبرى مثل مول العرب وأركان بلازا ومول مصر. الطلب العقاري فيها مرتفع جداً بسبب جودة الحياة وتوفر المدارس الدولية والمستشفيات المتخصصة، مما يجعلها خياراً مثالياً للسكن العائلي الراقي.',
+                 'about_en' => 'Sheikh Zayed City is one of the most prominent new cities in Egypt, located in the Giza Governorate west of Cairo. It is renowned for its advanced urban planning, peaceful environment, and high level of privacy and luxury. The city hosts numerous prestigious residential compounds such as Beverly Hills and Zayed Dunes, alongside major commercial and entertainment hubs like Mall of Arabia and Arkan Plaza. Real estate demand is exceptionally high due to the quality of life, international schools, and specialized hospitals, making it an ideal choice for upscale family living.',
++                'meta_title_ar' => 'عقارات الشيخ زايد | استثمار وسكن',
++                'meta_title_en' => 'Real Estate in Sheikh Zayed City | Invest & Live',
++                'meta_description_ar' => 'إحدى المدن الجديدة في محافظة الجيزة، تتميز بالرقي والهدوء والمساحات الخضراء الواسعة، وتعد من أهم وجهات السكن الفاخر والاستثمار العقاري في غرب القاهرة.',
++                'meta_description_en' => 'An upscale new city in Giza Governorate known for its tranquility, green spaces, and luxury housing, making it a top destination for real estate investment in West Cairo.',
++                'meta_keywords_ar' => '["عقارات","استثمار","شقق","فيلات","الشيخ زايد"]',
++                'meta_keywords_en' => '["Real Estate","Investment","Apartments","Villas","Sheikh Zayed City"]',
++                'image_path' => 'areas/sheikh-zayed.webp',
++                'hero_title_ar' => 'اكتشف أفضل العقارات في الشيخ زايد',
++                'hero_title_en' => 'Discover the Best Properties in Sheikh Zayed City',
++                'hero_description_ar' => 'تصفح أحدث المشاريع والوحدات السكنية والتجارية في الشيخ زايد وتواصل مع أفضل الوكلاء.',
++                'hero_description_en' => 'Browse the latest residential and commercial projects and units in Sheikh Zayed City and connect with top agents.',
++                'hero_image' => 'areas/hero-sheikh-zayed.webp',
++                'gallery' => '["areas\/sheikh-zayed.webp"]',
++                'parent_id' => null,
++                'is_active' => true,
+             ],
+             [
+                 'name_ar' => 'الساحل الشمالي',
+                 'name_en' => 'North Coast',
+                 'slug' => 'north-coast',
+-                'sort_order' => 2,
++                'sort_order' => '2',
+                 'latitude' => '30.8252',
+                 'longitude' => '28.9535',
+                 'address_ar' => 'الساحل الشمالي، طريق الإسكندرية مطروح، مصر',
+@@ -43,12 +56,27 @@ class FamilyHomeAreasSeeder extends Seeder
+                 'short_description_en' => 'Egypt\'s premier coastal destination on the Mediterranean, stretching from Alexandria to Marsa Matruh and featuring the most luxurious tourist villages.',
+                 'about_ar' => 'الساحل الشمالي في مصر (ويعرف محلياً بالساحل) هو الشريط الممتد على البحر الأبيض المتوسط من غرب الإسكندرية وحتى مرسى مطروح. يُعتبر الوجهة الصيفية الأولى للمصريين والسياح الأجانب بفضل شواطئه الرملية البيضاء ومياهه الفيروزية الصافية. يشهد الساحل الشمالي طفرة هائلة في الاستثمار العقاري السياحي، حيث يضم مجموعة من أرقى وأفخم المنتجعات والقرى السياحية مثل مراسي، هاسيندا، وأمواج. بالإضافة إلى ذلك، تدعم شبكة الطرق الجديدة مثل طريق الفوكا الجديد سهولة وسرعة الوصول إليه من القاهرة، مما زاد من الإقبال على شراء الشاليهات والفلل الصيفية.',
+                 'about_en' => 'The North Coast (Sahel) is the premier summer destination in Egypt, stretching along the Mediterranean Sea from west of Alexandria to Marsa Matruh. It is celebrated for its pristine white sandy beaches and crystal-clear turquoise waters. The region is experiencing a massive boom in tourism real estate investment, hosting some of the most luxurious resorts and villages like Marassi, Hacienda, and Amwaj. The introduction of new infrastructure, such as the Fouka Road, has significantly shortened the travel time from Cairo, driving immense demand for chalets and summer villas.',
++                'meta_title_ar' => 'عقارات الساحل الشمالي | استثمار وسكن',
++                'meta_title_en' => 'Real Estate in North Coast | Invest & Live',
++                'meta_description_ar' => 'الوجهة الساحلية الأولى في مصر على البحر الأبيض المتوسط، تمتد من الإسكندرية لمرسى مطروح وتضم أفخم القرى السياحية.',
++                'meta_description_en' => 'Egypt\'s premier coastal destination on the Mediterranean, stretching from Alexandria to Marsa Matruh and featuring the most luxurious tourist villages.',
++                'meta_keywords_ar' => '["عقارات","استثمار","شقق","فيلات","الساحل الشمالي"]',
++                'meta_keywords_en' => '["Real Estate","Investment","Apartments","Villas","North Coast"]',
++                'image_path' => 'areas/north-coast.webp',
++                'hero_title_ar' => 'اكتشف أفضل العقارات في الساحل الشمالي',
++                'hero_title_en' => 'Discover the Best Properties in North Coast',
++                'hero_description_ar' => 'تصفح أحدث المشاريع والوحدات السكنية والتجارية في الساحل الشمالي وتواصل مع أفضل الوكلاء.',
++                'hero_description_en' => 'Browse the latest residential and commercial projects and units in North Coast and connect with top agents.',
++                'hero_image' => 'areas/hero-north-coast.webp',
++                'gallery' => '["areas\/north-coast.webp"]',
++                'parent_id' => null,
++                'is_active' => true,
+             ],
+             [
+                 'name_ar' => 'الرحاب',
+                 'name_en' => 'Al Rehab City',
+                 'slug' => 'rehab',
+-                'sort_order' => 3,
++                'sort_order' => '3',
+                 'latitude' => '30.0626',
+                 'longitude' => '31.4913',
+                 'address_ar' => 'مدينة الرحاب، القاهرة الجديدة، محافظة القاهرة، مصر',
+@@ -58,12 +86,27 @@ class FamilyHomeAreasSeeder extends Seeder
+                 'short_description_en' => 'The first fully integrated residential city developed by the private sector in Egypt, located in New Cairo and offering comprehensive family services.',
+                 'about_ar' => 'مدينة الرحاب هي مشروع سكني ضخم يقع في قلب القاهرة الجديدة، وتعد أول مدينة سكنية متكاملة يبنيها القطاع الخاص في مصر (مجموعة طلعت مصطفى). تتميز الرحاب بمستوى عالي من الأمان والتنظيم والمساحات الخضراء الشاسعة. تنقسم المدينة إلى عدة مراحل تقدم مزيجاً متنوعاً من الشقق السكنية والفيلات المصممة بأساليب معمارية مختلفة. تكتفي المدينة ذاتياً بفضل توفر النوادي الرياضية، المدارس، المراكز الطبية، والسوق التجاري المفتوح، مما يجعلها بيئة سكنية مثالية وهادئة تجذب العائلات والمستثمرين للبحث عن وحدات للإيجار أو التمليك.',
+                 'about_en' => 'Al Rehab City is a massive residential project located in the heart of New Cairo. Developed by the Talaat Moustafa Group, it holds the title of being the first fully integrated residential city built by the private sector in Egypt. The city is highly regarded for its exceptional security, organization, and expansive green landscapes. Divided into several phases, it offers a diverse mix of apartments and villas with various architectural styles. Completely self-sufficient, Al Rehab features sports clubs, schools, medical centers, and a bustling open-air market, making it an ideal, tranquil residential environment for families and a prime spot for rental or ownership investments.',
++                'meta_title_ar' => 'عقارات الرحاب | استثمار وسكن',
++                'meta_title_en' => 'Real Estate in Al Rehab City | Invest & Live',
++                'meta_description_ar' => 'أول مدينة سكنية متكاملة يطورها القطاع الخاص في مصر، تقع في القاهرة الجديدة وتوفر كافة الخدمات التي تحتاجها العائلة.',
++                'meta_description_en' => 'The first fully integrated residential city developed by the private sector in Egypt, located in New Cairo and offering comprehensive family services.',
++                'meta_keywords_ar' => '["عقارات","استثمار","شقق","فيلات","الرحاب"]',
++                'meta_keywords_en' => '["Real Estate","Investment","Apartments","Villas","Al Rehab City"]',
++                'image_path' => 'areas/rehab.webp',
++                'hero_title_ar' => 'اكتشف أفضل العقارات في الرحاب',
++                'hero_title_en' => 'Discover the Best Properties in Al Rehab City',
++                'hero_description_ar' => 'تصفح أحدث المشاريع والوحدات السكنية والتجارية في الرحاب وتواصل مع أفضل الوكلاء.',
++                'hero_description_en' => 'Browse the latest residential and commercial projects and units in Al Rehab City and connect with top agents.',
++                'hero_image' => 'areas/hero-rehab.webp',
++                'gallery' => '["areas\/rehab.webp"]',
++                'parent_id' => null,
++                'is_active' => true,
+             ],
+             [
+                 'name_ar' => 'التجمع الخامس',
+                 'name_en' => 'New Cairo',
+                 'slug' => 'new-cairo',
+-                'sort_order' => 4,
++                'sort_order' => '4',
+                 'latitude' => '30.0263',
+                 'longitude' => '31.4906',
+                 'address_ar' => 'التجمع الخامس، القاهرة الجديدة، محافظة القاهرة، مصر',
+@@ -73,12 +116,27 @@ class FamilyHomeAreasSeeder extends Seeder
+                 'short_description_en' => 'One of the most important new cities in Egypt, located east of the Ring Road, housing prestigious residential neighborhoods, international universities, and corporate headquarters.',
+                 'about_ar' => 'القاهرة الجديدة (وبالأخص التجمع الخامس) تعتبر حالياً القلب النابض للاستثمار العقاري الفاخر في شرق القاهرة. تتميز بشوارعها الواسعة مثل شارع التسعين الذي يضم كبرى البنوك والشركات والمولات التجارية (مثل كايرو فيستيفال سيتي وداون تاون). توفر القاهرة الجديدة تنوعاً عقارياً كبيراً بدءاً من الشقق السكنية في الأحياء المنظمة وصولاً إلى القصور والفيلات داخل الكمبوندات الخاصة المغلقة. كما تحتضن مؤسسات تعليمية مرموقة مثل الجامعة الأمريكية بالقاهرة (AUC) والجامعة الألمانية، مما يجعلها وجهة سكنية من الدرجة الأولى للنخبة وللباحثين عن الرفاهية.',
+                 'about_en' => 'New Cairo (particularly known for the Fifth Settlement / Tagamoa El Khames) is currently the beating heart of luxury real estate investment in East Cairo. It is characterized by wide avenues, most notably Road 90, which is lined with major banks, corporate headquarters, and upscale shopping malls like Cairo Festival City and Downtown. New Cairo offers a vast real estate diversity, ranging from standard apartments in organized neighborhoods to opulent palaces and villas within private gated communities. Hosting prestigious educational institutions such as the American University in Cairo (AUC) and the German University, it stands as a premier residential destination for elites and those seeking an affluent lifestyle.',
++                'meta_title_ar' => 'عقارات التجمع الخامس | استثمار وسكن',
++                'meta_title_en' => 'Real Estate in New Cairo | Invest & Live',
++                'meta_description_ar' => 'من أهم المدن الجديدة في مصر، تقع شرق الطريق الدائري، وتضم أرقى الأحياء السكنية والجامعات الدولية ومقار الشركات.',
++                'meta_description_en' => 'One of the most important new cities in Egypt, located east of the Ring Road, housing prestigious residential neighborhoods, international universities, and corporate headquarters.',
++                'meta_keywords_ar' => '["عقارات","استثمار","شقق","فيلات","التجمع الخامس"]',
++                'meta_keywords_en' => '["Real Estate","Investment","Apartments","Villas","New Cairo"]',
++                'image_path' => 'areas/new-cairo.webp',
++                'hero_title_ar' => 'اكتشف أفضل العقارات في التجمع الخامس',
++                'hero_title_en' => 'Discover the Best Properties in New Cairo',
++                'hero_description_ar' => 'تصفح أحدث المشاريع والوحدات السكنية والتجارية في التجمع الخامس وتواصل مع أفضل الوكلاء.',
++                'hero_description_en' => 'Browse the latest residential and commercial projects and units in New Cairo and connect with top agents.',
++                'hero_image' => 'areas/hero-new-cairo.webp',
++                'gallery' => '["areas\/new-cairo.webp"]',
++                'parent_id' => null,
++                'is_active' => true,
+             ],
+             [
+                 'name_ar' => 'الإسكندرية',
+                 'name_en' => 'Alexandria',
+                 'slug' => 'alexandria',
+-                'sort_order' => 5,
++                'sort_order' => '5',
+                 'latitude' => '31.2001',
+                 'longitude' => '29.9187',
+                 'address_ar' => 'محافظة الإسكندرية، مصر',
+@@ -88,12 +146,27 @@ class FamilyHomeAreasSeeder extends Seeder
+                 'short_description_en' => 'The second-largest city in Egypt and the Pearl of the Mediterranean, enjoying a strategic location, rich history, and serving as a prominent residential and tourist destination.',
+                 'about_ar' => 'مدينة الإسكندرية هي العاصمة الثانية لمصر وتعتبر مركزاً اقتصادياً وتجارياً حيوياً على ساحل البحر الأبيض المتوسط. تمتلك طابعاً معمارياً يجمع بين التراث العريق والحداثة، وتضم أحياء راقية للاستثمار العقاري مثل سموحة، رشدي، وكفر عبده، بالإضافة إلى المناطق الساحلية المميزة كالمندرة وسيدي بشر. لا تقتصر أهمية الإسكندرية على كونها مصيفاً تاريخياً للمصريين، بل هي مدينة متكاملة تنبض بالحياة طوال العام وتوفر فرصاً عقارية رائعة سواء للإقامة الدائمة أو للاستثمار الصيفي والتجاري.',
+                 'about_en' => 'Alexandria, Egypt\'s second capital, is a vital economic and commercial hub situated on the Mediterranean coast. Its architectural character beautifully blends ancient heritage with modernity. The city boasts upscale neighborhoods prime for real estate investment, such as Smouha, Roushdy, and Kafr Abdou, alongside vibrant coastal areas like El Mandara and Sidi Bishr. Beyond its legacy as a historic summer resort for Egyptians, Alexandria is a fully integrated, year-round bustling city. It offers excellent real estate opportunities for both permanent residency and summer or commercial investments.',
++                'meta_title_ar' => 'عقارات الإسكندرية | استثمار وسكن',
++                'meta_title_en' => 'Real Estate in Alexandria | Invest & Live',
++                'meta_description_ar' => 'ثاني أكبر مدن مصر وعروس البحر المتوسط، تتمتع بموقع استراتيجي وتاريخ عريق وتعتبر وجهة سكنية وسياحية مميزة.',
++                'meta_description_en' => 'The second-largest city in Egypt and the Pearl of the Mediterranean, enjoying a strategic location, rich history, and serving as a prominent residential and tourist destination.',
++                'meta_keywords_ar' => '["عقارات","استثمار","شقق","فيلات","الإسكندرية"]',
++                'meta_keywords_en' => '["Real Estate","Investment","Apartments","Villas","Alexandria"]',
++                'image_path' => 'areas/alexandria.webp',
++                'hero_title_ar' => 'اكتشف أفضل العقارات في الإسكندرية',
++                'hero_title_en' => 'Discover the Best Properties in Alexandria',
++                'hero_description_ar' => 'تصفح أحدث المشاريع والوحدات السكنية والتجارية في الإسكندرية وتواصل مع أفضل الوكلاء.',
++                'hero_description_en' => 'Browse the latest residential and commercial projects and units in Alexandria and connect with top agents.',
++                'hero_image' => 'areas/hero-alexandria.webp',
++                'gallery' => '["areas\/alexandria.webp"]',
++                'parent_id' => null,
++                'is_active' => true,
+             ],
+             [
+                 'name_ar' => '6 أكتوبر',
+                 'name_en' => '6th of October City',
+                 'slug' => '6th-october',
+-                'sort_order' => 6,
++                'sort_order' => '6',
+                 'latitude' => '29.9714',
+                 'longitude' => '30.9332',
+                 'address_ar' => 'مدينة 6 أكتوبر، محافظة الجيزة، مصر',
+@@ -103,12 +176,27 @@ class FamilyHomeAreasSeeder extends Seeder
+                 'short_description_en' => 'A major residential and industrial city offering real estate options for all segments, featuring major universities and hospitals.',
+                 'about_ar' => 'مدينة السادس من أكتوبر هي إحدى أنجح المدن الجديدة في محافظة الجيزة. تُعد مركزاً سكنياً وصناعياً مهماً، وتتميز بتقديم خيارات عقارية شديدة التنوع لتناسب كافة الشرائح، من الإسكان الاقتصادي والمتوسط إلى الكمبوندات الفاخرة والفيلات. تضم المدينة عدداً كبيراً من الجامعات الخاصة والمعاهد التعليمية والمستشفيات، إلى جانب المناطق الترفيهية والتجارية مثل مول العرب. هذا التكامل في الخدمات جعل منها بيئة خصبة للاستثمار العقاري وسوقاً نشطاً للإيجارات بفضل التوافد المستمر للطلاب والموظفين.',
+                 'about_en' => 'The 6th of October City is one of the most successful new cities in the Giza Governorate. Serving as an essential residential and industrial hub, it offers highly diverse real estate options that cater to all societal segments, from affordable and middle-income housing to luxury compounds and villas. The city is home to numerous private universities, educational institutes, and hospitals, as well as major entertainment and commercial centers like Mall of Arabia. This integration of services has transformed it into a fertile ground for real estate investment and a highly active rental market due to the continuous influx of students and professionals.',
++                'meta_title_ar' => 'عقارات 6 أكتوبر | استثمار وسكن',
++                'meta_title_en' => 'Real Estate in 6th of October City | Invest & Live',
++                'meta_description_ar' => 'مدينة سكنية وصناعية كبرى توفر خيارات عقارية تناسب كافة الفئات، وتضم جامعات ومستشفيات كبرى.',
++                'meta_description_en' => 'A major residential and industrial city offering real estate options for all segments, featuring major universities and hospitals.',
++                'meta_keywords_ar' => '["عقارات","استثمار","شقق","فيلات","6 أكتوبر"]',
++                'meta_keywords_en' => '["Real Estate","Investment","Apartments","Villas","6th of October City"]',
++                'image_path' => 'areas/6th-october.webp',
++                'hero_title_ar' => 'اكتشف أفضل العقارات في 6 أكتوبر',
++                'hero_title_en' => 'Discover the Best Properties in 6th of October City',
++                'hero_description_ar' => 'تصفح أحدث المشاريع والوحدات السكنية والتجارية في 6 أكتوبر وتواصل مع أفضل الوكلاء.',
++                'hero_description_en' => 'Browse the latest residential and commercial projects and units in 6th of October City and connect with top agents.',
++                'hero_image' => 'areas/hero-6th-october.webp',
++                'gallery' => '["areas\/6th-october.webp"]',
++                'parent_id' => null,
++                'is_active' => true,
+             ],
+             [
+                 'name_ar' => 'رأس الحكمة',
+                 'name_en' => 'Ras El Hekma',
+                 'slug' => 'ras-el-hekma',
+-                'sort_order' => 7,
++                'sort_order' => '7',
+                 'latitude' => '31.1469',
+                 'longitude' => '27.8483',
+                 'address_ar' => 'رأس الحكمة، محافظة مطروح، مصر',
+@@ -118,12 +206,27 @@ class FamilyHomeAreasSeeder extends Seeder
+                 'short_description_en' => 'A highly promising coastal area on the northwestern coast, witnessing some of the most massive developmental and tourism projects in Egypt.',
+                 'about_ar' => 'تعد منطقة رأس الحكمة الجوهرة الجديدة للساحل الشمالي المصري، وتقع في محافظة مطروح. تحظى باهتمام استثماري هائل محلياً وعالمياً، بفضل الشواطئ الرملية الممتدة والمياه النقية التي تضاهي أرقى الوجهات العالمية. تم إطلاق مشروعات قومية واستثمارات بمليارات الدولارات لتحويل رأس الحكمة إلى مدينة سياحية عالمية تعمل طوال العام وليس فقط في فصل الصيف. تضم المنطقة حالياً والمستقبل القريب أرقى وأفخم المنتجعات الساحلية والفلل الفارهة، وتعتبر الفرصة الذهبية للمستثمرين في قطاع العقارات السياحية.',
+                 'about_en' => 'Ras El Hekma is the new crown jewel of the Egyptian North Coast, located in Matrouh Governorate. It commands immense local and global investment interest, thanks to its extensive sandy beaches and pristine waters that rival top international destinations. Multi-billion dollar national projects and foreign investments have been launched to transform Ras El Hekma into a world-class, year-round tourist city. Currently and in the near future, the area will host the most opulent coastal resorts and ultra-luxury villas, presenting a golden opportunity for investors in the tourism real estate sector.',
++                'meta_title_ar' => 'عقارات رأس الحكمة | استثمار وسكن',
++                'meta_title_en' => 'Real Estate in Ras El Hekma | Invest & Live',
++                'meta_description_ar' => 'منطقة ساحلية واعدة على الساحل الشمالي الغربي، تشهد أضخم المشروعات التنموية والسياحية في مصر.',
++                'meta_description_en' => 'A highly promising coastal area on the northwestern coast, witnessing some of the most massive developmental and tourism projects in Egypt.',
++                'meta_keywords_ar' => '["عقارات","استثمار","شقق","فيلات","رأس الحكمة"]',
++                'meta_keywords_en' => '["Real Estate","Investment","Apartments","Villas","Ras El Hekma"]',
++                'image_path' => 'areas/ras-el-hekma.webp',
++                'hero_title_ar' => 'اكتشف أفضل العقارات في رأس الحكمة',
++                'hero_title_en' => 'Discover the Best Properties in Ras El Hekma',
++                'hero_description_ar' => 'تصفح أحدث المشاريع والوحدات السكنية والتجارية في رأس الحكمة وتواصل مع أفضل الوكلاء.',
++                'hero_description_en' => 'Browse the latest residential and commercial projects and units in Ras El Hekma and connect with top agents.',
++                'hero_image' => 'areas/hero-ras-el-hekma.webp',
++                'gallery' => '["areas\/ras-el-hekma.webp"]',
++                'parent_id' => null,
++                'is_active' => true,
+             ],
+             [
+                 'name_ar' => 'المهندسين',
+                 'name_en' => 'Mohandessin',
+                 'slug' => 'mohandessin',
+-                'sort_order' => 8,
++                'sort_order' => '8',
+                 'latitude' => '30.0526',
+                 'longitude' => '31.1989',
+                 'address_ar' => 'حي المهندسين، محافظة الجيزة، مصر',
+@@ -133,12 +236,27 @@ class FamilyHomeAreasSeeder extends Seeder
+                 'short_description_en' => 'One of the most prestigious commercial and residential districts in the heart of Giza, famous for its wide streets and abundance of services and corporate offices.',
+                 'about_ar' => 'تأسس حي المهندسين في أوائل الخمسينيات، ويُعد اليوم واحداً من أهم المناطق الحيوية والراقية في محافظة الجيزة والقاهرة الكبرى. يمزج الحي بشكل فريد بين الطابع السكني الراقي والنشاط التجاري المكثف. يتميز بميادينه وشوارعه الرئيسية المعروفة مثل شارع جامعة الدول العربية وشارع البطل أحمد عبد العزيز وشارع شهاب، والتي تكتظ بالمطاعم الفاخرة، العلامات التجارية العالمية، ومقرات الشركات الكبرى. العقارات في المهندسين تحظى بقيمة عالية جداً، سواء للراغبين في السكن بقلب المدينة أو الباحثين عن مساحات إدارية وتجارية متميزة.',
+                 'about_en' => 'Established in the early 1950s, Mohandessin is today one of the most vital and upscale districts in Giza Governorate and Greater Cairo. The neighborhood uniquely blends high-end residential living with intense commercial activity. It is renowned for its major squares and iconic streets, such as Gamal Abdel Nasser (Arab League) Street, Batal Ahmed Abdel Aziz Street, and Shehab Street, which are bustling with fine dining restaurants, global retail brands, and major corporate headquarters. Real estate in Mohandessin holds exceptionally high value, whether for those seeking to live in the city center or businesses looking for prime administrative and commercial spaces.',
++                'meta_title_ar' => 'عقارات المهندسين | استثمار وسكن',
++                'meta_title_en' => 'Real Estate in Mohandessin | Invest & Live',
++                'meta_description_ar' => 'من أرقى الأحياء التجارية والسكنية في قلب الجيزة، يشتهر بشوارعه الواسعة وتوفر كافة الخدمات ومقار الشركات.',
++                'meta_description_en' => 'One of the most prestigious commercial and residential districts in the heart of Giza, famous for its wide streets and abundance of services and corporate offices.',
++                'meta_keywords_ar' => '["عقارات","استثمار","شقق","فيلات","المهندسين"]',
++                'meta_keywords_en' => '["Real Estate","Investment","Apartments","Villas","Mohandessin"]',
++                'image_path' => 'areas/mohandessin.webp',
++                'hero_title_ar' => 'اكتشف أفضل العقارات في المهندسين',
++                'hero_title_en' => 'Discover the Best Properties in Mohandessin',
++                'hero_description_ar' => 'تصفح أحدث المشاريع والوحدات السكنية والتجارية في المهندسين وتواصل مع أفضل الوكلاء.',
++                'hero_description_en' => 'Browse the latest residential and commercial projects and units in Mohandessin and connect with top agents.',
++                'hero_image' => 'areas/hero-mohandessin.webp',
++                'gallery' => '["areas\/mohandessin.webp"]',
++                'parent_id' => null,
++                'is_active' => true,
+             ],
+             [
+                 'name_ar' => 'المعادي',
+                 'name_en' => 'Maadi',
+                 'slug' => 'maadi',
+-                'sort_order' => 9,
++                'sort_order' => '9',
+                 'latitude' => '29.9602',
+                 'longitude' => '31.2569',
+                 'address_ar' => 'المعادي، محافظة القاهرة، مصر',
+@@ -148,12 +266,27 @@ class FamilyHomeAreasSeeder extends Seeder
+                 'short_description_en' => 'A historic suburb in southern Cairo, famous for its tranquility, trees, and classic villas, a favorite destination for diplomats and foreign communities.',
+                 'about_ar' => 'المعادي هي إحدى أرقى وأهدأ ضواحي محافظة القاهرة، تتميز بتخطيطها الفريد الذي يعتمد على الميادين والشوارع المشجرة والفيلات ذات الطراز المعماري الكلاسيكي. تنقسم المعادي إلى عدة مناطق رئيسية مثل المعادي القديمة، ثكنات المعادي، زهراء المعادي، ودجلة. بفضل مستوى الأمان المرتفع وتواجد العديد من المدارس الدولية والمراكز الثقافية، تُعد المعادي المقر المفضل لسكن السفراء، الدبلوماسيين، والجاليات الأجنبية في مصر. سوق العقارات في المعادي يحافظ دائماً على استقراره وقيمته الاستثمارية العالية خصوصاً في الفيلات والشقق السكنية الراقية.',
+                 'about_en' => 'Maadi is one of the most affluent and serene suburbs in Cairo Governorate, characterized by its unique layout centered around leafy squares, tree-lined streets, and classically designed villas. Maadi is divided into several main areas, including Old Maadi, Maadi Sarayat, Zahraa El Maadi, and Degla. Due to its high level of security and the presence of numerous international schools and cultural centers, Maadi is the preferred residential hub for ambassadors, diplomats, and expatriate communities in Egypt. The real estate market in Maadi consistently maintains its stability and high investment value, particularly in the premium villa and luxury apartment segments.',
++                'meta_title_ar' => 'عقارات المعادي | استثمار وسكن',
++                'meta_title_en' => 'Real Estate in Maadi | Invest & Live',
++                'meta_description_ar' => 'ضاحية عريقة في جنوب القاهرة، تشتهر بالهدوء والأشجار والفيلات الكلاسيكية، وتعتبر وجهة مفضلة للدبلوماسيين والجاليات الأجنبية.',
++                'meta_description_en' => 'A historic suburb in southern Cairo, famous for its tranquility, trees, and classic villas, a favorite destination for diplomats and foreign communities.',
++                'meta_keywords_ar' => '["عقارات","استثمار","شقق","فيلات","المعادي"]',
++                'meta_keywords_en' => '["Real Estate","Investment","Apartments","Villas","Maadi"]',
++                'image_path' => 'areas/maadi.webp',
++                'hero_title_ar' => 'اكتشف أفضل العقارات في المعادي',
++                'hero_title_en' => 'Discover the Best Properties in Maadi',
++                'hero_description_ar' => 'تصفح أحدث المشاريع والوحدات السكنية والتجارية في المعادي وتواصل مع أفضل الوكلاء.',
++                'hero_description_en' => 'Browse the latest residential and commercial projects and units in Maadi and connect with top agents.',
++                'hero_image' => 'areas/hero-maadi.webp',
++                'gallery' => '["areas\/maadi.webp"]',
++                'parent_id' => null,
++                'is_active' => true,
+             ],
+             [
+                 'name_ar' => 'العين السخنة',
+                 'name_en' => 'Ain Sokhna',
+                 'slug' => 'ain-sokhna',
+-                'sort_order' => 10,
++                'sort_order' => '10',
+                 'latitude' => '29.5933',
+                 'longitude' => '32.3275',
+                 'address_ar' => 'العين السخنة، محافظة السويس، مصر',
+@@ -163,12 +296,27 @@ class FamilyHomeAreasSeeder extends Seeder
+                 'short_description_en' => 'The closest coastal resort to Cairo on the Gulf of Suez, offering excellent year-round investment and tourism options due to its temperate climate.',
+                 'about_ar' => 'العين السخنة هي إحدى أهم الوجهات السياحية والاستثمارية على ساحل خليج السويس، وتتبع إدارياً محافظة السويس. ميزتها التنافسية الأكبر هي قربها الشديد من القاهرة، حيث يمكن الوصول إليها في نحو ساعة عبر طريق الجلالة السريع، مما جعلها وجهة "عطلات نهاية الأسبوع" المفضلة للمصريين على مدار السنة وليس فقط في الصيف. شهدت المنطقة قفزة تنموية وعقارية غير مسبوقة بفضل المشروعات القومية مثل مدينة الجلالة الجديدة ومنتجع المونت جلالة وتلال، حيث يزخر السوق بوحدات سكنية وفندقية راقية تطل مباشرة على البحر الأحمر.',
+                 'about_en' => 'Ain Sokhna is a paramount tourist and investment destination on the coast of the Gulf of Suez, administratively part of the Suez Governorate. Its biggest competitive advantage is its extreme proximity to Cairo—reachable in about an hour via the Galala Highway. This accessibility has made it the preferred year-round "weekend getaway" for Egyptians, rather than just a summer retreat. The area has experienced an unprecedented developmental and real estate leap thanks to national mega-projects like the New Galala City, Il Monte Galala, and Telal. The market is abundant with high-end residential and hotel units offering direct views of the Red Sea.',
++                'meta_title_ar' => 'عقارات العين السخنة | استثمار وسكن',
++                'meta_title_en' => 'Real Estate in Ain Sokhna | Invest & Live',
++                'meta_description_ar' => 'أقرب منتجع ساحلي للقاهرة على خليج السويس، توفر خيارات استثمارية وسياحية مميزة طوال العام بفضل مناخها المعتدل.',
++                'meta_description_en' => 'The closest coastal resort to Cairo on the Gulf of Suez, offering excellent year-round investment and tourism options due to its temperate climate.',
++                'meta_keywords_ar' => '["عقارات","استثمار","شقق","فيلات","العين السخنة"]',
++                'meta_keywords_en' => '["Real Estate","Investment","Apartments","Villas","Ain Sokhna"]',
++                'image_path' => 'areas/ain-sokhna.webp',
++                'hero_title_ar' => 'اكتشف أفضل العقارات في العين السخنة',
++                'hero_title_en' => 'Discover the Best Properties in Ain Sokhna',
++                'hero_description_ar' => 'تصفح أحدث المشاريع والوحدات السكنية والتجارية في العين السخنة وتواصل مع أفضل الوكلاء.',
++                'hero_description_en' => 'Browse the latest residential and commercial projects and units in Ain Sokhna and connect with top agents.',
++                'hero_image' => 'areas/hero-ain-sokhna.webp',
++                'gallery' => '["areas\/ain-sokhna.webp"]',
++                'parent_id' => null,
++                'is_active' => true,
+             ],
+             [
+                 'name_ar' => 'العجمي',
+                 'name_en' => 'Agami',
+                 'slug' => 'agami',
+-                'sort_order' => 11,
++                'sort_order' => '11',
+                 'latitude' => '31.1118',
+                 'longitude' => '29.7619',
+                 'address_ar' => 'العجمي، الإسكندرية، مصر',
+@@ -178,12 +326,27 @@ class FamilyHomeAreasSeeder extends Seeder
+                 'short_description_en' => 'A famous coastal district in western Alexandria, considered the classic summer resort for Egyptians, featuring active commercial areas.',
+                 'about_ar' => 'العجمي هو واحد من أعرق أحياء الإسكندرية ويقع في الجزء الغربي من المحافظة. ارتبط اسمه لفترة طويلة بكونه المصيف المفضل للطبقة الراقية والمثقفين في مصر خلال القرن الماضي. يضم العجمي مناطق شهيرة مثل البيطاش، الهانوفيل، أبو يوسف، وسيدي كرير. حالياً، تحول العجمي من مجرد مصيف إلى منطقة سكنية وتجارية مكتظة تعمل طوال العام. يتنوع السوق العقاري في العجمي بشكل كبير، حيث تجد الشقق السكنية الاقتصادية والمتوسطة إلى جانب القرى السياحية المغلقة التي توفر شاليهات وفيلات لمحبي قضاء العطلات الصيفية.',
+                 'about_en' => 'Agami is one of the most historic districts in Alexandria, located in the western part of the governorate. For a long time, it was renowned as the preferred summer retreat for Egypt\'s elite and intellectuals during the last century. Agami encompasses famous neighborhoods like El Bitash, El Hanouvile, Abu Youssef, and Sidi Krier. Today, Agami has transitioned from a mere summer resort into a densely populated, year-round residential and commercial area. The real estate market in Agami is highly diverse, offering everything from affordable and mid-range apartments to gated tourist villages providing chalets and villas for vacationers.',
++                'meta_title_ar' => 'عقارات العجمي | استثمار وسكن',
++                'meta_title_en' => 'Real Estate in Agami | Invest & Live',
++                'meta_description_ar' => 'حي ساحلي شهير في غرب الإسكندرية، يُعتبر المصيف الكلاسيكي للمصريين ويضم مناطق حيوية وتجارية نشطة.',
++                'meta_description_en' => 'A famous coastal district in western Alexandria, considered the classic summer resort for Egyptians, featuring active commercial areas.',
++                'meta_keywords_ar' => '["عقارات","استثمار","شقق","فيلات","العجمي"]',
++                'meta_keywords_en' => '["Real Estate","Investment","Apartments","Villas","Agami"]',
++                'image_path' => 'areas/agami.webp',
++                'hero_title_ar' => 'اكتشف أفضل العقارات في العجمي',
++                'hero_title_en' => 'Discover the Best Properties in Agami',
++                'hero_description_ar' => 'تصفح أحدث المشاريع والوحدات السكنية والتجارية في العجمي وتواصل مع أفضل الوكلاء.',
++                'hero_description_en' => 'Browse the latest residential and commercial projects and units in Agami and connect with top agents.',
++                'hero_image' => 'areas/hero-agami.webp',
++                'gallery' => '["areas\/agami.webp"]',
++                'parent_id' => null,
++                'is_active' => true,
+             ],
+             [
+                 'name_ar' => 'العاصمة الإدارية',
+                 'name_en' => 'New Administrative Capital',
+                 'slug' => 'new-administrative-capital',
+-                'sort_order' => 12,
++                'sort_order' => '12',
+                 'latitude' => '29.9820',
+                 'longitude' => '31.7208',
+                 'address_ar' => 'العاصمة الإدارية الجديدة، محافظة القاهرة، مصر',
+@@ -193,12 +356,27 @@ class FamilyHomeAreasSeeder extends Seeder
+                 'short_description_en' => 'Egypt\'s most massive national project, designed as a world-class smart city and a modern financial and administrative hub offering cutting-edge real estate.',
+                 'about_ar' => 'العاصمة الإدارية الجديدة هي المشروع القومي الأضخم والأهم في تاريخ مصر الحديث. تقع شرق القاهرة وتهدف إلى تخفيف الازدحام عن العاصمة القديمة وتأسيس مدينة ذكية مستدامة تواكب أحدث المعايير العالمية. تضم العاصمة مقرات الوزارات، البنك المركزي، حي المال والأعمال، وأيقونات معمارية مبهرة مثل البرج الأيقوني (الأطول في أفريقيا) والنهر الأخضر. تمثل العاصمة الإدارية بؤرة الاستثمار العقاري الأولى في الشرق الأوسط حالياً، حيث توفر فرصاً استثنائية لشراء العقارات الإدارية، التجارية، والشقق والفيلات السكنية المتطورة داخل كمبوندات توفر أعلى مستويات الرفاهية.',
+                 'about_en' => 'The New Administrative Capital is the largest and most significant national project in modern Egyptian history. Located east of Cairo, it aims to alleviate congestion in the old capital by establishing a sustainable smart city built to the latest global standards. The capital houses government ministries, the Central Bank, the Central Business District (CBD), and stunning architectural icons like the Iconic Tower (the tallest in Africa) and the Green River. It currently represents the epicenter of real estate investment in the Middle East, offering exceptional opportunities to purchase advanced administrative, commercial, and residential properties within compounds that guarantee the highest levels of luxury.',
++                'meta_title_ar' => 'عقارات العاصمة الإدارية | استثمار وسكن',
++                'meta_title_en' => 'Real Estate in New Administrative Capital | Invest & Live',
++                'meta_description_ar' => 'المشروع القومي الأضخم في مصر، صُممت لتكون مدينة ذكية عالمية ومركزاً مالياً وإدارياً حديثاً يوفر أحدث المشروعات العقارية.',
++                'meta_description_en' => 'Egypt\'s most massive national project, designed as a world-class smart city and a modern financial and administrative hub offering cutting-edge real estate.',
++                'meta_keywords_ar' => '["عقارات","استثمار","شقق","فيلات","العاصمة الإدارية"]',
++                'meta_keywords_en' => '["Real Estate","Investment","Apartments","Villas","New Administrative Capital"]',
++                'image_path' => 'areas/new-administrative-capital.webp',
++                'hero_title_ar' => 'اكتشف أفضل العقارات في العاصمة الإدارية',
++                'hero_title_en' => 'Discover the Best Properties in New Administrative Capital',
++                'hero_description_ar' => 'تصفح أحدث المشاريع والوحدات السكنية والتجارية في العاصمة الإدارية وتواصل مع أفضل الوكلاء.',
++                'hero_description_en' => 'Browse the latest residential and commercial projects and units in New Administrative Capital and connect with top agents.',
++                'hero_image' => 'areas/hero-new-administrative-capital.webp',
++                'gallery' => '["areas\/new-administrative-capital.webp"]',
++                'parent_id' => null,
++                'is_active' => true,
+             ],
+             [
+                 'name_ar' => 'سيدي عبد الرحمن',
+                 'name_en' => 'Sidi Abdel Rahman',
+                 'slug' => 'sidi-abdel-rahman',
+-                'sort_order' => 13,
++                'sort_order' => '13',
+                 'latitude' => '30.9634',
+                 'longitude' => '28.7188',
+                 'address_ar' => 'سيدي عبد الرحمن، العلمين، محافظة مطروح، مصر',
+@@ -208,12 +386,27 @@ class FamilyHomeAreasSeeder extends Seeder
+                 'short_description_en' => 'One of the most beautiful areas in the North Coast, featuring pristine white sandy beaches and housing the most renowned luxury real estate projects.',
+                 'about_ar' => 'سيدي عبد الرحمن هي منطقة ساحلية خلابة تتبع مركز العلمين بمحافظة مطروح، وتعتبر من أهم وأغلى مناطق الساحل الشمالي المصري. اكتسبت شهرتها الواسعة بسبب لون مياهها الفيروزي النادر ورمالها البيضاء الناعمة، وهو ما جذب كبار المطورين العقاريين لإنشاء أضخم وأفخم القرى السياحية هناك، لعل أشهرها منتجع "مراسي". العقارات في سيدي عبد الرحمن تعتبر من العقارات الفاخرة ذات العائد الاستثماري المرتفع جداً، وتستقطب الباحثين عن مستوى حياة صيفي حصري ومميز يتضمن ملاعب الجولف، المرسى الدولي لليخوت، والفنادق العالمية.',
+                 'about_en' => 'Sidi Abdel Rahman is a breathtaking coastal area affiliated with the El Alamein center in Matrouh Governorate, and is considered one of the most important and expensive areas of the Egyptian North Coast. It gained widespread fame due to its rare turquoise water and soft white sand, which attracted top-tier real estate developers to build the largest and most luxurious tourist villages there, most notably the "Marassi" resort. Real estate in Sidi Abdel Rahman is highly luxurious with an exceptionally high ROI, attracting those seeking an exclusive summer lifestyle that includes golf courses, an international yacht marina, and world-class hotels.',
++                'meta_title_ar' => 'عقارات سيدي عبد الرحمن | استثمار وسكن',
++                'meta_title_en' => 'Real Estate in Sidi Abdel Rahman | Invest & Live',
++                'meta_description_ar' => 'من أجمل مناطق الساحل الشمالي، تتميز بشواطئها ذات الرمال البيضاء الناصعة وتضم أشهر المشروعات العقارية الفاخرة.',
++                'meta_description_en' => 'One of the most beautiful areas in the North Coast, featuring pristine white sandy beaches and housing the most renowned luxury real estate projects.',
++                'meta_keywords_ar' => '["عقارات","استثمار","شقق","فيلات","سيدي عبد الرحمن"]',
++                'meta_keywords_en' => '["Real Estate","Investment","Apartments","Villas","Sidi Abdel Rahman"]',
++                'image_path' => 'areas/sidi-abdel-rahman.webp',
++                'hero_title_ar' => 'اكتشف أفضل العقارات في سيدي عبد الرحمن',
++                'hero_title_en' => 'Discover the Best Properties in Sidi Abdel Rahman',
++                'hero_description_ar' => 'تصفح أحدث المشاريع والوحدات السكنية والتجارية في سيدي عبد الرحمن وتواصل مع أفضل الوكلاء.',
++                'hero_description_en' => 'Browse the latest residential and commercial projects and units in Sidi Abdel Rahman and connect with top agents.',
++                'hero_image' => 'areas/hero-sidi-abdel-rahman.webp',
++                'gallery' => '["areas\/sidi-abdel-rahman.webp"]',
++                'parent_id' => null,
++                'is_active' => true,
+             ],
+             [
+                 'name_ar' => 'مدينة نصر',
+                 'name_en' => 'Nasr City',
+                 'slug' => 'nasr-city',
+-                'sort_order' => 14,
++                'sort_order' => '14',
+                 'latitude' => '30.0638',
+                 'longitude' => '31.3283',
+                 'address_ar' => 'مدينة نصر، محافظة القاهرة، مصر',
+@@ -223,12 +416,27 @@ class FamilyHomeAreasSeeder extends Seeder
+                 'short_description_en' => 'One of the capital\'s largest districts, a vital hub for commerce and business featuring organized planning and extensive residential and commercial options.',
+                 'about_ar' => 'مدينة نصر هي أحد أكبر أحياء القاهرة وأكثرها كثافة سكانية وحيوية، وقد تأسست في الستينيات كامتداد معماري حديث للعاصمة. تُعد مدينة نصر عصب التجارة والأعمال في المنطقة الشرقية، وتتميز بشوارعها الواسعة والمتقاطعة بشكل هندسي منظم مثل شارع مكرم عبيد، عباس العقاد، ومصطفى النحاس. توفر المنطقة كافة أنواع الخدمات وتضم مؤسسات حكومية هامة ومراكز تسوق ضخمة أشهرها "سيتي ستارز". القطاع العقاري في مدينة نصر متنوع جداً، ويشهد نشاطاً كبيراً في بيع وإيجار الشقق السكنية والمساحات التجارية والإدارية للشركات والعيادات.',
+                 'about_en' => 'Nasr City is one of Cairo\'s largest, most densely populated, and vibrant districts, established in the 1960s as a modern architectural extension to the capital. It serves as the commercial and business nerve center in the eastern region, characterized by its wide, geometrically organized intersecting streets such as Makram Ebeid, Abbas El Akkad, and Moustafa El Nahhas. The area provides all types of services and houses important government institutions and massive shopping malls, most famously "Citystars". The real estate sector in Nasr City is highly diverse, experiencing robust activity in the sale and rental of residential apartments, as well as commercial and administrative spaces for businesses and clinics.',
++                'meta_title_ar' => 'عقارات مدينة نصر | استثمار وسكن',
++                'meta_title_en' => 'Real Estate in Nasr City | Invest & Live',
++                'meta_description_ar' => 'أحد أكبر أحياء العاصمة، مركز حيوي للتجارة والأعمال يتميز بالتخطيط المنظم وتوفر خيارات سكنية وتجارية واسعة.',
++                'meta_description_en' => 'One of the capital\'s largest districts, a vital hub for commerce and business featuring organized planning and extensive residential and commercial options.',
++                'meta_keywords_ar' => '["عقارات","استثمار","شقق","فيلات","مدينة نصر"]',
++                'meta_keywords_en' => '["Real Estate","Investment","Apartments","Villas","Nasr City"]',
++                'image_path' => 'areas/nasr-city.webp',
++                'hero_title_ar' => 'اكتشف أفضل العقارات في مدينة نصر',
++                'hero_title_en' => 'Discover the Best Properties in Nasr City',
++                'hero_description_ar' => 'تصفح أحدث المشاريع والوحدات السكنية والتجارية في مدينة نصر وتواصل مع أفضل الوكلاء.',
++                'hero_description_en' => 'Browse the latest residential and commercial projects and units in Nasr City and connect with top agents.',
++                'hero_image' => 'areas/hero-nasr-city.webp',
++                'gallery' => '["areas\/nasr-city.webp"]',
++                'parent_id' => null,
++                'is_active' => true,
+             ],
+             [
+                 'name_ar' => 'مرسى مطروح',
+                 'name_en' => 'Marsa Matruh',
+                 'slug' => 'marsa-matruh',
+-                'sort_order' => 15,
++                'sort_order' => '15',
+                 'latitude' => '31.3533',
+                 'longitude' => '27.2373',
+                 'address_ar' => 'مرسى مطروح، محافظة مطروح، مصر',
+@@ -238,12 +446,27 @@ class FamilyHomeAreasSeeder extends Seeder
+                 'short_description_en' => 'The capital of Matrouh Governorate, famous for its unique beaches and serving as one of Egypt\'s premier domestic tourism destinations for those seeking tranquility.',
+                 'about_ar' => 'مرسى مطروح هي الميناء البحري وعاصمة محافظة مطروح، وتتربع كواحدة من أروع الوجهات الساحلية على البحر الأبيض المتوسط. تتميز مطروح بشواطئ استثنائية ذات طبيعة بكر ومياه متدرجة الألوان وأمواج هادئة بسبب التكوينات الصخرية الطبيعية، مثل شاطئ عجيبة، روميل، والغرام. المدينة تُعد الملاذ الصيفي المفضل للآلاف من الأسر المصرية التي تبحث عن الهدوء والاستجمام بأسعار معقولة. وقد شهدت المنطقة مؤخراً طفرة في المشروعات العقارية التي توفر شاليهات وفيلات وشقق مصيفية تناسب مختلف الميزانيات، مدعومة بتطوير البنية التحتية وشبكة الطرق المؤدية إليها.',
+                 'about_en' => 'Marsa Matruh is the seaport and capital of Matrouh Governorate, reigning as one of the most magnificent coastal destinations on the Mediterranean. Matruh is distinguished by its exceptional beaches with pristine nature, gradient waters, and calm waves protected by natural rock formations, such as Ageeba, Rommel, and El Gharam beaches. The city is the favored summer retreat for thousands of Egyptian families seeking tranquility and relaxation at affordable prices. Recently, the region has seen a surge in real estate projects offering chalets, villas, and summer apartments that fit various budgets, bolstered by infrastructure development and improved access road networks.',
++                'meta_title_ar' => 'عقارات مرسى مطروح | استثمار وسكن',
++                'meta_title_en' => 'Real Estate in Marsa Matruh | Invest & Live',
++                'meta_description_ar' => 'عاصمة محافظة مطروح، تشتهر بشواطئها الفريدة وتعتبر من أهم الوجهات السياحية الداخلية في مصر للباحثين عن الهدوء.',
++                'meta_description_en' => 'The capital of Matrouh Governorate, famous for its unique beaches and serving as one of Egypt\'s premier domestic tourism destinations for those seeking tranquility.',
++                'meta_keywords_ar' => '["عقارات","استثمار","شقق","فيلات","مرسى مطروح"]',
++                'meta_keywords_en' => '["Real Estate","Investment","Apartments","Villas","Marsa Matruh"]',
++                'image_path' => 'areas/marsa-matruh.webp',
++                'hero_title_ar' => 'اكتشف أفضل العقارات في مرسى مطروح',
++                'hero_title_en' => 'Discover the Best Properties in Marsa Matruh',
++                'hero_description_ar' => 'تصفح أحدث المشاريع والوحدات السكنية والتجارية في مرسى مطروح وتواصل مع أفضل الوكلاء.',
++                'hero_description_en' => 'Browse the latest residential and commercial projects and units in Marsa Matruh and connect with top agents.',
++                'hero_image' => 'areas/hero-marsa-matruh.webp',
++                'gallery' => '["areas\/marsa-matruh.webp"]',
++                'parent_id' => null,
++                'is_active' => true,
+             ],
+             [
+                 'name_ar' => 'مصر الجديدة',
+                 'name_en' => 'Heliopolis',
+                 'slug' => 'heliopolis',
+-                'sort_order' => 16,
++                'sort_order' => '16',
+                 'latitude' => '30.0911',
+                 'longitude' => '31.3236',
+                 'address_ar' => 'حي مصر الجديدة، محافظة القاهرة، مصر',
+@@ -253,53 +476,29 @@ class FamilyHomeAreasSeeder extends Seeder
+                 'short_description_en' => 'One of Cairo\'s most prestigious and historic districts, distinguished by its unique architectural style and famous landmarks, providing a luxurious residential environment.',
+                 'about_ar' => 'حي مصر الجديدة (هيليوبوليس) هو تحفة معمارية وتاريخية وأحد أرقى أحياء العاصمة المصرية. أسسه المهندس ورجل الأعمال البلجيكي البارون إمبان في أوائل القرن العشرين ليكون مدينة "كوزموبوليتانية" تدمج بين التراث الإسلامي والعمارة الأوروبية الحديثة. يتميز الحي بالشوارع والميادين الكبيرة، والقصور التاريخية مثل "قصر البارون"، والمناطق التجارية الراقية مثل "الكوربة". تحتفظ عقارات مصر الجديدة بقيمتها التراثية والمادية العالية جداً، وتجذب العائلات الأرستقراطية ورجال الأعمال الباحثين عن مستوى اجتماعي راقٍ، سواء للسكن في فيلات وشقق فخمة أو لافتتاح مقار لشركات وعلامات تجارية كبرى.',
+                 'about_en' => 'Heliopolis (Masr El Gedida) is an architectural and historical masterpiece and one of the most upscale districts in the Egyptian capital. Founded in the early 20th century by the Belgian industrialist Baron Empain, it was designed as a "cosmopolitan" city blending Islamic heritage with modern European architecture. The district is characterized by its large streets and squares, historic palaces like the "Baron Empain Palace," and sophisticated commercial areas such as "El Korba." Real estate in Heliopolis retains extremely high heritage and monetary value, attracting aristocratic families and business figures seeking a prestigious social standing, whether for residing in luxury villas and apartments or opening headquarters for major corporate brands.',
+-            ]
+-        ];
+-
+-        foreach ($areas as $data) {
+-            
+-            $slug = $data['slug'];
+-            
+-            // Generate SEO specific fields safely based on the data
+-            $seoTitleAr = "عقارات ومشاريع في " . $data['name_ar'] . " | Family Home";
+-            $seoTitleEn = "Properties & Projects in " . $data['name_en'] . " | Family Home";
+-            
+-            $seoDescAr = "اكتشف أفضل العقارات، الشقق، والفيلات للبيع والإيجار في " . $data['name_ar'] . ". تصفح المشاريع والوحدات العقارية المتميزة في " . $data['name_ar'] . ".";
+-            $seoDescEn = "Discover the best real estate, apartments, and villas for sale and rent in " . $data['name_en'] . ". Browse premium property projects and units in " . $data['name_en'] . ".";
+-            
+-            $keywordsAr = "عقارات {$data['name_ar']}, شقق للبيع في {$data['name_ar']}, فيلات للبيع في {$data['name_ar']}, أسعار العقارات في {$data['name_ar']}, استثمار عقاري في {$data['name_ar']}, مشاريع {$data['name_ar']}, كمبوندات {$data['name_ar']}";
+-            $keywordsEn = "real estate {$data['name_en']}, apartments for sale in {$data['name_en']}, villas in {$data['name_en']}, property prices in {$data['name_en']}, investment in {$data['name_en']}, {$data['name_en']} compounds";
+-
+-            $payload = [
+-                'name_ar' => $data['name_ar'],
+-                'name_en' => $data['name_en'],
++                'meta_title_ar' => 'عقارات مصر الجديدة | استثمار وسكن',
++                'meta_title_en' => 'Real Estate in Heliopolis | Invest & Live',
++                'meta_description_ar' => 'من أرقى وأعرق أحياء القاهرة، يتميز بطرازه المعماري الفريد ومعالمه الشهيرة، ويوفر بيئة سكنية فاخرة وراقية.',
++                'meta_description_en' => 'One of Cairo\'s most prestigious and historic districts, distinguished by its unique architectural style and famous landmarks, providing a luxurious residential environment.',
++                'meta_keywords_ar' => '["عقارات","استثمار","شقق","فيلات","مصر الجديدة"]',
++                'meta_keywords_en' => '["Real Estate","Investment","Apartments","Villas","Heliopolis"]',
++                'image_path' => 'areas/heliopolis.webp',
++                'hero_title_ar' => 'اكتشف أفضل العقارات في مصر الجديدة',
++                'hero_title_en' => 'Discover the Best Properties in Heliopolis',
++                'hero_description_ar' => 'تصفح أحدث المشاريع والوحدات السكنية والتجارية في مصر الجديدة وتواصل مع أفضل الوكلاء.',
++                'hero_description_en' => 'Browse the latest residential and commercial projects and units in Heliopolis and connect with top agents.',
++                'hero_image' => 'areas/hero-heliopolis.webp',
++                'gallery' => '["areas\/heliopolis.webp"]',
++                'parent_id' => null,
+                 'is_active' => true,
+-                'sort_order' => $data['sort_order'],
+-                'latitude' => $data['latitude'],
+-                'longitude' => $data['longitude'],
+-                'address_ar' => $data['address_ar'],
+-                'address_en' => $data['address_en'],
+-                'map_url' => $data['map_url'],
+-                'short_description_ar' => $data['short_description_ar'],
+-                'short_description_en' => $data['short_description_en'],
+-                'hero_title_ar' => $data['name_ar'],
+-                'hero_title_en' => $data['name_en'],
+-                'hero_description_ar' => $data['short_description_ar'],
+-                'hero_description_en' => $data['short_description_en'],
+-                'about_ar' => $data['about_ar'],
+-                'about_en' => $data['about_en'],
+-                'meta_title_ar' => $seoTitleAr,
+-                'meta_title_en' => $seoTitleEn,
+-                'meta_description_ar' => $seoDescAr,
+-                'meta_description_en' => $seoDescEn,
+-                'meta_keywords_ar' => $keywordsAr,
+-                'meta_keywords_en' => $keywordsEn,
+-            ];
++            ],
++        ];
+ 
++        foreach ($areas as $area) {
+             Area::updateOrCreate(
+-                ['slug' => $slug],
+-                $payload
++                ['slug' => $area['slug']],
++                $area
+             );
+         }
+     }
+-}
++}
+\ No newline at end of file
+diff --git a/lang/ar/common.php b/lang/ar/common.php
+index 7a3f9fa..6c7afdb 100644
+--- a/lang/ar/common.php
++++ b/lang/ar/common.php
+@@ -134,4 +134,5 @@ return [
+     'meta_title_en' => 'العنوان (English)',
+     'meta_description_ar' => 'الوصف (عربي)',
+     'meta_description_en' => 'الوصف (English)',
++    'invalid_map_url' => 'رابط خرائط جوجل غير صالح أو لم يتم العثور على الإحداثيات',
+ ];
+diff --git a/lang/en/common.php b/lang/en/common.php
+index aba4c4e..a50fb5d 100644
+--- a/lang/en/common.php
++++ b/lang/en/common.php
+@@ -134,4 +134,5 @@ return [
+     'meta_title_en' => 'Title (English)',
+     'meta_description_ar' => 'Description (Arabic)',
+     'meta_description_en' => 'Description (English)',
++    'invalid_map_url' => 'Invalid Google Maps location URL or coordinates not found',
+ ];
+diff --git a/resources/js/Components/Features/AgentCard.jsx b/resources/js/Components/Features/AgentCard.jsx
+index 9d027ae..d073ee1 100644
+--- a/resources/js/Components/Features/AgentCard.jsx
++++ b/resources/js/Components/Features/AgentCard.jsx
+@@ -25,7 +25,7 @@ export default function AgentCard({ agent }) {
+ 
+     return (
+         <article dir={isRtl ? 'rtl' : 'ltr'} className="bg-white rounded-xl shadow-card p-6 border border-secondary-100 hover:shadow-lg transition-shadow">
+-            <Link href={localizedPath(`/agents/${agent.id}`, locale)} className="flex items-center gap-4 mb-4 hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-lg">
++            <Link href={localizedPath(`/agents/${agent.slug || agent.id}`, locale)} className="flex items-center gap-4 mb-4 hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-lg">
+                 {avatarSrc ? (
+                     <OptimizedImage
+                         src={avatarSrc}
+diff --git a/resources/js/Pages/Admin/Areas/AreaForm.jsx b/resources/js/Pages/Admin/Areas/AreaForm.jsx
+index 1f4c6ab..a317fa9 100644
+--- a/resources/js/Pages/Admin/Areas/AreaForm.jsx
++++ b/resources/js/Pages/Admin/Areas/AreaForm.jsx
+@@ -383,21 +383,25 @@ export default function AreaForm({ area, parents, mode = 'create' }) {
+                                 </div>
+                             </div>
+                             
+-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+-                                <div>
+-                                    <label className={labelClasses}>{trans('latitude')}</label>
+-                                    <input type="text" value={data.latitude} onChange={e => setData('latitude', e.target.value)} dir="ltr" className={inputClasses} placeholder="30.0444" />
+-                                </div>
+-                                <div>
+-                                    <label className={labelClasses}>{trans('longitude')}</label>
+-                                    <input type="text" value={data.longitude} onChange={e => setData('longitude', e.target.value)} dir="ltr" className={inputClasses} placeholder="31.2357" />
+-                                </div>
+-                            </div>
+-
+                             <div>
+-                                <label className={labelClasses}>Map Embed URL (optional iframe src)</label>
+-                                <input type="text" value={data.map_url} onChange={e => setData('map_url', e.target.value)} dir="ltr" className={inputClasses} placeholder="https://www.google.com/maps/embed?..." />
++                                <label className={labelClasses}>{isRtl ? 'رابط الموقع على خرائط جوجل (Google Maps Location URL)' : 'Google Maps Location URL'}</label>
++                                <input type="text" value={data.map_url} onChange={e => setData('map_url', e.target.value)} dir="ltr" className={inputClasses} placeholder="https://www.google.com/maps/place/..." />
++                                <p className="text-xs text-secondary-500 mt-1">{isRtl ? 'قم بلصق الرابط العادي لخريطة جوجل (بما في ذلك الروابط المختصرة). سيتم استخراج الإحداثيات تلقائياً عند الحفظ.' : 'Paste a normal Google Maps location link. The system will automatically extract the latitude and longitude.'}</p>
++                                {errors?.map_url && <p className="text-xs text-red-500 mt-1">{errors.map_url}</p>}
+                             </div>
++
++                            {(data.latitude || data.longitude) && (
++                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50 p-4 rounded-xl mt-4">
++                                    <div>
++                                        <label className={labelClasses}>{trans('latitude')}</label>
++                                        <input type="text" value={data.latitude} dir="ltr" className={`${inputClasses} bg-gray-100 text-gray-500 cursor-not-allowed border-transparent`} readOnly />
++                                    </div>
++                                    <div>
++                                        <label className={labelClasses}>{trans('longitude')}</label>
++                                        <input type="text" value={data.longitude} dir="ltr" className={`${inputClasses} bg-gray-100 text-gray-500 cursor-not-allowed border-transparent`} readOnly />
++                                    </div>
++                                </div>
++                            )}
+                         </div>
+                     )}
+ 
+diff --git a/resources/js/Pages/Admin/Projects/Form.jsx b/resources/js/Pages/Admin/Projects/Form.jsx
+index 74989a8..ffe1bf5 100644
+--- a/resources/js/Pages/Admin/Projects/Form.jsx
++++ b/resources/js/Pages/Admin/Projects/Form.jsx
+@@ -802,7 +802,7 @@ export default function AdminProjectForm({ project, areas, features, finishingTy
+                                 </div>
+                             </div>
+                             <div>
+-                                <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('map_url', {}, 'units') || 'رابط خريطة جوجل (Google Maps Link)'}</label>
++                                <label className="block text-sm font-medium text-secondary-950 mb-1">{locale === 'ar' ? 'رابط الموقع على خرائط جوجل (Google Maps Location URL)' : 'Google Maps Location URL'}</label>
+                                 <input
+                                     type="text"
+                                     value={data.map_embed_url}
+@@ -811,31 +811,21 @@ export default function AdminProjectForm({ project, areas, features, finishingTy
+                                     placeholder="https://www.google.com/maps/place/..."
+                                     className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 font-mono text-xs"
+                                 />
+-                                <p className="text-xs text-muted mt-1">سيتم استخراج خط الطول ودائرة العرض من الرابط تلقائياً.</p>
++                                <p className="text-xs text-muted mt-1">{locale === 'ar' ? 'قم بلصق الرابط العادي لخريطة جوجل (بما في ذلك الروابط المختصرة). سيتم استخراج الإحداثيات تلقائياً عند الحفظ.' : 'Paste a normal Google Maps location link. The system will automatically extract the latitude and longitude.'}</p>
++                                {errors.map_embed_url && <p className="text-xs text-red-500 mt-1">{errors.map_embed_url}</p>}
+                             </div>
+                             
+-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+-                                <div>
+-                                    <label className="block text-sm font-medium text-secondary-950 mb-1">دائرة العرض (Latitude)</label>
+-                                    <input type="text" value={data.latitude} onChange={e => handleChange('latitude', e.target.value)} dir="ltr" className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-gray-50 focus:ring-0" placeholder="30.0594" readOnly />
+-                                </div>
+-                                <div>
+-                                    <label className="block text-sm font-medium text-secondary-950 mb-1">خط الطول (Longitude)</label>
+-                                    <input type="text" value={data.longitude} onChange={e => handleChange('longitude', e.target.value)} dir="ltr" className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-gray-50 focus:ring-0" placeholder="31.2234" readOnly />
++                            {(data.latitude || data.longitude) && (
++                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl">
++                                    <div>
++                                        <label className="block text-sm font-medium text-secondary-950 mb-1">{locale === 'ar' ? 'دائرة العرض (Latitude)' : 'Latitude'}</label>
++                                        <input type="text" value={data.latitude} dir="ltr" className="w-full px-3 py-2 border border-transparent rounded-lg text-sm bg-gray-100 focus:ring-0 text-gray-500 cursor-not-allowed" readOnly />
++                                    </div>
++                                    <div>
++                                        <label className="block text-sm font-medium text-secondary-950 mb-1">{locale === 'ar' ? 'خط الطول (Longitude)' : 'Longitude'}</label>
++                                        <input type="text" value={data.longitude} dir="ltr" className="w-full px-3 py-2 border border-transparent rounded-lg text-sm bg-gray-100 focus:ring-0 text-gray-500 cursor-not-allowed" readOnly />
++                                    </div>
+                                 </div>
+-                            </div>
+-                            
+-                            {data.map_embed_url && (
+-                                <iframe
+-                                    src={(() => {
+-                                        const m = data.map_embed_url.match(/src\s*=\s*"([^"]+)"/i) || data.map_embed_url.match(/src\s*=\s*'([^']+)'/i)
+-                                        return m ? m[1] : data.map_embed_url
+-                                    })()}
+-                                    className="w-full aspect-video rounded-lg"
+-                                    allowFullScreen
+-                                    loading="lazy"
+-                                    title="Google Maps"
+-                                />
+                             )}
+                         </div>
+                     )}
+diff --git a/resources/js/Pages/Admin/Units/Form.jsx b/resources/js/Pages/Admin/Units/Form.jsx
+index 0a49481..07030f4 100644
+--- a/resources/js/Pages/Admin/Units/Form.jsx
++++ b/resources/js/Pages/Admin/Units/Form.jsx
+@@ -1120,7 +1120,7 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
+                                 </div>
+                             </div>
+                             <div>
+-                                <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('map_url', {}, 'units') || 'رابط خريطة جوجل (Google Maps Link)'}</label>
++                                <label className="block text-sm font-medium text-secondary-950 mb-1">{locale === 'ar' ? 'رابط الموقع على خرائط جوجل (Google Maps Location URL)' : 'Google Maps Location URL'}</label>
+                                 <input
+                                     type="text"
+                                     value={data.map_embed_url}
+@@ -1129,31 +1129,21 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
+                                     placeholder="https://www.google.com/maps/place/..."
+                                     dir="ltr"
+                                 />
+-                                <p className="text-xs text-muted mt-1">سيتم استخراج خط الطول ودائرة العرض من الرابط تلقائياً.</p>
++                                <p className="text-xs text-muted mt-1">{locale === 'ar' ? 'قم بلصق الرابط العادي لخريطة جوجل (بما في ذلك الروابط المختصرة). سيتم استخراج الإحداثيات تلقائياً عند الحفظ.' : 'Paste a normal Google Maps location link. The system will automatically extract the latitude and longitude.'}</p>
++                                {errors.map_embed_url && <p className="text-xs text-red-500 mt-1">{errors.map_embed_url}</p>}
+                             </div>
+                             
+-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+-                                <div>
+-                                    <label className="block text-sm font-medium text-secondary-950 mb-1">دائرة العرض (Latitude)</label>
+-                                    <input type="text" value={data.latitude} onChange={e => handleChange('latitude', e.target.value)} dir="ltr" className="w-full px-4 py-3 bg-gray-50 border-2 border-transparent rounded-xl text-sm focus:ring-0" placeholder="30.0594" readOnly />
+-                                </div>
+-                                <div>
+-                                    <label className="block text-sm font-medium text-secondary-950 mb-1">خط الطول (Longitude)</label>
+-                                    <input type="text" value={data.longitude} onChange={e => handleChange('longitude', e.target.value)} dir="ltr" className="w-full px-4 py-3 bg-gray-50 border-2 border-transparent rounded-xl text-sm focus:ring-0" placeholder="31.2234" readOnly />
++                            {(data.latitude || data.longitude) && (
++                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl">
++                                    <div>
++                                        <label className="block text-sm font-medium text-secondary-950 mb-1">{locale === 'ar' ? 'دائرة العرض (Latitude)' : 'Latitude'}</label>
++                                        <input type="text" value={data.latitude} dir="ltr" className="w-full px-4 py-3 bg-gray-100 border-2 border-transparent rounded-xl text-sm focus:ring-0 text-gray-500 cursor-not-allowed" readOnly />
++                                    </div>
++                                    <div>
++                                        <label className="block text-sm font-medium text-secondary-950 mb-1">{locale === 'ar' ? 'خط الطول (Longitude)' : 'Longitude'}</label>
++                                        <input type="text" value={data.longitude} dir="ltr" className="w-full px-4 py-3 bg-gray-100 border-2 border-transparent rounded-xl text-sm focus:ring-0 text-gray-500 cursor-not-allowed" readOnly />
++                                    </div>
+                                 </div>
+-                            </div>
+-                            
+-                            {data.map_embed_url && (
+-                                <iframe
+-                                    src={(() => {
+-                                        const m = data.map_embed_url.match(/src\s*=\s*"([^"]+)"/i) || data.map_embed_url.match(/src\s*=\s*'([^']+)'/i)
+-                                        return m ? m[1] : data.map_embed_url
+-                                    })()}
+-                                    className="w-full aspect-video rounded-lg"
+-                                    allowFullScreen
+-                                    loading="lazy"
+-                                    title="Google Maps"
+-                                />
+                             )}
+                         </div>
+                     )}
+diff --git a/resources/js/Pages/Public/Areas/Show.jsx b/resources/js/Pages/Public/Areas/Show.jsx
+index fe3c1da..2df4e6e 100644
+--- a/resources/js/Pages/Public/Areas/Show.jsx
++++ b/resources/js/Pages/Public/Areas/Show.jsx
+@@ -32,7 +32,6 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
+ 
+     const pageTitle = seo?.title || `${heroTitle} - ${trans('app_name')}`
+     const pageDescription = seo?.description || heroDesc
+-    const pageKeywords = Array.isArray(seo?.keywords) ? seo.keywords.join(', ') : seo?.keywords
+ 
+     const toggleFaq = (index) => {
+         setOpenFaq(openFaq === index ? null : index)
+@@ -43,7 +42,6 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
+             <SeoHead
+                 title={pageTitle}
+                 description={pageDescription}
+-                keywords={pageKeywords}
+                 ogImage={seo?.ogImage || heroImage}
+                 canonical={appUrl && currentUrl ? `${appUrl}${currentUrl.split('?')[0]}` : undefined}
+             />
+@@ -109,10 +107,10 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
+                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                     <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                 </svg>
+-                                {isRtl ? 'عن المنطقة' : 'About Area'}
++                                {trans('about_area')}
+                             </div>
+                             <h2 className="text-3xl md:text-4xl font-black text-secondary-950 leading-tight">
+-                                {isRtl ? `اكتشف الحياة في ${areaName}` : `Discover Life in ${areaName}`}
++                                {trans('discover_life_in_area', { areaName })}
+                             </h2>
+                             <div className="prose prose-lg prose-secondary max-w-none text-secondary-600 leading-relaxed font-medium">
+                                 {aboutArea ? (
+@@ -120,7 +118,7 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
+                                         <p key={idx}>{paragraph}</p>
+                                     ))
+                                 ) : (
+-                                    <p>{heroDesc || (isRtl ? `تعرف على أبرز تفاصيل منطقة ${areaName} ومميزاتها.` : `Learn more about the details and features of ${areaName}.`)}</p>
++                                    <p>{heroDesc || (trans('learn_more_about_area', { areaName }))}</p>
+                                 )}
+                             </div>
+                             
+@@ -175,7 +173,7 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
+                     <div className="max-w-container mx-auto px-4">
+                         <div className="text-center mb-10">
+                             <h2 className="text-3xl md:text-4xl font-black text-secondary-950 mb-4">
+-                                {isRtl ? `العقارات المتاحة في ${areaName}` : `Properties in ${areaName}`}
++                                {trans('properties_in_area', { areaName })}
+                             </h2>
+                             <div className="inline-flex bg-white p-1.5 rounded-2xl shadow-sm border border-secondary-100">
+                                 <button
+@@ -286,9 +284,7 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
+                                 {address && <span className="text-sm text-secondary-500 font-medium max-w-[200px] md:max-w-none truncate">{address}</span>}
+                             </h2>
+                             <div className="w-full h-[300px] md:h-[400px] bg-secondary-100 rounded-3xl overflow-hidden border border-secondary-200 shadow-sm relative">
+-                                {area?.map_url ? (
+-                                    <iframe src={area.map_url} width="100%" height="100%" style={{ border: 0 }} allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade" title="Map"></iframe>
+-                                ) : (area?.latitude && area?.longitude) ? (
++                                {(area?.latitude && area?.longitude && area?.latitude != '0' && area?.longitude != '0') ? (
+                                     <iframe width="100%" height="100%" style={{ border: 0 }} src={`https://maps.google.com/maps?q=${area.latitude},${area.longitude}&z=14&output=embed`} allowFullScreen></iframe>
+                                 ) : (
+                                     <div className="absolute inset-0 flex items-center justify-center text-secondary-400 flex-col gap-2">
+@@ -310,7 +306,7 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
+                                     {trans('frequently_asked_questions')}
+                                 </h2>
+                                 <p className="text-secondary-500 font-medium">
+-                                    {isRtl ? `كل ما تحتاج معرفته عن ${areaName}` : `Everything you need to know about ${areaName}`}
++                                    {trans('everything_about_area', { areaName })}
+                                 </p>
+                             </div>
+ 
+diff --git a/resources/js/Pages/Public/Articles/Index.jsx b/resources/js/Pages/Public/Articles/Index.jsx
+index 3f08bae..1cfd90d 100644
+--- a/resources/js/Pages/Public/Articles/Index.jsx
++++ b/resources/js/Pages/Public/Articles/Index.jsx
+@@ -93,7 +93,7 @@ export default function ArticlesIndex({ articles, categories, currentCategory })
+                             href={localizedPath('/articles', locale)}
+                             className="inline-flex items-center px-4 py-2 bg-primary-900 text-white rounded-xl text-sm font-medium hover:bg-primary-950 transition-colors"
+                         >
+-                            {isRtl ? 'عرض كل المقالات' : 'View All Articles'}
++                            {trans('view_all_articles')}
+                         </Link>
+                     </div>
+                 )}
+diff --git a/resources/js/Pages/Public/Articles/Show.jsx b/resources/js/Pages/Public/Articles/Show.jsx
+index 0826d7f..07beeca 100644
+--- a/resources/js/Pages/Public/Articles/Show.jsx
++++ b/resources/js/Pages/Public/Articles/Show.jsx
+@@ -79,7 +79,7 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
+                     <div>
+                         <p className="text-secondary-600 font-semibold text-base mb-4">{trans('no_results')}</p>
+                         <Link href={localizedPath('/articles', locale)} className="px-5 py-2.5 bg-primary-900 text-white rounded-xl text-xs font-bold">
+-                            {isRtl ? 'العودة للمقالات' : 'Back to Articles'}
++                            {trans('back_to_articles')}
+                         </Link>
+                     </div>
+                 </main>
+@@ -117,7 +117,6 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
+             <SeoHead
+                 title={`${article?.title || ''} - ${trans('site_title')}`}
+                 description={article?.meta_description || article?.excerpt || ''}
+-                keywords={article?.keywords || ''}
+                 ogImage={headerImgUrl}
+                 ogType="article"
+             />
+@@ -140,11 +139,11 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
+                     {/* Breadcrumb Navigation */}
+                     <nav className="flex items-center gap-2 text-xs font-semibold text-secondary-500 mb-6" aria-label="Breadcrumb">
+                         <Link href={localizedPath('/', locale)} className="hover:text-primary-900 transition-colors">
+-                            {isRtl ? 'الرئيسية' : 'Home'}
++                            {trans('home')}
+                         </Link>
+                         <span>/</span>
+                         <Link href={localizedPath('/articles', locale)} className="hover:text-primary-900 transition-colors">
+-                            {trans('articles') || (isRtl ? 'المقالات' : 'Articles')}
++                            {trans('articles') || (trans('articles'))}
+                         </Link>
+                         {categoryName && (
+                             <>
+@@ -169,7 +168,7 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
+                             <svg className="w-3.5 h-3.5 text-secondary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                             </svg>
+-                            {readingTimeMin} {isRtl ? 'دقائق قراءة' : 'min read'}
++                            {readingTimeMin} {trans('min_read')}
+                         </span>
+                     </div>
+ 
+@@ -185,8 +184,8 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
+                                 FH
+                             </div>
+                             <div>
+-                                <span className="font-bold text-secondary-950 block text-xs">فاميلي هوم العقارية</span>
+-                                <span className="text-xs text-secondary-500 font-medium">فريق التحرير العقاري</span>
++                                <span className="font-bold text-secondary-950 block text-xs">{trans('family_home_real_estate')}</span>
++                                <span className="text-xs text-secondary-500 font-medium">{trans('editorial_team')}</span>
+                             </div>
+                         </div>
+ 
+@@ -197,12 +196,12 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
+                                 target="_blank"
+                                 rel="noopener noreferrer"
+                                 className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white rounded-xl text-xs font-bold transition-all duration-200"
+-                                title={isRtl ? 'مشاركة عبر واتساب' : 'Share on WhatsApp'}
++                                title={trans('share_whatsapp')}
+                             >
+                                 <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24" aria-hidden="true">
+                                     <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                                 </svg>
+-                                <span>{isRtl ? 'مشاركة' : 'Share'}</span>
++                                <span>{trans('share')}</span>
+                             </a>
+ 
+                             <button
+@@ -210,7 +209,7 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
+                                 onClick={handleCopyLink}
+                                 className="px-3.5 py-2 bg-secondary-100 hover:bg-secondary-200 text-secondary-800 rounded-xl text-xs font-semibold transition-colors"
+                             >
+-                                {copied ? (isRtl ? 'تم النسخ!' : 'Copied!') : (isRtl ? 'نسخ الرابط' : 'Copy Link')}
++                                {copied ? (trans('copied')) : (trans('copy_link'))}
+                             </button>
+                         </div>
+                     </div>
+@@ -237,7 +236,7 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
+                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                                     <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6" />
+                                 </svg>
+-                                <span>{isRtl ? 'تكبير' : 'Expand'}</span>
++                                <span>{trans('expand')}</span>
+                             </button>
+                         </div>
+                     )}
+@@ -323,10 +322,10 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
+                     <div className="mt-14 pt-8 border-t border-secondary-200 flex flex-col sm:flex-row items-center justify-between gap-4 bg-secondary-50 p-6 rounded-2xl">
+                         <div>
+                             <h3 className="text-sm font-bold text-secondary-950">
+-                                {isRtl ? 'شارِك المقال مع أصدقائك' : 'Share this article'}
++                                {trans('share_this_article')}
+                             </h3>
+                             <p className="text-xs text-secondary-500 mt-0.5">
+-                                {isRtl ? 'شارِك المعرفة والتحليلات العقارية الهامة' : 'Spread valuable real estate knowledge'}
++                                {trans('spread_knowledge')}
+                             </p>
+                         </div>
+                         <a
+@@ -338,7 +337,7 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
+                             <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24" aria-hidden="true">
+                                 <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                             </svg>
+-                            <span>{isRtl ? 'مشاركة عبر واتساب' : 'Share on WhatsApp'}</span>
++                            <span>{trans('share_whatsapp')}</span>
+                         </a>
+                     </div>
+                         </article>
+@@ -352,25 +351,25 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
+                                     <svg className="w-4 h-4 text-primary-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                         <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                     </svg>
+-                                    {isRtl ? 'روابط سريعة' : 'Quick Links'}
++                                    {trans('quick_links')}
+                                 </h3>
+                                 <ul className="space-y-2">
+                                     <li>
+                                         <Link href={localizedPath('/', locale)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-secondary-700 hover:text-primary-900 hover:bg-primary-50 transition-colors border border-transparent hover:border-primary-100">
+                                             <span className="w-1.5 h-1.5 rounded-full bg-secondary-300"></span>
+-                                            {isRtl ? 'الرئيسية' : 'Home'}
++                                            {trans('home')}
+                                         </Link>
+                                     </li>
+                                     <li>
+                                         <Link href={localizedPath('/units', locale)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-secondary-700 hover:text-primary-900 hover:bg-primary-50 transition-colors border border-transparent hover:border-primary-100">
+                                             <span className="w-1.5 h-1.5 rounded-full bg-secondary-300"></span>
+-                                            {isRtl ? 'تصفح الوحدات المعروضة' : 'Browse Available Units'}
++                                            {trans('browse_available_units')}
+                                         </Link>
+                                     </li>
+                                     <li>
+                                         <Link href={localizedPath('/projects', locale)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-secondary-700 hover:text-primary-900 hover:bg-primary-50 transition-colors border border-transparent hover:border-primary-100">
+                                             <span className="w-1.5 h-1.5 rounded-full bg-secondary-300"></span>
+-                                            {isRtl ? 'استكشف أحدث المشاريع' : 'Explore Latest Projects'}
++                                            {trans('explore_latest_projects')}
+                                         </Link>
+                                     </li>
+                                 </ul>
+@@ -384,10 +383,10 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
+                                             <svg className="w-4 h-4 text-primary-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                                             </svg>
+-                                            {isRtl ? 'عقارات مقترحة' : 'Suggested Properties'}
++                                            {trans('suggested_properties')}
+                                         </span>
+                                         <Link href={localizedPath('/units', locale)} className="text-[10px] text-secondary-400 hover:text-primary-700">
+-                                            {isRtl ? 'عرض الكل' : 'View All'}
++                                            {trans('view_all')}
+                                         </Link>
+                                     </h3>
+                                     <ul className="space-y-4">
+@@ -407,7 +406,7 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
+                                                                 {unit.title}
+                                                             </h4>
+                                                             <span className="text-[10px] text-primary-700 font-black mt-1.5 block">
+-                                                                {new Intl.NumberFormat(isRtl ? 'ar-EG' : 'en-US').format(unit.price)} {isRtl ? 'ج.م' : 'EGP'}
++                                                                {new Intl.NumberFormat(isRtl ? 'ar-EG' : 'en-US').format(unit.price)} {trans('egp')}
+                                                             </span>
+                                                         </div>
+                                                     </Link>
+@@ -426,10 +425,10 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
+                                             <svg className="w-4 h-4 text-primary-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                                             </svg>
+-                                            {isRtl ? 'مقالات مقترحة' : 'Suggested Articles'}
++                                            {trans('suggested_articles')}
+                                         </span>
+                                         <Link href={localizedPath('/articles', locale)} className="text-[10px] text-secondary-400 hover:text-primary-700">
+-                                            {isRtl ? 'عرض الكل' : 'View All'}
++                                            {trans('view_all')}
+                                         </Link>
+                                     </h3>
+                                     <ul className="space-y-4">
+diff --git a/resources/js/Pages/Public/Comparison.jsx b/resources/js/Pages/Public/Comparison.jsx
+index 5ab32ea..2c44e73 100644
+--- a/resources/js/Pages/Public/Comparison.jsx
++++ b/resources/js/Pages/Public/Comparison.jsx
+@@ -330,9 +330,7 @@ export default function Comparison({ items, type, max_items }) {
+                             {trans('compare_properties')}
+                         </h2>
+                         <p className="text-sm text-secondary-500 mb-6 leading-relaxed">
+-                            {isRtl
+-                                ? 'أضف وحدات أو مشاريع إلى المقارنة لترى الفروقات بينها وتختار الأنسب لك.'
+-                                : 'Add units or projects to compare and find the best option for you.'}
++                            {trans('add_units_to_compare')}
+                         </p>
+                         <div className="flex items-center justify-center gap-3">
+                             <Link href={localizedPath('/units', locale)} className="px-5 py-2.5 bg-primary-900 text-white text-sm font-semibold rounded-xl hover:bg-primary-950 transition-colors">
+diff --git a/resources/js/Pages/Public/Home.jsx b/resources/js/Pages/Public/Home.jsx
+index 6d6363a..26cb348 100644
+--- a/resources/js/Pages/Public/Home.jsx
++++ b/resources/js/Pages/Public/Home.jsx
+@@ -127,7 +127,7 @@ export default function Home({ featuredUnits, latestUnits, latestProjects, popul
+                                             {areaName}
+                                         </span>
+                                         <span className="text-xs font-medium text-secondary-400 group-hover:text-primary-200 mt-1 transition-colors duration-300 flex items-center gap-0.5">
+-                                            <span>{isRtl ? 'عرض المكان' : 'Explore'}</span>
++                                            <span>{trans('explore')}</span>
+                                             <svg className="w-3 h-3 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                                             </svg>
+diff --git a/resources/js/Pages/Public/Projects/Index.jsx b/resources/js/Pages/Public/Projects/Index.jsx
+index ea1595d..8d68aa0 100644
+--- a/resources/js/Pages/Public/Projects/Index.jsx
++++ b/resources/js/Pages/Public/Projects/Index.jsx
+@@ -55,7 +55,7 @@ export default function ProjectsIndex({ projects, filters, areas, features, fini
+     return (
+         <div dir={isRtl ? 'rtl' : 'ltr'} className="min-h-screen bg-surface flex flex-col font-sans">
+             <SeoHead
+-                title={`${trans('projects_page_title') || (isRtl ? 'المشاريع العقارية' : 'Real Estate Projects')} - ${trans('site_title')}`}
++                title={`${trans('projects_page_title')} - ${trans('site_title')}`}
+                 description={trans('projects_description')}
+             />
+             <Header />
+@@ -65,10 +65,10 @@ export default function ProjectsIndex({ projects, filters, areas, features, fini
+                 {/* Header Banner */}
+                 <div className="mb-8 text-center max-w-3xl mx-auto">
+                     <span className="inline-block bg-primary-50 text-primary-900 text-xs font-bold px-3 py-1 rounded-full mb-3 tracking-wide">
+-                        {isRtl ? 'المشاريع العقارية' : 'Real Estate Projects'}
++                        {trans('real_estate_projects')}
+                     </span>
+                     <h1 className="text-3xl md:text-4xl font-extrabold text-secondary-950 tracking-tight leading-tight mb-3">
+-                        {trans('projects_page_title') || (isRtl ? 'أبرز المشاريع والمجمعات السكنية' : 'Featured Projects')}
++                        {trans('projects_page_title')}
+                     </h1>
+                     <p className="text-sm md:text-base text-secondary-600 leading-relaxed">
+                         {isRtl 
+@@ -96,7 +96,7 @@ export default function ProjectsIndex({ projects, filters, areas, features, fini
+                                     type="text"
+                                     value={search}
+                                     onChange={e => setSearch(e.target.value)}
+-                                    placeholder={trans('search_projects') || (isRtl ? 'ابحث باسم المشروع...' : 'Search by project name...')}
++                                    placeholder={trans('search_projects')}
+                                     className="w-full bg-transparent border-none text-sm focus:ring-0 text-secondary-800 placeholder-secondary-400 outline-none p-0"
+                                 />
+                             </div>
+@@ -112,7 +112,7 @@ export default function ProjectsIndex({ projects, filters, areas, features, fini
+                                     onChange={e => setAreaId(e.target.value)}
+                                     className="w-full text-secondary-800 outline-none cursor-pointer border-none p-0 focus:ring-0 bg-transparent text-sm font-medium"
+                                 >
+-                                    <option value="">{isRtl ? 'جميع المناطق' : 'All Areas'}</option>
++                                    <option value="">{trans('all_areas')}</option>
+                                     {areas?.map(area => (
+                                         <option key={area.id} value={area.id}>
+                                             {locale === 'ar' ? area.name_ar : area.name_en}
+@@ -124,7 +124,7 @@ export default function ProjectsIndex({ projects, filters, areas, features, fini
+                             {/* Payment Method Select */}
+                             <div className="flex-1 w-full px-5 py-3 hover:bg-surface/60 transition-colors cursor-pointer group rounded-2xl md:rounded-none">
+                                 <label htmlFor="project-payment-select" className="block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors">
+-                                    {trans('payment_method') || (isRtl ? 'طريقة الدفع' : 'Payment Method')}
++                                    {trans('payment_method')}
+                                 </label>
+                                 <Select
+                                     id="project-payment-select"
+@@ -132,10 +132,10 @@ export default function ProjectsIndex({ projects, filters, areas, features, fini
+                                     onChange={e => setPaymentMethod(e.target.value)}
+                                     className="w-full text-secondary-800 outline-none cursor-pointer border-none p-0 focus:ring-0 bg-transparent text-sm font-medium"
+                                 >
+-                                    <option value="">{isRtl ? 'الكل' : 'All'}</option>
+-                                    <option value="cash">{trans('cash') || (isRtl ? 'كاش' : 'Cash')}</option>
+-                                    <option value="installment">{trans('installment') || (isRtl ? 'تقسيط' : 'Installment')}</option>
+-                                    <option value="both">{trans('both') || (isRtl ? 'كاش وتقسيط' : 'Cash & Installment')}</option>
++                                    <option value="">{trans('all')}</option>
++                                    <option value="cash">{trans('cash')}</option>
++                                    <option value="installment">{trans('installment')}</option>
++                                    <option value="both">{trans('both')}</option>
+                                 </Select>
+                             </div>
+ 
+@@ -153,7 +153,7 @@ export default function ProjectsIndex({ projects, filters, areas, features, fini
+                                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                                         <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0m-9.75 0h9.75" />
+                                     </svg>
+-                                    <span>{isRtl ? 'تصفية إضافية' : 'More Filters'}</span>
++                                    <span>{trans('more_filters')}</span>
+                                 </button>
+ 
+                                 {(search || areaId || paymentMethod || finishingTypeId || selectedFeatures.length > 0) && (
+@@ -162,7 +162,7 @@ export default function ProjectsIndex({ projects, filters, areas, features, fini
+                                         onClick={handleReset}
+                                         className="px-3 py-3 rounded-2xl text-xs font-medium text-secondary-500 hover:text-secondary-900 transition-colors"
+                                     >
+-                                        {trans('clear_filters') || (isRtl ? 'إعادة ضبط' : 'Reset')}
++                                        {trans('clear_filters')}
+                                     </button>
+                                 )}
+                                 
+@@ -173,7 +173,7 @@ export default function ProjectsIndex({ projects, filters, areas, features, fini
+                                     <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+                                         <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                                     </svg>
+-                                    <span>{trans('search') || (isRtl ? 'بحث' : 'Search')}</span>
++                                    <span>{trans('search')}</span>
+                                 </button>
+                             </div>
+                         </div>
+@@ -192,7 +192,7 @@ export default function ProjectsIndex({ projects, filters, areas, features, fini
+                                 <div className="flex flex-col sm:flex-row gap-6 w-full">
+                                     <div className="flex-1 w-full">
+                                         <label htmlFor="project-finishing-select" className="block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-2">
+-                                            {trans('finishing_type') || (isRtl ? 'نوع التشطيب' : 'Finishing Type')}
++                                            {trans('finishing_type')}
+                                         </label>
+                                         <Select
+                                             id="project-finishing-select"
+@@ -200,7 +200,7 @@ export default function ProjectsIndex({ projects, filters, areas, features, fini
+                                             onChange={e => setFinishingTypeId(e.target.value)}
+                                             className="w-full"
+                                         >
+-                                            <option value="">{trans('all') || (isRtl ? 'الكل' : 'All')}</option>
++                                            <option value="">{trans('all')}</option>
+                                             {finishingTypes?.map(f => (
+                                                 <option key={f.id} value={f.id}>{locale === 'ar' ? f.name_ar : f.name_en}</option>
+                                             ))}
+@@ -211,7 +211,7 @@ export default function ProjectsIndex({ projects, filters, areas, features, fini
+                                 {features?.length > 0 && (
+                                     <div className="w-full pt-4 border-t border-secondary-200/60">
+                                         <label className="block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-3">
+-                                            {trans('features') || (isRtl ? 'المميزات والخدمات' : 'Features')}
++                                            {trans('features')}
+                                         </label>
+                                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                                             {features.map(feature => (
+@@ -254,16 +254,16 @@ export default function ProjectsIndex({ projects, filters, areas, features, fini
+                 ) : (
+                     <div className="bg-white rounded-2xl border border-secondary-100 p-12 text-center max-w-md mx-auto my-8">
+                         <h3 className="text-base font-bold text-secondary-900 mb-2">
+-                            {isRtl ? 'لم يتم العثور على مشاريع مطابقة' : 'No Projects Found'}
++                            {trans('no_projects_found')}
+                         </h3>
+                         <p className="text-xs text-secondary-500 mb-6 leading-relaxed">
+-                            {isRtl ? 'جرب البحث بكلمات مختلفة أو قم بإزالة بعض الفلاتر' : 'Try adjusting your search criteria or resetting filters'}
++                            {trans('try_adjusting_your_search_crit')}
+                         </p>
+                         <button
+                             onClick={handleReset}
+                             className="px-5 py-2.5 bg-secondary-900 text-white rounded-xl text-xs font-semibold hover:bg-secondary-950 transition-colors"
+                         >
+-                            {isRtl ? 'عرض كل المشاريع' : 'Show All Projects'}
++                            {trans('show_all_projects')}
+                         </button>
+                     </div>
+                 )}
+diff --git a/resources/js/Pages/Public/Projects/Show.jsx b/resources/js/Pages/Public/Projects/Show.jsx
+index b011095..3fdb4ae 100644
+--- a/resources/js/Pages/Public/Projects/Show.jsx
++++ b/resources/js/Pages/Public/Projects/Show.jsx
+@@ -4,14 +4,7 @@ import Header from '../../../Components/Layout/Header'
+ import Footer from '../../../Components/Layout/Footer'
+ import UnitCard from '../../../Components/UI/UnitCard'
+ 
+-function extractEmbedSrc(value) {
+-    if (!value || typeof value !== 'string') return ''
+-    const match = value.match(/src\s*=\s*"([^"]+)"/i) || value.match(/src\s*=\s*'([^']+)'/i)
+-    if (match) return match[1]
+-    if (value.includes('<iframe')) return ''
+-    if (value.startsWith('http')) return value
+-    return ''
+-}
++
+ import AgentCard from '../../../Components/Features/AgentCard'
+ import SeoHead from '../../../Components/UI/SeoHead'
+ import { getYouTubeEmbedUrl } from '../../../Utils/youtube'
+@@ -72,7 +65,6 @@ export default function ProjectShow({ project }) {
+             <SeoHead
+                 title={`${project?.name || ''} - ${trans('site_title')}`}
+                 description={project?.meta_description || project?.description || ''}
+-                keywords={project?.keywords || ''}
+                 ogImage={mainImage?.url || (mainImage?.path ? `/storage/${mainImage.path}` : null)}
+                 ogType="website"
+             />
+@@ -266,52 +258,31 @@ export default function ProjectShow({ project }) {
+                                 </div>
+                             )}
+ 
+-                            {/* Location */}
+-                            {(project.latitude && project.longitude && project.latitude != '0' && project.longitude != '0') || project.map_embed_url ? (
+-                                <div className="mt-8 pt-6 border-t border-secondary-100">
+-                                    <h2 className="text-lg font-semibold text-secondary-950 mb-4">{trans('location', {}, 'projects')}</h2>
+-                                    {project.location_address && (
+-                                        <p className="text-sm text-muted mb-4">{project.location_address}</p>
+-                                    )}
++                            {/* Location Section */}
++                            {(project.latitude && project.longitude && project.latitude != '0' && project.longitude != '0') ? (
++                                <div className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 md:p-8 mt-8">
++                                    <h2 className="text-xl font-bold text-secondary-950 mb-6 flex items-center gap-3">
++                                        <div className="w-1.5 h-6 bg-primary-600 rounded-full"></div>
++                                        {trans('location_on_map', {}, 'projects') || (isRtl ? 'الموقع على الخريطة' : 'Location on Map')}
++                                    </h2>
+                                     
+-                                    {(project.latitude && project.longitude && project.latitude != '0' && project.longitude != '0') ? (
+-                                        <iframe
+-                                            src={`https://maps.google.com/maps?q=${project.latitude},${project.longitude}&hl=${locale}&z=14&output=embed`}
+-                                            className="w-full aspect-video rounded-xl border border-secondary-200 shadow-sm"
+-                                            allowFullScreen
+-                                            loading="lazy"
+-                                            referrerPolicy="no-referrer-when-downgrade"
+-                                            title="Google Maps Location"
+-                                        />
+-                                    ) : (
+-                                        project.map_embed_url && (
+-                                            (() => {
+-                                                const src = extractEmbedSrc(project.map_embed_url)
+-                                                if (!src) return null
+-                                                if (src.includes('google.com/maps/embed') || src.includes('output=embed')) {
+-                                                    return (
+-                                                        <iframe
+-                                                            src={src}
+-                                                            className="w-full aspect-video rounded-xl border border-secondary-200 shadow-sm"
+-                                                            allowFullScreen
+-                                                            loading="lazy"
+-                                                            referrerPolicy="no-referrer-when-downgrade"
+-                                                            title="Google Maps Location"
+-                                                        />
+-                                                    )
+-                                                }
+-                                                return (
+-                                                    <a href={src} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2 bg-secondary-50 text-secondary-900 rounded-lg hover:bg-secondary-100 transition-colors border border-secondary-200">
+-                                                        <svg className="w-5 h-5 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+-                                                        </svg>
+-                                                        <span>{trans('view_on_map', {}, 'projects') || 'عرض على الخريطة'}</span>
+-                                                    </a>
+-                                                )
+-                                            })()
+-                                        )
++                                    {project.location_address && (
++                                        <p className="text-sm text-secondary-600 mb-6 flex items-center gap-2">
++                                            <svg className="w-5 h-5 shrink-0 text-secondary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
++                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
++                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
++                                            </svg>
++                                            <span>{project.location_address}</span>
++                                        </p>
+                                     )}
++                                    <iframe
++                                        src={`https://maps.google.com/maps?q=${project.latitude},${project.longitude}&hl=${locale}&z=14&output=embed`}
++                                        className="w-full aspect-video md:aspect-[21/9] rounded-xl border border-secondary-200 shadow-inner"
++                                        allowFullScreen
++                                        loading="lazy"
++                                        referrerPolicy="no-referrer-when-downgrade"
++                                        title="Google Maps Location"
++                                    />
+                                 </div>
+                             ) : null}
+                         </div>
+@@ -398,7 +369,7 @@ export default function ProjectShow({ project }) {
+                                 <button
+                                     key={i}
+                                     onClick={e => { e.stopPropagation(); setLightboxIndex(i) }}
+-                                    aria-label={isRtl ? `صورة ${i + 1}` : `Image ${i + 1}`}
++                                    aria-label={trans('image_number', { number: i + 1 })}
+                                     className={`w-3 h-3 rounded-full ${
+                                         i === lightboxIndex ? 'bg-white' : 'bg-white/40'
+                                     }`}
+diff --git a/resources/js/Pages/Public/Units/Show.jsx b/resources/js/Pages/Public/Units/Show.jsx
+index 8314f23..1933f4c 100644
+--- a/resources/js/Pages/Public/Units/Show.jsx
++++ b/resources/js/Pages/Public/Units/Show.jsx
+@@ -11,14 +11,7 @@ import { useState, useMemo } from 'react'
+ 
+ const PLACEHOLDER = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600"%3E%3Crect fill="%23F0F0F0" width="800" height="600"/%3E%3C/svg%3E'
+ 
+-function extractEmbedSrc(value) {
+-    if (!value || typeof value !== 'string') return ''
+-    const match = value.match(/src\s*=\s*"([^"]+)"/i) || value.match(/src\s*=\s*'([^']+)'/i)
+-    if (match) return match[1]
+-    if (value.includes('<iframe')) return ''
+-    if (value.startsWith('http')) return value
+-    return ''
+-}
++
+ 
+ export default function UnitShow({ unit, similarUnits }) {
+     const page = usePage()
+@@ -99,7 +92,6 @@ export default function UnitShow({ unit, similarUnits }) {
+             <SeoHead
+                 title={`${unit?.name || ''} - ${trans('site_title')}`}
+                 description={unit?.meta_description || unit?.description || ''}
+-                keywords={unit?.keywords || ''}
+                 ogImage={unit?.images?.find(img => img.is_main || img.is_primary)?.url || unit?.images?.[0]?.url || null}
+                 ogType="website"
+             />
+@@ -337,51 +329,20 @@ export default function UnitShow({ unit, similarUnits }) {
+                                 )}
+ 
+                                 {/* Location */}
+-                                {(unit.latitude && unit.longitude && unit.latitude != '0' && unit.longitude != '0') || unit.map_embed_url ? (
++                                {(unit.latitude && unit.longitude && unit.latitude != '0' && unit.longitude != '0') ? (
+                                     <div className="mt-8 pt-6 border-t border-secondary-100">
+                                         <h2 className="text-lg font-semibold text-secondary-950 mb-4">{trans('location', {}, 'projects')}</h2>
+                                         {unit.location_address && (
+                                             <p className="text-sm text-muted mb-4">{unit.location_address}</p>
+                                         )}
+-                                        
+-                                        {(unit.latitude && unit.longitude && unit.latitude != '0' && unit.longitude != '0') ? (
+-                                            <iframe
+-                                                src={`https://maps.google.com/maps?q=${unit.latitude},${unit.longitude}&hl=${locale}&z=14&output=embed`}
+-                                                className="w-full aspect-video rounded-xl border border-secondary-200 shadow-sm"
+-                                                allowFullScreen
+-                                                loading="lazy"
+-                                                referrerPolicy="no-referrer-when-downgrade"
+-                                                title="Google Maps Location"
+-                                            />
+-                                        ) : (
+-                                            unit.map_embed_url && (
+-                                                (() => {
+-                                                    const src = extractEmbedSrc(unit.map_embed_url)
+-                                                    if (!src) return null
+-                                                    if (src.includes('google.com/maps/embed') || src.includes('output=embed')) {
+-                                                        return (
+-                                                            <iframe
+-                                                                src={src}
+-                                                                className="w-full aspect-video rounded-xl border border-secondary-200 shadow-sm"
+-                                                                allowFullScreen
+-                                                                loading="lazy"
+-                                                                referrerPolicy="no-referrer-when-downgrade"
+-                                                                title="Google Maps Location"
+-                                                            />
+-                                                        )
+-                                                    }
+-                                                    return (
+-                                                        <a href={src} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2 bg-secondary-50 text-secondary-900 rounded-lg hover:bg-secondary-100 transition-colors border border-secondary-200">
+-                                                            <svg className="w-5 h-5 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+-                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+-                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+-                                                            </svg>
+-                                                            <span>{trans('view_on_map', {}, 'projects') || 'عرض على الخريطة'}</span>
+-                                                        </a>
+-                                                    )
+-                                                })()
+-                                            )
+-                                        )}
++                                        <iframe
++                                            src={`https://maps.google.com/maps?q=${unit.latitude},${unit.longitude}&hl=${locale}&z=14&output=embed`}
++                                            className="w-full aspect-video rounded-xl border border-secondary-200 shadow-sm"
++                                            allowFullScreen
++                                            loading="lazy"
++                                            referrerPolicy="no-referrer-when-downgrade"
++                                            title="Google Maps Location"
++                                        />
+                                     </div>
+                                 ) : null}
+                             </div>
+@@ -526,7 +487,7 @@ export default function UnitShow({ unit, similarUnits }) {
+                                 <button
+                                     key={i}
+                                     onClick={e => { e.stopPropagation(); setLightboxIndex(i) }}
+-                                    aria-label={isRtl ? `صورة ${i + 1}` : `Image ${i + 1}`}
++                                    aria-label={trans('image_number', { number: i + 1 })}
+                                     className={`w-3 h-3 rounded-full ${
+                                         i === lightboxIndex ? 'bg-white' : 'bg-white/40'
+                                     }`}
+diff --git a/resources/js/Utils/locales/ar.js b/resources/js/Utils/locales/ar.js
+index fe5b2ae..06668ee 100644
+--- a/resources/js/Utils/locales/ar.js
++++ b/resources/js/Utils/locales/ar.js
+@@ -51,6 +51,7 @@ const ar = {
+         compare_properties: 'قارن بين العقارات',
+         compare_options_subtitle: 'قارن بين الخيارات واختر الأفضل',
+         zoom: 'تكبير',
++        view_on_map: 'عرض على الخريطة',
+         unit_message_sent_success: 'تم إرسال رسالتك بنجاح، وسيتواصل معك المستشار العقاري قريباً.',
+         contact_message_sent_success: 'تم إرسال رسالتك بنجاح، وسنتواصل معك في أقرب وقت.',
+         featured_units_subtitle: 'أفضل الفرص الاستثمارية والسكنية المختارة خصيصاً لك',
+@@ -501,6 +502,17 @@ const ar = {
+         everything_about_area: 'كل ما تحتاج معرفته عن :name',
+         areas_you_might_like: 'مناطق قد تهمك',
+         explore_all_areas: 'تصفح كل المناطق',
++        real_estate_projects: 'المشاريع العقارية',
++        featured_projects: 'أبرز المشاريع والمجمعات السكنية',
++        search_by_project_name: 'ابحث باسم المشروع...',
++        all_areas: 'جميع المناطق',
++        cash_installment: 'كاش وتقسيط',
++        more_filters: 'تصفية إضافية',
++        no_projects_found: 'لم يتم العثور على مشاريع مطابقة',
++        try_adjusting_your_search_crit: 'جرب البحث بكلمات مختلفة أو قم بإزالة بعض الفلاتر',
++        show_all_projects: 'عرض كل المشاريع',
++        add_units_to_compare: 'أضف وحدات أو مشاريع إلى المقارنة لترى الفروقات بينها وتختار الأنسب لك.',
++        image_number: 'صورة :number',
+     }
+ 
+ export default ar
+diff --git a/resources/js/Utils/locales/en.js b/resources/js/Utils/locales/en.js
+index 8abef90..ad9111a 100644
+--- a/resources/js/Utils/locales/en.js
++++ b/resources/js/Utils/locales/en.js
+@@ -51,6 +51,7 @@ const en = {
+         compare_properties: 'Compare Properties',
+         compare_options_subtitle: 'Compare options and pick the best',
+         zoom: 'Zoom',
++        view_on_map: 'View on map',
+         unit_message_sent_success: 'Your message has been sent successfully! The agent will contact you soon.',
+         contact_message_sent_success: 'Your message has been sent successfully!',
+         featured_units_subtitle: 'Handpicked investment and residential opportunities',
+@@ -504,6 +505,17 @@ const en = {
+         everything_about_area: 'Everything you need to know about :name',
+         areas_you_might_like: 'Areas you might like',
+         explore_all_areas: 'Explore all areas',
++        real_estate_projects: 'Real Estate Projects',
++        featured_projects: 'Featured Projects',
++        search_by_project_name: 'Search by project name...',
++        all_areas: 'All Areas',
++        cash_installment: 'Cash & Installment',
++        more_filters: 'More Filters',
++        no_projects_found: 'No Projects Found',
++        try_adjusting_your_search_crit: 'Try adjusting your search criteria or resetting filters',
++        show_all_projects: 'Show All Projects',
++        add_units_to_compare: 'Add units or projects to compare their features and choose the best fit for you.',
++        image_number: 'Image :number',
+     }
+ 
+ export default en
+diff --git a/routes/web.php b/routes/web.php
+index 8d7c4cd..ba8f6ed 100644
+--- a/routes/web.php
++++ b/routes/web.php
+@@ -134,7 +134,7 @@ Route::prefix('{locale}')->whereIn('locale', ['ar', 'en'])->middleware(SetLocale
+         Route::get('/{slug}', [ArticleController::class, 'show'])->middleware('throttle:property-search');
+     });
+ 
+-    Route::get('/agents/{id}', [AgentController::class, 'show'])->middleware('throttle:property-search')->name('agents.show');
++    Route::get('/agents/{slug}', [AgentController::class, 'show'])->middleware('throttle:property-search')->name('agents.show');
+ 
+     Route::get('/compare', [ComparisonController::class, 'index'])->middleware('throttle:property-search');
+     Route::get('/compare/search', [ComparisonController::class, 'search'])
+diff --git a/tests/Unit/ExtractCoordinatesFromUrlTest.php b/tests/Unit/ExtractCoordinatesFromUrlTest.php
+index 5abbd45..5d80e67 100644
+--- a/tests/Unit/ExtractCoordinatesFromUrlTest.php
++++ b/tests/Unit/ExtractCoordinatesFromUrlTest.php
+@@ -5,6 +5,7 @@ namespace Tests\Unit;
+ use Tests\TestCase;
+ use App\Http\Requests\Traits\ExtractsCoordinatesFromUrl;
+ use Illuminate\Http\Request;
++use Illuminate\Support\Facades\Http;
+ 
+ class TestRequest extends Request
+ {
+@@ -52,11 +53,20 @@ class ExtractCoordinatesFromUrlTest extends TestCase
+     
+     public function test_can_extract_from_short_url()
+     {
++        Http::fake([
++            'goo.gl/*' => Http::response('', 302, [
++                'Location' => 'https://www.google.com/maps/@29.9611066,30.9295985,15z?entry=ttu',
++            ]),
++            'google.com/*' => Http::response('<html><body>ok</body></html>', 200),
++        ]);
++
+         $request = new TestRequest();
+         $coords = $request->testExtract('https://maps.app.goo.gl/LdTTTvXNRbj5brtj8');
+         // The expanded URL should contain latitude 29.9611... and longitude 30.9295...
+         $this->assertNotNull($coords);
+         $this->assertEquals(29.9611066, $coords['latitude']);
+         $this->assertEquals(30.9295985, $coords['longitude']);
++
++        Http::assertSentCount(2);
+     }
+ }

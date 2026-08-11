@@ -51,6 +51,7 @@ const en = {
         compare_properties: 'Compare Properties',
         compare_options_subtitle: 'Compare options and pick the best',
         zoom: 'Zoom',
+        view_on_map: 'View on map',
         unit_message_sent_success: 'Your message has been sent successfully! The agent will contact you soon.',
         contact_message_sent_success: 'Your message has been sent successfully!',
         featured_units_subtitle: 'Handpicked investment and residential opportunities',
@@ -504,6 +505,17 @@ const en = {
         everything_about_area: 'Everything you need to know about :name',
         areas_you_might_like: 'Areas you might like',
         explore_all_areas: 'Explore all areas',
+        real_estate_projects: 'Real Estate Projects',
+        featured_projects: 'Featured Projects',
+        search_by_project_name: 'Search by project name...',
+        all_areas: 'All Areas',
+        cash_installment: 'Cash & Installment',
+        more_filters: 'More Filters',
+        no_projects_found: 'No Projects Found',
+        try_adjusting_your_search_crit: 'Try adjusting your search criteria or resetting filters',
+        show_all_projects: 'Show All Projects',
+        add_units_to_compare: 'Add units or projects to compare their features and choose the best fit for you.',
+        image_number: 'Image :number',
     }
 
 export default en

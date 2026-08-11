@@ -383,21 +383,25 @@ export default function AreaForm({ area, parents, mode = 'create' }) {
                                 </div>
                             </div>
                             
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label className={labelClasses}>{trans('latitude')}</label>
-                                    <input type="text" value={data.latitude} onChange={e => setData('latitude', e.target.value)} dir="ltr" className={inputClasses} placeholder="30.0444" />
-                                </div>
-                                <div>
-                                    <label className={labelClasses}>{trans('longitude')}</label>
-                                    <input type="text" value={data.longitude} onChange={e => setData('longitude', e.target.value)} dir="ltr" className={inputClasses} placeholder="31.2357" />
-                                </div>
+                            <div>
+                                <label className={labelClasses}>{isRtl ? 'رابط الموقع على خرائط جوجل (Google Maps Location URL)' : 'Google Maps Location URL'}</label>
+                                <input type="text" value={data.map_url} onChange={e => setData('map_url', e.target.value)} dir="ltr" className={inputClasses} placeholder="https://www.google.com/maps/place/..." />
+                                <p className="text-xs text-secondary-500 mt-1">{isRtl ? 'قم بلصق الرابط العادي لخريطة جوجل (بما في ذلك الروابط المختصرة). سيتم استخراج الإحداثيات تلقائياً عند الحفظ.' : 'Paste a normal Google Maps location link. The system will automatically extract the latitude and longitude.'}</p>
+                                {errors?.map_url && <p className="text-xs text-red-500 mt-1">{errors.map_url}</p>}
                             </div>
 
-                            <div>
-                                <label className={labelClasses}>Map Embed URL (optional iframe src)</label>
-                                <input type="text" value={data.map_url} onChange={e => setData('map_url', e.target.value)} dir="ltr" className={inputClasses} placeholder="https://www.google.com/maps/embed?..." />
-                            </div>
+                            {(data.latitude || data.longitude) && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50 p-4 rounded-xl mt-4">
+                                    <div>
+                                        <label className={labelClasses}>{trans('latitude')}</label>
+                                        <input type="text" value={data.latitude} dir="ltr" className={`${inputClasses} bg-gray-100 text-gray-500 cursor-not-allowed border-transparent`} readOnly />
+                                    </div>
+                                    <div>
+                                        <label className={labelClasses}>{trans('longitude')}</label>
+                                        <input type="text" value={data.longitude} dir="ltr" className={`${inputClasses} bg-gray-100 text-gray-500 cursor-not-allowed border-transparent`} readOnly />
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
 

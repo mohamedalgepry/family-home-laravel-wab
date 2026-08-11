@@ -106,7 +106,6 @@ class GenerateThumbnailsJob implements ShouldQueue
         imagewebp($thumbImage, $thumbFullPath, self::THUMB_QUALITY);
         imagedestroy($thumbImage);
 
-        $this->convertOriginalToWebpIfRasterizable($sourceImage, $fullPath, $relativePath);
         imagedestroy($sourceImage);
     }
 

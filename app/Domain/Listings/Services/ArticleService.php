@@ -18,6 +18,7 @@ class ArticleService
         private readonly CreateArticleAction $createAction,
         private readonly UpdateArticleAction $updateAction,
         private readonly ListingImageService $listingImageService,
+        private readonly SitemapService $sitemapService,
     ) {}
 
     public function getPaginatedArticles(array $filters = []): LengthAwarePaginator

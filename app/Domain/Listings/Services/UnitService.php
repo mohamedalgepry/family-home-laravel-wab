@@ -23,6 +23,7 @@ class UnitService
         private readonly UpdateUnitAction $updateUnitAction,
         private readonly DeleteUnitAction $deleteUnitAction,
         private readonly ListingImageService $listingImageService,
+        private readonly SitemapService $sitemapService,
     ) {}
 
     public function getPaginatedUnits(array $filters = [], ?User $user = null): LengthAwarePaginator
@@ -115,6 +116,7 @@ class UnitService
         $this->listingImageService->deleteImageFiles($imagePaths);
 
         // إعادة توليد ملف sitemap.xml فوراً
+        $this->sitemapService->regenerate();
     }
 
     public function togglePin(int $unitId): Unit

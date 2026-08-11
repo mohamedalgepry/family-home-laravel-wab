@@ -18,7 +18,6 @@ class AgentPublicResource extends JsonResource
             'id' => $this->id,
             'slug' => $this->slug,
             'name' => $this->name,
-            'role' => $this->role,
             'avatar' => null,
             'phone' => null,
             'whatsapp' => null,

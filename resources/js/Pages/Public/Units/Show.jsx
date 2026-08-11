@@ -11,14 +11,7 @@ import { useState, useMemo } from 'react'
 
 const PLACEHOLDER = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600"%3E%3Crect fill="%23F0F0F0" width="800" height="600"/%3E%3C/svg%3E'
 
-function extractEmbedSrc(value) {
-    if (!value || typeof value !== 'string') return ''
-    const match = value.match(/src\s*=\s*"([^"]+)"/i) || value.match(/src\s*=\s*'([^']+)'/i)
-    if (match) return match[1]
-    if (value.includes('<iframe')) return ''
-    if (value.startsWith('http')) return value
-    return ''
-}
+
 
 export default function UnitShow({ unit, similarUnits }) {
     const page = usePage()
@@ -99,7 +92,6 @@ export default function UnitShow({ unit, similarUnits }) {
             <SeoHead
                 title={`${unit?.name || ''} - ${trans('site_title')}`}
                 description={unit?.meta_description || unit?.description || ''}
-                keywords={unit?.keywords || ''}
                 ogImage={unit?.images?.find(img => img.is_main || img.is_primary)?.url || unit?.images?.[0]?.url || null}
                 ogType="website"
             />
@@ -337,51 +329,20 @@ export default function UnitShow({ unit, similarUnits }) {
                                 )}
 
                                 {/* Location */}
-                                {(unit.latitude && unit.longitude && unit.latitude != '0' && unit.longitude != '0') || unit.map_embed_url ? (
+                                {(unit.latitude && unit.longitude && unit.latitude != '0' && unit.longitude != '0') ? (
                                     <div className="mt-8 pt-6 border-t border-secondary-100">
                                         <h2 className="text-lg font-semibold text-secondary-950 mb-4">{trans('location', {}, 'projects')}</h2>
                                         {unit.location_address && (
                                             <p className="text-sm text-muted mb-4">{unit.location_address}</p>
                                         )}
-                                        
-                                        {(unit.latitude && unit.longitude && unit.latitude != '0' && unit.longitude != '0') ? (
-                                            <iframe
-                                                src={`https://maps.google.com/maps?q=${unit.latitude},${unit.longitude}&hl=${locale}&z=14&output=embed`}
-                                                className="w-full aspect-video rounded-xl border border-secondary-200 shadow-sm"
-                                                allowFullScreen
-                                                loading="lazy"
-                                                referrerPolicy="no-referrer-when-downgrade"
-                                                title="Google Maps Location"
-                                            />
-                                        ) : (
-                                            unit.map_embed_url && (
-                                                (() => {
-                                                    const src = extractEmbedSrc(unit.map_embed_url)
-                                                    if (!src) return null
-                                                    if (src.includes('google.com/maps/embed') || src.includes('output=embed')) {
-                                                        return (
-                                                            <iframe
-                                                                src={src}
-                                                                className="w-full aspect-video rounded-xl border border-secondary-200 shadow-sm"
-                                                                allowFullScreen
-                                                                loading="lazy"
-                                                                referrerPolicy="no-referrer-when-downgrade"
-                                                                title="Google Maps Location"
-                                                            />
-                                                        )
-                                                    }
-                                                    return (
-                                                        <a href={src} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2 bg-secondary-50 text-secondary-900 rounded-lg hover:bg-secondary-100 transition-colors border border-secondary-200">
-                                                            <svg className="w-5 h-5 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                            </svg>
-                                                            <span>{trans('view_on_map', {}, 'projects') || 'عرض على الخريطة'}</span>
-                                                        </a>
-                                                    )
-                                                })()
-                                            )
-                                        )}
+                                        <iframe
+                                            src={`https://maps.google.com/maps?q=${unit.latitude},${unit.longitude}&hl=${locale}&z=14&output=embed`}
+                                            className="w-full aspect-video rounded-xl border border-secondary-200 shadow-sm"
+                                            allowFullScreen
+                                            loading="lazy"
+                                            referrerPolicy="no-referrer-when-downgrade"
+                                            title="Google Maps Location"
+                                        />
                                     </div>
                                 ) : null}
                             </div>
@@ -526,7 +487,7 @@ export default function UnitShow({ unit, similarUnits }) {
                                 <button
                                     key={i}
                                     onClick={e => { e.stopPropagation(); setLightboxIndex(i) }}
-                                    aria-label={isRtl ? `صورة ${i + 1}` : `Image ${i + 1}`}
+                                    aria-label={trans('image_number', { number: i + 1 })}
                                     className={`w-3 h-3 rounded-full ${
                                         i === lightboxIndex ? 'bg-white' : 'bg-white/40'
                                     }`}

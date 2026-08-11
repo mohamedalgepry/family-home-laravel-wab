@@ -802,7 +802,7 @@ export default function AdminProjectForm({ project, areas, features, finishingTy
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('map_url', {}, 'units') || 'رابط خريطة جوجل (Google Maps Link)'}</label>
+                                <label className="block text-sm font-medium text-secondary-950 mb-1">{locale === 'ar' ? 'رابط الموقع على خرائط جوجل (Google Maps Location URL)' : 'Google Maps Location URL'}</label>
                                 <input
                                     type="text"
                                     value={data.map_embed_url}
@@ -811,31 +811,21 @@ export default function AdminProjectForm({ project, areas, features, finishingTy
                                     placeholder="https://www.google.com/maps/place/..."
                                     className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 font-mono text-xs"
                                 />
-                                <p className="text-xs text-muted mt-1">سيتم استخراج خط الطول ودائرة العرض من الرابط تلقائياً.</p>
+                                <p className="text-xs text-muted mt-1">{locale === 'ar' ? 'قم بلصق الرابط العادي لخريطة جوجل (بما في ذلك الروابط المختصرة). سيتم استخراج الإحداثيات تلقائياً عند الحفظ.' : 'Paste a normal Google Maps location link. The system will automatically extract the latitude and longitude.'}</p>
+                                {errors.map_embed_url && <p className="text-xs text-red-500 mt-1">{errors.map_embed_url}</p>}
                             </div>
                             
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-secondary-950 mb-1">دائرة العرض (Latitude)</label>
-                                    <input type="text" value={data.latitude} onChange={e => handleChange('latitude', e.target.value)} dir="ltr" className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-gray-50 focus:ring-0" placeholder="30.0594" readOnly />
+                            {(data.latitude || data.longitude) && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl">
+                                    <div>
+                                        <label className="block text-sm font-medium text-secondary-950 mb-1">{locale === 'ar' ? 'دائرة العرض (Latitude)' : 'Latitude'}</label>
+                                        <input type="text" value={data.latitude} dir="ltr" className="w-full px-3 py-2 border border-transparent rounded-lg text-sm bg-gray-100 focus:ring-0 text-gray-500 cursor-not-allowed" readOnly />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-secondary-950 mb-1">{locale === 'ar' ? 'خط الطول (Longitude)' : 'Longitude'}</label>
+                                        <input type="text" value={data.longitude} dir="ltr" className="w-full px-3 py-2 border border-transparent rounded-lg text-sm bg-gray-100 focus:ring-0 text-gray-500 cursor-not-allowed" readOnly />
+                                    </div>
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-secondary-950 mb-1">خط الطول (Longitude)</label>
-                                    <input type="text" value={data.longitude} onChange={e => handleChange('longitude', e.target.value)} dir="ltr" className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-gray-50 focus:ring-0" placeholder="31.2234" readOnly />
-                                </div>
-                            </div>
-                            
-                            {data.map_embed_url && (
-                                <iframe
-                                    src={(() => {
-                                        const m = data.map_embed_url.match(/src\s*=\s*"([^"]+)"/i) || data.map_embed_url.match(/src\s*=\s*'([^']+)'/i)
-                                        return m ? m[1] : data.map_embed_url
-                                    })()}
-                                    className="w-full aspect-video rounded-lg"
-                                    allowFullScreen
-                                    loading="lazy"
-                                    title="Google Maps"
-                                />
                             )}
                         </div>
                     )}

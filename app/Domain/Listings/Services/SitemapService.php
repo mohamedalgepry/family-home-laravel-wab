@@ -45,7 +45,6 @@ class SitemapService
             'sitemap-units.xml' => $this->builder->buildUnits(),
             'sitemap-projects.xml' => $this->builder->buildProjects(),
             'sitemap-articles.xml' => $this->builder->buildArticles(),
-            'sitemap-categories.xml' => $this->builder->buildCategories(),
             'robots.txt' => $this->builder->buildRobots(),
         ];
 
@@ -63,7 +62,6 @@ class SitemapService
             'sitemap_units_xml',
             'sitemap_projects_xml',
             'sitemap_articles_xml',
-            'sitemap_categories_xml',
         ];
     }
 }

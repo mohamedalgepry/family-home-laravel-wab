@@ -127,7 +127,7 @@ export default function Home({ featuredUnits, latestUnits, latestProjects, popul
                                             {areaName}
                                         </span>
                                         <span className="text-xs font-medium text-secondary-400 group-hover:text-primary-200 mt-1 transition-colors duration-300 flex items-center gap-0.5">
-                                            <span>{isRtl ? 'عرض المكان' : 'Explore'}</span>
+                                            <span>{trans('explore')}</span>
                                             <svg className="w-3 h-3 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
                                             </svg>

@@ -134,4 +134,5 @@ return [
     'meta_title_en' => 'Title (English)',
     'meta_description_ar' => 'Description (Arabic)',
     'meta_description_en' => 'Description (English)',
+    'invalid_map_url' => 'Invalid Google Maps location URL or coordinates not found',
 ];
