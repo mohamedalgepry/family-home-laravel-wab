@@ -25,7 +25,7 @@ export default function AgentCard({ agent }) {
 
     return (
         <article dir={isRtl ? 'rtl' : 'ltr'} className="bg-white rounded-xl shadow-card p-6 border border-secondary-100 hover:shadow-lg transition-shadow">
-            <Link href={localizedPath(`/agents/${agent.id}`, locale)} className="flex items-center gap-4 mb-4 hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-lg">
+            <Link href={localizedPath(`/agents/${agent.slug || agent.id}`, locale)} className="flex items-center gap-4 mb-4 hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-lg">
                 {avatarSrc ? (
                     <OptimizedImage
                         src={avatarSrc}

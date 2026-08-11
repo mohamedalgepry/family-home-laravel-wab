@@ -16,8 +16,40 @@ class User extends Authenticatable
     use HasFactory, Notifiable;
 
     protected $fillable = [
-        'name', 'email', 'password', 'manager_id',
+        'name', 'slug', 'email', 'password', 'manager_id',
     ];
+
+    protected static function booted()
+    {
+        static::creating(function ($user) {
+            if (empty($user->slug)) {
+                $user->slug = static::generateUniqueSlug($user->name);
+            }
+        });
+
+        static::updating(function ($user) {
+            if ($user->isDirty('name') && empty($user->slug)) {
+                $user->slug = static::generateUniqueSlug($user->name);
+            }
+        });
+    }
+
+    public static function generateUniqueSlug(string $name): string
+    {
+        $baseSlug = \Illuminate\Support\Str::slug($name);
+        if (empty($baseSlug)) {
+            $baseSlug = 'user'; // fallback for fully arabic names if slug fails, although Str::slug supports arabic somewhat, it's better to be safe. But wait, Laravel's Str::slug supports Arabic natively in recent versions, but sometimes we need to pass a dictionary. Actually, Laravel 9+ supports Arabic well.
+        }
+        $slug = $baseSlug;
+        $count = 1;
+        
+        while (static::where('slug', $slug)->exists()) {
+            $slug = $baseSlug . '-' . $count;
+            $count++;
+        }
+        
+        return $slug;
+    }
 
     protected $hidden = ['password', 'remember_token'];
 

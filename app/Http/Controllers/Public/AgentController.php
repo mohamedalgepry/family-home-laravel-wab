@@ -12,9 +12,9 @@ use Inertia\Response;
 
 class AgentController extends Controller
 {
-    public function show(int $id, Request $request): Response
+    public function show(string $slug, Request $request): Response
     {
-        $agent = User::with('profile')->where('is_active', true)->findOrFail($id);
+        $agent = User::with('profile')->where('is_active', true)->where('slug', $slug)->firstOrFail();
 
         $units = Unit::active()
             ->where('user_id', $agent->id)
@@ -25,17 +25,18 @@ class AgentController extends Controller
 
         $meta = app(SeoService::class)->forPage('agents', [
             'title' => $agent->name.' - '.config('app.name'),
-            'canonical' => url('/'.app()->getLocale()."/agents/{$agent->id}"),
+            'canonical' => url('/'.app()->getLocale()."/agents/{$agent->slug}"),
             'hreflang' => [
-                'ar' => url("/ar/agents/{$agent->id}"),
-                'en' => url("/en/agents/{$agent->id}"),
-                'x-default' => url("/ar/agents/{$agent->id}"),
+                'ar' => url("/ar/agents/{$agent->slug}"),
+                'en' => url("/en/agents/{$agent->slug}"),
+                'x-default' => url("/ar/agents/{$agent->slug}"),
             ],
         ]);
 
         return Inertia::render('Public/Agents/Show', [
             'agent' => [
                 'id' => $agent->id,
+                'slug' => $agent->slug,
                 'name' => $agent->name,
                 'avatar' => $agent->profile?->avatar,
                 'phone' => $agent->profile?->phone,

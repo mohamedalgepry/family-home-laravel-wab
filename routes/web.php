@@ -134,7 +134,7 @@ Route::prefix('{locale}')->whereIn('locale', ['ar', 'en'])->middleware(SetLocale
         Route::get('/{slug}', [ArticleController::class, 'show'])->middleware('throttle:property-search');
     });
 
-    Route::get('/agents/{id}', [AgentController::class, 'show'])->middleware('throttle:property-search')->name('agents.show');
+    Route::get('/agents/{slug}', [AgentController::class, 'show'])->middleware('throttle:property-search')->name('agents.show');
 
     Route::get('/compare', [ComparisonController::class, 'index'])->middleware('throttle:property-search');
     Route::get('/compare/search', [ComparisonController::class, 'search'])

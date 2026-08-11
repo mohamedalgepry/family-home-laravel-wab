@@ -2,7 +2,7 @@
 require 'vendor/autoload.php';
 $app = require __DIR__.'/bootstrap/app.php';
 $kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
-$request = Illuminate\Http\Request::create('/ar/agents/1', 'GET');
+$request = Illuminate\Http\Request::create('/ar/agents/mdyr-alntham', 'GET');
 $response = $kernel->handle($request);
 echo "Status: " . $response->getStatusCode() . "\n";
 if ($response->getStatusCode() !== 200) {
