@@ -15,13 +15,14 @@ test('sitemap files exist and index contains all sub sitemaps', function () {
     $this->assertFileExists(public_path('sitemap-units.xml'));
     $this->assertFileExists(public_path('sitemap-projects.xml'));
     $this->assertFileExists(public_path('sitemap-articles.xml'));
-    $this->assertFileExists(public_path('sitemap-categories.xml'));
+    $this->assertFileExists(public_path('sitemap-areas.xml'));
     $this->assertFileExists(public_path('robots.txt'));
 
     $indexXml = file_get_contents(public_path('sitemap.xml'));
     $this->assertStringContainsString('sitemap-units.xml', $indexXml);
     $this->assertStringContainsString('sitemap-projects.xml', $indexXml);
     $this->assertStringContainsString('sitemap-articles.xml', $indexXml);
+    $this->assertStringContainsString('sitemap-areas.xml', $indexXml);
 });
 
 test('adding a unit dynamically adds it to sitemap and deleting it removes it from sitemap', function () {
@@ -126,4 +127,23 @@ test('publishing an article adds it to sitemap and unpublishing/deleting removes
     $updatedArticlesXml = file_get_contents(public_path('sitemap-articles.xml'));
     $this->assertStringNotContainsString('sitemap-article-slug-ar', $updatedArticlesXml);
     $this->assertStringNotContainsString('sitemap-article-slug-en', $updatedArticlesXml);
+});
+
+test('adding an area dynamically adds it to sitemap and deleting it removes it', function () {
+    $area = Area::create([
+        'name_ar' => 'منطقة السايت ماب المخصصة',
+        'name_en' => 'Custom Sitemap Area',
+        'slug' => 'custom-sitemap-area',
+        'is_active' => true,
+    ]);
+
+    // Give the event listener time to write the file (synchronous in test)
+    $areasXml = file_get_contents(public_path('sitemap-areas.xml'));
+    $this->assertStringContainsString('custom-sitemap-area', $areasXml);
+
+    // Delete area
+    $area->delete();
+
+    $updatedAreasXml = file_get_contents(public_path('sitemap-areas.xml'));
+    $this->assertStringNotContainsString('custom-sitemap-area', $updatedAreasXml);
 });

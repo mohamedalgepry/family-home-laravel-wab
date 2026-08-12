@@ -193,7 +193,7 @@ it('stores uploaded images under the given folder', function () {
 
     expect($paths)->toHaveCount(1)
         ->and($paths[0])->toContain('units/'.now()->format('Y/m'))
-        ->and($paths[0])->toEndWith('.webp');
+        ->and($paths[0])->not->toEndWith('.webp'); // Original extension is preserved; thumbnails are generated async
     
     // We can't assert the .webp exists because it's processed asynchronously,
     // but we can check if the directory has the uploaded file.

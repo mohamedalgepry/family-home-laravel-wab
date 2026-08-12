@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Public;
 
+use App\Support\IconAllowlist;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -87,7 +88,7 @@ class UnitPublicResource extends JsonResource
                         'name' => $feature->name,
                         'name_ar' => $feature->name_ar,
                         'name_en' => $feature->name_en,
-                        'icon' => $feature->icon,
+                        'icon_name' => IconAllowlist::safeName($feature->icon),
                     ];
                 });
             }),

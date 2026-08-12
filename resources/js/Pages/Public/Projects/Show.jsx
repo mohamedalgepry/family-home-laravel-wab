@@ -31,6 +31,10 @@ export default function ProjectShow({ project }) {
     const jsonLd = useMemo(() => {
         if (!project) return null
         const image = mainImage?.url || (mainImage?.path ? `/storage/${mainImage.path}` : null);
+        const lat = project.latitude
+        const lng = project.longitude
+        const hasValidCoords = lat && lng && parseFloat(lat) !== 0 && parseFloat(lng) !== 0 &&
+            isFinite(parseFloat(lat)) && isFinite(parseFloat(lng))
         return {
             '@context': 'https://schema.org',
             '@type': 'RealEstateListing',
@@ -43,6 +47,13 @@ export default function ProjectShow({ project }) {
                 address: {
                     '@type': 'PostalAddress',
                     addressLocality: project.location_address,
+                },
+            } : {}),
+            ...(hasValidCoords ? {
+                geo: {
+                    '@type': 'GeoCoordinates',
+                    latitude: lat,
+                    longitude: lng,
                 },
             } : {}),
         }
@@ -283,6 +294,20 @@ export default function ProjectShow({ project }) {
                                         referrerPolicy="no-referrer-when-downgrade"
                                         title="Google Maps Location"
                                     />
+                                    <div className="mt-3 flex justify-end">
+                                        <a
+                                            href={`https://www.google.com/maps/search/?api=1&query=${project.latitude},${project.longitude}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-2 text-sm font-medium text-primary-700 hover:text-primary-900 transition-colors"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            </svg>
+                                            {isRtl ? 'فتح في خرائط جوجل' : 'Open in Google Maps'}
+                                        </a>
+                                    </div>
                                 </div>
                             ) : null}
                         </div>
@@ -332,7 +357,7 @@ export default function ProjectShow({ project }) {
                         ✕
                     </button>
                     <img
-                        src={images[lightboxIndex]?.url || (images[lightboxIndex]?.path?.startsWith('http') || images[lightboxIndex]?.path?.startsWith('/') ? images[lightboxIndex]?.path : `/storage/${images[lightboxIndex]?.path}`)}
+                        src={images[lightboxIndex]?.url}
                         alt=""
                         className="max-w-[90vw] max-h-[90vh] object-contain"
                         onClick={e => e.stopPropagation()}

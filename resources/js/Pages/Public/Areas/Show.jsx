@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { usePage, Link } from '@inertiajs/react'
 import { localizedPath } from '../../../Utils/route'
 import { useTrans } from '../../../Utils/trans'
@@ -9,6 +9,7 @@ import UnitCard from '../../../Components/UI/UnitCard'
 import ProjectCard from '../../../Components/UI/ProjectCard'
 import Pagination from '../../../Components/UI/Pagination'
 import SeoHead from '../../../Components/UI/SeoHead'
+import IconByName from '../../../Components/UI/IconByName'
 
 export default function AreaShow({ area, relatedAreas, units, projects, seo, areas, unitTypes, features, finishingTypes }) {
     const { locale, appUrl } = usePage().props
@@ -28,7 +29,7 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
     const unitsCount = area?.units_count || (units?.total ?? units?.data?.length ?? 0)
     const projectsCount = area?.projects_count || (projects?.total ?? projects?.data?.length ?? 0)
 
-    const heroImage = area?.hero_image ? `/storage/${area.hero_image}` : (area?.image_path ? `/storage/${area.image_path}` : 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80')
+    const heroImage = area?.hero_image || area?.image_path || 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80'
 
     const pageTitle = seo?.title || `${heroTitle} - ${trans('app_name')}`
     const pageDescription = seo?.description || heroDesc
@@ -125,7 +126,7 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                             {area?.gallery && area.gallery.length > 0 && (
                                 <div className="mt-8 grid grid-cols-2 md:grid-cols-3 gap-4">
                                     {area.gallery.map((img, idx) => (
-                                        <img key={idx} src={`/storage/${img}`} alt={`${areaName} gallery ${idx}`} className="w-full h-32 md:h-40 object-cover rounded-2xl shadow-sm hover:scale-105 transition-transform duration-300 cursor-pointer" />
+                                        <img key={idx} src={img} alt={`${areaName} gallery ${idx}`} className="w-full h-32 md:h-40 object-cover rounded-2xl shadow-sm hover:scale-105 transition-transform duration-300 cursor-pointer" />
                                     ))}
                                 </div>
                             )}
@@ -144,13 +145,7 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                                             return (
                                                 <div key={idx} className="flex gap-4">
                                                     <div className="shrink-0 w-12 h-12 rounded-xl bg-[#FFF5F5] flex items-center justify-center text-[#CC0000]">
-                                                        {feature.icon && feature.icon.includes('<svg') ? (
-                                                            <div dangerouslySetInnerHTML={{ __html: feature.icon }} className="w-6 h-6" />
-                                                        ) : (
-                                                            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                                            </svg>
-                                                        )}
+                                                        <IconByName iconName={feature.icon_name} className="w-6 h-6" />
                                                     </div>
                                                     <div>
                                                         <h4 className="text-lg font-bold text-secondary-950 mb-1">{fTitle}</h4>
@@ -255,11 +250,7 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                                             <div key={idx} className="flex items-center justify-between bg-white p-4 rounded-2xl border border-secondary-100 shadow-sm hover:border-[#CC0000] transition-colors">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-10 h-10 rounded-full bg-secondary-50 flex items-center justify-center text-secondary-600">
-                                                        {place.icon && place.icon.includes('<svg') ? (
-                                                            <div dangerouslySetInnerHTML={{ __html: place.icon }} className="w-5 h-5" />
-                                                        ) : (
-                                                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                                                        )}
+                                                        <IconByName iconName={place.icon_name} className="w-5 h-5" />
                                                     </div>
                                                     <span className="font-bold text-secondary-900">{pName}</span>
                                                 </div>
@@ -285,11 +276,31 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                             </h2>
                             <div className="w-full h-[300px] md:h-[400px] bg-secondary-100 rounded-3xl overflow-hidden border border-secondary-200 shadow-sm relative">
                                 {(area?.latitude && area?.longitude && area?.latitude != '0' && area?.longitude != '0') ? (
-                                    <iframe width="100%" height="100%" style={{ border: 0 }} src={`https://maps.google.com/maps?q=${area.latitude},${area.longitude}&z=14&output=embed`} allowFullScreen></iframe>
+                                    <div>
+                                        <div className="w-full h-[300px] md:h-[400px] bg-secondary-100 rounded-3xl overflow-hidden border border-secondary-200 shadow-sm relative">
+                                            <iframe width="100%" height="100%" style={{ border: 0 }} src={`https://maps.google.com/maps?q=${area.latitude},${area.longitude}&z=14&output=embed`} allowFullScreen />
+                                        </div>
+                                        <div className="mt-3 flex justify-end">
+                                            <a
+                                                href={`https://www.google.com/maps/search/?api=1&query=${area.latitude},${area.longitude}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center gap-2 text-sm font-medium text-primary-700 hover:text-primary-900 transition-colors"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                </svg>
+                                                {isRtl ? 'فتح في خرائط جوجل' : 'Open in Google Maps'}
+                                            </a>
+                                        </div>
+                                    </div>
                                 ) : (
-                                    <div className="absolute inset-0 flex items-center justify-center text-secondary-400 flex-col gap-2">
-                                        <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>
-                                        <span>{trans('map_not_available')}</span>
+                                    <div className="w-full h-[300px] md:h-[400px] bg-secondary-100 rounded-3xl overflow-hidden border border-secondary-200 shadow-sm relative">
+                                        <div className="absolute inset-0 flex items-center justify-center text-secondary-400 flex-col gap-2">
+                                            <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>
+                                            <span>{trans('map_not_available')}</span>
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -349,7 +360,7 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                             {relatedAreas.map(rArea => {
                                 const rName = isRtl ? rArea.name_ar : rArea.name_en
-                                const rImg = rArea.hero_image ? `/storage/${rArea.hero_image}` : (rArea.image_path ? `/storage/${rArea.image_path}` : 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=500&q=80')
+                                const rImg = rArea.hero_image || rArea.image_path || 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=500&q=80'
                                 return (
                                     <Link key={rArea.id} href={`/${locale}/areas/${rArea.slug}`} className="group relative h-64 rounded-3xl overflow-hidden block">
                                         <img src={rImg} alt={rName} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />

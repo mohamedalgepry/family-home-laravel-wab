@@ -76,7 +76,7 @@ class AppServiceProvider extends ServiceProvider
         Unit::observe(\App\Observers\SitemapObserver::class);
         Project::observe(\App\Observers\SitemapObserver::class);
         Article::observe(\App\Observers\SitemapObserver::class);
-        Category::observe(\App\Observers\SitemapObserver::class);
+        Area::observe(\App\Observers\SitemapObserver::class);
 
         Gate::policy(User::class, UserPolicy::class);
         Gate::policy(Project::class, ProjectPolicy::class);

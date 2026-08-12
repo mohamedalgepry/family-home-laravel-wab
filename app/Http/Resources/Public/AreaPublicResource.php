@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Public;
 
+use App\Support\IconAllowlist;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -34,6 +35,8 @@ class AreaPublicResource extends JsonResource
             'latitude' => (string) $this->latitude,
             'longitude' => (string) $this->longitude,
             'image_path' => $this->image_path ? asset('storage/' . $this->image_path) : null,
+            'hero_image' => $this->hero_image ? asset('storage/' . $this->hero_image) : null,
+            'gallery' => $this->gallery ? array_map(fn($path) => asset('storage/' . $path), is_string($this->gallery) ? json_decode($this->gallery, true) : $this->gallery) : [],
             'projects_count' => $this->projects_count,
             'units_count' => $this->units_count,
             'meta_description_ar' => $this->meta_description_ar,
@@ -44,9 +47,13 @@ class AreaPublicResource extends JsonResource
                 return $this->features->map(function ($feature) {
                     return [
                         'id' => $feature->id,
-                        'name_ar' => $feature->name_ar,
-                        'name_en' => $feature->name_en,
-                        'icon_path' => $feature->icon_path ? asset('storage/' . $feature->icon_path) : null,
+                        'title_ar' => $feature->title_ar,
+                        'title_en' => $feature->title_en,
+                        'description_ar' => $feature->description_ar,
+                        'description_en' => $feature->description_en,
+                        'sort_order' => $feature->sort_order,
+                        'is_active' => $feature->is_active,
+                        'icon_name' => IconAllowlist::safeName($feature->icon),
                     ];
                 });
             }),
@@ -56,9 +63,11 @@ class AreaPublicResource extends JsonResource
                         'id' => $place->id,
                         'name_ar' => $place->name_ar,
                         'name_en' => $place->name_en,
-                        'distance_ar' => $place->distance_ar,
-                        'distance_en' => $place->distance_en,
-                        'icon_path' => $place->icon_path ? asset('storage/' . $place->icon_path) : null,
+                        'distance' => $place->distance,
+                        'distance_unit' => $place->distance_unit,
+                        'sort_order' => $place->sort_order,
+                        'is_active' => $place->is_active,
+                        'icon_name' => IconAllowlist::safeName($place->icon),
                     ];
                 });
             }),

@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Domain\Listings\Models\Area;
+use App\Rules\AllowedIconName;
 use Illuminate\Foundation\Http\FormRequest;
 use App\Http\Requests\Traits\ExtractsCoordinatesFromUrl;
 
@@ -46,8 +47,21 @@ class UpdateAreaRequest extends FormRequest
             
             'address_ar' => 'nullable|string|max:255',
             'address_en' => 'nullable|string|max:255',
-            'latitude' => 'nullable|numeric|between:-90,90',
-            'longitude' => 'nullable|numeric|between:-180,180',
+            'latitude' => [
+                'nullable',
+                'numeric',
+                'between:-90,90',
+            ],
+            'longitude' => [
+                'nullable',
+                'numeric',
+                'between:-180,180',
+                function ($attribute, $value, $fail) {
+                    if ((float) request('latitude') === 0.0 && (float) $value === 0.0) {
+                        $fail(__('validation.custom.coordinates.not_zero'));
+                    }
+                },
+            ],
             'map_url' => 'nullable|url',
             
             'meta_title_ar' => 'nullable|string|max:255',
@@ -65,7 +79,7 @@ class UpdateAreaRequest extends FormRequest
             'features.*.title_en' => 'nullable|string|max:255',
             'features.*.description_ar' => 'nullable|string',
             'features.*.description_en' => 'nullable|string',
-            'features.*.icon' => 'nullable|string|max:255',
+            'features.*.icon' => ['nullable', 'string', 'max:50', new AllowedIconName],
             'features.*.sort_order' => 'nullable|integer',
             'features.*.is_active' => 'boolean',
             
@@ -77,7 +91,7 @@ class UpdateAreaRequest extends FormRequest
             'nearby_places.*.description_en' => 'nullable|string',
             'nearby_places.*.distance' => 'nullable|string|max:100',
             'nearby_places.*.distance_unit' => 'nullable|string|max:100',
-            'nearby_places.*.icon' => 'nullable|string|max:255',
+            'nearby_places.*.icon' => ['nullable', 'string', 'max:50', new AllowedIconName],
             'nearby_places.*.sort_order' => 'nullable|integer',
             'nearby_places.*.is_active' => 'boolean',
             

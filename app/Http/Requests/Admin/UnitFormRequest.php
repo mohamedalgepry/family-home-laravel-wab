@@ -40,8 +40,21 @@ abstract class UnitFormRequest extends FormRequest
             'keywords_en' => 'nullable|array',
             'video_url' => 'nullable|url|max:500',
             'map_embed_url' => 'nullable|url|max:1000',
-            'latitude' => 'nullable|numeric|between:-90,90',
-            'longitude' => 'nullable|numeric|between:-180,180',
+            'latitude' => [
+                'nullable',
+                'numeric',
+                'between:-90,90',
+            ],
+            'longitude' => [
+                'nullable',
+                'numeric',
+                'between:-180,180',
+                function ($attribute, $value, $fail) {
+                    if ((float) request('latitude') === 0.0 && (float) $value === 0.0) {
+                        $fail(__('validation.custom.coordinates.not_zero'));
+                    }
+                },
+            ],
             'location_address_ar' => 'nullable|string|max:500',
             'location_address_en' => 'nullable|string|max:500',
             'images' => 'nullable|array|max:20',

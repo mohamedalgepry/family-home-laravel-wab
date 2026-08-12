@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\StoreAreaRequest;
 use App\Http\Requests\Admin\UpdateAreaRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
+use App\Domain\Listings\Services\SitemapService;
 use Illuminate\Support\Facades\Cache;
 use App\Domain\Listings\Services\ListingService;
 use Illuminate\Support\Str;
@@ -16,6 +17,9 @@ use Inertia\Response;
 
 class AreaController extends Controller
 {
+    public function __construct(
+        private readonly SitemapService $sitemapService,
+    ) {}
     public function index(): Response
     {
         $this->authorize('viewAny', Area::class);
@@ -75,6 +79,7 @@ class AreaController extends Controller
         $this->syncRelations($area, $request);
 
         Cache::increment(ListingService::CACHE_VERSION_KEY);
+        $this->sitemapService->regenerate();
 
         return redirect()->route('admin.areas.index')->with('success', __('common.added_successfully'));
     }
@@ -129,6 +134,7 @@ class AreaController extends Controller
         $this->syncRelations($area, $request);
 
         Cache::increment(ListingService::CACHE_VERSION_KEY);
+        $this->sitemapService->regenerate();
 
         return redirect()->route('admin.areas.index')->with('success', __('common.updated_successfully'));
     }
@@ -149,6 +155,7 @@ class AreaController extends Controller
         $area->delete();
 
         Cache::increment(ListingService::CACHE_VERSION_KEY);
+        $this->sitemapService->regenerate();
 
         return redirect()->back()->with('success', __('common.deleted_successfully'));
     }

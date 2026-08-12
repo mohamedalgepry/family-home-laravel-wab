@@ -86,7 +86,7 @@ it('skips a file and logs an error when the filesystem write fails', function ()
 
 // ─── optimizer fallback when WebP conversion fails ───────────────────────────
 
-it('always returns a webp path regardless of optimizer', function () {
+it('preserves the original file extension (not forced webp)', function () {
     $optimizer = Mockery::mock(ImageOptimizerService::class);
 
     $action = new StoreUploadedImagesAction($optimizer);
@@ -95,5 +95,5 @@ it('always returns a webp path regardless of optimizer', function () {
     $paths = $action->execute([$file], 'articles');
 
     expect($paths)->toHaveCount(1)
-        ->and($paths[0])->toEndWith('.webp'); 
+        ->and($paths[0])->not->toEndWith('.webp'); // Original extension preserved; thumbnails generated async
 });

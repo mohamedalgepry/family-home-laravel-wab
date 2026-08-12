@@ -135,4 +135,6 @@ return [
     'meta_description_ar' => 'Description (Arabic)',
     'meta_description_en' => 'Description (English)',
     'invalid_map_url' => 'Invalid Google Maps location URL or coordinates not found',
+    'invalid_icon_name' => 'Invalid icon: only safe, allowlisted icon names are permitted',
+    'coordinates_not_zero' => 'Latitude and longitude cannot both be zero',
 ];
