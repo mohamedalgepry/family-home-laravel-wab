@@ -1,20 +1,24 @@
-import { Head } from '@inertiajs/react'
+import { Head, usePage } from '@inertiajs/react'
 import Header from '../../../Components/Layout/Header'
 import Footer from '../../../Components/Layout/Footer'
 import UnitCard from '../../../Components/UI/UnitCard'
 import Pagination from '../../../Components/UI/Pagination'
 import { useTrans } from '../../../Utils/trans'
+import { getStorageUrl } from '../../../Utils/image'
+import { getAgentContacts } from '../../../Utils/contact'
 
 export default function Show({ agent, units, locale }) {
+    const { settings } = usePage().props
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
 
-    const avatarSrc = agent.avatar ? (agent.avatar.startsWith('http') || agent.avatar.startsWith('/storage') ? agent.avatar : `/storage/${agent.avatar}`) : null
+    const agentContacts = getAgentContacts(agent, settings)
+    const avatarSrc = getStorageUrl(agent.avatar, null)
     const channels = [
-        { key: 'phone', url: agent.phone ? `tel:${agent.phone}` : null, label: agent.phone },
-        { key: 'whatsapp', url: agent.whatsapp ? `https://wa.me/${agent.whatsapp.replace(/[^0-9]/g, '')}` : null, label: agent.whatsapp },
-        { key: 'facebook', url: agent.facebook || null, label: trans('facebook', {}, 'admin') },
-        { key: 'linkedin', url: agent.linkedin || null, label: trans('social_linkedin', {}, 'admin') },
+        { key: 'phone', url: `tel:${agentContacts.phone}`, label: agentContacts.rawPhone },
+        { key: 'whatsapp', url: `https://wa.me/${agentContacts.whatsapp}`, label: agentContacts.rawWhatsapp },
+        { key: 'facebook', url: agent.facebook || agent.profile?.facebook || null, label: trans('facebook', {}, 'admin') },
+        { key: 'linkedin', url: agent.linkedin || agent.profile?.linkedin || null, label: trans('social_linkedin', {}, 'admin') },
     ].filter(c => c.url)
 
     return (
@@ -25,22 +29,23 @@ export default function Show({ agent, units, locale }) {
 
             <Header locale={locale} />
 
-            <div dir={isRtl ? 'rtl' : 'ltr'} className="container py-8 sm:py-12">
+            <div dir={isRtl ? 'rtl' : 'ltr'} className="max-w-container mx-auto px-4 py-12 sm:py-16">
                 {/* Agent Header */}
-                <div className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 sm:p-10 mb-10 flex flex-col sm:flex-row items-center sm:items-start gap-8">
-                    <div className="shrink-0">
+                <div className="bg-white rounded-[2rem] shadow-sm border border-secondary-100 p-8 sm:p-12 mb-12 flex flex-col sm:flex-row items-center sm:items-start gap-8 relative overflow-hidden">
+                    <div className="absolute top-0 end-0 w-64 h-64 bg-primary-50 rounded-full blur-3xl opacity-50 -z-10 translate-x-1/3 -translate-y-1/3"></div>
+                    <div className="shrink-0 relative z-10">
                         {avatarSrc ? (
-                            <img src={avatarSrc} alt={agent.name} width={160} height={160} className="w-32 h-32 sm:w-40 sm:h-40 rounded-full object-cover shadow-md border-4 border-white" />
+                            <img src={avatarSrc} alt={agent.name} width={160} height={160} className="w-32 h-32 sm:w-40 sm:h-40 rounded-full object-cover shadow-sm border-4 border-white" />
                         ) : (
-                            <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full bg-primary-50 flex items-center justify-center text-primary-900 font-bold text-4xl sm:text-5xl border-4 border-white shadow-md">
+                            <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full bg-primary-50 flex items-center justify-center text-primary-900 font-black text-4xl sm:text-5xl border-4 border-white shadow-sm">
                                 {agent.name?.charAt(0)?.toUpperCase() || '?'}
                             </div>
                         )}
                     </div>
-                    <div className="flex-1 text-center sm:text-start space-y-4">
+                    <div className="flex-1 text-center sm:text-start space-y-4 relative z-10">
                         <div>
-                            <h1 className="text-2xl sm:text-3xl font-bold text-secondary-950">{agent.name}</h1>
-                            <p className="text-secondary-600 mt-1">{trans(agent.role)}</p>
+                            <h1 className="text-3xl sm:text-4xl font-black text-secondary-950 tracking-tight">{agent.name}</h1>
+                            <p className="text-secondary-500 font-medium mt-2 text-lg">{trans(agent.role)}</p>
                         </div>
                         
                         <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 pt-2">
@@ -85,10 +90,13 @@ export default function Show({ agent, units, locale }) {
                 </div>
 
                 {/* Units List */}
-                <div className="mb-6 flex items-center justify-between">
-                    <h2 className="text-xl sm:text-2xl font-bold text-secondary-950">
-                        {trans('agent_units', {}, 'units') || trans('units_count', {}, 'units')} ({units.total})
-                    </h2>
+                <div className="mb-8 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="w-1.5 h-6 bg-primary-600 rounded-full"></div>
+                        <h2 className="text-2xl sm:text-3xl font-black text-secondary-950 tracking-tight">
+                            {trans('agent_units', {}, 'units') || trans('units_count', {}, 'units')} <span className="text-secondary-400 font-medium">({units.total})</span>
+                        </h2>
+                    </div>
                 </div>
 
                 {units.data.length > 0 ? (
@@ -105,12 +113,14 @@ export default function Show({ agent, units, locale }) {
                         )}
                     </>
                 ) : (
-                    <div className="text-center py-20 bg-white rounded-2xl border border-secondary-100">
-                        <svg className="w-16 h-16 mx-auto text-secondary-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                        </svg>
-                        <h3 className="text-lg font-semibold text-secondary-950 mb-2">{trans('no_units', {}, 'units')}</h3>
-                        <p className="text-secondary-600">{trans('agent_no_units', {}, 'units') || trans('no_units', {}, 'units')}</p>
+                    <div className="text-center py-24 bg-white rounded-[2rem] border border-secondary-100 shadow-sm max-w-2xl mx-auto">
+                        <div className="w-20 h-20 bg-secondary-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <svg className="w-10 h-10 text-secondary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                        </div>
+                        <h3 className="text-2xl font-black text-secondary-950 mb-3">{trans('no_units', {}, 'units')}</h3>
+                        <p className="text-secondary-500 text-sm md:text-base leading-relaxed max-w-sm mx-auto">{trans('agent_no_units', {}, 'units') || trans('no_units', {}, 'units')}</p>
                     </div>
                 )}
             </div>

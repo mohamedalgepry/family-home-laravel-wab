@@ -81,7 +81,7 @@ class ListingService
         }
 
         $this->applyFeaturesFilter($query, $filters);
-        ListingQueryBuilder::applySearch($query, $filters, ['name_en', 'name_ar', 'description_en', 'description_ar', 'slug', 'slug_ar', 'slug_en'], 'project', 2);
+        ListingQueryBuilder::applySearch($query, $filters, ['name_en', 'name_ar', 'description_en', 'description_ar', 'slug', 'slug_ar', 'slug_en', 'keywords_ar', 'keywords_en'], 'project', 2);
     }
 
     public function getProjectsByFilters(array $filters, int $perPage = 12): Paginator
@@ -122,7 +122,7 @@ class ListingService
         ListingQueryBuilder::applyExactMatches($query, $filters, ['area_id', 'payment_method', 'finishing_type_id']);
 
         $this->applyFeaturesFilter($query, $filters);
-        ListingQueryBuilder::applySearch($query, $filters, ['name_en', 'name_ar', 'description_en', 'description_ar', 'slug', 'slug_ar', 'slug_en'], 'units', 2);
+        ListingQueryBuilder::applySearch($query, $filters, ['name_en', 'name_ar', 'description_en', 'description_ar', 'slug', 'slug_ar', 'slug_en', 'keywords_ar', 'keywords_en'], 'units', 2);
     }
 
     private function applyFeaturesFilter($query, array $filters): void

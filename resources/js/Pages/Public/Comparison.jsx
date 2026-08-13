@@ -44,7 +44,7 @@ function getBestValues(items) {
 function ScoreBadge({ score }) {
     const color = score >= 80 ? 'bg-emerald-500' : score >= 60 ? 'bg-amber-500' : 'bg-secondary-400'
     return (
-        <div className={`w-9 h-9 rounded-xl ${color} text-white flex items-center justify-center text-sm font-bold shadow-sm`}>
+        <div className={`w-10 h-10 rounded-2xl ${color} text-white flex items-center justify-center text-sm font-bold shadow-sm`}>
             {score}
         </div>
     )
@@ -87,19 +87,19 @@ function ComparisonSection({ type, title, items, maxItems, isRtl, locale, trans 
     return (
         <section className="mb-10">
             {/* Section header */}
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
-                    <h2 className="text-lg font-bold text-secondary-950">{title}</h2>
-                    <span className="text-xs text-secondary-500 bg-secondary-100 px-2.5 py-1 rounded-full font-medium">
+                    <h2 className="text-xl font-black text-secondary-950">{title}</h2>
+                    <span className="text-xs text-secondary-600 bg-secondary-100 px-3 py-1 rounded-full font-bold">
                         {items.length} / {maxItems}
                     </span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                     <Link
                         href={localizedPath(type === 'unit' ? '/units' : '/projects', locale)}
-                        className="px-3 py-1.5 text-xs font-semibold text-primary-900 hover:bg-primary-50 rounded-lg transition-colors flex items-center gap-1.5"
+                        className="px-4 py-2 text-sm font-bold text-primary-900 bg-primary-50 hover:bg-primary-100 rounded-xl transition-colors flex items-center gap-2"
                     >
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                         </svg>
                         {trans('browse')}
@@ -118,9 +118,9 @@ function ComparisonSection({ type, title, items, maxItems, isRtl, locale, trans 
                     const features = item.features || []
 
                     return (
-                        <div key={item.id} className="bg-white rounded-2xl shadow-card border border-secondary-100 overflow-hidden hover:shadow-md transition-shadow group">
+                        <div key={item.id} className="bg-white rounded-3xl shadow-sm border border-secondary-100 overflow-hidden hover:shadow-md transition-all group">
                             {/* Image */}
-                            <div className="relative h-40 overflow-hidden">
+                            <div className="relative h-48 overflow-hidden bg-secondary-50">
                                 <img
                                     src={getItemImage(item)}
                                     alt={item.name}
@@ -129,16 +129,16 @@ function ComparisonSection({ type, title, items, maxItems, isRtl, locale, trans 
                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                 />
                                 {score && (
-                                    <div className="absolute top-2 end-2">
+                                    <div className="absolute top-3 end-3">
                                         <ScoreBadge score={score} />
                                     </div>
                                 )}
                                 <button
                                     onClick={() => handleRemove(item.id)}
-                                    className="absolute top-2 start-2 w-7 h-7 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-secondary-400 hover:text-red-600 hover:bg-white transition-colors shadow-xs"
+                                    className="absolute top-3 start-3 w-8 h-8 bg-white/90 backdrop-blur-md rounded-full flex items-center justify-center text-secondary-500 hover:text-red-600 hover:bg-white transition-all shadow-sm"
                                     title={trans('remove_from_compare')}
                                 >
-                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                                     </svg>
                                 </button>
@@ -197,10 +197,10 @@ function ComparisonSection({ type, title, items, maxItems, isRtl, locale, trans 
                                 )}
 
                                 {/* Action */}
-                                <div className="mt-3 pt-3 border-t border-secondary-100 flex gap-2">
+                                <div className="mt-4 pt-4 border-t border-secondary-100 flex gap-2">
                                     <Link
                                         href={localizedPath(type === 'unit' ? `/units/${item.slug}` : `/projects/${item.slug}`, locale)}
-                                        className="flex-1 block text-center py-2 bg-primary-900/5 hover:bg-primary-900 text-primary-900 hover:text-white text-xs font-semibold rounded-xl transition-colors"
+                                        className="flex-1 block text-center py-2.5 bg-primary-50 hover:bg-primary-900 text-primary-900 hover:text-white text-xs font-bold rounded-2xl transition-colors"
                                     >
                                         {trans('show_more')}
                                     </Link>
@@ -213,8 +213,8 @@ function ComparisonSection({ type, title, items, maxItems, isRtl, locale, trans 
 
             {/* Side-by-side comparison table (2+ items, units only) */}
             {items.length >= 2 && type === 'unit' && (
-                <div className="mt-6 bg-white rounded-2xl shadow-card border border-secondary-100 overflow-hidden">
-                    <div className="p-4 border-b border-secondary-100 bg-surface/50">
+                <div className="mt-8 bg-white rounded-3xl shadow-sm border border-secondary-100 overflow-hidden">
+                    <div className="p-5 border-b border-secondary-100 bg-surface/50">
                         <h3 className="text-sm font-bold text-secondary-950 flex items-center gap-2">
                             <svg className="w-4 h-4 text-primary-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
@@ -318,25 +318,25 @@ export default function Comparison({ items, type, max_items }) {
             />
             <Header />
 
-            <main className="flex-1 max-w-container mx-auto px-4 py-6 w-full">
+            <main className="flex-1 max-w-container mx-auto px-4 py-8 md:py-12 w-full">
                 {!hasAny ? (
-                    <div className="text-center py-20 max-w-md mx-auto">
-                        <div className="w-20 h-20 bg-secondary-100 rounded-full flex items-center justify-center mx-auto mb-5">
-                            <svg className="w-10 h-10 text-secondary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                    <div className="text-center py-24 px-6 max-w-2xl mx-auto bg-white rounded-[2rem] border border-secondary-100 shadow-sm">
+                        <div className="w-20 h-20 bg-secondary-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <svg className="w-10 h-10 text-secondary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
                             </svg>
                         </div>
-                        <h2 className="text-xl font-bold text-secondary-950 mb-2">
+                        <h2 className="text-2xl font-black text-secondary-950 mb-3 tracking-tight">
                             {trans('compare_properties')}
                         </h2>
-                        <p className="text-sm text-secondary-500 mb-6 leading-relaxed">
+                        <p className="text-sm md:text-base text-secondary-500 mb-8 leading-relaxed max-w-sm mx-auto">
                             {trans('add_units_to_compare')}
                         </p>
-                        <div className="flex items-center justify-center gap-3">
-                            <Link href={localizedPath('/units', locale)} className="px-5 py-2.5 bg-primary-900 text-white text-sm font-semibold rounded-xl hover:bg-primary-950 transition-colors">
+                        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                            <Link href={localizedPath('/units', locale)} className="w-full sm:w-auto px-8 py-3 bg-primary-900 text-white text-sm font-bold rounded-2xl hover:bg-primary-950 transition-colors shadow-sm">
                                 {trans('units')}
                             </Link>
-                            <Link href={localizedPath('/projects', locale)} className="px-5 py-2.5 bg-secondary-100 text-secondary-700 text-sm font-semibold rounded-xl hover:bg-secondary-200 transition-colors">
+                            <Link href={localizedPath('/projects', locale)} className="w-full sm:w-auto px-8 py-3 bg-secondary-100 text-secondary-800 text-sm font-bold rounded-2xl hover:bg-secondary-200 transition-colors">
                                 {trans('projects')}
                             </Link>
                         </div>
@@ -344,35 +344,35 @@ export default function Comparison({ items, type, max_items }) {
                 ) : (
                     <>
                         {/* Header */}
-                        <div className="flex items-center justify-between mb-6">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-primary-900/10 text-primary-900 flex items-center justify-center">
-                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10 pb-8 border-b border-secondary-200">
+                            <div className="flex items-center gap-4">
+                                <div className="w-14 h-14 rounded-2xl bg-primary-50 text-primary-900 flex items-center justify-center border border-primary-100">
+                                    <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
                                     </svg>
                                 </div>
                                 <div>
-                                    <h1 className="text-xl font-bold text-secondary-950">{trans('compare')}</h1>
-                                    <p className="text-xs text-secondary-500">
+                                    <h1 className="text-3xl md:text-4xl font-black text-secondary-950 tracking-tight">{trans('compare')}</h1>
+                                    <p className="text-sm font-medium text-secondary-500 mt-1">
                                         {trans('compare_options_subtitle')}
                                     </p>
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-1.5 bg-secondary-100 rounded-xl p-1">
+                            <div className="flex items-center gap-2 bg-secondary-100/50 rounded-2xl p-1.5 border border-secondary-200/60">
                                 <Link
                                     href={localizedPath(`/compare?type=unit&ids=${unitList.join(',')}`, locale)}
-                                    className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-colors ${type === 'unit' ? 'bg-white text-primary-900 shadow-xs' : 'text-secondary-600 hover:text-secondary-900'}`}
+                                    className={`px-5 py-2.5 text-sm font-bold rounded-xl transition-all ${type === 'unit' ? 'bg-white text-primary-900 shadow-sm' : 'text-secondary-600 hover:text-secondary-900 hover:bg-secondary-100'}`}
                                 >
                                     {trans('units')}
-                                    {unitList.length > 0 && <span className="ms-1.5 text-[10px] opacity-60">({unitList.length})</span>}
+                                    {unitList.length > 0 && <span className="ms-2 text-xs opacity-70">({unitList.length})</span>}
                                 </Link>
                                 <Link
                                     href={localizedPath(`/compare?type=project&ids=${projectList.join(',')}`, locale)}
-                                    className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-colors ${type === 'project' ? 'bg-white text-primary-900 shadow-xs' : 'text-secondary-600 hover:text-secondary-900'}`}
+                                    className={`px-5 py-2.5 text-sm font-bold rounded-xl transition-all ${type === 'project' ? 'bg-white text-primary-900 shadow-sm' : 'text-secondary-600 hover:text-secondary-900 hover:bg-secondary-100'}`}
                                 >
                                     {trans('projects')}
-                                    {projectList.length > 0 && <span className="ms-1.5 text-[10px] opacity-60">({projectList.length})</span>}
+                                    {projectList.length > 0 && <span className="ms-2 text-xs opacity-70">({projectList.length})</span>}
                                 </Link>
                             </div>
                         </div>

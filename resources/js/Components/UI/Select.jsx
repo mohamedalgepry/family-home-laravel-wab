@@ -175,10 +175,10 @@ export function Select({
                 aria-expanded={isOpen}
                 aria-controls={listboxId}
                 aria-label={ariaLabel || (typeof selectedOption?.label === 'string' ? selectedOption.label : 'Select option')}
-                className={`w-full h-full min-h-[40px] px-3 py-1.5 text-sm transition-all duration-200 outline-none flex items-center justify-between disabled:opacity-50 disabled:cursor-not-allowed ${
+                className={`w-full h-full min-h-[44px] px-4 py-2.5 text-sm transition-all duration-200 outline-none flex items-center justify-between disabled:opacity-50 disabled:cursor-not-allowed shadow-sm ${
                     variant === 'ghost' 
-                        ? 'bg-transparent border border-transparent rounded-xl hover:bg-secondary-50 ' + (isOpen ? 'bg-secondary-50 text-primary-900' : '') 
-                        : 'bg-surface border border-transparent rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-900 focus:bg-white hover:bg-secondary-200 ' + (isOpen ? 'bg-white border-primary-900 ring-2 ring-primary-500' : '')
+                        ? 'bg-transparent border border-transparent rounded-xl hover:bg-surface-hover ' + (isOpen ? 'bg-surface-hover text-primary-900' : '') 
+                        : 'bg-white border border-border rounded-xl focus:ring-4 focus:ring-primary-900/10 focus:border-primary-900 hover:bg-surface-hover/50 hover:border-secondary-300 ' + (isOpen ? 'bg-white border-primary-900 ring-4 ring-primary-900/10' : '')
                 } ${className}`}
                 style={{ textAlign: 'start' }}
             >
@@ -201,7 +201,7 @@ export function Select({
 
             {/* Dropdown Menu */}
             <div 
-                className={`absolute z-[100] top-full left-0 right-0 w-full mt-2 bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-secondary-200 flex flex-col origin-top transition-all duration-200 ease-out min-w-[160px] ${isOpen ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 -translate-y-1 pointer-events-none'}`}
+                className={`absolute z-[100] top-full left-0 right-0 w-full mt-2 bg-white rounded-2xl shadow-xl border border-border flex flex-col origin-top transition-all duration-200 ease-out min-w-[160px] ${isOpen ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 -translate-y-1 pointer-events-none'}`}
                 style={{ maxHeight: '300px' }}
             >
                 {/* Search Box */}
@@ -218,7 +218,7 @@ export function Select({
                                 onChange={(e) => setSearch(e.target.value)}
                                 placeholder="Search..."
                                 aria-label="Filter options"
-                                className="w-full pl-9 rtl:pr-9 rtl:pl-3 py-2.5 bg-secondary-50 border border-transparent rounded-xl text-sm text-secondary-900 focus:ring-2 focus:ring-secondary-200 focus:bg-white focus:border-secondary-300 transition-all outline-none"
+                                className="w-full pl-9 rtl:pr-9 rtl:pl-3 py-2.5 bg-surface border border-border rounded-xl text-sm text-secondary-900 focus:ring-2 focus:ring-primary-900/10 focus:bg-white focus:border-primary-900 transition-all outline-none"
                                 onClick={(e) => e.stopPropagation()} 
                             />
                         </div>
@@ -252,12 +252,12 @@ export function Select({
                                         e.preventDefault();
                                         handleSelect(opt.value);
                                     }}
-                                    className={`w-full text-start px-4 py-3 rounded-xl text-[15px] transition-colors duration-150 flex items-center justify-between mb-1 last:mb-0 outline-none focus:ring-2 focus:ring-primary-500 ${
+                                    className={`w-full text-start px-4 py-3 rounded-xl text-[15px] transition-colors duration-150 flex items-center justify-between mb-1 last:mb-0 outline-none focus:ring-2 focus:ring-primary-900/20 ${
                                         isSelected 
-                                            ? 'bg-primary-900/10 text-primary-900 font-semibold' 
+                                            ? 'bg-primary-50 text-primary-900 font-semibold' 
                                             : isKeyboardFocused 
-                                                ? 'bg-secondary-100 text-secondary-900 font-medium'
-                                                : 'text-secondary-800 hover:bg-secondary-50'
+                                                ? 'bg-surface text-secondary-950 font-medium'
+                                                : 'text-secondary-800 hover:bg-surface-hover hover:text-secondary-950'
                                     }`}
                                 >
                                     <span className="truncate">{opt.label}</span>

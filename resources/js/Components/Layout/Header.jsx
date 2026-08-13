@@ -51,7 +51,7 @@ export default function Header({ compareCount = 0 }) {
     return (
         <header
             dir={isRtl ? 'rtl' : 'ltr'}
-            className="sticky top-0 z-50 bg-white/90 backdrop-blur-md shadow-sticky transition-all duration-300"
+            className="sticky top-0 z-50 bg-white/95 backdrop-blur-xl shadow-sm transition-all duration-300 border-b border-border"
             role="banner"
         >
             <div className="max-w-container mx-auto px-4 flex items-center justify-between h-16">
@@ -82,10 +82,10 @@ export default function Header({ compareCount = 0 }) {
                                 key={item.key}
                                 href={localizedPath(item.href, locale)}
                                 onClick={(e) => handleNavClick(e, item.href)}
-                                className={`text-sm transition-colors py-1.5 px-3 rounded-lg flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${
+                                className={`text-sm transition-all duration-200 py-2 px-4 rounded-xl flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-900/10 ${
                                     active 
                                         ? 'text-primary-900 bg-primary-50 font-bold' 
-                                        : 'text-secondary-800 hover:text-primary-900 hover:bg-secondary-50 font-medium'
+                                        : 'text-secondary-800 hover:text-primary-900 hover:bg-surface-hover font-medium'
                                 }`}
                             >
                                 {trans(item.key)}
@@ -113,7 +113,7 @@ export default function Header({ compareCount = 0 }) {
                     {/* Mobile Menu Toggle */}
                     <button
                         onClick={() => setMenuOpen(prev => !prev)}
-                        className="md:hidden text-secondary-700 hover:text-primary-900 p-1 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                        className="md:hidden text-secondary-800 hover:text-primary-900 bg-surface hover:bg-surface-hover p-2 rounded-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-900/10 transition-colors"
                         aria-label={trans('toggle_menu')}
                         aria-expanded={menuOpen}
                         aria-controls="mobile-navigation"
@@ -129,19 +129,19 @@ export default function Header({ compareCount = 0 }) {
                 </div>
             </div>
 
-            {/* Mobile Nav */}
+            {/* Mobile Nav Overlay */}
             {menuOpen && (
-                <nav id="mobile-navigation" className="md:hidden bg-white border-t border-secondary-100 px-4 py-4 flex flex-col gap-3" aria-label={isRtl ? 'تنقل الهاتف' : 'Mobile Navigation'}>
+                <nav id="mobile-navigation" className="md:hidden absolute top-full left-0 right-0 bg-white shadow-xl border-t border-border rounded-b-3xl px-4 py-4 flex flex-col gap-2 origin-top animate-fade-in" aria-label={isRtl ? 'تنقل الهاتف' : 'Mobile Navigation'}>
                     {NAV_ITEMS.map(item => {
                         const active = isActive(item.href)
                         return (
                             <Link
                                 key={item.key}
                                 href={localizedPath(item.href, locale)}
-                                className={`block py-2 px-3 text-base rounded-lg transition-colors flex items-center justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${
+                                className={`block py-3 px-4 text-sm rounded-xl transition-all duration-200 flex items-center justify-between focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-900/10 ${
                                     active
-                                        ? 'text-primary-900 bg-primary-50 font-medium'
-                                        : 'text-secondary-800 hover:text-primary-900 hover:bg-secondary-50'
+                                        ? 'text-primary-900 bg-primary-50 font-bold'
+                                        : 'text-secondary-900 hover:text-primary-900 hover:bg-surface-hover font-medium'
                                 }`}
                                 onClick={(e) => handleNavClick(e, item.href)}
                             >

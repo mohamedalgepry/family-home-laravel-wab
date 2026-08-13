@@ -156,7 +156,10 @@
     --color-secondary-950: #1A1A1A;
 
     /* Semantic colors for quick reference */
+    --color-background: #FFFFFF;
     --color-surface: #F5F5F5;
+    --color-surface-hover: #F0F0F0;
+    --color-border: #E4E4E4;
     --color-muted: #6B6B6B;
     --color-success: #22C55E;
     --color-warning: #F59E0B;

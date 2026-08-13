@@ -21,7 +21,7 @@ class ListingLookupService
 
     public function areas(): Collection
     {
-        return Cache::rememberForever(self::CACHE_KEY_AREAS, fn () => Area::orderBy('name_ar')->get(['id', 'name_ar', 'name_en', 'slug']));
+        return Cache::rememberForever(self::CACHE_KEY_AREAS, fn () => Area::orderBy('name_ar')->get(['id', 'name_ar', 'name_en', 'slug', 'image_path', 'hero_image']));
     }
 
     public function unitTypes(): Collection

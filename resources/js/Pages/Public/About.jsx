@@ -22,22 +22,31 @@ export default function About({ page }) {
             />
             <Header />
 
-            <main className="flex-1 max-w-3xl mx-auto px-4 py-12 w-full">
-                <h1 className="text-3xl font-bold text-secondary-950 mb-8">{trans('about')}</h1>
+            <main className="flex-1 max-w-4xl mx-auto px-4 py-12 sm:py-20 w-full">
+                <div className="text-center mb-12">
+                    <h1 className="text-4xl sm:text-5xl font-black text-secondary-950 tracking-tight">{trans('about')}</h1>
+                    <div className="w-20 h-1.5 bg-primary-900 rounded-full mx-auto mt-6"></div>
+                </div>
 
                 {images.length > 0 && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-12">
                         {images.map((img, i) => (
-                            <img key={i} src={`/storage/${img}`} alt={trans('about_image')} width={800} height={400} className="w-full h-48 object-cover rounded-xl" loading="lazy" />
+                            <div key={i} className="rounded-3xl overflow-hidden border border-secondary-100 shadow-sm relative group">
+                                <img src={`/storage/${img}`} alt={trans('about_image')} width={800} height={400} className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                            </div>
                         ))}
                     </div>
                 )}
 
-                {content ? (
-                    <div className="prose prose-sm sm:prose-base max-w-none text-secondary-800 leading-relaxed" dangerouslySetInnerHTML={{ __html: content }} />
-                ) : (
-                    <p className="text-muted text-sm">{trans('no_data')}</p>
-                )}
+                <div className="bg-white rounded-[2rem] shadow-sm border border-secondary-100 p-8 sm:p-12">
+                    {content ? (
+                        <div className="prose prose-base sm:prose-lg max-w-none text-secondary-800 leading-loose prose-headings:font-black prose-headings:text-secondary-950 prose-a:text-primary-900 prose-a:font-bold prose-img:rounded-3xl" dangerouslySetInnerHTML={{ __html: content }} />
+                    ) : (
+                        <div className="text-center py-10">
+                            <p className="text-secondary-500 text-sm font-medium">{trans('no_data')}</p>
+                        </div>
+                    )}
+                </div>
             </main>
 
             <Footer />

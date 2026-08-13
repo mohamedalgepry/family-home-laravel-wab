@@ -8,69 +8,96 @@ import UnitCard from '../../Components/UI/UnitCard'
 import ProjectCard from '../../Components/UI/ProjectCard'
 import Pagination from '../../Components/UI/Pagination'
 import SeoHead from '../../Components/UI/SeoHead'
+import { getStorageUrl } from '../../Utils/image'
 
 const HERO_BG = '/images/hero.webp'
 const HERO_BG_MOBILE = '/images/hero-mobile.webp'
 
 export default function Home({ featuredUnits, latestUnits, latestProjects, popularSearches, areas, unitTypes, features, finishingTypes }) {
-    const { locale, settings, appUrl } = usePage().props
-    const { url: currentUrl } = usePage()
+    const { locale, settings } = usePage().props
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
 
-    const heroTitle = isRtl ? (settings?.hero_title_ar || trans('hero_title')) : (settings?.hero_title_en || trans('hero_title'))
-    const heroSubtitle = isRtl ? (settings?.hero_subtitle_ar || trans('hero_subtitle')) : (settings?.hero_subtitle_en || trans('hero_subtitle'))
-    const heroImage = settings?.hero_image ? `/storage/${settings.hero_image}` : HERO_BG
-    const heroImageMobile = settings?.hero_image_mobile ? `/storage/${settings.hero_image_mobile}` : (settings?.hero_image ? `/storage/${settings.hero_image}` : HERO_BG_MOBILE)
+    const heroImage = settings?.hero_image ? getStorageUrl(settings.hero_image, HERO_BG) : HERO_BG
+    const heroImageMobile = settings?.hero_image_mobile ? getStorageUrl(settings.hero_image_mobile, HERO_BG_MOBILE) : (settings?.hero_image ? getStorageUrl(settings.hero_image, HERO_BG_MOBILE) : HERO_BG_MOBILE)
+
+    const firstFeaturedImg = featuredUnits?.data?.[0]?.images?.[0]
+    const homeOgImage = getStorageUrl(firstFeaturedImg?.url || firstFeaturedImg?.path, null)
 
     const isLoading = !featuredUnits && !latestUnits && !latestProjects
     const hasFeatured = featuredUnits?.data?.length > 0
     const hasLatest = latestUnits?.data?.length > 0
     const hasProjects = latestProjects?.data?.length > 0
 
-    const firstFeaturedImg = featuredUnits?.data?.[0]?.images?.[0]
-    const homeOgImage = firstFeaturedImg?.url || (firstFeaturedImg?.path ? `/storage/${firstFeaturedImg.path}` : null)
-
     return (
         <div dir={isRtl ? 'rtl' : 'ltr'} className="min-h-screen bg-surface flex flex-col font-sans">
             <SeoHead
-                title={trans('site_title')}
-                description={trans('home_description')}
+                title={`${trans('app_name')} | ${trans('site_title')}`}
+                description={trans('hero_subtitle')}
                 ogImage={homeOgImage}
-                canonical={appUrl && currentUrl ? `${appUrl}${currentUrl.split('?')[0]}` : undefined}
+                ogType="website"
             />
             <Header />
 
-            <main className="flex-1">
-                {/* Hero Section */}
-                <section className="relative bg-secondary-950 flex flex-col justify-center min-h-[80vh]">
-                    <div className="absolute inset-0 z-0 overflow-hidden">
-                        <picture className="w-full h-full">
-                            <source media="(max-width: 640px)" srcSet={heroImageMobile} />
-                            <img
-                                src={heroImage}
-                                alt=""
-                                width={1920}
-                                height={1080}
-                                className="w-full h-full object-cover scale-105"
-                                fetchPriority="high"
-                                loading="eager"
-                                decoding="sync"
+            <main id="main-content" className="flex-1">
+                {/* Hero Section with Search Bar */}
+                <section className="relative min-h-[520px] md:min-h-[580px] flex items-center justify-center pt-8 pb-24 md:pb-32 md:pt-20 px-4 z-20">
+                    <picture className="absolute inset-0 w-full h-full overflow-hidden">
+                        <source media="(max-width: 640px)" srcSet={heroImageMobile} />
+                        <img 
+                            src={heroImage} 
+                            alt={trans('site_title')} 
+                            className="w-full h-full object-cover object-center scale-105 animate-subtle-zoom" 
+                            fetchPriority="high"
+                            loading="eager"
+                            decoding="sync"
+                        />
+                    </picture>
+
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/50 to-black/30"></div>
+
+                    <div className="relative z-10 max-w-container mx-auto w-full text-center space-y-6 md:space-y-8 mt-2">
+                        <div className="space-y-3 max-w-3xl mx-auto px-2">
+                            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white leading-tight tracking-tight drop-shadow-md">
+                                {trans('hero_title') || 'ابحث عن عقارك المثالي بسهولة'}
+                            </h1>
+                            <p className="text-sm sm:text-base md:text-lg text-white/80 font-medium max-w-2xl mx-auto drop-shadow">
+                                {trans('hero_subtitle') || 'آلاف العقارات المتاحة للبيع والشرء والتمليك في أفضل المناطق'}
+                            </p>
+                        </div>
+
+                        {/* Integrated Search Container */}
+                        <div className="max-w-4xl mx-auto">
+                            <SearchBar 
+                                initialUnitTypes={unitTypes} 
+                                initialAreas={areas} 
+                                initialFeatures={features}
+                                initialFinishingTypes={finishingTypes}
+                                popularSearches={popularSearches}
                             />
-                        </picture>
-                        <div className="absolute inset-0 bg-gradient-to-t from-secondary-950 via-secondary-950/85 to-black/60"></div>
+                        </div>
                     </div>
+                </section>
 
-                    <div className="relative z-20 max-w-container mx-auto px-4 py-20 sm:py-28 text-center w-full">
-
-                        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white mb-6 tracking-tight leading-tight max-w-4xl mx-auto drop-shadow-md">
-                            {heroTitle}
-                        </h1>
-                        <p className="text-base sm:text-lg lg:text-xl text-secondary-200 mb-10 max-w-2xl mx-auto font-medium leading-relaxed">
-                            {heroSubtitle}
-                        </p>
-
-                        <SearchBar areas={areas} unitTypes={unitTypes} features={features} finishingTypes={finishingTypes} />
+                {/* Quick Navigation (Mobile Only) */}
+                <section className="md:hidden max-w-container mx-auto px-4 mb-8">
+                    <div className="grid grid-cols-2 gap-3">
+                        <Link href={localizedPath('/units', locale)} className="bg-white rounded-2xl p-4 flex items-center justify-center gap-3 shadow-[0_2px_10px_rgba(0,0,0,0.04)] border border-border hover:shadow-md transition-shadow">
+                            <svg className="w-5 h-5 text-primary-900 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+                            <span className="font-bold text-sm text-secondary-950">{trans('units')}</span>
+                        </Link>
+                        <Link href={localizedPath('/projects', locale)} className="bg-white rounded-2xl p-4 flex items-center justify-center gap-3 shadow-[0_2px_10px_rgba(0,0,0,0.04)] border border-border hover:shadow-md transition-shadow">
+                            <svg className="w-5 h-5 text-primary-900 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                            <span className="font-bold text-sm text-secondary-950">{trans('projects')}</span>
+                        </Link>
+                        <a href="#areas-section" className="bg-white rounded-2xl p-4 flex items-center justify-center gap-3 shadow-[0_2px_10px_rgba(0,0,0,0.04)] border border-border hover:shadow-md transition-shadow">
+                            <svg className="w-5 h-5 text-primary-900 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                            <span className="font-bold text-sm text-secondary-950">{trans('areas')}</span>
+                        </a>
+                        <Link href={localizedPath('/units/deals', locale)} className="bg-white rounded-2xl p-4 flex items-center justify-center gap-3 shadow-[0_2px_10px_rgba(0,0,0,0.04)] border border-border hover:shadow-md transition-shadow">
+                            <svg className="w-5 h-5 text-primary-900 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+                            <span className="font-bold text-sm text-secondary-950">{trans('deals') || 'الصفقات'}</span>
+                        </Link>
                     </div>
                 </section>
 
@@ -99,39 +126,39 @@ export default function Home({ featuredUnits, latestUnits, latestProjects, popul
 
                 {/* Explore Areas Section */}
                 {areas?.length > 0 && (
-                    <section className="max-w-container mx-auto px-4 py-8">
-                        <div className="flex items-center justify-between mb-6">
-                            <div>
-                                <h2 className="text-2xl font-black text-secondary-950 tracking-tight">{trans('explore_areas')}</h2>
-                                <p className="text-xs text-secondary-500 mt-1">{trans('explore_areas_subtitle')}</p>
-                            </div>
+                    <section id="areas-section" className="max-w-container mx-auto px-4 py-8 mb-4">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-xl sm:text-2xl font-black text-secondary-950 tracking-tight">{trans('explore_areas') || 'المناطق الأكثر بحثاً'}</h2>
                         </div>
 
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
+                        <div className="flex overflow-x-auto gap-4 snap-x snap-mandatory hide-scrollbar md:grid md:grid-cols-4 lg:grid-cols-6 pb-4">
                             {areas.map(area => {
                                 const areaName = isRtl ? (area.name_ar || area.name_en || area.name) : (area.name_en || area.name_ar || area.name)
                                 const areaSlug = area.slug || area.id
+                                const areaImg = getStorageUrl(area.hero_image || area.image_path || `areas/${areaSlug}.jpg`, '/images/fallback.webp')
                                 return (
                                     <Link
                                         key={area.id}
                                         href={localizedPath(`/areas/${areaSlug}`, locale)}
-                                        className="group relative bg-white hover:bg-primary-950 rounded-2xl p-4 border border-secondary-200/80 hover:border-primary-900 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col items-center text-center overflow-hidden"
+                                        className="group relative shrink-0 w-[180px] md:w-auto h-[240px] bg-secondary-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 snap-center"
                                     >
-                                        <div className="w-10 h-10 rounded-full bg-primary-50 group-hover:bg-primary-900 text-primary-900 group-hover:text-white flex items-center justify-center mb-3 transition-colors duration-300">
-                                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                            </svg>
+                                        <img 
+                                            src={areaImg}
+                                            onError={(e) => { e.target.src = '/images/fallback.webp' }}
+                                            alt={areaName}
+                                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent"></div>
+                                        <div className="absolute bottom-0 left-0 right-0 p-4 text-start">
+                                            <h3 className="text-white font-bold text-base mb-1">{areaName}</h3>
+                                            <div className="flex items-center gap-1.5 text-white/90 text-xs font-medium">
+                                                <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                </svg>
+                                                <span>{trans('explore') || 'استكشف'}</span>
+                                            </div>
                                         </div>
-                                        <span className="text-sm font-bold text-secondary-900 group-hover:text-white transition-colors duration-300 line-clamp-1">
-                                            {areaName}
-                                        </span>
-                                        <span className="text-xs font-medium text-secondary-400 group-hover:text-primary-200 mt-1 transition-colors duration-300 flex items-center gap-0.5">
-                                            <span>{trans('explore')}</span>
-                                            <svg className="w-3 h-3 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                                            </svg>
-                                        </span>
                                     </Link>
                                 )
                             })}
@@ -140,22 +167,15 @@ export default function Home({ featuredUnits, latestUnits, latestProjects, popul
                 )}
 
                 {/* Latest Projects Section */}
-                <section className="bg-surface py-12 border-t border-secondary-100">
-                    <div className="max-w-container mx-auto px-4">
-                        <div className="flex items-center justify-between mb-6">
-                            <div>
-                                <h2 className="text-2xl font-black text-secondary-950 tracking-tight">{trans('latest_projects')}</h2>
-                                <p className="text-xs text-secondary-500 mt-1">{trans('latest_projects_subtitle')}</p>
-                            </div>
-                            <Link href={localizedPath('/projects', locale)} className="text-xs font-bold text-primary-900 hover:text-primary-700 flex items-center gap-1">
-                                {trans('show_more')}
-                                <svg className="w-3.5 h-3.5 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                                </svg>
-                            </Link>
-                        </div>
+                <section className="bg-transparent py-8 max-w-container mx-auto px-4">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-xl sm:text-2xl font-black text-secondary-950 tracking-tight">{trans('latest_projects') || 'أحدث المشاريع'}</h2>
+                        <Link href={localizedPath('/projects', locale)} className="px-4 py-1.5 bg-white text-secondary-800 border border-border rounded-full text-xs font-bold hover:bg-surface-hover hover:text-primary-900 transition-colors shadow-sm">
+                            {trans('view_all') || 'عرض الكل'}
+                        </Link>
+                    </div>
 
-                        {isLoading ? (
+                    {isLoading ? (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                                 {Array.from({ length: 4 }).map((_, i) => (
                                     <ProjectCard key={i} loading={true} />
@@ -173,21 +193,14 @@ export default function Home({ featuredUnits, latestUnits, latestProjects, popul
                         ) : (
                             <p className="text-sm text-muted text-center py-12">{trans('no_results')}</p>
                         )}
-                    </div>
                 </section>
 
                 {/* Featured Units Section */}
-                <section className="max-w-container mx-auto px-4 py-12 border-t border-secondary-100">
-                    <div className="flex items-center justify-between mb-6">
-                        <div>
-                            <h2 className="text-2xl font-black text-secondary-950 tracking-tight">{trans('featured_units')}</h2>
-                            <p className="text-xs text-secondary-500 mt-1">{trans('featured_units_subtitle')}</p>
-                        </div>
-                        <Link href={localizedPath('/units', locale)} className="text-xs font-bold text-primary-900 hover:text-primary-700 flex items-center gap-1">
-                            {trans('show_more')}
-                            <svg className="w-3.5 h-3.5 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                            </svg>
+                <section className="bg-transparent py-8 max-w-container mx-auto px-4">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-xl sm:text-2xl font-black text-secondary-950 tracking-tight">{trans('featured_units') || 'الوحدات المميزة'}</h2>
+                        <Link href={localizedPath('/units', locale)} className="px-4 py-1.5 bg-white text-secondary-800 border border-border rounded-full text-xs font-bold hover:bg-surface-hover hover:text-primary-900 transition-colors shadow-sm">
+                            {trans('view_all') || 'عرض الكل'}
                         </Link>
                     </div>
 
@@ -212,22 +225,15 @@ export default function Home({ featuredUnits, latestUnits, latestProjects, popul
                 </section>
 
                 {/* Latest Units Section */}
-                <section className="bg-surface py-12 border-t border-secondary-100">
-                    <div className="max-w-container mx-auto px-4">
-                        <div className="flex items-center justify-between mb-6">
-                            <div>
-                                <h2 className="text-2xl font-black text-secondary-950 tracking-tight">{trans('latest_units')}</h2>
-                                <p className="text-xs text-secondary-500 mt-1">{trans('latest_units_subtitle')}</p>
-                            </div>
-                            <Link href={localizedPath('/units', locale)} className="text-xs font-bold text-primary-900 hover:text-primary-700 flex items-center gap-1">
-                                {trans('show_more')}
-                                <svg className="w-3.5 h-3.5 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                                </svg>
-                            </Link>
-                        </div>
+                <section className="bg-transparent py-8 max-w-container mx-auto px-4 mb-12">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-xl sm:text-2xl font-black text-secondary-950 tracking-tight">{trans('latest_units') || 'أحدث الوحدات'}</h2>
+                        <Link href={localizedPath('/units', locale)} className="px-4 py-1.5 bg-white text-secondary-800 border border-border rounded-full text-xs font-bold hover:bg-surface-hover hover:text-primary-900 transition-colors shadow-sm">
+                            {trans('view_all') || 'عرض الكل'}
+                        </Link>
+                    </div>
 
-                        {isLoading ? (
+                    {isLoading ? (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                                 {Array.from({ length: 4 }).map((_, i) => (
                                     <UnitCard key={i} loading={true} />
@@ -245,7 +251,6 @@ export default function Home({ featuredUnits, latestUnits, latestProjects, popul
                         ) : (
                             <p className="text-sm text-muted text-center py-12">{trans('no_results')}</p>
                         )}
-                    </div>
                 </section>
             </main>
 

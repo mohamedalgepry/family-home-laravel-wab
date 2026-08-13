@@ -156,7 +156,7 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                     {/* Meta Badge */}
                     <div className="flex items-center gap-3 flex-wrap text-xs text-secondary-500 mb-4">
                         {categoryName && (
-                            <span className="font-bold text-primary-900 bg-primary-50 px-3 py-1 rounded-full border border-primary-100/80">
+                            <span className="font-bold text-primary-900 bg-primary-50 px-3 py-1 rounded-xl border border-primary-100/80">
                                 {categoryName}
                             </span>
                         )}
@@ -216,7 +216,7 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
 
                     {/* Featured Cover Image */}
                     {headerImgUrl && (
-                        <div className="mb-10 rounded-2xl md:rounded-3xl overflow-hidden shadow-md border border-secondary-200/70 max-h-[520px] bg-secondary-100 relative group">
+                        <div className="mb-10 rounded-[2rem] overflow-hidden shadow-sm border border-secondary-100 max-h-[520px] bg-secondary-50 relative group">
                             <img
                                 src={headerImgUrl}
                                 alt={article.title}
@@ -247,7 +247,7 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                             {topImages.map(img => {
                                 const imgSrc = img.url || (img.path.startsWith('http') || img.path.startsWith('/') ? img.path : `/storage/${img.path}`);
                                 return (
-                                    <div key={img.id} className="rounded-2xl overflow-hidden border border-secondary-200/60 shadow-xs">
+                                    <div key={img.id} className="rounded-3xl overflow-hidden border border-secondary-100 shadow-sm">
                                         <img
                                             src={imgSrc}
                                             alt={img.alt_text || article.title}
@@ -268,8 +268,8 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                         className="prose prose-base sm:prose-lg max-w-none text-secondary-800 leading-loose font-sans
                             prose-headings:font-black prose-headings:text-secondary-950 prose-headings:mt-12 prose-headings:mb-4 prose-headings:tracking-tight
                             prose-p:text-secondary-800 prose-p:leading-loose prose-p:mb-6 prose-p:font-medium
-                            prose-img:rounded-2xl prose-img:my-8 prose-img:w-full prose-img:object-cover prose-img:shadow-sm
-                            prose-blockquote:bg-primary-50/70 prose-blockquote:p-6 prose-blockquote:rounded-2xl prose-blockquote:text-secondary-950 prose-blockquote:font-semibold prose-blockquote:not-italic prose-blockquote:border border-primary-100
+                            prose-img:rounded-3xl prose-img:my-8 prose-img:w-full prose-img:object-cover prose-img:shadow-sm
+                            prose-blockquote:bg-primary-50/70 prose-blockquote:p-6 prose-blockquote:rounded-3xl prose-blockquote:text-secondary-950 prose-blockquote:font-semibold prose-blockquote:not-italic prose-blockquote:border border-primary-100
                             prose-a:text-primary-900 prose-a:font-bold prose-a:underline hover:prose-a:text-primary-950"
                         dangerouslySetInnerHTML={{ __html: parsedContent }}
                     />
@@ -280,7 +280,7 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                             {unusedMiddleImages.map(img => {
                                 const imgSrc = img.url || (img.path.startsWith('http') || img.path.startsWith('/') ? img.path : `/storage/${img.path}`);
                                 return (
-                                    <div key={img.id} className="rounded-2xl overflow-hidden border border-secondary-200/60 shadow-xs">
+                                    <div key={img.id} className="rounded-3xl overflow-hidden border border-secondary-100 shadow-sm">
                                         <img
                                             src={imgSrc}
                                             alt={img.alt_text || article.title}
@@ -302,7 +302,7 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                             {bottomImages.map(img => {
                                 const imgSrc = img.url || (img.path.startsWith('http') || img.path.startsWith('/') ? img.path : `/storage/${img.path}`);
                                 return (
-                                    <div key={img.id} className="rounded-2xl overflow-hidden border border-secondary-200/60 shadow-xs">
+                                    <div key={img.id} className="rounded-3xl overflow-hidden border border-secondary-100 shadow-sm">
                                         <img
                                             src={imgSrc}
                                             alt={img.alt_text || article.title}
@@ -319,7 +319,7 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                     )}
 
                     {/* Article End Share CTA */}
-                    <div className="mt-14 pt-8 border-t border-secondary-200 flex flex-col sm:flex-row items-center justify-between gap-4 bg-secondary-50 p-6 rounded-2xl">
+                    <div className="mt-14 pt-8 border-t border-secondary-200 flex flex-col sm:flex-row items-center justify-between gap-4 bg-secondary-50 p-6 rounded-3xl">
                         <div>
                             <h3 className="text-sm font-bold text-secondary-950">
                                 {trans('share_this_article')}

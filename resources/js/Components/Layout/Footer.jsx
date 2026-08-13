@@ -52,15 +52,15 @@ export default function Footer() {
     }
 
     return (
-        <footer dir={isRtl ? 'rtl' : 'ltr'} className="bg-secondary-950 text-white">
-            <div className="max-w-container mx-auto px-4 py-12">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <footer dir={isRtl ? 'rtl' : 'ltr'} className="bg-secondary-950 text-white pt-16 pb-6 md:pt-20">
+            <div className="max-w-container mx-auto px-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-12 mb-16">
                     {/* Quick Links */}
                     <div>
-                        <h3 className="text-sm font-semibold text-secondary-300 uppercase tracking-wider mb-4">
+                        <h3 className="text-base font-bold text-white tracking-wide mb-6">
                             {trans('quick_links')}
                         </h3>
-                        <ul className="space-y-2.5">
+                        <ul className="space-y-3.5">
                             {QUICK_LINKS.map(item => (
                                 <li key={item.key}>
                                     <Link
@@ -77,10 +77,10 @@ export default function Footer() {
 
                     {/* Contact Info */}
                     <div>
-                        <h3 className="text-sm font-semibold text-secondary-300 uppercase tracking-wider mb-4">
+                        <h3 className="text-base font-bold text-white tracking-wide mb-6">
                             {trans('contact_info')}
                         </h3>
-                        <div className="space-y-2.5 text-sm text-secondary-400">
+                        <div className="space-y-4 text-sm text-secondary-300">
                             {settings?.company_phone && (
                                 <a
                                     href={`tel:${settings.company_phone.replace(/\s+/g, '')}`}
@@ -133,7 +133,7 @@ export default function Footer() {
 
                     {/* Social Media */}
                     <div>
-                        <h3 className="text-sm font-semibold text-secondary-300 uppercase tracking-wider mb-4">
+                        <h3 className="text-base font-bold text-white tracking-wide mb-6">
                             {trans('follow_us')}
                         </h3>
                         <div className="flex gap-3">
@@ -143,7 +143,7 @@ export default function Footer() {
                                     href={social.url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="w-9 h-9 rounded-full bg-secondary-800 hover:bg-primary-900 flex items-center justify-center transition-colors"
+                                    className="w-10 h-10 rounded-xl bg-white/5 hover:bg-primary-900 border border-white/10 hover:border-primary-900 flex items-center justify-center transition-all duration-300 hover:-translate-y-1"
                                     aria-label={social.label}
                                 >
                                     <svg className="w-4.5 h-4.5 text-white fill-current" viewBox="0 0 24 24">
@@ -157,8 +157,8 @@ export default function Footer() {
             </div>
 
             {/* Copyright */}
-            <div className="border-t border-secondary-800 py-4">
-                <p className="text-center text-xs text-secondary-300">
+            <div className="border-t border-white/10 mt-8 pt-8 pb-4">
+                <p className="text-center text-sm font-medium text-white/50">
                     &copy; {new Date().getFullYear()} {trans('app_name')}. {trans('all_rights_reserved')}
                 </p>
             </div>
