@@ -4,8 +4,6 @@ namespace App\Services;
 
 use App\Domain\Listings\Models\Article;
 use App\Domain\Listings\Models\PageSeo;
-use App\Domain\Listings\Models\Project;
-use App\Domain\Listings\Models\Unit;
 use App\Domain\Listings\Services\SettingsService;
 use Illuminate\Support\Facades\Cache;
 
@@ -15,125 +13,6 @@ class SeoService
         private readonly SettingsService $settingsService,
     ) {}
 
-    public function forUnit(Unit $unit): array
-    {
-        $locale = app()->getLocale();
-        $title = ($unit->name ? $unit->name.' - ' : '').config('app.name');
-        $desc = $this->cleanText($unit->meta_description ?? $unit->description);
-        $keywords = $this->formatKeywords($unit->keywords);
-
-        $arSlug = $unit->slug_ar ?? $unit->slug;
-        $enSlug = $unit->slug_en ?? $unit->slug;
-        $currentSlug = $locale === 'ar' ? $arSlug : $enSlug;
-
-        $canonical = url("/{$locale}/units/{$currentSlug}");
-        $hreflang = [
-            'ar' => url("/ar/units/{$arSlug}"),
-            'en' => url("/en/units/{$enSlug}"),
-            'x-default' => url("/ar/units/{$arSlug}"),
-        ];
-
-        $primaryImage = $unit->images?->firstWhere('is_primary', true) ?? $unit->images?->first();
-        $imageUrl = $primaryImage ? asset('storage/'.$primaryImage->path) : asset('icon.png');
-
-        $schema = [
-            $this->getBreadcrumbSchema([
-                __('seo.site_name') => url("/{$locale}"),
-                __('seo.search_title') => url("/{$locale}/units"),
-                $unit->name => $canonical,
-            ]),
-            [
-                '@context' => 'https://schema.org',
-                '@type' => 'RealEstateListing',
-                '@id' => $canonical.'#listing',
-                'name' => $unit->name,
-                'description' => $desc,
-                'url' => $canonical,
-                'image' => [$imageUrl],
-                'datePosted' => $unit->created_at?->toIso8601String(),
-                'dateModified' => $unit->updated_at?->toIso8601String(),
-                'offers' => [
-                    '@type' => 'Offer',
-                    'price' => (float) $unit->price,
-                    'priceCurrency' => 'EGP',
-                    'availability' => 'https://schema.org/InStock',
-                    'url' => $canonical,
-                ],
-                'containedInPlace' => [
-                    '@type' => 'Place',
-                    'name' => $unit->area?->name ?? 'مصر',
-                    'address' => [
-                        '@type' => 'PostalAddress',
-                        'addressLocality' => $unit->area?->name ?? '',
-                        'addressCountry' => 'EG',
-                    ],
-                ],
-            ],
-        ];
-
-        return $this->buildMeta([
-            'title' => $title,
-            'description' => $desc,
-            'keywords' => $keywords,
-            'image' => $imageUrl,
-            'canonical' => $canonical,
-            'hreflang' => $hreflang,
-            'og_type' => 'article',
-            'schema' => $schema,
-        ]);
-    }
-
-    public function forProject(Project $project): array
-    {
-        $locale = app()->getLocale();
-        $title = ($project->name ? $project->name.' - ' : '').config('app.name');
-        $desc = $this->cleanText($project->meta_description ?? $project->description);
-        $keywords = $this->formatKeywords($project->keywords);
-
-        $arSlug = $project->slug_ar ?? $project->slug;
-        $enSlug = $project->slug_en ?? $project->slug;
-        $currentSlug = $locale === 'ar' ? $arSlug : $enSlug;
-
-        $canonical = url("/{$locale}/projects/{$currentSlug}");
-        $hreflang = [
-            'ar' => url("/ar/projects/{$arSlug}"),
-            'en' => url("/en/projects/{$enSlug}"),
-            'x-default' => url("/ar/projects/{$arSlug}"),
-        ];
-
-        $primaryImage = $project->images?->firstWhere('is_primary', true) ?? $project->images?->first();
-        $imageUrl = $primaryImage ? asset('storage/'.$primaryImage->path) : asset('icon.png');
-
-        $schema = [
-            $this->getBreadcrumbSchema([
-                __('seo.site_name') => url("/{$locale}"),
-                __('seo.projects_title') => url("/{$locale}/projects"),
-                $project->name => $canonical,
-            ]),
-            [
-                '@context' => 'https://schema.org',
-                '@type' => 'RealEstateListing',
-                '@id' => $canonical.'#project',
-                'name' => $project->name,
-                'description' => $desc,
-                'url' => $canonical,
-                'image' => [$imageUrl],
-                'datePosted' => $project->created_at?->toIso8601String(),
-                'dateModified' => $project->updated_at?->toIso8601String(),
-            ],
-        ];
-
-        return $this->buildMeta([
-            'title' => $title,
-            'description' => $desc,
-            'keywords' => $keywords,
-            'image' => $imageUrl,
-            'canonical' => $canonical,
-            'hreflang' => $hreflang,
-            'og_type' => 'website',
-            'schema' => $schema,
-        ]);
-    }
 
     public function forArticle(Article $article): array
     {

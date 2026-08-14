@@ -10,8 +10,10 @@ use App\Http\Resources\Public\AreaPublicResource;
 use App\Http\Resources\Public\ProjectPublicResource;
 use App\Http\Resources\Public\UnitPublicResource;
 use App\Services\SeoService;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
+
 
 class AreaController
 {
@@ -168,13 +170,18 @@ class AreaController
 
         $meta['schema'] = $schemas;
 
-        // Fallback related areas (active areas other than current, randomized)
-        $relatedAreas = Area::active()
-            ->where('id', '!=', $area->id)
-            ->withCount(['projects' => fn($q) => $q->active()])
-            ->inRandomOrder()
-            ->take(3)
-            ->get();
+        // Cache relatedAreas to avoid ORDER BY RAND() full table scan on every request
+        $relatedAreas = Cache::remember(
+            "area_{$area->id}_related",
+            600,
+            fn () => Area::active()
+                ->where('id', '!=', $area->id)
+                ->withCount(['projects' => fn ($q) => $q->active()])
+                ->inRandomOrder()
+                ->take(3)
+                ->get()
+        );
+
 
         return Inertia::render('Public/Areas/Show', [
             'area' => AreaPublicResource::make($area)->resolve(),

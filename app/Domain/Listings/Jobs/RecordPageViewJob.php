@@ -12,6 +12,10 @@ class RecordPageViewJob implements ShouldQueue
 {
     use Queueable;
 
+    public int $tries = 1;
+
+    public int $timeout = 30;
+
     public function __construct(
         private readonly string $viewableType,
         private readonly int $viewableId,

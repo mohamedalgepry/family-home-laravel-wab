@@ -73,7 +73,7 @@ class SeoMetaService
 
         $schema = array_filter([
             '@context'     => 'https://schema.org',
-            '@type'        => $isUnit ? 'RealEstateListing' : 'RealEstate',
+            '@type'        => 'RealEstateListing',
             '@id'          => $url.'#'.($isUnit ? 'listing' : 'project'),
             'name'         => $listing->name,
             'description'  => $this->description($listing->meta_description ?? $listing->description),

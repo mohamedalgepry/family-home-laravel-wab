@@ -1,7 +1,13 @@
 <?php
 
-test('example', function () {
+test('root url redirects to locale homepage', function () {
     $response = $this->get('/');
 
-    $response->assertStatus(200);
+    $response->assertRedirect();
+    $this->assertContains($response->headers->get('Location'), [
+        url('/ar'),
+        url('/en'),
+        '/ar',
+        '/en',
+    ]);
 });

@@ -11,6 +11,10 @@ class RegenerateSitemapJob implements ShouldQueue
 {
     use Queueable;
 
+    public int $tries = 3;
+
+    public int $timeout = 60;
+
     public function handle(SitemapService $sitemapService): void
     {
         Log::info('RegenerateSitemapJob: starting regeneration');

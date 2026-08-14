@@ -103,7 +103,7 @@ export default function UnitShow({ unit, similarUnits }) {
                 title={`${unit?.name || ''} - ${trans('site_title')}`}
                 description={unit?.meta_description || unit?.description || ''}
                 ogImage={unit?.images?.find(img => img.is_main || img.is_primary)?.url || unit?.images?.[0]?.url || null}
-                ogType="website"
+                ogType={seo_meta?.og_type || 'article'}
             />
             {jsonLd && (
                 <script

@@ -13,6 +13,10 @@ class NotifyNewProjectJob implements ShouldQueue
 {
     use Queueable;
 
+    public int $tries = 3;
+
+    public int $timeout = 60;
+
     public function __construct(
         private readonly Project $project,
     ) {}
