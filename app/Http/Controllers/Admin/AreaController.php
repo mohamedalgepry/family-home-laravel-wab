@@ -59,6 +59,11 @@ class AreaController extends Controller
         $validated = $request->validated();
         $validated['slug'] = Str::slug($validated['name_en'] ?? $validated['name_ar']);
 
+        // Handle Main Image Path
+        if ($request->hasFile('image_path')) {
+            $validated['image_path'] = $request->file('image_path')->store('areas', 'public');
+        }
+
         // Handle Hero Image
         if ($request->hasFile('hero_image')) {
             $validated['hero_image'] = $request->file('hero_image')->store('areas/hero', 'public');
@@ -78,6 +83,7 @@ class AreaController extends Controller
         // Sync Relations
         $this->syncRelations($area, $request);
 
+        Cache::forget(ListingLookupService::CACHE_KEY_AREAS);
         Cache::increment(ListingService::CACHE_VERSION_KEY);
         $this->sitemapService->regenerate();
 
@@ -106,9 +112,17 @@ class AreaController extends Controller
             $validated['slug'] = Str::slug($validated['name_en'] ?? $validated['name_ar']);
         }
 
+        // Handle Main Image Path
+        if ($request->hasFile('image_path')) {
+            if ($area->image_path && Storage::disk('public')->exists($area->image_path)) {
+                Storage::disk('public')->delete($area->image_path);
+            }
+            $validated['image_path'] = $request->file('image_path')->store('areas', 'public');
+        }
+
         // Handle Hero Image
         if ($request->hasFile('hero_image')) {
-            if ($area->hero_image) {
+            if ($area->hero_image && Storage::disk('public')->exists($area->hero_image)) {
                 Storage::disk('public')->delete($area->hero_image);
             }
             $validated['hero_image'] = $request->file('hero_image')->store('areas/hero', 'public');
@@ -118,7 +132,9 @@ class AreaController extends Controller
         if ($request->hasFile('gallery')) {
             if ($area->gallery) {
                 foreach ($area->gallery as $oldFile) {
-                    Storage::disk('public')->delete($oldFile);
+                    if (Storage::disk('public')->exists($oldFile)) {
+                        Storage::disk('public')->delete($oldFile);
+                    }
                 }
             }
             $gallery = [];
@@ -133,6 +149,7 @@ class AreaController extends Controller
         // Sync Relations
         $this->syncRelations($area, $request);
 
+        Cache::forget(ListingLookupService::CACHE_KEY_AREAS);
         Cache::increment(ListingService::CACHE_VERSION_KEY);
         $this->sitemapService->regenerate();
 
@@ -143,16 +160,23 @@ class AreaController extends Controller
     {
         $this->authorize('delete', Area::class);
 
-        if ($area->hero_image) {
+        if ($area->image_path && Storage::disk('public')->exists($area->image_path)) {
+            Storage::disk('public')->delete($area->image_path);
+        }
+        if ($area->hero_image && Storage::disk('public')->exists($area->hero_image)) {
             Storage::disk('public')->delete($area->hero_image);
         }
         if ($area->gallery) {
             foreach ($area->gallery as $oldFile) {
-                Storage::disk('public')->delete($oldFile);
+                if (Storage::disk('public')->exists($oldFile)) {
+                    Storage::disk('public')->delete($oldFile);
+                }
             }
         }
 
         $area->delete();
+
+        Cache::forget(ListingLookupService::CACHE_KEY_AREAS);
 
         Cache::increment(ListingService::CACHE_VERSION_KEY);
         $this->sitemapService->regenerate();
