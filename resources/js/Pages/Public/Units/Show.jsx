@@ -119,120 +119,6 @@ export default function UnitShow({ unit, similarUnits }) {
                         <p className="text-muted text-sm">{trans('no_results')}</p>
                     </div>
                 ) : (
-<<<<<<< HEAD
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-10">
-                        {/* Main Content */}
-                        <div className="lg:col-span-2 space-y-8">
-                            {/* Gallery */}
-                            <div className="bg-white rounded-3xl shadow-sm border border-secondary-100 overflow-hidden relative group">
-                                <div className="relative overflow-hidden">
-                                    <img
-                                        src={thumbnail}
-                                        alt={unit.alt_text || unit.name}
-                                        width={1200}
-                                        height={900}
-                                        className="w-full h-64 sm:h-80 lg:h-96 object-cover"
-                                        fetchPriority="high"
-                                        loading="eager"
-                                        decoding="sync"
-                                    />
-
-                                    {/* Zoom / Expand Button */}
-                                    <button
-                                        type="button"
-                                        onClick={() => setLightboxIndex(activeImageIndex)}
-                                        className="absolute top-4 end-4 bg-black/60 hover:bg-black/85 text-white p-2.5 rounded-xl shadow-lg backdrop-blur-md transition-all flex items-center gap-1.5 text-xs font-medium hover:scale-105 z-10"
-                                        title={trans('zoom') || 'تكبير الصورة'}
-                                        aria-label="Zoom image"
-                                    >
-                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6" />
-                                        </svg>
-                                        <span>{trans('zoom')}</span>
-                                    </button>
-
-                                    {/* Navigation Arrows */}
-                                    {images.length > 1 && (
-                                        <>
-                                            <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setActiveImageIndex(prev => (prev === 0 ? images.length - 1 : prev - 1));
-                                                }}
-                                                className="absolute start-3 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/75 text-white p-2.5 rounded-full shadow-lg backdrop-blur-sm transition-all hover:scale-110 z-10"
-                                                aria-label="Previous image"
-                                            >
-                                                <svg className={`w-5 h-5 ${isRtl ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-                                                </svg>
-                                            </button>
-
-                                            <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setActiveImageIndex(prev => (prev === images.length - 1 ? 0 : prev + 1));
-                                                }}
-                                                className="absolute end-3 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/75 text-white p-2.5 rounded-full shadow-lg backdrop-blur-sm transition-all hover:scale-110 z-10"
-                                                aria-label="Next image"
-                                            >
-                                                <svg className={`w-5 h-5 ${isRtl ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                                                </svg>
-                                            </button>
-
-                                            {/* Image Counter Badge */}
-                                            <div className="absolute bottom-4 start-4 bg-black/60 text-white text-xs px-3 py-1 rounded-full backdrop-blur-sm font-medium z-10">
-                                                {activeImageIndex + 1} / {images.length}
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
-
-                                {images.length > 1 && (
-                                    <div className="flex gap-3 p-4 overflow-x-auto bg-surface/50 border-t border-secondary-100">
-                                        {images.map((img, i) => (
-                                            <img
-                                                key={i}
-                                                src={img.thumb_url || img.url || (img.path?.startsWith('http') || img.path?.startsWith('/') ? img.path : `/storage/${img.path}`)}
-                                                alt={img.alt_text || ''}
-                                                width={80}
-                                                height={64}
-                                                className={`w-20 h-16 object-cover rounded-lg cursor-pointer border-2 transition-all shrink-0 ${
-                                                    i === activeImageIndex ? 'border-primary-900 ring-2 ring-primary-900/30 scale-105' : 'border-transparent opacity-70 hover:opacity-100 hover:border-secondary-300'
-                                                }`}
-                                                loading="lazy"
-                                                onClick={() => setActiveImageIndex(i)}
-                                            />
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Video */}
-                            {unit.video_url && (
-                                <div className="bg-white rounded-3xl shadow-sm border border-secondary-100 overflow-hidden aspect-video relative group">
-                                    {embedUrl ? (
-                                        <iframe
-                                            src={embedUrl}
-                                            title={unit.name}
-                                            className="w-full h-full"
-                                            loading="lazy"
-                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                            allowFullScreen
-                                        />
-                                    ) : unit.video_path ? (
-                                        <video controls className="w-full h-full">
-                                            <source src={unit.video_path} />
-                                        </video>
-                                    ) : (
-                                        <a href={unit.video_url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center h-full text-primary-900">
-                                            {trans('watch_video')}
-                                        </a>
-                                    )}
-                                </div>
-=======
                     <>
                         {/* Breadcrumbs */}
                         <nav className="flex items-center gap-2 text-xs font-medium text-secondary-500 mb-5 overflow-x-auto pb-1" aria-label="Breadcrumb">
@@ -250,7 +136,6 @@ export default function UnitShow({ unit, similarUnits }) {
                                         {unit.area.name}
                                     </Link>
                                 </>
->>>>>>> origin/main
                             )}
                             <span>/</span>
                             <span className="text-secondary-900 font-bold truncate max-w-[200px] sm:max-w-xs">
@@ -258,137 +143,6 @@ export default function UnitShow({ unit, similarUnits }) {
                             </span>
                         </nav>
 
-<<<<<<< HEAD
-                            {/* Unit Details */}
-                            <div className="bg-white rounded-3xl shadow-sm border border-secondary-100 p-6 md:p-8">
-                                <h1 className="text-3xl font-black text-secondary-950 mb-3 tracking-tight">{unit.name}</h1>
-                                <p className="text-sm font-medium text-secondary-600 mb-6 flex items-center gap-2">
-                                    <svg className="w-4 h-4 text-secondary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                    </svg>
-                                    {(locale === 'ar' ? unit.area?.name_ar : unit.area?.name_en) || ''}
-                                    {unit.type && (
-                                        <>
-                                            <span className="text-secondary-400 mx-1">•</span>
-                                            {locale === 'ar' ? unit.type.name_ar : unit.type.name_en}
-                                        </>
-                                    )}
-                                </p>
-
-                                <div className="p-4 bg-primary-50 rounded-2xl mb-8 border border-primary-100 inline-block">
-                                    <p className="text-3xl md:text-4xl font-black text-primary-900 flex items-baseline gap-2">
-                                        {Number(unit.price).toLocaleString(locale === 'ar' ? 'ar-SA' : 'en-US')}
-                                        <span className="text-sm font-bold text-primary-700 uppercase tracking-wider">
-                                            {trans(unit.transaction === 'rent' ? 'rent' : 'sale', {}, 'units')}
-                                        </span>
-                                    </p>
-                                </div>
-
-                                <div className="flex flex-wrap gap-2 mb-6">
-                                    {unit.payment_method && (
-                                        <span className="px-3 py-1 bg-surface rounded-full text-sm font-medium text-secondary-800 border border-secondary-200">
-                                            {trans(unit.payment_method)}
-                                        </span>
-                                    )}
-                                    {unit.finishingType && (
-                                        <span className="px-3 py-1 bg-surface rounded-full text-sm font-medium text-secondary-800 border border-secondary-200">
-                                            {locale === 'ar' ? unit.finishingType.name_ar : unit.finishingType.name_en}
-                                        </span>
-                                    )}
-                                </div>
-
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-                                    {unit.area_sqm && (
-                                        <div className="text-center p-3 bg-surface rounded-lg">
-                                            <p className="text-lg font-bold text-secondary-950">{unit.area_sqm}</p>
-                                            <p className="text-xs text-muted">{trans('area_sqm', {}, 'units')}</p>
-                                        </div>
-                                    )}
-                                    {unit.rooms && (
-                                        <div className="text-center p-3 bg-surface rounded-lg">
-                                            <p className="text-lg font-bold text-secondary-950">{unit.rooms}</p>
-                                            <p className="text-xs text-muted">{trans('rooms', {}, 'units')}</p>
-                                        </div>
-                                    )}
-                                    {unit.bathrooms && (
-                                        <div className="text-center p-3 bg-surface rounded-lg">
-                                            <p className="text-lg font-bold text-secondary-950">{unit.bathrooms}</p>
-                                            <p className="text-xs text-muted">{trans('bathrooms', {}, 'units')}</p>
-                                        </div>
-                                    )}
-                                    {unit.floor !== null && unit.floor !== undefined && (
-                                        <div className="text-center p-3 bg-surface rounded-lg">
-                                            <p className="text-lg font-bold text-secondary-950">{unit.floor}</p>
-                                            <p className="text-xs text-muted">{trans('floor', {}, 'units')}</p>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {(() => {
-                                    const desc = locale === 'ar'
-                                        ? (unit.description_ar || unit.description)
-                                        : (unit.description_en || unit.description)
-                                    return desc ? (
-                                        <div className="mb-6">
-                                            <h2 className="text-lg font-semibold text-secondary-950 mb-2">{trans('description', {}, 'units')}</h2>
-                                            <p className="text-sm text-secondary-800 leading-relaxed whitespace-pre-line">{desc}</p>
-                                        </div>
-                                    ) : null
-                                })()}
-
-                                {/* Payment Details (if installment) */}
-                                {['installment', 'both'].includes(unit.payment_method) && (unit.down_payment || unit.installment_years) && (
-                                    <div className="mb-6 bg-surface p-4 rounded-xl border border-secondary-100">
-                                        <h2 className="text-lg font-semibold text-secondary-950 mb-3">{trans('payment_details') || 'Payment Details'}</h2>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            {unit.down_payment && (
-                                                <div>
-                                                    <p className="text-xs text-muted mb-1">{trans('down_payment') || 'Down Payment'}</p>
-                                                    <p className="text-sm font-bold text-secondary-950">{!isNaN(unit.down_payment) && !isNaN(parseFloat(unit.down_payment)) ? Number(unit.down_payment).toLocaleString(locale === 'ar' ? 'ar-SA' : 'en-US') : unit.down_payment}</p>
-                                                </div>
-                                            )}
-                                            {unit.installment_years && (
-                                                <div>
-                                                    <p className="text-xs text-muted mb-1">{trans('installment_years') || 'Installment Years'}</p>
-                                                    <p className="text-sm font-bold text-secondary-950">{unit.installment_years}</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Features */}
-                                {unit.features?.length > 0 && (
-                                    <div className="mb-6">
-                                        <h2 className="text-lg font-semibold text-secondary-950 mb-3">{trans('features') || 'Features'}</h2>
-                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                            {unit.features.map(feature => (
-                                                <div key={feature.id} className="flex items-center gap-2">
-                                                    <svg className="w-5 h-5 text-primary-900 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                                    </svg>
-                                                    <span className="text-sm text-secondary-800">{locale === 'ar' ? feature.name_ar : feature.name_en}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Location */}
-                                {(unit.latitude && unit.longitude && unit.latitude != '0' && unit.longitude != '0') ? (
-                                    <div className="mt-8 pt-6 border-t border-secondary-100">
-                                        <h2 className="text-lg font-semibold text-secondary-950 mb-4">{trans('location', {}, 'projects')}</h2>
-                                        {unit.location_address && (
-                                            <p className="text-sm text-muted mb-4">{unit.location_address}</p>
-                                        )}
-                                        <iframe
-                                            src={`https://maps.google.com/maps?q=${unit.latitude},${unit.longitude}&hl=${locale}&z=14&output=embed`}
-                                            className="w-full aspect-video rounded-xl border border-secondary-200 shadow-sm"
-                                            allowFullScreen
-                                            loading="lazy"
-                                            referrerPolicy="no-referrer-when-downgrade"
-                                            title="Google Maps Location"
-=======
                         {/* Top Main Section (Gallery + Summary Card) */}
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8 items-start mb-8">
                             {/* Visual Gallery Column (7 cols desktop) */}
@@ -404,7 +158,6 @@ export default function UnitShow({ unit, similarUnits }) {
                                             fetchPriority="high"
                                             loading="eager"
                                             decoding="sync"
->>>>>>> origin/main
                                         />
 
                                         {/* Status Badge */}
@@ -684,16 +437,6 @@ export default function UnitShow({ unit, similarUnits }) {
                             <a href="#contact-form" className="py-3 hover:text-[#CC0000] transition-colors">{isRtl ? 'تواصل معنا' : 'Contact Us'}</a>
                         </div>
 
-<<<<<<< HEAD
-                            {/* Contact Form */}
-                            <div className="bg-white rounded-3xl shadow-sm border border-secondary-100 p-6 md:p-8">
-                                <h3 className="text-xl font-bold text-secondary-950 mb-6">{trans('contact_agent', {}, 'units')}</h3>
-                                
-                                {(sentSuccess || flash?.success) && (
-                                    <div className="mb-4 p-4 bg-green-50 border border-green-200 text-green-800 rounded-xl text-sm font-medium transition-all">
-                                        {flash?.success || trans('unit_message_sent_success')}
-                                    </div>
-=======
                         {/* DESKTOP 2-COLUMN SIDEBAR LAYOUT (lg:grid) */}
                         <div className="hidden lg:grid grid-cols-12 gap-8 items-start">
                             {/* Left Content Column (7 cols desktop) */}
@@ -750,7 +493,6 @@ export default function UnitShow({ unit, similarUnits }) {
                                             />
                                         </div>
                                     </section>
->>>>>>> origin/main
                                 )}
 
                                 {/* Section 2: المميزات */}
@@ -1069,17 +811,10 @@ export default function UnitShow({ unit, similarUnits }) {
 
                 {/* Similar Units */}
                 {similarUnits?.length > 0 && (
-<<<<<<< HEAD
-                    <section className="mt-16 bg-white rounded-3xl shadow-sm border border-secondary-100 p-6 sm:p-10">
-                        <div className="flex items-center gap-3 mb-8">
-                            <div className="w-1.5 h-6 bg-primary-600 rounded-full"></div>
-                            <h2 className="text-2xl md:text-3xl font-black text-secondary-950 tracking-tight">{trans('similar_units', {}, 'units')}</h2>
-=======
                     <section className="mt-12 bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 sm:p-8">
                         <div className="flex items-center gap-3 mb-6">
                             <div className="w-1.5 h-6 bg-[#CC0000] rounded-full"></div>
                             <h2 className="text-lg md:text-xl font-black text-secondary-950 tracking-tight">{trans('similar_units', {}, 'units')}</h2>
->>>>>>> origin/main
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                             {similarUnits.map(u => (

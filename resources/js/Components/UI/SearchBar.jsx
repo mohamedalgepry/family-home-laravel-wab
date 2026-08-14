@@ -190,11 +190,7 @@ export default function SearchBar({ areas = [], unitTypes = [], features = [], f
 
                 {/* Desktop Advanced Filters */}
                 <div 
-<<<<<<< HEAD
-                    className={`transition-all duration-300 ease-in-out origin-top rounded-b-[2rem] absolute left-0 right-0 top-full -mt-6 pt-6 -z-10 bg-white/95 backdrop-blur-xl border border-white/60 shadow-xl ${showAdvanced ? 'overflow-visible' : 'overflow-hidden pointer-events-none'}`}
-=======
                     className={`transition-all duration-300 ease-in-out origin-top rounded-2xl absolute left-0 right-0 top-full mt-2 z-50 bg-white shadow-2xl border border-secondary-200 ${showAdvanced ? 'opacity-100 overflow-visible scale-y-100' : 'opacity-0 overflow-hidden pointer-events-none scale-y-95 max-h-0'}`}
->>>>>>> origin/main
                     style={{
                         maxHeight: showAdvanced ? '1500px' : '0px',
                     }}

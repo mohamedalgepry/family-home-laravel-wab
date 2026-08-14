@@ -80,16 +80,6 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                                 </p>
                             )}
                             
-<<<<<<< HEAD
-                            <div className="flex items-center gap-6 md:gap-10">
-                                <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-4 md:px-8 md:py-5 text-center">
-                                    <div className="text-3xl md:text-4xl font-black text-white">{projectsCount}</div>
-                                    <div className="text-xs md:text-sm text-white/80 font-bold uppercase tracking-wider mt-1">{trans('projects')}</div>
-                                </div>
-                                <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-4 md:px-8 md:py-5 text-center">
-                                    <div className="text-3xl md:text-4xl font-black text-white">{unitsCount}</div>
-                                    <div className="text-xs md:text-sm text-white/80 font-bold uppercase tracking-wider mt-1">{trans('units')}</div>
-=======
                             <div className="inline-flex items-center gap-4 md:gap-6 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-2.5 px-5 text-white">
                                 <div className="flex items-center gap-2">
                                     <span className="text-xl md:text-2xl font-black text-primary-400">{projectsCount}</span>
@@ -99,7 +89,6 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                                 <div className="flex items-center gap-2">
                                     <span className="text-xl md:text-2xl font-black text-primary-400">{unitsCount}</span>
                                     <span className="text-xs md:text-sm font-bold text-white/90">{trans('units')}</span>
->>>>>>> origin/main
                                 </div>
                             </div>
                         </div>
@@ -167,11 +156,7 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                                             return (
                                                 <div key={idx} className="flex gap-4">
                                                     <div className="shrink-0 w-14 h-14 rounded-2xl bg-primary-50 flex items-center justify-center text-primary-800">
-<<<<<<< HEAD
-                                                        <IconByName iconName={feature.icon_name} className="w-7 h-7" />
-=======
                                                         <IconByName iconName={feature.icon_name || feature.icon} className="w-7 h-7" />
->>>>>>> origin/main
                                                     </div>
                                                     <div>
                                                         <h4 className="text-lg font-bold text-secondary-950 mb-1">{fTitle}</h4>
@@ -276,11 +261,7 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                                             <div key={idx} className="flex items-center justify-between bg-white p-4 rounded-3xl border border-secondary-100 shadow-sm hover:border-primary-400 hover:shadow-md transition-all">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-12 h-12 rounded-full bg-secondary-50 flex items-center justify-center text-secondary-600">
-<<<<<<< HEAD
-                                                        <IconByName iconName={place.icon_name} className="w-6 h-6" />
-=======
                                                         <IconByName iconName={place.icon_name || place.icon} className="w-6 h-6" />
->>>>>>> origin/main
                                                     </div>
                                                     <span className="font-bold text-secondary-900">{pName}</span>
                                                 </div>

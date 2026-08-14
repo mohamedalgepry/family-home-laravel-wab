@@ -24,10 +24,6 @@ export default function AreaForm({ area, parents, mode = 'create' }) {
         hero_description_ar: area?.hero_description_ar || '',
         hero_description_en: area?.hero_description_en || '',
         image_path: null,
-<<<<<<< HEAD
-        hero_image: null,
-=======
->>>>>>> origin/main
         gallery: [],
         
         about_ar: area?.about_ar || '',
@@ -286,28 +282,6 @@ export default function AreaForm({ area, parents, mode = 'create' }) {
                     {activeTab === 'hero' && (
                         <div className="space-y-6 animate-fade-in">
                             <h2 className="text-xl font-black text-secondary-950 mb-6 border-b border-secondary-100 pb-4">{trans('hero_section')}</h2>
-<<<<<<< HEAD
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                                <div>
-                                    <label className={labelClasses}>{isRtl ? 'صورة الكارت (للرئيسية والمربعات)' : 'Card Image (for grids & home)'}</label>
-                                    <input type="file" accept="image/*" onChange={e => setData('image_path', e.target.files[0])} className={inputClasses} />
-                                    {area?.image_path && !data.image_path && (
-                                        <div className="mt-2 text-sm text-secondary-500">
-                                            <img src={`/storage/${area.image_path}`} className="w-32 h-20 object-cover rounded-lg border border-secondary-200 mt-2" alt="" />
-                                        </div>
-                                    )}
-                                </div>
-                                <div>
-                                    <label className={labelClasses}>{trans('hero_cover_image')}</label>
-                                    <input type="file" accept="image/*" onChange={e => setData('hero_image', e.target.files[0])} className={inputClasses} />
-                                    {area?.hero_image && !data.hero_image && (
-                                        <div className="mt-2 text-sm text-secondary-500">
-                                            <img src={`/storage/${area.hero_image}`} className="w-32 h-20 object-cover rounded-lg border border-secondary-200 mt-2" alt="" />
-                                        </div>
-                                    )}
-                                </div>
-=======
 
                             {/* Single Image Upload with Drag & Drop */}
                             <div className="mb-6">
@@ -382,7 +356,6 @@ export default function AreaForm({ area, parents, mode = 'create' }) {
                                         </button>
                                     </div>
                                 )}
->>>>>>> origin/main
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
