@@ -62,12 +62,22 @@ class AreaController extends Controller
 
         // Handle Main Image Path
         if ($request->hasFile('image_path')) {
-            $validated['image_path'] = $request->file('image_path')->store('areas', 'public');
+            $path = $request->file('image_path')->store('areas', 'public');
+            $validated['image_path'] = $path;
+            \Illuminate\Support\Facades\Log::info('Area image_path stored', ['path' => $path]);
+        } else {
+            \Illuminate\Support\Facades\Log::info('Area store: no image_path file found', [
+                'all_files' => array_keys($request->allFiles()),
+                'has_image_path' => $request->has('image_path'),
+                'content_type' => $request->header('Content-Type'),
+            ]);
         }
 
         // Handle Hero Image
         if ($request->hasFile('hero_image')) {
-            $validated['hero_image'] = $request->file('hero_image')->store('areas/hero', 'public');
+            $heroPath = $request->file('hero_image')->store('areas/hero', 'public');
+            $validated['hero_image'] = $heroPath;
+            \Illuminate\Support\Facades\Log::info('Area hero_image stored', ['path' => $heroPath]);
         }
 
         // Handle Gallery
@@ -78,6 +88,10 @@ class AreaController extends Controller
             }
             $validated['gallery'] = $gallery;
         }
+
+        // Remove null image fields from validated to avoid overwriting
+        if (empty($validated['image_path'])) unset($validated['image_path']);
+        if (empty($validated['hero_image'])) unset($validated['hero_image']);
 
         $area = Area::create($validated);
 
@@ -118,7 +132,17 @@ class AreaController extends Controller
             if ($area->image_path && Storage::disk('public')->exists($area->image_path)) {
                 Storage::disk('public')->delete($area->image_path);
             }
-            $validated['image_path'] = $request->file('image_path')->store('areas', 'public');
+            $path = $request->file('image_path')->store('areas', 'public');
+            $validated['image_path'] = $path;
+            \Illuminate\Support\Facades\Log::info('Area UPDATE image_path stored', ['path' => $path, 'area_id' => $area->id]);
+        } else {
+            \Illuminate\Support\Facades\Log::info('Area UPDATE: no image_path file', [
+                'area_id' => $area->id,
+                'all_files' => array_keys($request->allFiles()),
+                'content_type' => $request->header('Content-Type'),
+            ]);
+            // Don't overwrite existing image if no new one was uploaded
+            unset($validated['image_path']);
         }
 
         // Handle Hero Image
@@ -126,7 +150,12 @@ class AreaController extends Controller
             if ($area->hero_image && Storage::disk('public')->exists($area->hero_image)) {
                 Storage::disk('public')->delete($area->hero_image);
             }
-            $validated['hero_image'] = $request->file('hero_image')->store('areas/hero', 'public');
+            $heroPath = $request->file('hero_image')->store('areas/hero', 'public');
+            $validated['hero_image'] = $heroPath;
+            \Illuminate\Support\Facades\Log::info('Area UPDATE hero_image stored', ['path' => $heroPath, 'area_id' => $area->id]);
+        } else {
+            // Don't overwrite existing hero image if no new one was uploaded
+            unset($validated['hero_image']);
         }
 
         // Handle Gallery (append or replace? For simplicity, replace if new files provided)
@@ -143,6 +172,9 @@ class AreaController extends Controller
                 $gallery[] = $file->store('areas/gallery', 'public');
             }
             $validated['gallery'] = $gallery;
+        } else {
+            // Don't clear gallery if no new files
+            unset($validated['gallery']);
         }
 
         $area->update($validated);
