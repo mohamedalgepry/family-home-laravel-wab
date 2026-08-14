@@ -69,10 +69,15 @@ export default function AreaForm({ area, parents, mode = 'create' }) {
             ? data.meta_keywords_en.split(',').map(k => k.trim()).filter(Boolean) 
             : data.meta_keywords_en
 
+        const options = {
+            forceFormData: true,
+            preserveScroll: true,
+        }
+
         if (mode === 'create') {
-            router.post('/admin/areas', payload)
+            router.post('/admin/areas', payload, options)
         } else {
-            router.post(`/admin/areas/${area.id}`, payload)
+            router.post(`/admin/areas/${area.id}`, payload, options)
         }
     }
 
