@@ -60,24 +60,11 @@ class AreaController extends Controller
         $validated = $request->validated();
         $validated['slug'] = Str::slug($validated['name_en'] ?? $validated['name_ar']);
 
-        // Handle Main Image Path
+        // Handle Image
         if ($request->hasFile('image_path')) {
-            $path = $request->file('image_path')->store('areas', 'public');
-            $validated['image_path'] = $path;
-            \Illuminate\Support\Facades\Log::info('Area image_path stored', ['path' => $path]);
+            $validated['image_path'] = $request->file('image_path')->store('areas', 'public');
         } else {
-            \Illuminate\Support\Facades\Log::info('Area store: no image_path file found', [
-                'all_files' => array_keys($request->allFiles()),
-                'has_image_path' => $request->has('image_path'),
-                'content_type' => $request->header('Content-Type'),
-            ]);
-        }
-
-        // Handle Hero Image
-        if ($request->hasFile('hero_image')) {
-            $heroPath = $request->file('hero_image')->store('areas/hero', 'public');
-            $validated['hero_image'] = $heroPath;
-            \Illuminate\Support\Facades\Log::info('Area hero_image stored', ['path' => $heroPath]);
+            unset($validated['image_path']);
         }
 
         // Handle Gallery
@@ -87,15 +74,12 @@ class AreaController extends Controller
                 $gallery[] = $file->store('areas/gallery', 'public');
             }
             $validated['gallery'] = $gallery;
+        } else {
+            unset($validated['gallery']);
         }
-
-        // Remove null image fields from validated to avoid overwriting
-        if (empty($validated['image_path'])) unset($validated['image_path']);
-        if (empty($validated['hero_image'])) unset($validated['hero_image']);
 
         $area = Area::create($validated);
 
-        // Sync Relations
         $this->syncRelations($area, $request);
 
         Cache::forget(ListingLookupService::CACHE_KEY_AREAS);
@@ -127,38 +111,20 @@ class AreaController extends Controller
             $validated['slug'] = Str::slug($validated['name_en'] ?? $validated['name_ar']);
         }
 
-        // Handle Main Image Path
+        // Handle Image
         if ($request->hasFile('image_path')) {
             if ($area->image_path && Storage::disk('public')->exists($area->image_path)) {
                 Storage::disk('public')->delete($area->image_path);
             }
-            $path = $request->file('image_path')->store('areas', 'public');
-            $validated['image_path'] = $path;
-            \Illuminate\Support\Facades\Log::info('Area UPDATE image_path stored', ['path' => $path, 'area_id' => $area->id]);
+            $validated['image_path'] = $request->file('image_path')->store('areas', 'public');
         } else {
-            \Illuminate\Support\Facades\Log::info('Area UPDATE: no image_path file', [
-                'area_id' => $area->id,
-                'all_files' => array_keys($request->allFiles()),
-                'content_type' => $request->header('Content-Type'),
-            ]);
-            // Don't overwrite existing image if no new one was uploaded
             unset($validated['image_path']);
         }
 
-        // Handle Hero Image
-        if ($request->hasFile('hero_image')) {
-            if ($area->hero_image && Storage::disk('public')->exists($area->hero_image)) {
-                Storage::disk('public')->delete($area->hero_image);
-            }
-            $heroPath = $request->file('hero_image')->store('areas/hero', 'public');
-            $validated['hero_image'] = $heroPath;
-            \Illuminate\Support\Facades\Log::info('Area UPDATE hero_image stored', ['path' => $heroPath, 'area_id' => $area->id]);
-        } else {
-            // Don't overwrite existing hero image if no new one was uploaded
-            unset($validated['hero_image']);
-        }
+        // Keep hero_image field untouched (legacy)
+        unset($validated['hero_image']);
 
-        // Handle Gallery (append or replace? For simplicity, replace if new files provided)
+        // Handle Gallery
         if ($request->hasFile('gallery')) {
             if ($area->gallery) {
                 foreach ($area->gallery as $oldFile) {
@@ -173,13 +139,11 @@ class AreaController extends Controller
             }
             $validated['gallery'] = $gallery;
         } else {
-            // Don't clear gallery if no new files
             unset($validated['gallery']);
         }
 
         $area->update($validated);
 
-        // Sync Relations
         $this->syncRelations($area, $request);
 
         Cache::forget(ListingLookupService::CACHE_KEY_AREAS);
@@ -196,9 +160,6 @@ class AreaController extends Controller
         if ($area->image_path && Storage::disk('public')->exists($area->image_path)) {
             Storage::disk('public')->delete($area->image_path);
         }
-        if ($area->hero_image && Storage::disk('public')->exists($area->hero_image)) {
-            Storage::disk('public')->delete($area->hero_image);
-        }
         if ($area->gallery) {
             foreach ($area->gallery as $oldFile) {
                 if (Storage::disk('public')->exists($oldFile)) {
@@ -210,7 +171,6 @@ class AreaController extends Controller
         $area->delete();
 
         Cache::forget(ListingLookupService::CACHE_KEY_AREAS);
-
         Cache::increment(ListingService::CACHE_VERSION_KEY);
         $this->sitemapService->regenerate();
 

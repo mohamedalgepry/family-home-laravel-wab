@@ -1,7 +1,7 @@
 import { usePage, useForm, Link, router } from '@inertiajs/react'
 import { useTrans } from '../../../Utils/trans'
 import { getStorageUrl } from '../../../Utils/image'
-import { useState } from 'react'
+import { useState, useRef, useCallback } from 'react'
 
 export default function AreaForm({ area, parents, mode = 'create' }) {
     const { locale, errors, flash } = usePage().props
@@ -24,7 +24,6 @@ export default function AreaForm({ area, parents, mode = 'create' }) {
         hero_description_ar: area?.hero_description_ar || '',
         hero_description_en: area?.hero_description_en || '',
         image_path: null,
-        hero_image: null,
         gallery: [],
         
         about_ar: area?.about_ar || '',
@@ -47,6 +46,35 @@ export default function AreaForm({ area, parents, mode = 'create' }) {
         nearby_places: area?.nearbyPlaces || [],
         faqs: area?.faqs || [],
     })
+
+    // Image upload state
+    const [imagePreview, setImagePreview] = useState(null)
+    const [isDragging, setIsDragging] = useState(false)
+    const fileInputRef = useRef(null)
+
+    const handleImageChange = useCallback((file) => {
+        if (!file || !file.type.startsWith('image/')) return
+        setData('image_path', file)
+        const reader = new FileReader()
+        reader.onload = (e) => setImagePreview(e.target.result)
+        reader.readAsDataURL(file)
+    }, [setData])
+
+    const handleDrop = useCallback((e) => {
+        e.preventDefault()
+        setIsDragging(false)
+        const file = e.dataTransfer.files[0]
+        if (file) handleImageChange(file)
+    }, [handleImageChange])
+
+    const handleDragOver = (e) => { e.preventDefault(); setIsDragging(true) }
+    const handleDragLeave = () => setIsDragging(false)
+
+    const clearImage = () => {
+        setData('image_path', null)
+        setImagePreview(null)
+        if (fileInputRef.current) fileInputRef.current.value = ''
+    }
 
     const tabs = [
         { id: 'basic', label: trans('basic_information'), icon: 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
@@ -220,27 +248,76 @@ export default function AreaForm({ area, parents, mode = 'create' }) {
                     {activeTab === 'hero' && (
                         <div className="space-y-6 animate-fade-in">
                             <h2 className="text-xl font-black text-secondary-950 mb-6 border-b border-secondary-100 pb-4">{trans('hero_section')}</h2>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                                <div>
-                                    <label className={labelClasses}>{isRtl ? 'صورة المنطقة الرئيسية (الكارت)' : 'Main Area Image (Card)'}</label>
-                                    <input type="file" accept="image/*" onChange={e => setData('image_path', e.target.files[0])} className={inputClasses} />
-                                    {area?.image_path && !data.image_path && (
-                                        <div className="mt-2 text-sm text-secondary-500">
-                                            <img src={getStorageUrl(area.image_path)} className="w-32 h-20 object-cover rounded-lg border border-secondary-200 mt-2" alt="" />
+
+                            {/* Single Image Upload with Drag & Drop */}
+                            <div className="mb-6">
+                                <label className={labelClasses}>{isRtl ? 'صورة المنطقة' : 'Area Image'}</label>
+
+                                <div
+                                    onDrop={handleDrop}
+                                    onDragOver={handleDragOver}
+                                    onDragLeave={handleDragLeave}
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className={`relative flex flex-col items-center justify-center w-full min-h-[200px] rounded-2xl border-2 border-dashed cursor-pointer transition-all duration-200 ${
+                                        isDragging
+                                            ? 'border-[#CC0000] bg-[#FFF5F5] scale-[1.01]'
+                                            : 'border-secondary-200 bg-[#F5F5F5] hover:border-[#CC0000] hover:bg-[#FFF5F5]'
+                                    }`}
+                                >
+                                    {/* Preview or Current Image */}
+                                    {(imagePreview || area?.image_path) && !imagePreview && area?.image_path ? (
+                                        <div className="relative w-full h-52 rounded-xl overflow-hidden">
+                                            <img
+                                                src={getStorageUrl(area.image_path)}
+                                                alt="current"
+                                                className="w-full h-full object-cover"
+                                            />
+                                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                                                <span className="text-white text-sm font-bold">{isRtl ? 'انقر لتغيير الصورة' : 'Click to change'}</span>
+                                            </div>
+                                        </div>
+                                    ) : imagePreview ? (
+                                        <div className="relative w-full h-52 rounded-xl overflow-hidden">
+                                            <img src={imagePreview} alt="preview" className="w-full h-full object-cover" />
+                                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                                                <span className="text-white text-sm font-bold">{isRtl ? 'انقر لتغيير الصورة' : 'Click to change'}</span>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center py-10 px-6 text-center">
+                                            <div className="w-14 h-14 rounded-2xl bg-white border border-secondary-200 flex items-center justify-center mb-4 shadow-sm">
+                                                <svg className="w-7 h-7 text-[#CC0000]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                </svg>
+                                            </div>
+                                            <p className="text-sm font-bold text-secondary-700 mb-1">
+                                                {isRtl ? 'اسحب الصورة هنا أو انقر للاختيار' : 'Drag image here or click to select'}
+                                            </p>
+                                            <p className="text-xs text-secondary-400">{isRtl ? 'JPG، PNG، WebP — حتى 5 ميجا' : 'JPG, PNG, WebP — up to 5MB'}</p>
                                         </div>
                                     )}
+
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept="image/jpeg,image/png,image/webp,image/jpg"
+                                        className="hidden"
+                                        onChange={e => handleImageChange(e.target.files[0])}
+                                    />
                                 </div>
 
-                                <div>
-                                    <label className={labelClasses}>{trans('hero_cover_image')}</label>
-                                    <input type="file" accept="image/*" onChange={e => setData('hero_image', e.target.files[0])} className={inputClasses} />
-                                    {area?.hero_image && !data.hero_image && (
-                                        <div className="mt-2 text-sm text-secondary-500">
-                                            <img src={getStorageUrl(area.hero_image)} className="w-32 h-20 object-cover rounded-lg border border-secondary-200 mt-2" alt="" />
-                                        </div>
-                                    )}
-                                </div>
+                                {/* File name + clear button */}
+                                {data.image_path && (
+                                    <div className="mt-3 flex items-center gap-3 px-4 py-2.5 bg-[#FFF5F5] border border-[#FFD5D5] rounded-xl">
+                                        <svg className="w-4 h-4 text-[#CC0000] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                        <span className="text-xs font-bold text-[#CC0000] flex-1 truncate">{data.image_path?.name}</span>
+                                        <button type="button" onClick={(e) => { e.stopPropagation(); clearImage() }} className="text-secondary-400 hover:text-red-600 transition-colors">
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                        </button>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -30,7 +30,7 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
     const unitsCount = area?.units_count || (units?.total ?? units?.data?.length ?? 0)
     const projectsCount = area?.projects_count || (projects?.total ?? projects?.data?.length ?? 0)
 
-    const heroImage = getStorageUrl(area?.hero_image || area?.image_path, '/images/hero.webp')
+    const heroImage = getStorageUrl(area?.image_path || area?.hero_image)
 
     const pageTitle = seo?.title || `${heroTitle} - ${trans('app_name')}`
     const pageDescription = seo?.description || heroDesc
@@ -56,7 +56,6 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                         <img 
                             src={heroImage} 
                             alt={heroTitle} 
-                            onError={(e) => { e.target.onerror = null; e.target.src = '/images/hero.webp'; }}
                             className="w-full h-full object-cover object-center scale-105 animate-subtle-zoom opacity-50" 
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-secondary-950 via-secondary-950/70 to-black/40" />
@@ -137,7 +136,6 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                                             key={idx} 
                                             src={getStorageUrl(img)} 
                                             alt={`${areaName} gallery ${idx}`} 
-                                            onError={(e) => { e.target.onerror = null; e.target.src = '/images/fallback.webp'; }}
                                             className="w-full h-32 md:h-40 object-cover rounded-2xl shadow-sm hover:scale-105 transition-transform duration-300 cursor-pointer" 
                                         />
                                     ))}
