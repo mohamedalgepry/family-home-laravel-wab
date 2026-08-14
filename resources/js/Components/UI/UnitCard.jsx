@@ -3,8 +3,8 @@ import { usePage, Link } from '@inertiajs/react'
 import { useTrans } from '../../Utils/trans'
 import { useCompare } from '../../Hooks/useCompare'
 import OptimizedImage from '../OptimizedImage'
-
-const PLACEHOLDER = '/images/fallback.webp'
+import { getStorageUrl, PLACEHOLDER } from '../../Utils/image'
+import { getAgentContacts } from '../../Utils/contact'
 
 function SkeletonCard() {
     return (
@@ -13,19 +13,15 @@ function SkeletonCard() {
             <div className="p-5 space-y-4">
                 <div className="skeleton h-5 w-3/4 rounded" />
                 <div className="skeleton h-4 w-1/2 rounded" />
-                <div className="flex gap-3">
-                    <div className="skeleton h-4 w-16 rounded" />
-                    <div className="skeleton h-4 w-16 rounded" />
-                    <div className="skeleton h-4 w-16 rounded" />
-                </div>
-                <div className="skeleton h-10 w-full rounded-xl mt-4" />
+                <div className="skeleton h-6 w-1/3 rounded" />
             </div>
         </div>
     )
 }
 
-export default function UnitCard({ unit, loading = false }) {
-    const { locale, settings } = usePage().props
+export default function UnitCard({ unit, loading = false, priority = false }) {
+    const page = usePage()
+    const { locale, settings } = page.props
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
     const { compareList, toggleCompare, maxItems } = useCompare('unit')
@@ -39,20 +35,14 @@ export default function UnitCard({ unit, loading = false }) {
     }
 
     const mainImage = unit?.images?.find(img => img.is_main || img.is_primary) || unit?.images?.[0]
-    const thumbnail = mainImage?.thumb_url || mainImage?.url || (mainImage?.path ? (mainImage.path.startsWith('http') || mainImage.path.startsWith('/') ? mainImage.path : `/storage/${mainImage.path}`) : PLACEHOLDER)
+    const thumbnail = getStorageUrl(mainImage?.thumb_url || mainImage?.url || mainImage?.path, PLACEHOLDER)
     const isFeatured = (unit?.priority_points ?? 0) > 0
     const isCompared = compareList.includes(unit?.id)
 
-    const uploaderWhatsapp =
-        unit?.project?.user?.profile?.whatsapp ||
-        unit?.project?.user?.whatsapp ||
-        unit?.user?.profile?.whatsapp ||
-        unit?.user?.whatsapp
-
-    const defaultWhatsapp = settings?.company_whatsapp || settings?.whatsapp_number || settings?.phone || '201000000000'
-    const whatsappPhone = uploaderWhatsapp || defaultWhatsapp
+    const agentContacts = getAgentContacts(unit?.user || unit?.project?.user, settings)
+    const whatsappPhone = agentContacts.whatsapp
     const whatsappMsg = encodeURIComponent(trans('unit_whatsapp_inquiry', { name: unit?.name || '' }))
-    const whatsappLink = `https://wa.me/${whatsappPhone.replace(/[^0-9]/g, '')}?text=${whatsappMsg}`
+    const whatsappLink = `https://wa.me/${whatsappPhone}?text=${whatsappMsg}`
 
     const areaName = unit.area?.name || (isRtl ? 'مصر' : 'Egypt')
     const imageAlt = unit.alt_text || `${unit.name || (isRtl ? 'عقار' : 'Property')} ${isRtl ? 'في' : 'in'} ${areaName} - ${trans('app_name')}`;
@@ -75,14 +65,6 @@ export default function UnitCard({ unit, loading = false }) {
 
                     {/* Badges */}
                     <div className="absolute top-3 start-3 flex flex-wrap gap-1.5 z-10">
-                        {isFeatured && (
-                            <span className="bg-gradient-to-r from-amber-500 to-amber-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md flex items-center gap-1">
-                                <svg className="w-3 h-3 fill-current text-white" viewBox="0 0 20 20" aria-hidden="true">
-                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                </svg>
-                                {trans('featured')}
-                            </span>
-                        )}
                         <span className="bg-secondary-900/80 backdrop-blur-md text-white text-xs font-semibold px-2.5 py-1 rounded-full shadow-sm">
                             {trans(unit.transaction === 'rent' ? 'rent' : 'sale')}
                         </span>

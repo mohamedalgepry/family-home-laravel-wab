@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { usePage, Link } from '@inertiajs/react'
 import { localizedPath } from '../../../Utils/route'
 import { useTrans } from '../../../Utils/trans'
+import { getStorageUrl } from '../../../Utils/image'
 import Header from '../../../Components/Layout/Header'
 import Footer from '../../../Components/Layout/Footer'
 import SearchBar from '../../../Components/UI/SearchBar'
@@ -29,7 +30,7 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
     const unitsCount = area?.units_count || (units?.total ?? units?.data?.length ?? 0)
     const projectsCount = area?.projects_count || (projects?.total ?? projects?.data?.length ?? 0)
 
-    const heroImage = area?.hero_image || area?.image_path || 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80'
+    const heroImage = getStorageUrl(area?.image_path || area?.hero_image)
 
     const pageTitle = seo?.title || `${heroTitle} - ${trans('app_name')}`
     const pageDescription = seo?.description || heroDesc
@@ -50,31 +51,36 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
 
             <main className="flex-1">
                 {/* 1. Hero Section */}
-                <section className="relative h-[60vh] md:h-[75vh] min-h-[500px] flex items-center justify-center overflow-hidden">
+                <section className="relative min-h-[480px] md:min-h-[540px] pt-24 pb-20 md:pt-32 md:pb-28 flex items-center justify-center overflow-hidden bg-secondary-950">
                     <div className="absolute inset-0 z-0">
-                        <img src={heroImage} alt={heroTitle} className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 bg-black/40 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+                        <img 
+                            src={heroImage} 
+                            alt={heroTitle} 
+                            className="w-full h-full object-cover object-center scale-105 animate-subtle-zoom opacity-50" 
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-secondary-950 via-secondary-950/70 to-black/40" />
                     </div>
                     
-                    <div className="relative z-10 max-w-container mx-auto px-4 w-full pt-20">
-                        <nav className="flex items-center gap-2 text-sm text-white/80 mb-6 font-medium" aria-label="Breadcrumb">
+                    <div className="relative z-10 max-w-container mx-auto px-4 w-full">
+                        <nav className="flex items-center gap-2 text-xs md:text-sm text-white/80 mb-4 font-medium" aria-label="Breadcrumb">
                             <Link href={localizedPath('/', locale)} className="hover:text-white transition-colors">
                                 {trans('home')}
                             </Link>
                             <span>/</span>
-                            <span className="text-white">{areaName}</span>
+                            <span className="text-white font-bold">{areaName}</span>
                         </nav>
 
                         <div className="max-w-3xl">
-                            <h1 className="text-4xl md:text-6xl lg:text-7xl font-black text-white tracking-tight leading-tight mb-4 drop-shadow-md">
+                            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tight leading-tight mb-4 drop-shadow-md">
                                 {heroTitle}
                             </h1>
                             {heroDesc && (
-                                <p className="text-lg md:text-xl text-white/90 font-medium leading-relaxed max-w-2xl drop-shadow mb-10">
+                                <p className="text-sm sm:text-base md:text-lg text-white/90 font-medium leading-relaxed max-w-2xl drop-shadow mb-8">
                                     {heroDesc}
                                 </p>
                             )}
                             
+<<<<<<< HEAD
                             <div className="flex items-center gap-6 md:gap-10">
                                 <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-4 md:px-8 md:py-5 text-center">
                                     <div className="text-3xl md:text-4xl font-black text-white">{projectsCount}</div>
@@ -83,6 +89,17 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                                 <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-4 md:px-8 md:py-5 text-center">
                                     <div className="text-3xl md:text-4xl font-black text-white">{unitsCount}</div>
                                     <div className="text-xs md:text-sm text-white/80 font-bold uppercase tracking-wider mt-1">{trans('units')}</div>
+=======
+                            <div className="inline-flex items-center gap-4 md:gap-6 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-2.5 px-5 text-white">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xl md:text-2xl font-black text-primary-400">{projectsCount}</span>
+                                    <span className="text-xs md:text-sm font-bold text-white/90">{trans('projects')}</span>
+                                </div>
+                                <span className="w-px h-6 bg-white/20" />
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xl md:text-2xl font-black text-primary-400">{unitsCount}</span>
+                                    <span className="text-xs md:text-sm font-bold text-white/90">{trans('units')}</span>
+>>>>>>> origin/main
                                 </div>
                             </div>
                         </div>
@@ -90,7 +107,7 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                 </section>
 
                 {/* 2. Floating Search Bar */}
-                <div className="max-w-container mx-auto px-4 relative z-20 -mt-8 md:-mt-12 mb-16">
+                <div className="max-w-container mx-auto px-4 relative z-30 -mt-8 md:-mt-12 mb-16">
                     <SearchBar 
                         areas={areas} 
                         unitTypes={unitTypes} 
@@ -111,7 +128,7 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                                 {trans('about_area')}
                             </div>
                             <h2 className="text-3xl md:text-4xl font-black text-secondary-950 leading-tight">
-                                {trans('discover_life_in_area', { areaName })}
+                                {trans('discover_life_in_area', { name: areaName })}
                             </h2>
                             <div className="prose prose-lg prose-secondary max-w-none text-secondary-600 leading-relaxed font-medium">
                                 {aboutArea ? (
@@ -119,14 +136,19 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                                         <p key={idx}>{paragraph}</p>
                                     ))
                                 ) : (
-                                    <p>{heroDesc || (trans('learn_more_about_area', { areaName }))}</p>
+                                    <p>{heroDesc || (trans('learn_more_about_area', { name: areaName }))}</p>
                                 )}
                             </div>
                             
                             {area?.gallery && area.gallery.length > 0 && (
                                 <div className="mt-8 grid grid-cols-2 md:grid-cols-3 gap-4">
                                     {area.gallery.map((img, idx) => (
-                                        <img key={idx} src={img} alt={`${areaName} gallery ${idx}`} className="w-full h-32 md:h-40 object-cover rounded-2xl shadow-sm hover:scale-105 transition-transform duration-300 cursor-pointer" />
+                                        <img 
+                                            key={idx} 
+                                            src={getStorageUrl(img)} 
+                                            alt={`${areaName} gallery ${idx}`} 
+                                            className="w-full h-32 md:h-40 object-cover rounded-2xl shadow-sm hover:scale-105 transition-transform duration-300 cursor-pointer" 
+                                        />
                                     ))}
                                 </div>
                             )}
@@ -145,7 +167,11 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                                             return (
                                                 <div key={idx} className="flex gap-4">
                                                     <div className="shrink-0 w-14 h-14 rounded-2xl bg-primary-50 flex items-center justify-center text-primary-800">
+<<<<<<< HEAD
                                                         <IconByName iconName={feature.icon_name} className="w-7 h-7" />
+=======
+                                                        <IconByName iconName={feature.icon_name || feature.icon} className="w-7 h-7" />
+>>>>>>> origin/main
                                                     </div>
                                                     <div>
                                                         <h4 className="text-lg font-bold text-secondary-950 mb-1">{fTitle}</h4>
@@ -168,7 +194,7 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                     <div className="max-w-container mx-auto px-4">
                         <div className="text-center mb-10">
                             <h2 className="text-3xl md:text-4xl font-black text-secondary-950 mb-4">
-                                {trans('properties_in_area', { areaName })}
+                                {trans('properties_in_area', { name: areaName })}
                             </h2>
                             <div className="inline-flex bg-white p-1.5 rounded-2xl shadow-sm border border-secondary-100">
                                 <button
@@ -250,7 +276,11 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                                             <div key={idx} className="flex items-center justify-between bg-white p-4 rounded-3xl border border-secondary-100 shadow-sm hover:border-primary-400 hover:shadow-md transition-all">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-12 h-12 rounded-full bg-secondary-50 flex items-center justify-center text-secondary-600">
+<<<<<<< HEAD
                                                         <IconByName iconName={place.icon_name} className="w-6 h-6" />
+=======
+                                                        <IconByName iconName={place.icon_name || place.icon} className="w-6 h-6" />
+>>>>>>> origin/main
                                                     </div>
                                                     <span className="font-bold text-secondary-900">{pName}</span>
                                                 </div>
@@ -317,7 +347,7 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                                     {trans('frequently_asked_questions')}
                                 </h2>
                                 <p className="text-secondary-500 font-medium">
-                                    {trans('everything_about_area', { areaName })}
+                                    {trans('everything_about_area', { name: areaName })}
                                 </p>
                             </div>
 
@@ -345,7 +375,7 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                     </section>
                 )}
 
-                {/* 7. Related Areas Fallback */}
+                {/* 7. Related Areas */}
                 {relatedAreas && relatedAreas.length > 0 && (
                     <section className="max-w-container mx-auto px-4 py-16 md:py-24 border-t border-secondary-100">
                         <div className="flex items-center justify-between mb-10">
@@ -360,7 +390,7 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                             {relatedAreas.map(rArea => {
                                 const rName = isRtl ? rArea.name_ar : rArea.name_en
-                                const rImg = rArea.hero_image || rArea.image_path || 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=500&q=80'
+                                const rImg = getStorageUrl(rArea.hero_image || rArea.image_path, '/images/fallback.webp')
                                 return (
                                     <Link key={rArea.id} href={`/${locale}/areas/${rArea.slug}`} className="group relative h-64 rounded-3xl overflow-hidden block">
                                         <img src={rImg} alt={rName} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />

@@ -8,39 +8,38 @@ import UnitCard from '../../Components/UI/UnitCard'
 import ProjectCard from '../../Components/UI/ProjectCard'
 import Pagination from '../../Components/UI/Pagination'
 import SeoHead from '../../Components/UI/SeoHead'
+import { getStorageUrl } from '../../Utils/image'
 
 const HERO_BG = '/images/hero.webp'
 const HERO_BG_MOBILE = '/images/hero-mobile.webp'
 
 export default function Home({ featuredUnits, latestUnits, latestProjects, popularSearches, areas, unitTypes, features, finishingTypes }) {
-    const { locale, settings, appUrl } = usePage().props
-    const { url: currentUrl } = usePage()
+    const { locale, settings } = usePage().props
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
 
-    const heroTitle = isRtl ? (settings?.hero_title_ar || trans('hero_title')) : (settings?.hero_title_en || trans('hero_title'))
-    const heroSubtitle = isRtl ? (settings?.hero_subtitle_ar || trans('hero_subtitle')) : (settings?.hero_subtitle_en || trans('hero_subtitle'))
-    const heroImage = settings?.hero_image ? `/storage/${settings.hero_image}` : HERO_BG
-    const heroImageMobile = settings?.hero_image_mobile ? `/storage/${settings.hero_image_mobile}` : (settings?.hero_image ? `/storage/${settings.hero_image}` : HERO_BG_MOBILE)
+    const heroImage = settings?.hero_image ? getStorageUrl(settings.hero_image, HERO_BG) : HERO_BG
+    const heroImageMobile = settings?.hero_image_mobile ? getStorageUrl(settings.hero_image_mobile, HERO_BG_MOBILE) : (settings?.hero_image ? getStorageUrl(settings.hero_image, HERO_BG_MOBILE) : HERO_BG_MOBILE)
+
+    const firstFeaturedImg = featuredUnits?.data?.[0]?.images?.[0]
+    const homeOgImage = getStorageUrl(firstFeaturedImg?.url || firstFeaturedImg?.path, null)
 
     const isLoading = !featuredUnits && !latestUnits && !latestProjects
     const hasFeatured = featuredUnits?.data?.length > 0
     const hasLatest = latestUnits?.data?.length > 0
     const hasProjects = latestProjects?.data?.length > 0
 
-    const firstFeaturedImg = featuredUnits?.data?.[0]?.images?.[0]
-    const homeOgImage = firstFeaturedImg?.url || (firstFeaturedImg?.path ? `/storage/${firstFeaturedImg.path}` : null)
-
     return (
         <div dir={isRtl ? 'rtl' : 'ltr'} className="min-h-screen bg-surface flex flex-col font-sans">
             <SeoHead
-                title={trans('site_title')}
-                description={trans('home_description')}
+                title={`${trans('app_name')} | ${trans('site_title')}`}
+                description={trans('hero_subtitle')}
                 ogImage={homeOgImage}
-                canonical={appUrl && currentUrl ? `${appUrl}${currentUrl.split('?')[0]}` : undefined}
+                ogType="website"
             />
             <Header />
 
+<<<<<<< HEAD
             <main className="flex-1 bg-surface">
                 {/* Hero Section */}
                 <section className="relative bg-secondary-950 flex flex-col justify-center pt-32 pb-32 md:pt-40 md:pb-48 rounded-b-[40px] overflow-hidden shadow-sm">
@@ -56,11 +55,49 @@ export default function Home({ featuredUnits, latestUnits, latestProjects, popul
                                 fetchPriority="high"
                                 loading="eager"
                                 decoding="sync"
-                            />
-                        </picture>
-                        <div className="absolute inset-0 bg-gradient-to-t from-secondary-950 via-secondary-950/85 to-black/60"></div>
-                    </div>
+=======
+            <main id="main-content" className="flex-1">
+                {/* Hero Section with Search Bar */}
+                <section className="relative min-h-[520px] md:min-h-[580px] flex items-center justify-center pt-8 pb-24 md:pb-32 md:pt-20 px-4 z-20">
+                    <picture className="absolute inset-0 w-full h-full overflow-hidden">
+                        <source media="(max-width: 640px)" srcSet={heroImageMobile} />
+                        <img 
+                            src={heroImage} 
+                            alt={trans('site_title')} 
+                            className="w-full h-full object-cover object-center scale-105 animate-subtle-zoom" 
+                            fetchPriority="high"
+                            loading="eager"
+                            decoding="sync"
+                        />
+                    </picture>
 
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/50 to-black/30"></div>
+
+                    <div className="relative z-10 max-w-container mx-auto w-full text-center space-y-6 md:space-y-8 mt-2">
+                        <div className="space-y-3 max-w-3xl mx-auto px-2">
+                            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white leading-tight tracking-tight drop-shadow-md">
+                                {trans('hero_title') || 'ابحث عن عقارك المثالي بسهولة'}
+                            </h1>
+                            <p className="text-sm sm:text-base md:text-lg text-white/80 font-medium max-w-2xl mx-auto drop-shadow">
+                                {trans('hero_subtitle') || 'آلاف العقارات المتاحة للبيع والشرء والتمليك في أفضل المناطق'}
+                            </p>
+                        </div>
+
+                        {/* Integrated Search Container */}
+                        <div className="max-w-4xl mx-auto">
+                            <SearchBar 
+                                initialUnitTypes={unitTypes} 
+                                initialAreas={areas} 
+                                initialFeatures={features}
+                                initialFinishingTypes={finishingTypes}
+                                popularSearches={popularSearches}
+>>>>>>> origin/main
+                            />
+                        </div>
+                    </div>
+                </section>
+
+<<<<<<< HEAD
                     <div className="relative z-20 max-w-container mx-auto px-4 text-center w-full">
                         <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white mb-4 tracking-tight leading-tight max-w-4xl mx-auto drop-shadow-md">
                             {heroTitle}
@@ -76,6 +113,8 @@ export default function Home({ featuredUnits, latestUnits, latestProjects, popul
                     <SearchBar areas={areas} unitTypes={unitTypes} features={features} finishingTypes={finishingTypes} />
                 </div>
 
+=======
+>>>>>>> origin/main
                 {/* Quick Navigation (Mobile Only) */}
                 <section className="md:hidden max-w-container mx-auto px-4 mb-8">
                     <div className="grid grid-cols-2 gap-3">
@@ -132,11 +171,16 @@ export default function Home({ featuredUnits, latestUnits, latestProjects, popul
                             {areas.map(area => {
                                 const areaName = isRtl ? (area.name_ar || area.name_en || area.name) : (area.name_en || area.name_ar || area.name)
                                 const areaSlug = area.slug || area.id
+<<<<<<< HEAD
                                 const areaImg = area.hero_image ? area.hero_image : (area.image_path ? area.image_path : `/storage/areas/${areaSlug}.webp`)
+=======
+                                const areaImg = getStorageUrl(area.image_path || area.hero_image)
+>>>>>>> origin/main
                                 return (
                                     <Link
                                         key={area.id}
                                         href={localizedPath(`/areas/${areaSlug}`, locale)}
+<<<<<<< HEAD
                                         className="group relative shrink-0 w-[180px] md:w-auto h-[240px] bg-secondary-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 snap-center"
                                     >
                                         <img 
@@ -145,6 +189,17 @@ export default function Home({ featuredUnits, latestUnits, latestProjects, popul
                                             alt={areaName}
                                             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                                         />
+=======
+                                        className="group relative shrink-0 w-[180px] md:w-auto h-[240px] bg-secondary-900 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 snap-center"
+                                    >
+                                        {areaImg && (
+                                            <img 
+                                                src={areaImg}
+                                                alt={areaName}
+                                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                            />
+                                        )}
+>>>>>>> origin/main
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent"></div>
                                         <div className="absolute bottom-0 left-0 right-0 p-4 text-start">
                                             <h3 className="text-white font-bold text-base mb-1">{areaName}</h3>

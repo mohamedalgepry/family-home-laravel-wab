@@ -3,8 +3,7 @@ import { usePage, Link } from '@inertiajs/react'
 import { useTrans } from '../../Utils/trans'
 import { useCompare } from '../../Hooks/useCompare'
 import OptimizedImage from '../OptimizedImage'
-
-const PLACEHOLDER = '/images/fallback.webp'
+import { getStorageUrl, PLACEHOLDER } from '../../Utils/image'
 
 function SkeletonCard() {
     return (
@@ -37,7 +36,7 @@ export default function ProjectCard({ project, loading = false }) {
     }
 
     const mainImage = project?.images?.find(img => img.is_main || img.is_primary) || project?.images?.[0]
-    const thumbnail = mainImage?.thumb_url || mainImage?.url || (mainImage?.path ? (mainImage.path.startsWith('http') || mainImage.path.startsWith('/') ? mainImage.path : `/storage/${mainImage.path}`) : PLACEHOLDER)
+    const thumbnail = getStorageUrl(mainImage?.thumb_url || mainImage?.url || mainImage?.path, PLACEHOLDER)
     const isCompared = compareList.includes(project?.id)
 
     const areaName = project.area?.name || project.area_name || (isRtl ? 'مصر' : 'Egypt')

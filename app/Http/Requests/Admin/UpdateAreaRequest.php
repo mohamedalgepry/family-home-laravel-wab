@@ -21,6 +21,18 @@ class UpdateAreaRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->prepareCoordinatesFromMapUrl();
+
+        if ($this->has('image_path') && ! $this->hasFile('image_path')) {
+            $this->request->remove('image_path');
+        }
+
+        if ($this->has('hero_image') && ! $this->hasFile('hero_image')) {
+            $this->request->remove('hero_image');
+        }
+
+        if ($this->has('gallery') && ! $this->hasFile('gallery')) {
+            $this->request->remove('gallery');
+        }
     }
 
     public function rules(): array
@@ -38,10 +50,15 @@ class UpdateAreaRequest extends FormRequest
             'hero_title_en' => 'nullable|string|max:255',
             'hero_description_ar' => 'nullable|string',
             'hero_description_en' => 'nullable|string',
+<<<<<<< HEAD
             'image_path' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'hero_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+=======
+            'image_path' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:20480',
+            'hero_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:20480',
+>>>>>>> origin/main
             'gallery' => 'nullable|array',
-            'gallery.*' => 'image|mimes:jpeg,png,jpg,webp|max:2048',
+            'gallery.*' => 'image|mimes:jpeg,png,jpg,webp|max:20480',
             
             'about_ar' => 'nullable|string',
             'about_en' => 'nullable|string',
@@ -104,6 +121,18 @@ class UpdateAreaRequest extends FormRequest
             'faqs.*.answer_en' => 'nullable|string',
             'faqs.*.sort_order' => 'nullable|integer',
             'faqs.*.is_active' => 'boolean',
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'image_path.max' => 'حجم الصورة يجب ألا يتجاوز 20 ميجابايت.',
+            'image_path.image' => 'الملف المرفوع يجب أن يكون صورة صالحة.',
+            'image_path.mimes' => 'صيغة الصورة يجب أن تكون: JPG, JPEG, PNG, أو WebP.',
+            'features.*.title_ar.required_with' => 'حقل عنوان الميزة (عربي) مطلوب.',
+            'nearby_places.*.name_ar.required_with' => 'حقل اسم المكان القريب (عربي) مطلوب.',
+            'faqs.*.question_ar.required_with' => 'حقل السؤال (عربي) مطلوب.',
         ];
     }
 }

@@ -50,6 +50,14 @@ class Area extends Model
         static::creating(function (self $area) {
             $area->slug = $area->slug ?: Str::slug($area->name_en ?? $area->name_ar);
         });
+
+        static::saved(function () {
+            \Illuminate\Support\Facades\Cache::forget(\App\Domain\Listings\Services\ListingLookupService::CACHE_KEY_AREAS);
+        });
+
+        static::deleted(function () {
+            \Illuminate\Support\Facades\Cache::forget(\App\Domain\Listings\Services\ListingLookupService::CACHE_KEY_AREAS);
+        });
     }
 
     public function scopeActive($query)

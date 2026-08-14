@@ -1,25 +1,22 @@
-const dictionaries = {}
+import ar from './locales/ar.js'
+import en from './locales/en.js'
 
-const loaders = {
-    ar: () => import('./locales/ar.js'),
-    en: () => import('./locales/en.js'),
+const dictionaries = {
+    ar,
+    en,
 }
 
 export async function loadLocale(locale) {
-    const key = loaders[locale] ? locale : 'en'
-    if (!dictionaries[key]) {
-        dictionaries[key] = (await loaders[key]()).default
-    }
-    return dictionaries[key]
+    return dictionaries[locale] || dictionaries.en
 }
 
 export function useTrans(locale) {
-    const lang = dictionaries[locale] || dictionaries.en || {}
+    const lang = dictionaries[locale] || dictionaries.en || dictionaries.ar || {}
     return (key, replacements = {}) => {
         let text = lang[key]
         if (!text) {
             const cleanKey = key.includes('.') ? key.split('.').pop() : key
-            text = lang[cleanKey] || cleanKey.replace(/[_-]/g, ' ')
+            text = lang[cleanKey] || (dictionaries.ar && dictionaries.ar[cleanKey]) || (dictionaries.en && dictionaries.en[cleanKey]) || cleanKey.replace(/[_-]/g, ' ')
         }
         for (const [k, v] of Object.entries(replacements)) {
             text = text.replace(`:${k}`, v)
@@ -27,3 +24,4 @@ export function useTrans(locale) {
         return text
     }
 }
+

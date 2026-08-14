@@ -1,5 +1,6 @@
 import { usePage, Link, Head, router } from '@inertiajs/react'
 import { useTrans } from '../../../Utils/trans'
+import { getStorageUrl } from '../../../Utils/image'
 import { useState, useEffect, useRef } from 'react'
 import AdminSidebar from '../../../Components/Layout/AdminSidebar'
 
@@ -116,9 +117,19 @@ export default function AdminAreasIndex({ areas, filters }) {
                                 )}
                                 {areas?.data?.map(area => (
                                     <tr key={area.id} className="hover:bg-surface/50 transition-colors group">
+<<<<<<< HEAD
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             {area.image_path || area.hero_image ? (
                                                 <img src={`/storage/${area.image_path || area.hero_image}`} alt={area.name_ar} className="w-16 h-12 rounded-lg object-cover border border-secondary-200" />
+=======
+                                        <td className="px-6 py-4">
+                                            {area.image_path || area.hero_image ? (
+                                                <img 
+                                                    src={getStorageUrl(area.image_path || area.hero_image)} 
+                                                    alt={area.name_ar} 
+                                                    className="w-16 h-12 rounded-lg object-cover border border-secondary-200" 
+                                                />
+>>>>>>> origin/main
                                             ) : (
                                                 <div className="w-16 h-12 rounded-lg bg-secondary-100 flex items-center justify-center border border-secondary-200">
                                                     <svg className="w-6 h-6 text-secondary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">

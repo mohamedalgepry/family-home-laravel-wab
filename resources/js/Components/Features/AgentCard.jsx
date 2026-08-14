@@ -2,6 +2,8 @@ import { localizedPath } from '../../Utils/route'
 import { usePage, Link } from '@inertiajs/react'
 import { useTrans } from '../../Utils/trans'
 import OptimizedImage from '../OptimizedImage'
+import { getStorageUrl } from '../../Utils/image'
+import { getAgentContacts } from '../../Utils/contact'
 
 export default function AgentCard({ agent }) {
     const { locale, settings } = usePage().props
@@ -10,17 +12,15 @@ export default function AgentCard({ agent }) {
 
     if (!agent) return null
 
-    const defaultWhatsapp = settings?.company_whatsapp || settings?.whatsapp_number || settings?.phone
-    const targetWhatsapp = agent.whatsapp || defaultWhatsapp
-
-    const avatarSrc = agent.avatar ? (agent.avatar.startsWith('http') || agent.avatar.startsWith('/storage') ? agent.avatar : `/storage/${agent.avatar}`) : null
+    const agentContacts = getAgentContacts(agent, settings)
+    const avatarSrc = getStorageUrl(agent.avatar, null)
     const agentAlt = isRtl ? `الوكيل العقاري ${agent.name}` : `Real Estate Agent ${agent.name}`;
 
     const channels = [
-        { key: 'phone', url: agent.phone ? `tel:${agent.phone}` : null, label: agent.phone },
-        { key: 'whatsapp', url: targetWhatsapp ? `https://wa.me/${targetWhatsapp.replace(/[^0-9]/g, '')}` : null, label: targetWhatsapp },
-        { key: 'facebook', url: agent.facebook || null, label: trans('facebook') },
-        { key: 'linkedin', url: agent.linkedin || null, label: trans('social_linkedin', {}, 'admin') },
+        { key: 'phone', url: `tel:${agentContacts.phone}`, label: agentContacts.rawPhone },
+        { key: 'whatsapp', url: `https://wa.me/${agentContacts.whatsapp}`, label: agentContacts.rawWhatsapp },
+        { key: 'facebook', url: agent.facebook || agent.profile?.facebook || null, label: trans('facebook') },
+        { key: 'linkedin', url: agent.linkedin || agent.profile?.linkedin || null, label: trans('social_linkedin', {}, 'admin') },
     ].filter(c => c.url)
 
     return (

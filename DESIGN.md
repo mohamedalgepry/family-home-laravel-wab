@@ -1,4 +1,4 @@
-﻿---
+---
 name: Family Home — فاميلي هوم
 description: منصة تسويق عقاري عربية تحوّل التصفح إلى اتصال مباشر
 colors:
@@ -250,3 +250,28 @@ components:
 - **Don't** تُعرض البطاقات بدون صورة مع سطح فارغ — استخدم `/images/fallback.webp` دائماً.
 - **Don't** تبدأ نصاً عربياً من اليسار أو عكسه — RTL/LTR محدد دائماً عبر خاصية `dir`.
 - **Don't** تُقلَّل padding الـ section إلى أقل من `py-12` على الجوال — التنفس في العرض العقاري ليس ترفاً.
+
+---
+
+## Recent Updates & Enhancements Documentation (أحدث التحديثات والتحسينات)
+
+### 1. Agent Contact Fallback Logic (`Utils/contact.js`)
+- **Helper Function**: `getAgentContacts(agent, settings)`
+- **Behavior**: Checks if the agent/user has configured their own WhatsApp (`agent.whatsapp` / `agent.profile.whatsapp`) or Phone (`agent.phone` / `agent.profile.phone`).
+- **Fallback**: If unpopulated, seamlessly falls back to site settings (`settings.company_whatsapp` and `settings.phone`).
+- **Integrations**: Standardized across `Units/Show.jsx`, `Projects/Show.jsx`, `UnitCard.jsx`, `ProjectCard.jsx`, `AgentCard.jsx`, and `Agents/Show.jsx`.
+
+### 2. Universal Image & Thumbnail Normalization (`Utils/image.js`)
+- **Helper Function**: `getStorageUrl(path, fallback = PLACEHOLDER)`
+- **Behavior**: Eliminates duplicate `/storage/storage/` paths and relative URL 403 Forbidden issues.
+- **Fallback**: Returns `/images/fallback.webp` whenever image data is missing or empty.
+
+### 3. Mobile UI & Action Bar Enhancements
+- **Fixed Mobile Bottom Action Bar**: Sticky `sm:hidden` bar in `Units/Show.jsx` and `Projects/Show.jsx` featuring direct Call and WhatsApp CTAs.
+- **Photo Counter Badge**: Overlay `X / N` counter badge on main property and project galleries.
+- **Hero & SearchBar Layout**: Removed duplicate SearchBar instances and fixed filter dropdown clipping by elevating z-index (`z-50`) with high-contrast white card background.
+
+### 4. Localization Engine & Dictionary Synchronization (`Utils/trans.js`, `locales/ar.js`, `locales/en.js`)
+- **Coverage**: Achieved 100% full key parity between Arabic (563 keys) and English (563 keys).
+- **Synchronous Import**: Updated `trans.js` to statically import `ar.js` and `en.js` to eliminate dynamic import delay glitches and prevent raw key fallback text.
+

@@ -1,20 +1,24 @@
-import { Head } from '@inertiajs/react'
+import { Head, usePage } from '@inertiajs/react'
 import Header from '../../../Components/Layout/Header'
 import Footer from '../../../Components/Layout/Footer'
 import UnitCard from '../../../Components/UI/UnitCard'
 import Pagination from '../../../Components/UI/Pagination'
 import { useTrans } from '../../../Utils/trans'
+import { getStorageUrl } from '../../../Utils/image'
+import { getAgentContacts } from '../../../Utils/contact'
 
 export default function Show({ agent, units, locale }) {
+    const { settings } = usePage().props
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
 
-    const avatarSrc = agent.avatar ? (agent.avatar.startsWith('http') || agent.avatar.startsWith('/storage') ? agent.avatar : `/storage/${agent.avatar}`) : null
+    const agentContacts = getAgentContacts(agent, settings)
+    const avatarSrc = getStorageUrl(agent.avatar, null)
     const channels = [
-        { key: 'phone', url: agent.phone ? `tel:${agent.phone}` : null, label: agent.phone },
-        { key: 'whatsapp', url: agent.whatsapp ? `https://wa.me/${agent.whatsapp.replace(/[^0-9]/g, '')}` : null, label: agent.whatsapp },
-        { key: 'facebook', url: agent.facebook || null, label: trans('facebook', {}, 'admin') },
-        { key: 'linkedin', url: agent.linkedin || null, label: trans('social_linkedin', {}, 'admin') },
+        { key: 'phone', url: `tel:${agentContacts.phone}`, label: agentContacts.rawPhone },
+        { key: 'whatsapp', url: `https://wa.me/${agentContacts.whatsapp}`, label: agentContacts.rawWhatsapp },
+        { key: 'facebook', url: agent.facebook || agent.profile?.facebook || null, label: trans('facebook', {}, 'admin') },
+        { key: 'linkedin', url: agent.linkedin || agent.profile?.linkedin || null, label: trans('social_linkedin', {}, 'admin') },
     ].filter(c => c.url)
 
     return (

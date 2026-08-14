@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Storage;
 use App\Domain\Listings\Services\SitemapService;
 use Illuminate\Support\Facades\Cache;
 use App\Domain\Listings\Services\ListingService;
+use App\Domain\Listings\Services\ListingLookupService;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -59,6 +60,7 @@ class AreaController extends Controller
         $validated = $request->validated();
         $validated['slug'] = Str::slug($validated['name_en'] ?? $validated['name_ar']);
 
+<<<<<<< HEAD
         // Handle Image Path (Card Image)
         if ($request->hasFile('image_path')) {
             $validated['image_path'] = $request->file('image_path')->store('areas/cards', 'public');
@@ -67,6 +69,13 @@ class AreaController extends Controller
         // Handle Hero Image
         if ($request->hasFile('hero_image')) {
             $validated['hero_image'] = $request->file('hero_image')->store('areas/hero', 'public');
+=======
+        // Handle Image
+        if ($request->hasFile('image_path')) {
+            $validated['image_path'] = $request->file('image_path')->store('areas', 'public');
+        } else {
+            unset($validated['image_path']);
+>>>>>>> origin/main
         }
 
         // Handle Gallery
@@ -76,13 +85,15 @@ class AreaController extends Controller
                 $gallery[] = $file->store('areas/gallery', 'public');
             }
             $validated['gallery'] = $gallery;
+        } else {
+            unset($validated['gallery']);
         }
 
         $area = Area::create($validated);
 
-        // Sync Relations
         $this->syncRelations($area, $request);
 
+        Cache::forget(ListingLookupService::CACHE_KEY_AREAS);
         Cache::increment(ListingService::CACHE_VERSION_KEY);
         $this->sitemapService->regenerate();
 
@@ -111,6 +122,7 @@ class AreaController extends Controller
             $validated['slug'] = Str::slug($validated['name_en'] ?? $validated['name_ar']);
         }
 
+<<<<<<< HEAD
         // Handle Image Path (Card Image)
         if ($request->hasFile('image_path')) {
             if ($area->image_path) {
@@ -129,13 +141,28 @@ class AreaController extends Controller
             $validated['hero_image'] = $request->file('hero_image')->store('areas/hero', 'public');
         } else {
             unset($validated['hero_image']);
+=======
+        // Handle Image
+        if ($request->hasFile('image_path')) {
+            if ($area->image_path && Storage::disk('public')->exists($area->image_path)) {
+                Storage::disk('public')->delete($area->image_path);
+            }
+            $validated['image_path'] = $request->file('image_path')->store('areas', 'public');
+        } else {
+            unset($validated['image_path']);
+>>>>>>> origin/main
         }
 
-        // Handle Gallery (append or replace? For simplicity, replace if new files provided)
+        // Keep hero_image field untouched (legacy)
+        unset($validated['hero_image']);
+
+        // Handle Gallery
         if ($request->hasFile('gallery')) {
             if ($area->gallery) {
                 foreach ($area->gallery as $oldFile) {
-                    Storage::disk('public')->delete($oldFile);
+                    if (Storage::disk('public')->exists($oldFile)) {
+                        Storage::disk('public')->delete($oldFile);
+                    }
                 }
             }
             $gallery = [];
@@ -149,9 +176,9 @@ class AreaController extends Controller
 
         $area->update($validated);
 
-        // Sync Relations
         $this->syncRelations($area, $request);
 
+        Cache::forget(ListingLookupService::CACHE_KEY_AREAS);
         Cache::increment(ListingService::CACHE_VERSION_KEY);
         $this->sitemapService->regenerate();
 
@@ -162,17 +189,20 @@ class AreaController extends Controller
     {
         $this->authorize('delete', Area::class);
 
-        if ($area->hero_image) {
-            Storage::disk('public')->delete($area->hero_image);
+        if ($area->image_path && Storage::disk('public')->exists($area->image_path)) {
+            Storage::disk('public')->delete($area->image_path);
         }
         if ($area->gallery) {
             foreach ($area->gallery as $oldFile) {
-                Storage::disk('public')->delete($oldFile);
+                if (Storage::disk('public')->exists($oldFile)) {
+                    Storage::disk('public')->delete($oldFile);
+                }
             }
         }
 
         $area->delete();
 
+        Cache::forget(ListingLookupService::CACHE_KEY_AREAS);
         Cache::increment(ListingService::CACHE_VERSION_KEY);
         $this->sitemapService->regenerate();
 
