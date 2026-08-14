@@ -22,7 +22,7 @@ trait ExtractsCoordinatesFromUrl
                     'latitude' => $coords['latitude'],
                     'longitude' => $coords['longitude'],
                 ]);
-            } else {
+            } elseif (! $this->filled('latitude') || ! $this->filled('longitude')) {
                 throw ValidationException::withMessages([
                     $field => __('common.invalid_map_url') ?? 'Invalid Google Maps Location URL.',
                 ]);

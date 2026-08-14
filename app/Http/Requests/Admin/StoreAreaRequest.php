@@ -20,11 +20,33 @@ class StoreAreaRequest extends FormRequest
     {
         $this->prepareCoordinatesFromMapUrl();
 
-        if ($this->has('image_path') && ! $this->hasFile('image_path')) {
+        $merges = [];
+
+        if ($this->has('parent_id') && ($this->input('parent_id') === '' || $this->input('parent_id') === null)) {
+            $merges['parent_id'] = null;
+        }
+
+        if ($this->has('latitude') && $this->input('latitude') === '') {
+            $merges['latitude'] = null;
+        }
+
+        if ($this->has('longitude') && $this->input('longitude') === '') {
+            $merges['longitude'] = null;
+        }
+
+        if ($this->has('sort_order') && $this->input('sort_order') === '') {
+            $merges['sort_order'] = 0;
+        }
+
+        if (! empty($merges)) {
+            $this->merge($merges);
+        }
+
+        if ($this->has('image_path') && ! $this->hasFile('image_path') && $this->input('image_path') !== null) {
             $this->request->remove('image_path');
         }
 
-        if ($this->has('hero_image') && ! $this->hasFile('hero_image')) {
+        if ($this->has('hero_image') && ! $this->hasFile('hero_image') && $this->input('hero_image') !== null) {
             $this->request->remove('hero_image');
         }
 
@@ -48,13 +70,8 @@ class StoreAreaRequest extends FormRequest
             'hero_title_en' => 'nullable|string|max:255',
             'hero_description_ar' => 'nullable|string',
             'hero_description_en' => 'nullable|string',
-<<<<<<< HEAD
-            'image_path' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
-            'hero_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
-=======
             'image_path' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:20480',
             'hero_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:20480',
->>>>>>> origin/main
             'gallery' => 'nullable|array',
             'gallery.*' => 'image|mimes:jpeg,png,jpg,webp|max:20480',
             

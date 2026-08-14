@@ -60,22 +60,18 @@ class AreaController extends Controller
         $validated = $request->validated();
         $validated['slug'] = Str::slug($validated['name_en'] ?? $validated['name_ar']);
 
-<<<<<<< HEAD
         // Handle Image Path (Card Image)
         if ($request->hasFile('image_path')) {
             $validated['image_path'] = $request->file('image_path')->store('areas/cards', 'public');
+        } else {
+            unset($validated['image_path']);
         }
 
         // Handle Hero Image
         if ($request->hasFile('hero_image')) {
             $validated['hero_image'] = $request->file('hero_image')->store('areas/hero', 'public');
-=======
-        // Handle Image
-        if ($request->hasFile('image_path')) {
-            $validated['image_path'] = $request->file('image_path')->store('areas', 'public');
         } else {
-            unset($validated['image_path']);
->>>>>>> origin/main
+            unset($validated['hero_image']);
         }
 
         // Handle Gallery
@@ -122,39 +118,36 @@ class AreaController extends Controller
             $validated['slug'] = Str::slug($validated['name_en'] ?? $validated['name_ar']);
         }
 
-<<<<<<< HEAD
         // Handle Image Path (Card Image)
         if ($request->hasFile('image_path')) {
-            if ($area->image_path) {
+            if ($area->image_path && Storage::disk('public')->exists($area->image_path)) {
                 Storage::disk('public')->delete($area->image_path);
             }
             $validated['image_path'] = $request->file('image_path')->store('areas/cards', 'public');
+        } elseif (array_key_exists('image_path', $validated) && $validated['image_path'] === null) {
+            // User explicitly cleared the image
+            if ($area->image_path && Storage::disk('public')->exists($area->image_path)) {
+                Storage::disk('public')->delete($area->image_path);
+            }
+            $validated['image_path'] = null;
         } else {
             unset($validated['image_path']);
         }
 
         // Handle Hero Image
         if ($request->hasFile('hero_image')) {
-            if ($area->hero_image) {
+            if ($area->hero_image && Storage::disk('public')->exists($area->hero_image)) {
                 Storage::disk('public')->delete($area->hero_image);
             }
             $validated['hero_image'] = $request->file('hero_image')->store('areas/hero', 'public');
+        } elseif (array_key_exists('hero_image', $validated) && $validated['hero_image'] === null) {
+            if ($area->hero_image && Storage::disk('public')->exists($area->hero_image)) {
+                Storage::disk('public')->delete($area->hero_image);
+            }
+            $validated['hero_image'] = null;
         } else {
             unset($validated['hero_image']);
-=======
-        // Handle Image
-        if ($request->hasFile('image_path')) {
-            if ($area->image_path && Storage::disk('public')->exists($area->image_path)) {
-                Storage::disk('public')->delete($area->image_path);
-            }
-            $validated['image_path'] = $request->file('image_path')->store('areas', 'public');
-        } else {
-            unset($validated['image_path']);
->>>>>>> origin/main
         }
-
-        // Keep hero_image field untouched (legacy)
-        unset($validated['hero_image']);
 
         // Handle Gallery
         if ($request->hasFile('gallery')) {

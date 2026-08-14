@@ -49,12 +49,15 @@ export default function AreaForm({ area, parents, mode = 'create' }) {
 
     // Image upload state
     const [imagePreview, setImagePreview] = useState(null)
+    const [imageDeleted, setImageDeleted] = useState(false)
     const [isDragging, setIsDragging] = useState(false)
+    const [isSubmitting, setIsSubmitting] = useState(false)
     const fileInputRef = useRef(null)
 
     const handleImageChange = useCallback((file) => {
         if (!file || !file.type.startsWith('image/')) return
         setData('image_path', file)
+        setImageDeleted(false)
         const reader = new FileReader()
         reader.onload = (e) => setImagePreview(e.target.result)
         reader.readAsDataURL(file)
@@ -73,6 +76,7 @@ export default function AreaForm({ area, parents, mode = 'create' }) {
     const clearImage = () => {
         setData('image_path', null)
         setImagePreview(null)
+        setImageDeleted(true)
         if (fileInputRef.current) fileInputRef.current.value = ''
     }
 
@@ -101,6 +105,7 @@ export default function AreaForm({ area, parents, mode = 'create' }) {
 
     function handleSubmit(e) {
         e.preventDefault()
+        if (isSubmitting) return
 
         const payload = { ...data }
         payload.meta_keywords_ar = typeof data.meta_keywords_ar === 'string' 
@@ -110,8 +115,13 @@ export default function AreaForm({ area, parents, mode = 'create' }) {
             ? data.meta_keywords_en.split(',').map(k => k.trim()).filter(Boolean) 
             : data.meta_keywords_en
 
-        // Only keep image_path if it's an actual File instance to avoid sending "null" string
-        if (!(payload.image_path instanceof File)) {
+        if (payload.parent_id === '' || payload.parent_id === undefined) {
+            payload.parent_id = null
+        }
+
+        if (imageDeleted) {
+            payload.image_path = null
+        } else if (payload.image_path !== null && !(payload.image_path instanceof File)) {
             delete payload.image_path
         }
 
@@ -126,9 +136,32 @@ export default function AreaForm({ area, parents, mode = 'create' }) {
             payload.faqs = payload.faqs.filter(f => f.question_ar && f.question_ar.trim() !== '')
         }
 
+        setIsSubmitting(true)
+
         const options = {
             forceFormData: true,
             preserveScroll: true,
+            onFinish: () => setIsSubmitting(false),
+            onError: (errs) => {
+                setIsSubmitting(false)
+                if (errs) {
+                    if (errs.name_ar || errs.name_en || errs.parent_id || errs.sort_order || errs.short_description_ar || errs.short_description_en) {
+                        setActiveTab('basic')
+                    } else if (errs.image_path || errs.hero_title_ar || errs.hero_title_en || errs.hero_description_ar || errs.hero_description_en) {
+                        setActiveTab('hero')
+                    } else if (errs.about_ar || errs.about_en || Object.keys(errs).some(k => k.startsWith('features'))) {
+                        setActiveTab('content')
+                    } else if (Object.keys(errs).some(k => k.startsWith('nearby_places'))) {
+                        setActiveTab('nearby')
+                    } else if (errs.address_ar || errs.address_en || errs.latitude || errs.longitude || errs.map_url) {
+                        setActiveTab('location')
+                    } else if (Object.keys(errs).some(k => k.startsWith('faqs'))) {
+                        setActiveTab('faq')
+                    } else if (errs.meta_title_ar || errs.meta_title_en || errs.meta_description_ar || errs.meta_description_en || errs.meta_keywords_ar || errs.meta_keywords_en) {
+                        setActiveTab('seo')
+                    }
+                }
+            }
         }
 
         if (mode === 'create') {
@@ -199,8 +232,8 @@ export default function AreaForm({ area, parents, mode = 'create' }) {
                     </nav>
 
                     <div className="mt-8 pt-6 border-t border-secondary-100">
-                        <button type="submit" disabled={processing} className="w-full mb-3 px-6 py-3.5 bg-[#CC0000] text-white rounded-xl text-sm font-bold transition-all duration-200 hover:bg-[#B00000] hover:shadow-lg active:scale-[0.97] focus:outline-none focus:ring-4 focus:ring-[#FFE3E3] disabled:opacity-70 flex items-center justify-center gap-2">
-                            {processing && (
+                        <button type="submit" disabled={isSubmitting || processing} className="w-full mb-3 px-6 py-3.5 bg-[#CC0000] text-white rounded-xl text-sm font-bold transition-all duration-200 hover:bg-[#B00000] hover:shadow-lg active:scale-[0.97] focus:outline-none focus:ring-4 focus:ring-[#FFE3E3] disabled:opacity-70 flex items-center justify-center gap-2">
+                            {(isSubmitting || processing) && (
                                 <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -306,7 +339,7 @@ export default function AreaForm({ area, parents, mode = 'create' }) {
                                                 <span className="text-white text-sm font-bold bg-black/60 px-4 py-2 rounded-xl">{isRtl ? 'انقر لتغيير الصورة' : 'Click to change'}</span>
                                             </div>
                                         </div>
-                                    ) : (area?.image_path || area?.hero_image) ? (
+                                    ) : (!imageDeleted && (area?.image_path || area?.hero_image)) ? (
                                         <div className="relative w-full h-56 group">
                                             <img
                                                 src={getStorageUrl(area.image_path || area.hero_image)}
@@ -345,14 +378,26 @@ export default function AreaForm({ area, parents, mode = 'create' }) {
                                 )}
 
                                 {/* File name + clear button */}
-                                {data.image_path && (
-                                    <div className="mt-3 flex items-center gap-3 px-4 py-2.5 bg-[#FFF5F5] border border-[#FFD5D5] rounded-xl">
-                                        <svg className="w-4 h-4 text-[#CC0000] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                        </svg>
-                                        <span className="text-xs font-bold text-[#CC0000] flex-1 truncate">{data.image_path?.name}</span>
-                                        <button type="button" onClick={(e) => { e.stopPropagation(); clearImage() }} className="text-secondary-400 hover:text-red-600 transition-colors p-1" title={isRtl ? 'إلغاء' : 'Cancel'}>
-                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                {(data.image_path || (!imageDeleted && (area?.image_path || area?.hero_image))) && (
+                                    <div className="mt-3 flex items-center justify-between gap-3 px-4 py-2.5 bg-[#FFF5F5] border border-[#FFD5D5] rounded-xl">
+                                        <div className="flex items-center gap-2 min-w-0">
+                                            <svg className="w-4 h-4 text-[#CC0000] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                            </svg>
+                                            <span className="text-xs font-bold text-[#CC0000] truncate">
+                                                {data.image_path?.name || (isRtl ? 'الصورة الحالية' : 'Current image')}
+                                            </span>
+                                        </div>
+                                        <button 
+                                            type="button" 
+                                            onClick={(e) => { e.stopPropagation(); clearImage() }} 
+                                            className="text-red-500 hover:text-red-700 text-xs font-bold transition-colors flex items-center gap-1 shrink-0 p-1"
+                                            title={isRtl ? 'حذف الصورة' : 'Remove image'}
+                                        >
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                            <span>{isRtl ? 'حذف' : 'Remove'}</span>
                                         </button>
                                     </div>
                                 )}
