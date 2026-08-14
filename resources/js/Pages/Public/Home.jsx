@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { localizedPath } from '../../Utils/route'
 import { usePage, Link } from '@inertiajs/react'
 import { useTrans } from '../../Utils/trans'
@@ -17,6 +18,8 @@ export default function Home({ featuredUnits, latestUnits, latestProjects, popul
     const { locale, settings } = usePage().props
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
+    const [showAllAreas, setShowAllAreas] = useState(false)
+    const visibleAreas = showAllAreas ? areas : areas?.slice(0, 12)
 
     const heroImage = settings?.hero_image ? getStorageUrl(settings.hero_image, HERO_BG) : HERO_BG
     const heroImageMobile = settings?.hero_image_mobile ? getStorageUrl(settings.hero_image_mobile, HERO_BG_MOBILE) : (settings?.hero_image ? getStorageUrl(settings.hero_image, HERO_BG_MOBILE) : HERO_BG_MOBILE)
@@ -132,7 +135,7 @@ export default function Home({ featuredUnits, latestUnits, latestProjects, popul
                         </div>
 
                         <div className="flex overflow-x-auto gap-4 snap-x snap-mandatory hide-scrollbar md:grid md:grid-cols-4 lg:grid-cols-6 pb-4">
-                            {areas.map(area => {
+                            {visibleAreas?.map(area => {
                                 const areaName = isRtl ? (area.name_ar || area.name_en || area.name) : (area.name_en || area.name_ar || area.name)
                                 const areaSlug = area.slug || area.id
                                 const areaImg = getStorageUrl(area.image_path || area.hero_image)
@@ -164,6 +167,17 @@ export default function Home({ featuredUnits, latestUnits, latestProjects, popul
                                 )
                             })}
                         </div>
+                        
+                        {areas?.length > 12 && !showAllAreas && (
+                            <div className="mt-4 flex justify-center">
+                                <button 
+                                    onClick={() => setShowAllAreas(true)}
+                                    className="px-6 py-2.5 bg-white text-secondary-800 border border-border rounded-full text-sm font-bold hover:bg-surface-hover hover:text-primary-900 transition-colors shadow-sm"
+                                >
+                                    {isRtl ? 'عرض كل المناطق' : 'Show all areas'}
+                                </button>
+                            </div>
+                        )}
                     </section>
                 )}
 
