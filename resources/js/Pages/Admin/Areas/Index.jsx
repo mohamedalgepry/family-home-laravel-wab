@@ -118,11 +118,10 @@ export default function AdminAreasIndex({ areas, filters }) {
                                 {areas?.data?.map(area => (
                                     <tr key={area.id} className="hover:bg-surface/50 transition-colors group">
                                         <td className="px-6 py-4">
-                                            {area.hero_image || area.image_path ? (
+                                            {area.image_path || area.hero_image ? (
                                                 <img 
-                                                    src={getStorageUrl(area.hero_image || area.image_path)} 
+                                                    src={getStorageUrl(area.image_path || area.hero_image)} 
                                                     alt={area.name_ar} 
-                                                    onError={(e) => { e.target.onerror = null; e.target.src = '/images/fallback.webp'; }}
                                                     className="w-16 h-12 rounded-lg object-cover border border-secondary-200" 
                                                 />
                                             ) : (

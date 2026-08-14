@@ -21,6 +21,18 @@ class UpdateAreaRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->prepareCoordinatesFromMapUrl();
+
+        if ($this->has('image_path') && ! $this->hasFile('image_path')) {
+            $this->request->remove('image_path');
+        }
+
+        if ($this->has('hero_image') && ! $this->hasFile('hero_image')) {
+            $this->request->remove('hero_image');
+        }
+
+        if ($this->has('gallery') && ! $this->hasFile('gallery')) {
+            $this->request->remove('gallery');
+        }
     }
 
     public function rules(): array

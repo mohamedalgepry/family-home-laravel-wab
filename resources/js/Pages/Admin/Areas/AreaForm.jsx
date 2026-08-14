@@ -86,6 +86,19 @@ export default function AreaForm({ area, parents, mode = 'create' }) {
         { id: 'seo', label: trans('seo'), icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z' },
     ]
 
+    // Tab error helpers
+    const tabHasErrors = (tabId) => {
+        if (!errors || Object.keys(errors).length === 0) return false
+        if (tabId === 'basic') return !!(errors.name_ar || errors.name_en || errors.parent_id || errors.sort_order || errors.short_description_ar || errors.short_description_en)
+        if (tabId === 'hero') return !!(errors.image_path || errors.hero_title_ar || errors.hero_title_en || errors.hero_description_ar || errors.hero_description_en)
+        if (tabId === 'content') return !!(errors.about_ar || errors.about_en || Object.keys(errors).some(k => k.startsWith('features')))
+        if (tabId === 'nearby') return Object.keys(errors).some(k => k.startsWith('nearby_places'))
+        if (tabId === 'location') return !!(errors.address_ar || errors.address_en || errors.latitude || errors.longitude || errors.map_url)
+        if (tabId === 'faq') return Object.keys(errors).some(k => k.startsWith('faqs'))
+        if (tabId === 'seo') return !!(errors.meta_title_ar || errors.meta_title_en || errors.meta_description_ar || errors.meta_description_en || errors.meta_keywords_ar || errors.meta_keywords_en)
+        return false
+    }
+
     function handleSubmit(e) {
         e.preventDefault()
 
@@ -96,6 +109,11 @@ export default function AreaForm({ area, parents, mode = 'create' }) {
         payload.meta_keywords_en = typeof data.meta_keywords_en === 'string' 
             ? data.meta_keywords_en.split(',').map(k => k.trim()).filter(Boolean) 
             : data.meta_keywords_en
+
+        // Only keep image_path if it's an actual File instance to avoid sending "null" string
+        if (!(payload.image_path instanceof File)) {
+            delete payload.image_path
+        }
 
         const options = {
             forceFormData: true,
@@ -150,16 +168,21 @@ export default function AreaForm({ area, parents, mode = 'create' }) {
                                 key={tab.id}
                                 type="button"
                                 onClick={() => setActiveTab(tab.id)}
-                                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${
+                                className={`flex items-center justify-between px-4 py-3 rounded-xl text-sm font-bold transition-all ${
                                     activeTab === tab.id 
                                         ? 'bg-[#CC0000] text-white shadow-md' 
                                         : 'text-secondary-600 hover:bg-secondary-50 hover:text-secondary-900'
                                 }`}
                             >
-                                <svg className={`w-5 h-5 ${activeTab === tab.id ? 'text-white' : 'text-secondary-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={tab.icon} />
-                                </svg>
-                                {tab.label}
+                                <div className="flex items-center gap-3">
+                                    <svg className={`w-5 h-5 ${activeTab === tab.id ? 'text-white' : 'text-secondary-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={tab.icon} />
+                                    </svg>
+                                    {tab.label}
+                                </div>
+                                {tabHasErrors(tab.id) && (
+                                    <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 ring-2 ring-white"></span>
+                                )}
                             </button>
                         ))}
                     </nav>
@@ -258,29 +281,29 @@ export default function AreaForm({ area, parents, mode = 'create' }) {
                                     onDragOver={handleDragOver}
                                     onDragLeave={handleDragLeave}
                                     onClick={() => fileInputRef.current?.click()}
-                                    className={`relative flex flex-col items-center justify-center w-full min-h-[200px] rounded-2xl border-2 border-dashed cursor-pointer transition-all duration-200 ${
+                                    className={`relative flex flex-col items-center justify-center w-full min-h-[200px] rounded-2xl border-2 border-dashed cursor-pointer transition-all duration-200 overflow-hidden ${
                                         isDragging
                                             ? 'border-[#CC0000] bg-[#FFF5F5] scale-[1.01]'
                                             : 'border-secondary-200 bg-[#F5F5F5] hover:border-[#CC0000] hover:bg-[#FFF5F5]'
                                     }`}
                                 >
                                     {/* Preview or Current Image */}
-                                    {(imagePreview || area?.image_path) && !imagePreview && area?.image_path ? (
-                                        <div className="relative w-full h-52 rounded-xl overflow-hidden">
-                                            <img
-                                                src={getStorageUrl(area.image_path)}
-                                                alt="current"
-                                                className="w-full h-full object-cover"
-                                            />
-                                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                                                <span className="text-white text-sm font-bold">{isRtl ? 'انقر لتغيير الصورة' : 'Click to change'}</span>
+                                    {imagePreview ? (
+                                        <div className="relative w-full h-56 group">
+                                            <img src={imagePreview} alt="preview" className="w-full h-full object-cover" />
+                                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <span className="text-white text-sm font-bold bg-black/60 px-4 py-2 rounded-xl">{isRtl ? 'انقر لتغيير الصورة' : 'Click to change'}</span>
                                             </div>
                                         </div>
-                                    ) : imagePreview ? (
-                                        <div className="relative w-full h-52 rounded-xl overflow-hidden">
-                                            <img src={imagePreview} alt="preview" className="w-full h-full object-cover" />
-                                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                                                <span className="text-white text-sm font-bold">{isRtl ? 'انقر لتغيير الصورة' : 'Click to change'}</span>
+                                    ) : (area?.image_path || area?.hero_image) ? (
+                                        <div className="relative w-full h-56 group">
+                                            <img
+                                                src={getStorageUrl(area.image_path || area.hero_image)}
+                                                alt={area.name_ar}
+                                                className="w-full h-full object-cover"
+                                            />
+                                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <span className="text-white text-sm font-bold bg-black/60 px-4 py-2 rounded-xl">{isRtl ? 'انقر لتغيير الصورة' : 'Click to change'}</span>
                                             </div>
                                         </div>
                                     ) : (
@@ -306,6 +329,10 @@ export default function AreaForm({ area, parents, mode = 'create' }) {
                                     />
                                 </div>
 
+                                {errors.image_path && (
+                                    <p className={errorClasses}>{errors.image_path}</p>
+                                )}
+
                                 {/* File name + clear button */}
                                 {data.image_path && (
                                     <div className="mt-3 flex items-center gap-3 px-4 py-2.5 bg-[#FFF5F5] border border-[#FFD5D5] rounded-xl">
@@ -313,7 +340,7 @@ export default function AreaForm({ area, parents, mode = 'create' }) {
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                         </svg>
                                         <span className="text-xs font-bold text-[#CC0000] flex-1 truncate">{data.image_path?.name}</span>
-                                        <button type="button" onClick={(e) => { e.stopPropagation(); clearImage() }} className="text-secondary-400 hover:text-red-600 transition-colors">
+                                        <button type="button" onClick={(e) => { e.stopPropagation(); clearImage() }} className="text-secondary-400 hover:text-red-600 transition-colors p-1" title={isRtl ? 'إلغاء' : 'Cancel'}>
                                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                                         </button>
                                     </div>
