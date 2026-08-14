@@ -7,6 +7,7 @@ use App\Domain\Listings\Services\ListingService;
 use App\Domain\Listings\Services\SearchService;
 use App\Http\Resources\Public\ProjectPublicResource;
 use App\Http\Resources\Public\UnitPublicResource;
+use App\Http\Resources\Public\AreaPublicResource;
 use App\Services\SeoService;
 use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
@@ -46,6 +47,7 @@ class HomeController
         $homeData['featuredUnits'] = UnitPublicResource::collection($homeData['featuredUnits']);
         $homeData['latestUnits'] = UnitPublicResource::collection($homeData['latestUnits']);
         $homeData['latestProjects'] = ProjectPublicResource::collection($homeData['latestProjects']);
+        $homeData['areas'] = AreaPublicResource::collection($homeData['areas'])->resolve();
 
         $meta = $this->seoService->forPage('home');
 

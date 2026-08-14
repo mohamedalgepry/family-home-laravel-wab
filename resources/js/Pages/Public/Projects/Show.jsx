@@ -87,12 +87,12 @@ export default function ProjectShow({ project }) {
             )}
             <Header />
 
-            <main className="flex-1 max-w-container mx-auto px-4 py-8 w-full space-y-8">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <main className="flex-1 max-w-container mx-auto px-4 py-8 md:py-12 w-full space-y-8">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-10">
                     {/* Main Content */}
-                    <div className="lg:col-span-2 space-y-6">
+                    <div className="lg:col-span-2 space-y-8">
                         {/* Gallery */}
-                        <div className="bg-white rounded-xl shadow-card overflow-hidden relative group">
+                        <div className="bg-white rounded-3xl shadow-sm border border-secondary-100 overflow-hidden relative group">
                             <div className="relative overflow-hidden">
                                 <img
                                     src={thumbnail}
@@ -159,7 +159,7 @@ export default function ProjectShow({ project }) {
                             </div>
 
                             {images.length > 1 && (
-                                <div className="flex gap-2 p-3 overflow-x-auto bg-slate-50 border-t border-secondary-100">
+                                <div className="flex gap-3 p-4 overflow-x-auto bg-surface/50 border-t border-secondary-100">
                                     {images.map((img, i) => (
                                         <img
                                             key={i}
@@ -178,11 +178,10 @@ export default function ProjectShow({ project }) {
                             )}
                         </div>
 
-                        {/* Video */}
                         {project.video_url && (() => {
                             const embedUrl = getYouTubeEmbedUrl(project.video_url)
                             return (
-                                <div className="bg-white rounded-xl shadow-card overflow-hidden aspect-video">
+                                <div className="bg-white rounded-3xl shadow-sm border border-secondary-100 overflow-hidden aspect-video relative group">
                                     {embedUrl ? (
                                         <iframe
                                             src={embedUrl}
@@ -202,12 +201,18 @@ export default function ProjectShow({ project }) {
                         })()}
 
                         {/* Project Details */}
-                        <div className="bg-white rounded-xl shadow-card p-6">
-                            <h1 className="text-2xl font-bold text-secondary-950 mb-2">{project.name}</h1>
-                            <p className="text-sm text-muted mb-4">
+                        <div className="bg-white rounded-3xl shadow-sm border border-secondary-100 p-8">
+                            <h1 className="text-3xl font-black text-secondary-950 mb-3 tracking-tight">{project.name}</h1>
+                            <p className="text-sm font-medium text-secondary-600 mb-6 flex items-center gap-2">
+                                <svg className="w-4 h-4 text-secondary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                </svg>
                                 {project.area?.name || ''}
                                 {units.length > 0 && (
-                                    <span> · {units.length} {trans('units_count') || trans('plural')}</span>
+                                    <span className="text-secondary-400 mx-1">•</span>
+                                )}
+                                {units.length > 0 && (
+                                    <span className="text-primary-800 bg-primary-50 px-2.5 py-0.5 rounded-full">{units.length} {trans('units_count') || trans('plural')}</span>
                                 )}
                             </p>
 
@@ -271,7 +276,7 @@ export default function ProjectShow({ project }) {
 
                             {/* Location Section */}
                             {(project.latitude && project.longitude && project.latitude != '0' && project.longitude != '0') ? (
-                                <div className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 md:p-8 mt-8">
+                                <div className="bg-white rounded-3xl shadow-sm border border-secondary-100 p-6 md:p-8 mt-10">
                                     <h2 className="text-xl font-bold text-secondary-950 mb-6 flex items-center gap-3">
                                         <div className="w-1.5 h-6 bg-primary-600 rounded-full"></div>
                                         {trans('location_on_map', {}, 'projects') || (isRtl ? 'الموقع على الخريطة' : 'Location on Map')}
@@ -324,13 +329,13 @@ export default function ProjectShow({ project }) {
 
                 {/* Units in Project Full Width Section */}
                 {units.length > 0 && (
-                    <section className="bg-white rounded-2xl shadow-card p-6 sm:p-8 border border-secondary-100/80 mt-12">
-                        <div className="flex items-center justify-between mb-8">
-                            <div>
-                                <h2 className="text-2xl font-bold text-secondary-950">{trans('units_in_project', {}, 'projects')}</h2>
-                                <p className="text-sm text-muted mt-1">{project.name}</p>
+                    <section className="bg-white rounded-3xl shadow-sm p-6 sm:p-10 border border-secondary-100 mt-12">
+                        <div className="flex flex-col md:flex-row items-center justify-between mb-10 gap-4">
+                            <div className="text-center md:text-start">
+                                <h2 className="text-2xl md:text-3xl font-black text-secondary-950 tracking-tight">{trans('units_in_project', {}, 'projects')}</h2>
+                                <p className="text-sm font-medium text-secondary-500 mt-2">{project.name}</p>
                             </div>
-                            <span className="px-4 py-1.5 bg-primary-50 text-primary-900 text-sm font-semibold rounded-full border border-primary-100">
+                            <span className="px-5 py-2 bg-primary-50 text-primary-900 text-sm font-bold rounded-full border border-primary-100 shadow-sm">
                                 {units.length} {trans('units_count')}
                             </span>
                         </div>

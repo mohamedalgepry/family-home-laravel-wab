@@ -60,25 +60,32 @@ export default function ProjectsIndex({ projects, filters, areas, features, fini
             />
             <Header />
 
-            <main className="flex-1 max-w-container mx-auto px-4 py-8 md:py-12 w-full">
+            <main className="flex-1 w-full flex flex-col">
                 
-                {/* Header Banner */}
-                <div className="mb-8 text-center max-w-3xl mx-auto">
-                    <span className="inline-block bg-primary-50 text-primary-900 text-xs font-bold px-3 py-1 rounded-full mb-3 tracking-wide">
-                        {trans('real_estate_projects')}
-                    </span>
-                    <h1 className="text-3xl md:text-4xl font-extrabold text-secondary-950 tracking-tight leading-tight mb-3">
-                        {trans('projects_page_title')}
-                    </h1>
-                    <p className="text-sm md:text-base text-secondary-600 leading-relaxed">
-                        {isRtl 
-                            ? 'تصفح أفضل المشاريع الفاخرة المتاحة للبيع والتقسيط في أرقى المناطق والمدن'
-                            : 'Browse premium real estate developments and residential compounds across top locations'}
-                    </p>
-                </div>
-
-                {/* Filters Banner matching Home page SearchBar */}
-                <div className="w-full max-w-5xl mx-auto mb-12 relative z-30">
+                {/* Premium Header Area */}
+                <div className="bg-gradient-to-b from-surface-hover to-surface pt-8 pb-10 px-4">
+                    <div className="max-w-container mx-auto">
+                        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8 text-center md:text-start">
+                            <div>
+                                <span className="inline-block bg-primary-50 text-primary-900 text-xs font-bold px-3 py-1 rounded-full mb-3 tracking-wide">
+                                    {trans('real_estate_projects')}
+                                </span>
+                                <h1 className="text-2xl md:text-3xl font-black text-secondary-950 tracking-tight leading-tight mb-2">
+                                    {trans('projects_page_title')}
+                                </h1>
+                                <p className="text-sm font-medium text-secondary-500 max-w-2xl mx-auto md:mx-0">
+                                    {hasProjects ? (
+                                        locale === 'ar' ? `تم العثور على ${projects.meta?.total || projects.total || projects.data?.length} مشروع` : `Found ${projects.meta?.total || projects.total || projects.data?.length} projects`
+                                    ) : (
+                                        isRtl 
+                                            ? 'تصفح أفضل المشاريع الفاخرة المتاحة للبيع والتقسيط في أرقى المناطق والمدن'
+                                            : 'Browse premium real estate developments and residential compounds across top locations'
+                                    )}
+                                </p>
+                            </div>
+                        </div>
+                        {/* Filters Banner matching Home page SearchBar */}
+                        <div className="w-full max-w-5xl mx-auto relative z-30">
                     <form 
                         onSubmit={(e) => { e.preventDefault(); handleSearch(); }}
                         className="bg-white/95 backdrop-blur-xl rounded-3xl md:rounded-[2rem] shadow-2xl border border-white/60 transition-all duration-300 w-full hover:shadow-[0_20px_50px_rgba(0,0,0,0.22)]"
@@ -233,8 +240,11 @@ export default function ProjectsIndex({ projects, filters, areas, features, fini
                             </div>
                         </div>
                     </form>
+                        </div>
+                    </div>
                 </div>
 
+                <div className="flex-1 max-w-container mx-auto px-4 py-8 w-full">
                 {/* Projects Grid */}
                 {isLoading ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -243,20 +253,25 @@ export default function ProjectsIndex({ projects, filters, areas, features, fini
                         ))}
                     </div>
                 ) : hasProjects ? (
-                    <>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+                    <div className="flex flex-col gap-8 mb-8">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                             {projects.data.map(project => (
                                 <ProjectCard key={project.id} project={project} />
                             ))}
                         </div>
                         <Pagination meta={projects.meta || projects} links={projects.links} />
-                    </>
+                    </div>
                 ) : (
-                    <div className="bg-white rounded-2xl border border-secondary-100 p-12 text-center max-w-md mx-auto my-8">
-                        <h3 className="text-base font-bold text-secondary-900 mb-2">
+                    <div className="text-center py-20 bg-white rounded-[2rem] border border-secondary-100 shadow-sm max-w-2xl mx-auto w-full">
+                        <div className="w-16 h-16 bg-surface-hover text-secondary-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                            </svg>
+                        </div>
+                        <h3 className="text-secondary-900 font-bold text-lg mb-2">
                             {trans('no_projects_found')}
                         </h3>
-                        <p className="text-xs text-secondary-500 mb-6 leading-relaxed">
+                        <p className="text-secondary-500 text-sm mb-6">
                             {trans('try_adjusting_your_search_crit')}
                         </p>
                         <button
@@ -267,6 +282,7 @@ export default function ProjectsIndex({ projects, filters, areas, features, fini
                         </button>
                     </div>
                 )}
+                </div>
             </main>
 
             <Footer />

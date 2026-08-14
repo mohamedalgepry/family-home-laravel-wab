@@ -33,13 +33,13 @@ export default function Pagination({ meta, links: routeLinks }) {
             {current_page > 1 ? (
                 <Link
                     href={buildUrl(current_page - 1)}
-                    className="px-3 py-2 text-sm text-secondary-700 hover:bg-surface rounded-lg transition-colors"
+                    className="min-w-[40px] h-10 px-3 flex items-center justify-center text-sm font-semibold text-secondary-700 hover:bg-surface-hover rounded-xl transition-colors"
                     {...preserveState}
                 >
                     {trans('previous')}
                 </Link>
             ) : (
-                <span className="px-3 py-2 text-sm text-secondary-300 cursor-not-allowed">
+                <span className="min-w-[40px] h-10 px-3 flex items-center justify-center text-sm font-semibold text-secondary-300 cursor-not-allowed">
                     {trans('previous')}
                 </span>
             )}
@@ -47,10 +47,10 @@ export default function Pagination({ meta, links: routeLinks }) {
             {/* First page + ellipsis */}
             {start > 1 && (
                 <>
-                    <Link href={buildUrl(1)} className="px-3 py-2 text-sm text-secondary-700 hover:bg-surface rounded-lg transition-colors" {...preserveState}>
+                    <Link href={buildUrl(1)} className="min-w-[40px] h-10 px-3 flex items-center justify-center text-sm font-semibold text-secondary-700 hover:bg-surface-hover rounded-xl transition-colors" {...preserveState}>
                         1
                     </Link>
-                    {start > 2 && <span className="px-2 text-secondary-400 text-sm">...</span>}
+                    {start > 2 && <span className="min-w-[40px] h-10 px-2 flex items-center justify-center text-secondary-400 text-sm">...</span>}
                 </>
             )}
 
@@ -59,10 +59,10 @@ export default function Pagination({ meta, links: routeLinks }) {
                 <Link
                     key={page}
                     href={buildUrl(page)}
-                    className={`px-3 py-2 text-sm rounded-lg transition-colors ${
+                    className={`min-w-[40px] h-10 px-3 flex items-center justify-center text-sm font-semibold rounded-xl transition-all duration-200 ${
                         page === current_page
-                            ? 'bg-primary-900 text-white'
-                            : 'text-secondary-700 hover:bg-surface'
+                            ? 'bg-primary-900 text-white shadow-sm'
+                            : 'text-secondary-700 hover:bg-surface-hover'
                     }`}
                     {...preserveState}
                 >
@@ -73,8 +73,8 @@ export default function Pagination({ meta, links: routeLinks }) {
             {/* Last page + ellipsis */}
             {end < last_page && (
                 <>
-                    {end < last_page - 1 && <span className="px-2 text-secondary-400 text-sm">...</span>}
-                    <Link href={buildUrl(last_page)} className="px-3 py-2 text-sm text-secondary-700 hover:bg-surface rounded-lg transition-colors" {...preserveState}>
+                    {end < last_page - 1 && <span className="min-w-[40px] h-10 px-2 flex items-center justify-center text-secondary-400 text-sm">...</span>}
+                    <Link href={buildUrl(last_page)} className="min-w-[40px] h-10 px-3 flex items-center justify-center text-sm font-semibold text-secondary-700 hover:bg-surface-hover rounded-xl transition-colors" {...preserveState}>
                         {last_page}
                     </Link>
                 </>
@@ -84,13 +84,13 @@ export default function Pagination({ meta, links: routeLinks }) {
             {current_page < last_page ? (
                 <Link
                     href={buildUrl(current_page + 1)}
-                    className="px-3 py-2 text-sm text-secondary-700 hover:bg-surface rounded-lg transition-colors"
+                    className="min-w-[40px] h-10 px-3 flex items-center justify-center text-sm font-semibold text-secondary-700 hover:bg-surface-hover rounded-xl transition-colors"
                     {...preserveState}
                 >
                     {trans('next')}
                 </Link>
             ) : (
-                <span className="px-3 py-2 text-sm text-secondary-300 cursor-not-allowed">
+                <span className="min-w-[40px] h-10 px-3 flex items-center justify-center text-sm font-semibold text-secondary-300 cursor-not-allowed">
                     {trans('next')}
                 </span>
             )}

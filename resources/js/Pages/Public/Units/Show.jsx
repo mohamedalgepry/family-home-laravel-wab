@@ -120,11 +120,11 @@ export default function UnitShow({ unit, similarUnits }) {
                         <p className="text-muted text-sm">{trans('no_results')}</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-10">
                         {/* Main Content */}
-                        <div className="lg:col-span-2 space-y-6">
+                        <div className="lg:col-span-2 space-y-8">
                             {/* Gallery */}
-                            <div className="bg-white rounded-xl shadow-card overflow-hidden relative group">
+                            <div className="bg-white rounded-3xl shadow-sm border border-secondary-100 overflow-hidden relative group">
                                 <div className="relative overflow-hidden">
                                     <img
                                         src={thumbnail}
@@ -191,7 +191,7 @@ export default function UnitShow({ unit, similarUnits }) {
                                 </div>
 
                                 {images.length > 1 && (
-                                    <div className="flex gap-2 p-3 overflow-x-auto bg-slate-50 border-t border-secondary-100">
+                                    <div className="flex gap-3 p-4 overflow-x-auto bg-surface/50 border-t border-secondary-100">
                                         {images.map((img, i) => (
                                             <img
                                                 key={i}
@@ -212,7 +212,7 @@ export default function UnitShow({ unit, similarUnits }) {
 
                             {/* Video */}
                             {unit.video_url && (
-                                <div className="bg-white rounded-xl shadow-card overflow-hidden aspect-video">
+                                <div className="bg-white rounded-3xl shadow-sm border border-secondary-100 overflow-hidden aspect-video relative group">
                                     {embedUrl ? (
                                         <iframe
                                             src={embedUrl}
@@ -235,19 +235,29 @@ export default function UnitShow({ unit, similarUnits }) {
                             )}
 
                             {/* Unit Details */}
-                            <div className="bg-white rounded-xl shadow-card p-6">
-                                <h1 className="text-2xl font-bold text-secondary-950 mb-2">{unit.name}</h1>
-                                <p className="text-sm text-muted mb-4">
+                            <div className="bg-white rounded-3xl shadow-sm border border-secondary-100 p-6 md:p-8">
+                                <h1 className="text-3xl font-black text-secondary-950 mb-3 tracking-tight">{unit.name}</h1>
+                                <p className="text-sm font-medium text-secondary-600 mb-6 flex items-center gap-2">
+                                    <svg className="w-4 h-4 text-secondary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    </svg>
                                     {(locale === 'ar' ? unit.area?.name_ar : unit.area?.name_en) || ''}
-                                    {unit.type ? ` · ${locale === 'ar' ? unit.type.name_ar : unit.type.name_en}` : ''}
+                                    {unit.type && (
+                                        <>
+                                            <span className="text-secondary-400 mx-1">•</span>
+                                            {locale === 'ar' ? unit.type.name_ar : unit.type.name_en}
+                                        </>
+                                    )}
                                 </p>
 
-                                <p className="text-3xl font-bold text-primary-900 mb-6">
-                                    {Number(unit.price).toLocaleString(locale === 'ar' ? 'ar-SA' : 'en-US')}
-                                    <span className="text-base text-muted font-normal me-2">
-                                        {trans(unit.transaction === 'rent' ? 'rent' : 'sale', {}, 'units')}
-                                    </span>
-                                </p>
+                                <div className="p-4 bg-primary-50 rounded-2xl mb-8 border border-primary-100 inline-block">
+                                    <p className="text-3xl md:text-4xl font-black text-primary-900 flex items-baseline gap-2">
+                                        {Number(unit.price).toLocaleString(locale === 'ar' ? 'ar-SA' : 'en-US')}
+                                        <span className="text-sm font-bold text-primary-700 uppercase tracking-wider">
+                                            {trans(unit.transaction === 'rent' ? 'rent' : 'sale', {}, 'units')}
+                                        </span>
+                                    </p>
+                                </div>
 
                                 <div className="flex flex-wrap gap-2 mb-6">
                                     {unit.payment_method && (
@@ -381,8 +391,8 @@ export default function UnitShow({ unit, similarUnits }) {
                             )}
 
                             {/* Contact Form */}
-                            <div className="bg-white rounded-xl shadow-card p-6">
-                                <h3 className="text-lg font-semibold text-secondary-950 mb-4">{trans('contact_agent', {}, 'units')}</h3>
+                            <div className="bg-white rounded-3xl shadow-sm border border-secondary-100 p-6 md:p-8">
+                                <h3 className="text-xl font-bold text-secondary-950 mb-6">{trans('contact_agent', {}, 'units')}</h3>
                                 
                                 {(sentSuccess || flash?.success) && (
                                     <div className="mb-4 p-4 bg-green-50 border border-green-200 text-green-800 rounded-xl text-sm font-medium transition-all">
@@ -450,9 +460,12 @@ export default function UnitShow({ unit, similarUnits }) {
 
                 {/* Similar Units */}
                 {similarUnits?.length > 0 && (
-                    <section className="mt-12">
-                        <h2 className="text-xl font-bold text-secondary-950 mb-6">{trans('similar_units', {}, 'units')}</h2>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <section className="mt-16 bg-white rounded-3xl shadow-sm border border-secondary-100 p-6 sm:p-10">
+                        <div className="flex items-center gap-3 mb-8">
+                            <div className="w-1.5 h-6 bg-primary-600 rounded-full"></div>
+                            <h2 className="text-2xl md:text-3xl font-black text-secondary-950 tracking-tight">{trans('similar_units', {}, 'units')}</h2>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                             {similarUnits.map(u => (
                                 <UnitCard key={u.id} unit={u} />
                             ))}

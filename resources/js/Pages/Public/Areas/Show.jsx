@@ -76,11 +76,11 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                             )}
                             
                             <div className="flex items-center gap-6 md:gap-10">
-                                <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 md:px-8 md:py-5 text-center">
+                                <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-4 md:px-8 md:py-5 text-center">
                                     <div className="text-3xl md:text-4xl font-black text-white">{projectsCount}</div>
                                     <div className="text-xs md:text-sm text-white/80 font-bold uppercase tracking-wider mt-1">{trans('projects')}</div>
                                 </div>
-                                <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 md:px-8 md:py-5 text-center">
+                                <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-4 md:px-8 md:py-5 text-center">
                                     <div className="text-3xl md:text-4xl font-black text-white">{unitsCount}</div>
                                     <div className="text-xs md:text-sm text-white/80 font-bold uppercase tracking-wider mt-1">{trans('units')}</div>
                                 </div>
@@ -104,7 +104,7 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                 <section className="max-w-container mx-auto px-4 py-12 md:py-20">
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16">
                         <div className="lg:col-span-7 space-y-6">
-                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FFE3E3] text-[#CC0000] text-xs font-bold mb-2">
+                            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-50 text-primary-900 text-xs font-bold mb-2 border border-primary-100">
                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
@@ -144,8 +144,8 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                                             const fDesc = isRtl ? feature.description_ar : (feature.description_en || feature.description_ar)
                                             return (
                                                 <div key={idx} className="flex gap-4">
-                                                    <div className="shrink-0 w-12 h-12 rounded-xl bg-[#FFF5F5] flex items-center justify-center text-[#CC0000]">
-                                                        <IconByName iconName={feature.icon_name} className="w-6 h-6" />
+                                                    <div className="shrink-0 w-14 h-14 rounded-2xl bg-primary-50 flex items-center justify-center text-primary-800">
+                                                        <IconByName iconName={feature.icon_name} className="w-7 h-7" />
                                                     </div>
                                                     <div>
                                                         <h4 className="text-lg font-bold text-secondary-950 mb-1">{fTitle}</h4>
@@ -175,7 +175,7 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                                     onClick={() => setActiveTab('projects')}
                                     className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
                                         activeTab === 'projects'
-                                            ? 'bg-[#CC0000] text-white shadow-md'
+                                            ? 'bg-primary-900 text-white shadow-md'
                                             : 'text-secondary-600 hover:text-secondary-900 hover:bg-secondary-50'
                                     }`}
                                 >
@@ -185,7 +185,7 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                                     onClick={() => setActiveTab('units')}
                                     className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
                                         activeTab === 'units'
-                                            ? 'bg-[#CC0000] text-white shadow-md'
+                                            ? 'bg-primary-900 text-white shadow-md'
                                             : 'text-secondary-600 hover:text-secondary-900 hover:bg-secondary-50'
                                     }`}
                                 >
@@ -247,16 +247,16 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                                     area.nearbyPlaces.filter(p => p.is_active).sort((a,b)=>a.sort_order-b.sort_order).map((place, idx) => {
                                         const pName = isRtl ? place.name_ar : (place.name_en || place.name_ar)
                                         return (
-                                            <div key={idx} className="flex items-center justify-between bg-white p-4 rounded-2xl border border-secondary-100 shadow-sm hover:border-[#CC0000] transition-colors">
+                                            <div key={idx} className="flex items-center justify-between bg-white p-4 rounded-3xl border border-secondary-100 shadow-sm hover:border-primary-400 hover:shadow-md transition-all">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-full bg-secondary-50 flex items-center justify-center text-secondary-600">
-                                                        <IconByName iconName={place.icon_name} className="w-5 h-5" />
+                                                    <div className="w-12 h-12 rounded-full bg-secondary-50 flex items-center justify-center text-secondary-600">
+                                                        <IconByName iconName={place.icon_name} className="w-6 h-6" />
                                                     </div>
                                                     <span className="font-bold text-secondary-900">{pName}</span>
                                                 </div>
                                                 {place.distance && (
-                                                    <div className="flex flex-col items-end">
-                                                        <span className="text-lg font-black text-[#CC0000] leading-none">{place.distance}</span>
+                                                    <div className="flex flex-col items-end px-2">
+                                                        <span className="text-xl font-black text-primary-800 leading-none">{place.distance}</span>
                                                         <span className="text-xs text-secondary-500 font-bold">{place.distance_unit}</span>
                                                     </div>
                                                 )}
@@ -327,13 +327,13 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                                     const a = isRtl ? faq.answer_ar : (faq.answer_en || faq.answer_ar)
                                     const isOpen = openFaq === idx
                                     return (
-                                        <div key={idx} className={`border border-secondary-200 rounded-2xl overflow-hidden transition-colors ${isOpen ? 'border-[#CC0000] bg-white shadow-md' : 'bg-surface hover:bg-white hover:border-secondary-300'}`}>
-                                            <button onClick={() => toggleFaq(idx)} className="w-full flex items-center justify-between p-6 text-left focus:outline-none">
-                                                <span className={`font-bold text-lg ${isOpen ? 'text-[#CC0000]' : 'text-secondary-900'}`}>{q}</span>
-                                                <svg className={`w-5 h-5 transition-transform duration-300 ${isOpen ? 'rotate-180 text-[#CC0000]' : 'text-secondary-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                                        <div key={idx} className={`border border-secondary-200 rounded-3xl overflow-hidden transition-colors ${isOpen ? 'border-primary-600 bg-white shadow-sm' : 'bg-surface hover:bg-white hover:border-secondary-300'}`}>
+                                            <button onClick={() => toggleFaq(idx)} className="w-full flex items-center justify-between p-6 md:p-8 text-left focus:outline-none">
+                                                <span className={`font-bold text-lg md:text-xl ${isOpen ? 'text-primary-800' : 'text-secondary-950'}`}>{q}</span>
+                                                <svg className={`w-6 h-6 transition-transform duration-300 ${isOpen ? 'rotate-180 text-primary-800' : 'text-secondary-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
                                             </button>
                                             <div className={`overflow-hidden transition-all duration-300 ${isOpen ? 'max-h-96' : 'max-h-0'}`}>
-                                                <div className="p-6 pt-0 text-secondary-600 font-medium leading-relaxed">
+                                                <div className="p-6 md:p-8 pt-0 text-secondary-600 font-medium leading-relaxed text-sm md:text-base">
                                                     {a}
                                                 </div>
                                             </div>
