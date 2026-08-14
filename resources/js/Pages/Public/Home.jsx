@@ -135,19 +135,20 @@ export default function Home({ featuredUnits, latestUnits, latestProjects, popul
                             {areas.map(area => {
                                 const areaName = isRtl ? (area.name_ar || area.name_en || area.name) : (area.name_en || area.name_ar || area.name)
                                 const areaSlug = area.slug || area.id
-                                const areaImg = getStorageUrl(area.hero_image || area.image_path || `areas/${areaSlug}.jpg`, '/images/fallback.webp')
+                                const areaImg = getStorageUrl(area.image_path || area.hero_image)
                                 return (
                                     <Link
                                         key={area.id}
                                         href={localizedPath(`/areas/${areaSlug}`, locale)}
-                                        className="group relative shrink-0 w-[180px] md:w-auto h-[240px] bg-secondary-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 snap-center"
+                                        className="group relative shrink-0 w-[180px] md:w-auto h-[240px] bg-secondary-900 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 snap-center"
                                     >
-                                        <img 
-                                            src={areaImg}
-                                            onError={(e) => { e.target.src = '/images/fallback.webp' }}
-                                            alt={areaName}
-                                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                                        />
+                                        {areaImg && (
+                                            <img 
+                                                src={areaImg}
+                                                alt={areaName}
+                                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                            />
+                                        )}
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent"></div>
                                         <div className="absolute bottom-0 left-0 right-0 p-4 text-start">
                                             <h3 className="text-white font-bold text-base mb-1">{areaName}</h3>

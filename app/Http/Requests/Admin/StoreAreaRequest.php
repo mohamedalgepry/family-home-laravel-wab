@@ -48,10 +48,10 @@ class StoreAreaRequest extends FormRequest
             'hero_title_en' => 'nullable|string|max:255',
             'hero_description_ar' => 'nullable|string',
             'hero_description_en' => 'nullable|string',
-            'image_path' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
-            'hero_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
+            'image_path' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:20480',
+            'hero_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:20480',
             'gallery' => 'nullable|array',
-            'gallery.*' => 'image|mimes:jpeg,png,jpg,webp|max:5120',
+            'gallery.*' => 'image|mimes:jpeg,png,jpg,webp|max:20480',
             
             'about_ar' => 'nullable|string',
             'about_en' => 'nullable|string',
@@ -112,6 +112,18 @@ class StoreAreaRequest extends FormRequest
             'faqs.*.answer_en' => 'nullable|string',
             'faqs.*.sort_order' => 'nullable|integer',
             'faqs.*.is_active' => 'boolean',
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'image_path.max' => 'حجم الصورة يجب ألا يتجاوز 20 ميجابايت.',
+            'image_path.image' => 'الملف المرفوع يجب أن يكون صورة صالحة.',
+            'image_path.mimes' => 'صيغة الصورة يجب أن تكون: JPG, JPEG, PNG, أو WebP.',
+            'features.*.title_ar.required_with' => 'حقل عنوان الميزة (عربي) مطلوب.',
+            'nearby_places.*.name_ar.required_with' => 'حقل اسم المكان القريب (عربي) مطلوب.',
+            'faqs.*.question_ar.required_with' => 'حقل السؤال (عربي) مطلوب.',
         ];
     }
 }

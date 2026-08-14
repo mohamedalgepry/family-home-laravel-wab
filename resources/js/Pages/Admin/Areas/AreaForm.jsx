@@ -115,6 +115,17 @@ export default function AreaForm({ area, parents, mode = 'create' }) {
             delete payload.image_path
         }
 
+        // Filter out empty dynamic items so they don't trigger validation errors
+        if (Array.isArray(payload.features)) {
+            payload.features = payload.features.filter(f => f.title_ar && f.title_ar.trim() !== '')
+        }
+        if (Array.isArray(payload.nearby_places)) {
+            payload.nearby_places = payload.nearby_places.filter(p => p.name_ar && p.name_ar.trim() !== '')
+        }
+        if (Array.isArray(payload.faqs)) {
+            payload.faqs = payload.faqs.filter(f => f.question_ar && f.question_ar.trim() !== '')
+        }
+
         const options = {
             forceFormData: true,
             preserveScroll: true,
@@ -316,7 +327,7 @@ export default function AreaForm({ area, parents, mode = 'create' }) {
                                             <p className="text-sm font-bold text-secondary-700 mb-1">
                                                 {isRtl ? 'اسحب الصورة هنا أو انقر للاختيار' : 'Drag image here or click to select'}
                                             </p>
-                                            <p className="text-xs text-secondary-400">{isRtl ? 'JPG، PNG، WebP — حتى 5 ميجا' : 'JPG, PNG, WebP — up to 5MB'}</p>
+                                            <p className="text-xs text-secondary-400">{isRtl ? 'JPG، PNG، WebP — حتى 20 ميجا' : 'JPG, PNG, WebP — up to 20MB'}</p>
                                         </div>
                                     )}
 
