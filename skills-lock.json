@@ -1,11 +1,23 @@
 {
   "version": 1,
   "skills": {
+    "clean-code-guard": {
+      "source": "amElnagdy/guard-skills",
+      "sourceType": "github",
+      "skillPath": "skills/clean-code-guard/SKILL.md",
+      "computedHash": "4dc02501857f29bb42d740b1d01124a99a1621762562750ef5bc00d6229715e2"
+    },
     "code-review": {
       "source": "mattpocock/skills",
       "sourceType": "github",
       "skillPath": "skills/engineering/code-review/SKILL.md",
       "computedHash": "591a274f7be02c24da6628b464b66be44c351adfccd7e8c12f550715c695e3fe"
+    },
+    "docs-guard": {
+      "source": "amElnagdy/guard-skills",
+      "sourceType": "github",
+      "skillPath": "skills/docs-guard/SKILL.md",
+      "computedHash": "8e00b56420b02eaf32e2f38872f47cf26deb566243d400da04b8edd9131f6042"
     },
     "e2e-ui-fix": {
       "source": "kubrickcode/ai-config-toolkit",
@@ -60,6 +72,24 @@
       "sourceType": "github",
       "skillPath": "skills/seo-schema/SKILL.md",
       "computedHash": "040a9873e606203293302d54e6ca0794497935a6699d1085bf7a062d51903b11"
+    },
+    "test-guard": {
+      "source": "amElnagdy/guard-skills",
+      "sourceType": "github",
+      "skillPath": "skills/test-guard/SKILL.md",
+      "computedHash": "1822498db8c41906ee9eb12c76018a9645e1979fbb5d0335fe27c113b5593330"
+    },
+    "woo-guard": {
+      "source": "amElnagdy/guard-skills",
+      "sourceType": "github",
+      "skillPath": "skills/woo-guard/SKILL.md",
+      "computedHash": "77b3a00a59779d496eb0e0cd63efba2008693b4c985c11aa169e0628060846c1"
+    },
+    "wp-guard": {
+      "source": "amElnagdy/guard-skills",
+      "sourceType": "github",
+      "skillPath": "skills/wp-guard/SKILL.md",
+      "computedHash": "e60fd3c456568e467f5217e45c1e0ed35d95cbaab331e4b86547fe01a4bf85c2"
     }
   }
 }
