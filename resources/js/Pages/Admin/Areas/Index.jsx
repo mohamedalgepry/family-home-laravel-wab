@@ -116,12 +116,12 @@ export default function AdminAreasIndex({ areas, filters }) {
                                 )}
                                 {areas?.data?.map(area => (
                                     <tr key={area.id} className="hover:bg-surface/50 transition-colors group">
-                                        <td className="px-6 py-4">
-                                            {area.hero_image ? (
-                                                <img src={`/storage/${area.hero_image}`} alt={area.name_ar} className="w-16 h-12 rounded-lg object-cover border border-secondary-200" />
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            {area.image_path || area.hero_image ? (
+                                                <img src={`/storage/${area.image_path || area.hero_image}`} alt={area.name_ar} className="w-16 h-12 rounded-lg object-cover border border-secondary-200" />
                                             ) : (
                                                 <div className="w-16 h-12 rounded-lg bg-secondary-100 flex items-center justify-center border border-secondary-200">
-                                                    <svg className="w-5 h-5 text-secondary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <svg className="w-6 h-6 text-secondary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                                     </svg>
                                                 </div>

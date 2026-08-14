@@ -59,6 +59,11 @@ class AreaController extends Controller
         $validated = $request->validated();
         $validated['slug'] = Str::slug($validated['name_en'] ?? $validated['name_ar']);
 
+        // Handle Image Path (Card Image)
+        if ($request->hasFile('image_path')) {
+            $validated['image_path'] = $request->file('image_path')->store('areas/cards', 'public');
+        }
+
         // Handle Hero Image
         if ($request->hasFile('hero_image')) {
             $validated['hero_image'] = $request->file('hero_image')->store('areas/hero', 'public');
@@ -106,12 +111,24 @@ class AreaController extends Controller
             $validated['slug'] = Str::slug($validated['name_en'] ?? $validated['name_ar']);
         }
 
+        // Handle Image Path (Card Image)
+        if ($request->hasFile('image_path')) {
+            if ($area->image_path) {
+                Storage::disk('public')->delete($area->image_path);
+            }
+            $validated['image_path'] = $request->file('image_path')->store('areas/cards', 'public');
+        } else {
+            unset($validated['image_path']);
+        }
+
         // Handle Hero Image
         if ($request->hasFile('hero_image')) {
             if ($area->hero_image) {
                 Storage::disk('public')->delete($area->hero_image);
             }
             $validated['hero_image'] = $request->file('hero_image')->store('areas/hero', 'public');
+        } else {
+            unset($validated['hero_image']);
         }
 
         // Handle Gallery (append or replace? For simplicity, replace if new files provided)
@@ -126,6 +143,8 @@ class AreaController extends Controller
                 $gallery[] = $file->store('areas/gallery', 'public');
             }
             $validated['gallery'] = $gallery;
+        } else {
+            unset($validated['gallery']);
         }
 
         $area->update($validated);
