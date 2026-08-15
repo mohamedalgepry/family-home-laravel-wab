@@ -57,3 +57,22 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+# Debug and test scripts/artifacts
+fix_area_images_db.php
+populate_all_areas.php
+replace_area_form.cjs
+replace_show.cjs
+test_area_upload.php
+test_resolver.php
+test_short_url.php
+test_short_url_full.php
+test_url.php
+test_validation.php
+html_output.html
+units_resp.html
+project_page.html
+maps_response.html
+test_curl_output.txt
+test_curl_output_full.txt
+query
