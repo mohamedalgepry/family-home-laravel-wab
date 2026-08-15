@@ -60,6 +60,17 @@ Route::get('/storage/{path}', function ($path) {
         }
     }
 
+    // إرجاع صورة احتياطية في حال كان ملف الصورة غير موجود على السيرفر لمنع خطأ 404
+    if (preg_match('/\.(jpg|jpeg|png|webp|gif|svg)$/i', $path)) {
+        $fallback = public_path('images/fallback.webp');
+        if (file_exists($fallback)) {
+            return response()->file($fallback, [
+                'Content-Type' => 'image/webp',
+                'Cache-Control' => 'no-cache, private',
+            ]);
+        }
+    }
+
     abort(404);
 })->where('path', '.*');
 
