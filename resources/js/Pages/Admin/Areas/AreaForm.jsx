@@ -3,6 +3,9 @@ import { useTrans } from '../../../Utils/trans'
 import { getStorageUrl } from '../../../Utils/image'
 import { useState, useRef, useCallback } from 'react'
 
+const MAX_KEYWORDS = 25
+
+
 export default function AreaForm({ area, parents, mode = 'create' }) {
     const { locale, errors, flash } = usePage().props
     const trans = useTrans(locale)
@@ -39,13 +42,94 @@ export default function AreaForm({ area, parents, mode = 'create' }) {
         meta_title_en: area?.meta_title_en || '',
         meta_description_ar: area?.meta_description_ar || '',
         meta_description_en: area?.meta_description_en || '',
-        meta_keywords_ar: Array.isArray(area?.meta_keywords_ar) ? area.meta_keywords_ar.join(', ') : (area?.meta_keywords_ar || ''),
-        meta_keywords_en: Array.isArray(area?.meta_keywords_en) ? area.meta_keywords_en.join(', ') : (area?.meta_keywords_en || ''),
+        meta_keywords_ar: Array.isArray(area?.meta_keywords_ar)
+            ? area.meta_keywords_ar
+            : (area?.meta_keywords_ar ? area.meta_keywords_ar.split(',').map(k => k.trim()).filter(Boolean) : []),
+        meta_keywords_en: Array.isArray(area?.meta_keywords_en)
+            ? area.meta_keywords_en
+            : (area?.meta_keywords_en ? area.meta_keywords_en.split(',').map(k => k.trim()).filter(Boolean) : []),
         
         features: area?.features || [],
         nearby_places: area?.nearbyPlaces || [],
         faqs: area?.faqs || [],
     })
+
+    // Keyword tag state
+    const [keywordInputAr, setKeywordInputAr] = useState('')
+    const [keywordInputEn, setKeywordInputEn] = useState('')
+    const [kwWarningAr, setKwWarningAr] = useState(false)
+    const [kwWarningEn, setKwWarningEn] = useState(false)
+
+    function parseKeywords(text) {
+        if (!text) return []
+        return text
+            .split(/[,،;.\n]+/)
+            .map(s => s.trim())
+            .filter(s => s.length > 0)
+    }
+
+    function addKeywordAr() {
+        if (!keywordInputAr.trim()) return
+        const parsed = parseKeywords(keywordInputAr)
+        if (parsed.length > 0) {
+            const existing = new Set(data.meta_keywords_ar)
+            const toAdd = parsed.filter(k => !existing.has(k))
+            const available = MAX_KEYWORDS - data.meta_keywords_ar.length
+            if (available <= 0) {
+                setKwWarningAr(true)
+                setKeywordInputAr('')
+                return
+            }
+            const limited = toAdd.slice(0, available)
+            setKwWarningAr(toAdd.length > available)
+            if (limited.length > 0) {
+                setData('meta_keywords_ar', [...data.meta_keywords_ar, ...limited])
+            }
+        }
+        setKeywordInputAr('')
+    }
+
+    function removeKeywordAr(kw) {
+        setData('meta_keywords_ar', data.meta_keywords_ar.filter(k => k !== kw))
+        setKwWarningAr(false)
+    }
+
+    function clearKeywordsAr() {
+        setData('meta_keywords_ar', [])
+        setKwWarningAr(false)
+    }
+
+    function addKeywordEn() {
+        if (!keywordInputEn.trim()) return
+        const parsed = parseKeywords(keywordInputEn)
+        if (parsed.length > 0) {
+            const existing = new Set(data.meta_keywords_en)
+            const toAdd = parsed.filter(k => !existing.has(k))
+            const available = MAX_KEYWORDS - data.meta_keywords_en.length
+            if (available <= 0) {
+                setKwWarningEn(true)
+                setKeywordInputEn('')
+                return
+            }
+            const limited = toAdd.slice(0, available)
+            setKwWarningEn(toAdd.length > available)
+            if (limited.length > 0) {
+                setData('meta_keywords_en', [...data.meta_keywords_en, ...limited])
+            }
+        }
+        setKeywordInputEn('')
+    }
+
+    function removeKeywordEn(kw) {
+        setData('meta_keywords_en', data.meta_keywords_en.filter(k => k !== kw))
+        setKwWarningEn(false)
+    }
+
+    function clearKeywordsEn() {
+        setData('meta_keywords_en', [])
+        setKwWarningEn(false)
+    }
+
 
     // Image upload state
     const [imagePreview, setImagePreview] = useState(null)
@@ -108,12 +192,13 @@ export default function AreaForm({ area, parents, mode = 'create' }) {
         if (isSubmitting) return
 
         const payload = { ...data }
-        payload.meta_keywords_ar = typeof data.meta_keywords_ar === 'string' 
-            ? data.meta_keywords_ar.split(',').map(k => k.trim()).filter(Boolean) 
-            : data.meta_keywords_ar
-        payload.meta_keywords_en = typeof data.meta_keywords_en === 'string' 
-            ? data.meta_keywords_en.split(',').map(k => k.trim()).filter(Boolean) 
-            : data.meta_keywords_en
+        // meta_keywords_ar/en are already arrays — send directly
+        if (!Array.isArray(payload.meta_keywords_ar)) {
+            payload.meta_keywords_ar = []
+        }
+        if (!Array.isArray(payload.meta_keywords_en)) {
+            payload.meta_keywords_en = []
+        }
 
         if (payload.parent_id === '' || payload.parent_id === undefined) {
             payload.parent_id = null
@@ -647,23 +732,141 @@ export default function AreaForm({ area, parents, mode = 'create' }) {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label className={labelClasses}>{isRtl ? 'وصف الـ Meta (عربي)' : 'Meta Description (AR)'}</label>
-                                    <textarea rows={3} value={data.meta_description_ar} onChange={e => setData('meta_description_ar', e.target.value)} dir="rtl" className={inputClasses} />
+                                    <textarea rows={3} value={data.meta_description_ar} onChange={e => setData('meta_description_ar', e.target.value)} dir="rtl" maxLength={500} className={inputClasses} />
+                                    <p className={`text-xs mt-1 text-end ${data.meta_description_ar.length >= 480 ? 'text-red-500 font-semibold' : 'text-secondary-400'}`}>
+                                        {data.meta_description_ar.length} / 500
+                                    </p>
                                 </div>
                                 <div>
                                     <label className={labelClasses}>{isRtl ? 'وصف الـ Meta (إنجليزي)' : 'Meta Description (EN)'}</label>
-                                    <textarea rows={3} value={data.meta_description_en} onChange={e => setData('meta_description_en', e.target.value)} dir="ltr" className={inputClasses} />
+                                    <textarea rows={3} value={data.meta_description_en} onChange={e => setData('meta_description_en', e.target.value)} dir="ltr" maxLength={500} className={inputClasses} />
+                                    <p className={`text-xs mt-1 text-end ${data.meta_description_en.length >= 480 ? 'text-red-500 font-semibold' : 'text-secondary-400'}`}>
+                                        {data.meta_description_en.length} / 500
+                                    </p>
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label className={labelClasses}>{isRtl ? 'الكلمات المفتاحية (عربي)' : 'Meta Keywords (AR)'}</label>
-                                    <input type="text" value={data.meta_keywords_ar} onChange={e => setData('meta_keywords_ar', e.target.value)} dir="rtl" placeholder="عقارات, شقق, مشاريع" className={inputClasses} />
+                            {/* Keywords AR */}
+                            <div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <label className={labelClasses}>
+                                        {isRtl ? 'الكلمات المفتاحية (عربي)' : 'Meta Keywords (AR)'}
+                                        <span className={`text-xs font-normal ms-2 ${data.meta_keywords_ar.length >= MAX_KEYWORDS ? 'text-red-500' : 'text-secondary-400'}`}>
+                                            {data.meta_keywords_ar.length} / {MAX_KEYWORDS}
+                                        </span>
+                                    </label>
+                                    {data.meta_keywords_ar.length > 0 && (
+                                        <button type="button" onClick={clearKeywordsAr} className="text-xs text-red-600 hover:text-red-700 font-medium transition-colors">
+                                            {isRtl ? 'تفريغ الكل' : 'Clear All'}
+                                        </button>
+                                    )}
                                 </div>
-                                <div>
-                                    <label className={labelClasses}>{isRtl ? 'الكلمات المفتاحية (إنجليزي)' : 'Meta Keywords (EN)'}</label>
-                                    <input type="text" value={data.meta_keywords_en} onChange={e => setData('meta_keywords_en', e.target.value)} dir="ltr" placeholder="real estate, projects" className={inputClasses} />
+                                <div className="flex gap-2 mb-2">
+                                    <textarea
+                                        value={keywordInputAr}
+                                        onChange={e => { setKeywordInputAr(e.target.value); setKwWarningAr(false) }}
+                                        onKeyDown={e => {
+                                            if (e.key === 'Enter' && !e.shiftKey) {
+                                                e.preventDefault()
+                                                addKeywordAr()
+                                            }
+                                        }}
+                                        rows={2}
+                                        dir="rtl"
+                                        disabled={data.meta_keywords_ar.length >= MAX_KEYWORDS}
+                                        placeholder={data.meta_keywords_ar.length >= MAX_KEYWORDS
+                                            ? (isRtl ? 'وصلت للحد الأقصى 25 كلمة' : 'Max 25 keywords reached')
+                                            : (isRtl ? 'الصق الكلمات مفصولة بفاصلة أو سطر جديد...' : 'Paste keywords separated by commas or newlines...')}
+                                        className="flex-1 px-3 py-2 border border-secondary-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 resize-y disabled:opacity-50 disabled:cursor-not-allowed"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={addKeywordAr}
+                                        disabled={data.meta_keywords_ar.length >= MAX_KEYWORDS}
+                                        className="px-4 py-2 bg-[#CC0000] text-white rounded-xl text-sm font-medium hover:bg-[#B00000] transition-colors self-end h-10 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {isRtl ? 'إضافة' : 'Add'}
+                                    </button>
                                 </div>
+                                {kwWarningAr && (
+                                    <p className="text-xs text-red-500 mb-2">
+                                        {isRtl ? 'وصلت للحد الأقصى ٢٥ كلمة مفتاحية' : 'Max 25 keywords reached'}
+                                    </p>
+                                )}
+                                {data.meta_keywords_ar.length > 0 && (
+                                    <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto p-2.5 border border-secondary-200 rounded-xl bg-[#F5F5F5]">
+                                        {data.meta_keywords_ar.map(kw => (
+                                            <span key={kw} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white text-xs font-medium text-secondary-800 rounded-lg border border-secondary-200 shadow-sm group hover:border-red-300 transition-colors">
+                                                {kw}
+                                                <button type="button" onClick={() => removeKeywordAr(kw)} className="text-secondary-400 group-hover:text-red-600 text-sm font-bold leading-none">&times;</button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+                                {errors.meta_keywords_ar && <p className={errorClasses}>{errors.meta_keywords_ar}</p>}
+                            </div>
+
+                            {/* Keywords EN */}
+                            <div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <label className={labelClasses}>
+                                        {isRtl ? 'الكلمات المفتاحية (إنجليزي)' : 'Meta Keywords (EN)'}
+                                        <span className={`text-xs font-normal ms-2 ${data.meta_keywords_en.length >= MAX_KEYWORDS ? 'text-red-500' : 'text-secondary-400'}`}>
+                                            {data.meta_keywords_en.length} / {MAX_KEYWORDS}
+                                        </span>
+                                    </label>
+                                    {data.meta_keywords_en.length > 0 && (
+                                        <button type="button" onClick={clearKeywordsEn} className="text-xs text-red-600 hover:text-red-700 font-medium transition-colors">
+                                            {isRtl ? 'تفريغ الكل' : 'Clear All'}
+                                        </button>
+                                    )}
+                                </div>
+                                <div className="flex gap-2 mb-2">
+                                    <textarea
+                                        value={keywordInputEn}
+                                        onChange={e => { setKeywordInputEn(e.target.value); setKwWarningEn(false) }}
+                                        onKeyDown={e => {
+                                            if (e.key === 'Enter' && !e.shiftKey) {
+                                                e.preventDefault()
+                                                addKeywordEn()
+                                            }
+                                        }}
+                                        rows={2}
+                                        dir="ltr"
+                                        disabled={data.meta_keywords_en.length >= MAX_KEYWORDS}
+                                        placeholder={data.meta_keywords_en.length >= MAX_KEYWORDS
+                                            ? 'Max 25 keywords reached'
+                                            : 'Paste keywords separated by commas or newlines...'}
+                                        className="flex-1 px-3 py-2 border border-secondary-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 resize-y disabled:opacity-50 disabled:cursor-not-allowed"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={addKeywordEn}
+                                        disabled={data.meta_keywords_en.length >= MAX_KEYWORDS}
+                                        className="px-4 py-2 bg-[#CC0000] text-white rounded-xl text-sm font-medium hover:bg-[#B00000] transition-colors self-end h-10 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        Add
+                                    </button>
+                                </div>
+                                {kwWarningEn && (
+                                    <p className="text-xs text-red-500 mb-2">
+                                        Max 25 keywords reached
+                                    </p>
+                                )}
+                                {data.meta_keywords_en.length > 0 && (
+                                    <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto p-2.5 border border-secondary-200 rounded-xl bg-[#F5F5F5]">
+                                        {data.meta_keywords_en.map(kw => (
+                                            <span key={kw} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white text-xs font-medium text-secondary-800 rounded-lg border border-secondary-200 shadow-sm group hover:border-red-300 transition-colors">
+                                                {kw}
+                                                <button type="button" onClick={() => removeKeywordEn(kw)} className="text-secondary-400 group-hover:text-red-600 text-sm font-bold leading-none">&times;</button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+                                {errors.meta_keywords_en && <p className={errorClasses}>{errors.meta_keywords_en}</p>}
+                            </div>
+
                             </div>
                         </div>
                     )}

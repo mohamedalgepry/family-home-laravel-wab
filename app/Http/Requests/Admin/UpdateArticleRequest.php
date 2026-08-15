@@ -24,7 +24,7 @@ class UpdateArticleRequest extends FormRequest
             'excerpt_ar' => 'nullable|string|max:500',
             'excerpt_en' => 'nullable|string|max:500',
             'alt_text' => 'nullable|string|max:500',
-            'keywords' => 'nullable|array',
+            'keywords' => 'nullable|array|max:25',
             'keywords.*' => 'string|max:100',
             'meta_description' => 'nullable|string|max:500',
             'is_published' => 'boolean',

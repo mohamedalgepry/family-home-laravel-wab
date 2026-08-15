@@ -210,6 +210,8 @@ export default function AdminArticlesForm({ article, categories }) {
     })
 
     const [keywordInput, setKeywordInput] = useState('')
+    const [kwWarning, setKwWarning] = useState(false)
+    const MAX_KEYWORDS = 25
 
     function parseKeywords(text) {
         if (!text) return []
@@ -225,8 +227,16 @@ export default function AdminArticlesForm({ article, categories }) {
         if (parsed.length > 0) {
             const existing = new Set(data.keywords || [])
             const toAdd = parsed.filter(k => !existing.has(k))
-            if (toAdd.length > 0) {
-                setData('keywords', [...(data.keywords || []), ...toAdd])
+            const available = MAX_KEYWORDS - (data.keywords || []).length
+            if (available <= 0) {
+                setKwWarning(true)
+                setKeywordInput('')
+                return
+            }
+            const limited = toAdd.slice(0, available)
+            setKwWarning(toAdd.length > available)
+            if (limited.length > 0) {
+                setData('keywords', [...(data.keywords || []), ...limited])
             }
         }
         setKeywordInput('')
@@ -234,10 +244,12 @@ export default function AdminArticlesForm({ article, categories }) {
 
     function removeKeyword(kw) {
         setData('keywords', (data.keywords || []).filter(k => k !== kw))
+        setKwWarning(false)
     }
 
     function clearKeywords() {
         setData('keywords', [])
+        setKwWarning(false)
     }
 
     function handleImageDelete(imageId) {
@@ -489,7 +501,9 @@ export default function AdminArticlesForm({ article, categories }) {
                             <div className="flex items-center justify-between mb-2">
                                 <label className="block text-sm font-semibold text-secondary-950">
                                     {trans('keywords')}
-                                    <span className="text-xs text-muted font-normal ms-1">({(data.keywords || []).length})</span>
+                                    <span className={`text-xs font-normal ms-1 ${(data.keywords || []).length >= MAX_KEYWORDS ? 'text-red-500' : 'text-muted'}`}>
+                                        ({(data.keywords || []).length} / {MAX_KEYWORDS})
+                                    </span>
                                 </label>
                                 {(data.keywords || []).length > 0 && (
                                     <button
@@ -505,7 +519,7 @@ export default function AdminArticlesForm({ article, categories }) {
                             <div className="flex gap-2 mb-2">
                                 <textarea
                                     value={keywordInput}
-                                    onChange={e => setKeywordInput(e.target.value)}
+                                    onChange={e => { setKeywordInput(e.target.value); setKwWarning(false) }}
                                     onKeyDown={e => {
                                         if (e.key === 'Enter' && !e.shiftKey) {
                                             e.preventDefault()
@@ -514,17 +528,27 @@ export default function AdminArticlesForm({ article, categories }) {
                                     }}
                                     rows={2}
                                     dir={isRtl ? 'rtl' : 'ltr'}
-                                    placeholder={isRtl ? 'الصق النص أو الكلمات مفصولة بفاصلة (، أو .) أو سطر جديد...' : 'Paste text or keywords separated by commas or newlines...'}
-                                    className="flex-1 px-3 py-2 border border-secondary-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 resize-y"
+                                    disabled={(data.keywords || []).length >= MAX_KEYWORDS}
+                                    placeholder={(data.keywords || []).length >= MAX_KEYWORDS
+                                        ? (isRtl ? 'وصلت للحد الأقصى 25 كلمة' : 'Max 25 keywords reached')
+                                        : (isRtl ? 'الصق النص أو الكلمات مفصولة بفاصلة (، أو .) أو سطر جديد...' : 'Paste text or keywords separated by commas or newlines...')}
+                                    className="flex-1 px-3 py-2 border border-secondary-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 resize-y disabled:opacity-50 disabled:cursor-not-allowed"
                                 />
                                 <button
                                     type="button"
                                     onClick={addKeyword}
-                                    className="px-4 py-2 bg-primary-900 text-white rounded-xl text-sm font-medium hover:bg-primary-800 transition-colors self-end h-10 shrink-0"
+                                    disabled={(data.keywords || []).length >= MAX_KEYWORDS}
+                                    className="px-4 py-2 bg-primary-900 text-white rounded-xl text-sm font-medium hover:bg-primary-800 transition-colors self-end h-10 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {trans('add')}
                                 </button>
                             </div>
+
+                            {kwWarning && (
+                                <p className="text-xs text-red-500 mb-2">
+                                    {isRtl ? 'وصلت للحد الأقصى ٢٥ كلمة مفتاحية' : 'Max 25 keywords reached'}
+                                </p>
+                            )}
 
                             {(data.keywords || []).length > 0 && (
                                 <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto p-2.5 border border-secondary-200 rounded-xl bg-surface">

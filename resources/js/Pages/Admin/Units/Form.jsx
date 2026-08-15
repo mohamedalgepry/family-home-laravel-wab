@@ -273,6 +273,9 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
 
     const [keywordInputAr, setKeywordInputAr] = useState('')
     const [keywordInputEn, setKeywordInputEn] = useState('')
+    const [kwWarningAr, setKwWarningAr] = useState(false)
+    const [kwWarningEn, setKwWarningEn] = useState(false)
+    const MAX_KEYWORDS = 25
 
     useEffect(() => {
         const handleBeforeUnload = e => {
@@ -338,8 +341,16 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
         if (parsed.length > 0) {
             const existing = new Set(data.keywords_ar)
             const toAdd = parsed.filter(k => !existing.has(k))
-            if (toAdd.length > 0) {
-                setData('keywords_ar', [...data.keywords_ar, ...toAdd])
+            const available = MAX_KEYWORDS - data.keywords_ar.length
+            if (available <= 0) {
+                setKwWarningAr(true)
+                setKeywordInputAr('')
+                return
+            }
+            const limited = toAdd.slice(0, available)
+            setKwWarningAr(toAdd.length > available)
+            if (limited.length > 0) {
+                setData('keywords_ar', [...data.keywords_ar, ...limited])
                 setDirty(true)
             }
         }
@@ -348,11 +359,13 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
 
     function removeKeywordAr(kw) {
         setData('keywords_ar', data.keywords_ar.filter(k => k !== kw))
+        setKwWarningAr(false)
         setDirty(true)
     }
 
     function clearKeywordsAr() {
         setData('keywords_ar', [])
+        setKwWarningAr(false)
         setDirty(true)
     }
 
@@ -362,8 +375,16 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
         if (parsed.length > 0) {
             const existing = new Set(data.keywords_en)
             const toAdd = parsed.filter(k => !existing.has(k))
-            if (toAdd.length > 0) {
-                setData('keywords_en', [...data.keywords_en, ...toAdd])
+            const available = MAX_KEYWORDS - data.keywords_en.length
+            if (available <= 0) {
+                setKwWarningEn(true)
+                setKeywordInputEn('')
+                return
+            }
+            const limited = toAdd.slice(0, available)
+            setKwWarningEn(toAdd.length > available)
+            if (limited.length > 0) {
+                setData('keywords_en', [...data.keywords_en, ...limited])
                 setDirty(true)
             }
         }
@@ -372,11 +393,13 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
 
     function removeKeywordEn(kw) {
         setData('keywords_en', data.keywords_en.filter(k => k !== kw))
+        setKwWarningEn(false)
         setDirty(true)
     }
 
     function clearKeywordsEn() {
         setData('keywords_en', [])
+        setKwWarningEn(false)
         setDirty(true)
     }
 
@@ -673,11 +696,17 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('description_ar', {}, 'units')}</label>
-                                    <textarea value={data.description_ar} onChange={e => handleChange('description_ar', e.target.value)} rows={4} dir="rtl" className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none" />
+                                    <textarea value={data.description_ar} onChange={e => handleChange('description_ar', e.target.value)} rows={4} dir="rtl" maxLength={1000} className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none" />
+                                    <p className={`text-xs mt-1 text-end ${data.description_ar.length >= 950 ? 'text-red-500 font-semibold' : 'text-secondary-400'}`}>
+                                        {data.description_ar.length} / 1000
+                                    </p>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('description_en', {}, 'units')}</label>
-                                    <textarea value={data.description_en} onChange={e => handleChange('description_en', e.target.value)} rows={4} dir="ltr" className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none" />
+                                    <textarea value={data.description_en} onChange={e => handleChange('description_en', e.target.value)} rows={4} dir="ltr" maxLength={1000} className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none" />
+                                    <p className={`text-xs mt-1 text-end ${data.description_en.length >= 950 ? 'text-red-500 font-semibold' : 'text-secondary-400'}`}>
+                                        {data.description_en.length} / 1000
+                                    </p>
                                 </div>
                             </div>
 
@@ -979,7 +1008,9 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
                                     <div className="flex items-center justify-between mb-2">
                                         <label className="block text-sm font-semibold text-secondary-950">
                                             {trans('keywords_label', {}, 'units')} ({trans('ar')})
-                                            <span className="text-xs text-muted font-normal ms-1">({data.keywords_ar.length})</span>
+                                            <span className={`text-xs font-normal ms-1 ${data.keywords_ar.length >= MAX_KEYWORDS ? 'text-red-500' : 'text-muted'}`}>
+                                                ({data.keywords_ar.length} / {MAX_KEYWORDS})
+                                            </span>
                                         </label>
                                         {data.keywords_ar.length > 0 && (
                                             <button
@@ -994,7 +1025,7 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
                                     <div className="flex gap-2 mb-2">
                                         <textarea
                                             value={keywordInputAr}
-                                            onChange={e => setKeywordInputAr(e.target.value)}
+                                            onChange={e => { setKeywordInputAr(e.target.value); setKwWarningAr(false) }}
                                             onKeyDown={e => {
                                                 if (e.key === 'Enter' && !e.shiftKey) {
                                                     e.preventDefault()
@@ -1003,17 +1034,26 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
                                             }}
                                             rows={2}
                                             dir="rtl"
-                                            placeholder={locale === 'ar' ? 'الصق النص أو الكلمات مفصولة بفاصلة (، أو .) أو سطر جديد...' : 'Paste text or keywords separated by commas or newlines...'}
-                                            className="flex-1 px-3 py-2 border border-secondary-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 resize-y"
+                                            disabled={data.keywords_ar.length >= MAX_KEYWORDS}
+                                            placeholder={data.keywords_ar.length >= MAX_KEYWORDS
+                                                ? (locale === 'ar' ? 'وصلت للحد الأقصى 25 كلمة' : 'Max 25 keywords reached')
+                                                : (locale === 'ar' ? 'الصق النص أو الكلمات مفصولة بفاصلة (، أو .) أو سطر جديد...' : 'Paste text or keywords separated by commas or newlines...')}
+                                            className="flex-1 px-3 py-2 border border-secondary-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 resize-y disabled:opacity-50 disabled:cursor-not-allowed"
                                         />
                                         <button
                                             type="button"
                                             onClick={addKeywordAr}
-                                            className="px-4 py-2 bg-primary-900 text-white rounded-xl text-sm font-medium hover:bg-primary-800 transition-colors self-end h-10 shrink-0"
+                                            disabled={data.keywords_ar.length >= MAX_KEYWORDS}
+                                            className="px-4 py-2 bg-primary-900 text-white rounded-xl text-sm font-medium hover:bg-primary-800 transition-colors self-end h-10 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             {trans('add')}
                                         </button>
                                     </div>
+                                    {kwWarningAr && (
+                                        <p className="text-xs text-red-500 mb-2">
+                                            {locale === 'ar' ? 'وصلت للحد الأقصى ٢٥ كلمة مفتاحية' : 'Max 25 keywords reached'}
+                                        </p>
+                                    )}
                                     {data.keywords_ar.length > 0 && (
                                         <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto p-2.5 border border-secondary-200 rounded-xl bg-surface">
                                             {data.keywords_ar.map(kw => (
@@ -1030,7 +1070,9 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
                                     <div className="flex items-center justify-between mb-2">
                                         <label className="block text-sm font-semibold text-secondary-950">
                                             {trans('keywords_label', {}, 'units')} ({trans('en')})
-                                            <span className="text-xs text-muted font-normal ms-1">({data.keywords_en.length})</span>
+                                            <span className={`text-xs font-normal ms-1 ${data.keywords_en.length >= MAX_KEYWORDS ? 'text-red-500' : 'text-muted'}`}>
+                                                ({data.keywords_en.length} / {MAX_KEYWORDS})
+                                            </span>
                                         </label>
                                         {data.keywords_en.length > 0 && (
                                             <button
@@ -1045,7 +1087,7 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
                                     <div className="flex gap-2 mb-2">
                                         <textarea
                                             value={keywordInputEn}
-                                            onChange={e => setKeywordInputEn(e.target.value)}
+                                            onChange={e => { setKeywordInputEn(e.target.value); setKwWarningEn(false) }}
                                             onKeyDown={e => {
                                                 if (e.key === 'Enter' && !e.shiftKey) {
                                                     e.preventDefault()
@@ -1054,17 +1096,26 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
                                             }}
                                             rows={2}
                                             dir="ltr"
-                                            placeholder="Paste English keywords separated by commas or newlines..."
-                                            className="flex-1 px-3 py-2 border border-secondary-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 resize-y"
+                                            disabled={data.keywords_en.length >= MAX_KEYWORDS}
+                                            placeholder={data.keywords_en.length >= MAX_KEYWORDS
+                                                ? 'Max 25 keywords reached'
+                                                : 'Paste English keywords separated by commas or newlines...'}
+                                            className="flex-1 px-3 py-2 border border-secondary-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 resize-y disabled:opacity-50 disabled:cursor-not-allowed"
                                         />
                                         <button
                                             type="button"
                                             onClick={addKeywordEn}
-                                            className="px-4 py-2 bg-primary-900 text-white rounded-xl text-sm font-medium hover:bg-primary-800 transition-colors self-end h-10 shrink-0"
+                                            disabled={data.keywords_en.length >= MAX_KEYWORDS}
+                                            className="px-4 py-2 bg-primary-900 text-white rounded-xl text-sm font-medium hover:bg-primary-800 transition-colors self-end h-10 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             {trans('add')}
                                         </button>
                                     </div>
+                                    {kwWarningEn && (
+                                        <p className="text-xs text-red-500 mb-2">
+                                            {locale === 'ar' ? 'وصلت للحد الأقصى ٢٥ كلمة مفتاحية' : 'Max 25 keywords reached'}
+                                        </p>
+                                    )}
                                     {data.keywords_en.length > 0 && (
                                         <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto p-2.5 border border-secondary-200 rounded-xl bg-surface">
                                             {data.keywords_en.map(kw => (
