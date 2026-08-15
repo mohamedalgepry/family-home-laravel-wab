@@ -93,12 +93,23 @@ class SeoMetaService
             ];
         }
 
-        if (!empty($listing->latitude) && !empty($listing->longitude) && $listing->latitude != '0' && $listing->longitude != '0') {
-            $schema['geo'] = [
-                '@type' => 'GeoCoordinates',
-                'latitude' => $listing->latitude,
-                'longitude' => $listing->longitude,
-            ];
+        $hasCoords = !empty($listing->latitude) && !empty($listing->longitude) && $listing->latitude != '0' && $listing->longitude != '0';
+        $locationAddress = $listing->location_address ?? null;
+
+        if ($hasCoords || !empty($locationAddress)) {
+            $schema['contentLocation'] = array_filter([
+                '@type'   => 'Place',
+                'name'    => $listing->name,
+                'address' => !empty($locationAddress) ? [
+                    '@type'          => 'PostalAddress',
+                    'streetAddress' => $locationAddress,
+                ] : null,
+                'geo'     => $hasCoords ? [
+                    '@type'     => 'GeoCoordinates',
+                    'latitude'  => (float) $listing->latitude,
+                    'longitude' => (float) $listing->longitude,
+                ] : null,
+            ], fn($v) => $v !== null);
         }
 
         return $schema;

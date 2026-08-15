@@ -55,18 +55,24 @@ export default function UnitShow({ unit, similarUnits }) {
             ...(unit.rooms != null ? { numberOfRooms: unit.rooms } : {}),
             ...(unit.bathrooms != null ? { numberOfBathroomsTotal: unit.bathrooms } : {}),
             ...(unit.floor != null ? { floorLevel: unit.floor } : {}),
-            ...(unit.location_address ? {
-                address: {
-                    '@type': 'PostalAddress',
-                    addressLocality: unit.location_address,
-                },
-            } : {}),
-            ...(hasValidCoords ? {
-                geo: {
-                    '@type': 'GeoCoordinates',
-                    latitude: lat,
-                    longitude: lng,
-                },
+            ...(hasValidCoords || unit.location_address ? {
+                contentLocation: {
+                    '@type': 'Place',
+                    ...(unit.name ? { name: unit.name } : {}),
+                    ...(unit.location_address ? {
+                        address: {
+                            '@type': 'PostalAddress',
+                            addressLocality: unit.location_address,
+                        },
+                    } : {}),
+                    ...(hasValidCoords ? {
+                        geo: {
+                            '@type': 'GeoCoordinates',
+                            latitude: lat,
+                            longitude: lng,
+                        },
+                    } : {}),
+                }
             } : {}),
         }
     }, [unit, appUrl, page.url])

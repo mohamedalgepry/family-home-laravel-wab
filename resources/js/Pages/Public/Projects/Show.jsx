@@ -46,18 +46,24 @@ export default function ProjectShow({ project }) {
             url: `${appUrl || ''}${page.url.split('?')[0]}`,
             ...(image ? { image } : {}),
             numberOfUnits: project.units?.length || 0,
-            ...(project.location_address ? {
-                address: {
-                    '@type': 'PostalAddress',
-                    addressLocality: project.location_address,
-                },
-            } : {}),
-            ...(hasValidCoords ? {
-                geo: {
-                    '@type': 'GeoCoordinates',
-                    latitude: lat,
-                    longitude: lng,
-                },
+            ...(hasValidCoords || project.location_address ? {
+                contentLocation: {
+                    '@type': 'Place',
+                    ...(project.name ? { name: project.name } : {}),
+                    ...(project.location_address ? {
+                        address: {
+                            '@type': 'PostalAddress',
+                            addressLocality: project.location_address,
+                        },
+                    } : {}),
+                    ...(hasValidCoords ? {
+                        geo: {
+                            '@type': 'GeoCoordinates',
+                            latitude: lat,
+                            longitude: lng,
+                        },
+                    } : {}),
+                }
             } : {}),
         }
     }, [project, mainImage, appUrl, page.url])
