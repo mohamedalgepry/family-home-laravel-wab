@@ -24,10 +24,6 @@
     <link rel="preload" as="image" href="{{ $heroDesktopUrl }}" type="image/webp" media="(min-width: 641px)" fetchpriority="high">
     @endif
 
-    <!-- Preload Local Cairo Fonts (Non-blocking & Zero External Roundtrips) -->
-    <link rel="preload" href="/fonts/cairo/cairo-1.woff2" as="font" type="font/woff2" crossorigin fetchpriority="high">
-    <link rel="preload" href="/fonts/cairo/cairo-3.woff2" as="font" type="font/woff2" crossorigin fetchpriority="high">
-
     <!-- Preconnect to YouTube for embedded listing videos (only used when a page has a video) -->
     <link rel="preconnect" href="https://www.youtube.com" crossorigin>
     <link rel="preconnect" href="https://i.ytimg.com" crossorigin>
