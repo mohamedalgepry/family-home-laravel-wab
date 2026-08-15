@@ -13,7 +13,7 @@ import { useState, useMemo } from 'react'
 
 export default function UnitShow({ unit, similarUnits }) {
     const page = usePage()
-    const { locale, flash, appUrl } = page.props
+    const { locale, flash, appUrl, seo_meta } = page.props
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
     const [lightboxIndex, setLightboxIndex] = useState(null)
