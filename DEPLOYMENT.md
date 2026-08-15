@@ -50,13 +50,41 @@ INERTIA_SSR_ENABLED=false
 
 ```bash
 php artisan migrate --force
-php artisan storage:link
 php artisan optimize:clear
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 php artisan sitemap:generate
 ```
+
+---
+
+## تخزين الصور على Hostinger — تحذير مهم
+
+استضافة Hostinger الحالية (السيرفر: `lt-bnk-web861`) **معطّل فيها دالتا `symlink()` و `exec()` لأسباب أمنية** من قِبل المزود:
+
+1. **لا تستخدم أمر `php artisan storage:link` على هذا السيرفر إطلاقاً**:
+   - لن يعمل وسيرمي خطأ `Call to undefined function exec()` أو يفشل في إنشاء الروابط الرمزية.
+2. **الحل الدائم والمطبّق في المشروع**:
+   - تم ضبط قرص التخزين `public` في `config/filesystems.php` ليكتب الملفات مباشرة داخل `public/storage` بدلاً من `storage/app/public`:
+     ```php
+     'public' => [
+         'driver' => 'local',
+         'root' => public_path('storage'),
+         'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
+         'visibility' => 'public',
+         'throw' => false,
+         'report' => false,
+     ],
+     ```
+   - هذا يضمن رفع الصور وحفظها مباشرة في مجلد الويب العام دون أي حاجة للروابط الرمزية (symlinks).
+3. **في حال الانتقال لاستضافة جديدة مستقبلاً**:
+   - الخطوة الأولى هي فحص ما إذا كانت دوال `symlink()` و `exec()` متاحة:
+     ```bash
+     php -r "var_dump(function_exists('symlink'), function_exists('exec'));"
+     ```
+   - **إذا كانت متاحة**: يمكنك العودة لاستخدام `storage:link` وتعديل `'root'` في `config/filesystems.php` إلى `storage_path('app/public')`.
+   - **إذا كانت معطلة أيضاً**: اترك الإعداد الحالي (`public_path('storage')`) كما هو دون أي تغيير.
 
 بعد رفع أصول الواجهة الجديدة، امسح Cache الـ CDN/Hostinger وأعد تحميل المتصفح بالقوة.
 **الخطأ الشائع**: bundle قديم يُرسل طلب Inertia navigation إلى JSON endpoint وتظهر رسالة:

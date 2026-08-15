@@ -51,20 +51,13 @@ class AppServiceProvider extends ServiceProvider
             storage_path('framework/cache/data'),
             storage_path('framework/sessions'),
             storage_path('framework/testing'),
-            storage_path('app/public'),
+            public_path('storage'),
             storage_path('logs'),
         ];
 
         foreach ($frameworkDirs as $dir) {
             if (! is_dir($dir)) {
                 @mkdir($dir, 0775, true);
-            }
-        }
-
-        if (! app()->runningUnitTests() && ! file_exists(public_path('storage')) && ! is_link(public_path('storage'))) {
-            try {
-                app('files')->link(storage_path('app/public'), public_path('storage'));
-            } catch (\Throwable $e) {
             }
         }
 

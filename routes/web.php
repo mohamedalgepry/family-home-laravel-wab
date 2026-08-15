@@ -39,14 +39,17 @@ Route::get('/storage/{path}', function ($path) {
         abort(404);
     }
 
-    $filePath = storage_path('app/public/'.$path);
+    $diskRoot = config('filesystems.disks.public.root', public_path('storage'));
+    $filePath = $diskRoot.'/'.$path;
 
-    $real = realpath($filePath);
-    if ($real === false || ! str_starts_with($real, realpath(storage_path('app/public')))) {
-        abort(404);
+    if (! file_exists($filePath) && file_exists(storage_path('app/public/'.$path))) {
+        $filePath = storage_path('app/public/'.$path);
+        $diskRoot = storage_path('app/public');
     }
 
-    if (file_exists($filePath)) {
+    $real = realpath($filePath);
+    $realRoot = realpath($diskRoot);
+    if ($real !== false && $realRoot !== false && str_starts_with($real, $realRoot) && file_exists($filePath)) {
         return response()->file($filePath);
     }
 
