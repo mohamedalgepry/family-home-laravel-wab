@@ -371,9 +371,9 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                             {relatedAreas.map(rArea => {
                                 const rName = isRtl ? rArea.name_ar : rArea.name_en
-                                const rImg = getStorageUrl(rArea.hero_image || rArea.image_path, '/images/fallback.webp')
+                                const rSlug = rArea.slug || rArea.id
                                 return (
-                                    <Link key={rArea.id} href={`/${locale}/areas/${rArea.slug}`} className="group relative h-64 rounded-3xl overflow-hidden block">
+                                    <Link key={rArea.id} href={localizedPath(`/areas/${rSlug}`, locale)} className="group relative h-64 rounded-3xl overflow-hidden block">
                                         <img src={rImg} alt={rName} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                                         <div className="absolute bottom-0 inset-x-0 p-6">

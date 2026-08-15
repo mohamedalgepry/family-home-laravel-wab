@@ -51,7 +51,7 @@ export default function ProjectCard({ project, loading = false }) {
             {/* Image Container */}
             <div className="relative overflow-hidden aspect-[4/3] bg-secondary-100">
                 <Link 
-                    href={localizedPath(`/projects/${project.slug}`, locale)} 
+                    href={localizedPath(`/projects/${project.slug || project.id}`, locale)} 
                     className="block w-full h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                 >
                     <OptimizedImage
@@ -87,7 +87,7 @@ export default function ProjectCard({ project, loading = false }) {
             <div className="p-5 flex flex-col flex-1 justify-between gap-4">
                 <div>
                     <Link 
-                        href={localizedPath(`/projects/${project.slug}`, locale)} 
+                        href={localizedPath(`/projects/${project.slug || project.id}`, locale)} 
                         className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded"
                     >
                         <h2 className="text-base font-bold text-secondary-950 group-hover:text-primary-900 transition-colors line-clamp-1 mb-1.5">
@@ -130,7 +130,7 @@ export default function ProjectCard({ project, loading = false }) {
                     </button>
 
                     <Link
-                        href={localizedPath(`/projects/${project.slug}`, locale)}
+                        href={localizedPath(`/projects/${project.slug || project.id}`, locale)}
                         className="text-xs font-bold text-primary-900 hover:text-primary-700 flex items-center gap-1 group/link transition-colors"
                     >
                         <span>{trans('show_more') || (isRtl ? 'التفاصيل' : 'Details')}</span>

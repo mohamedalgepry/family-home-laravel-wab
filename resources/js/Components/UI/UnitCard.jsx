@@ -51,7 +51,7 @@ export default function UnitCard({ unit, loading = false, priority = false }) {
         <article dir={isRtl ? 'rtl' : 'ltr'} className="bg-white rounded-2xl shadow-card overflow-hidden hover:shadow-2xl transition-all duration-300 group border border-secondary-100/70 hover:-translate-y-1.5 flex flex-col justify-between">
             <div>
                 {/* Image */}
-                <Link href={localizedPath(`/units/${unit.slug}`, locale)} className="block relative overflow-hidden aspect-[4/3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
+                <Link href={localizedPath(`/units/${unit.slug || unit.id}`, locale)} className="block relative overflow-hidden aspect-[4/3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
                     <OptimizedImage
                         src={thumbnail}
                         alt={imageAlt}
@@ -84,7 +84,7 @@ export default function UnitCard({ unit, loading = false, priority = false }) {
 
                 {/* Details */}
                 <div className="p-5">
-                    <Link href={localizedPath(`/units/${unit.slug}`, locale)} className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded">
+                    <Link href={localizedPath(`/units/${unit.slug || unit.id}`, locale)} className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded">
                         <h2 className="text-base font-bold text-secondary-950 truncate mb-1.5 group-hover:text-primary-900 transition-colors">
                             {unit.name}
                         </h2>

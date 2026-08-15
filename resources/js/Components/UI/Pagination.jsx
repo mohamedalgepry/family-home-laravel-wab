@@ -1,16 +1,18 @@
 import { usePage, Link } from '@inertiajs/react'
 import { useTrans } from '../../Utils/trans'
 
-export default function Pagination({ meta, links: routeLinks }) {
+export default function Pagination({ meta, links: routeLinks, pageParam = 'page' }) {
     const { locale } = usePage().props
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
 
-    if (!meta || meta.last_page <= 1) {
+    const pageMeta = meta?.meta || meta
+
+    if (!pageMeta || typeof pageMeta.last_page !== 'number' || pageMeta.last_page <= 1) {
         return null
     }
 
-    const { current_page, last_page, per_page, total } = meta
+    const { current_page = 1, last_page = 1 } = pageMeta
     const preserveState = { preserveState: true, preserveScroll: true }
     const range = 2
     const pages = []
@@ -22,8 +24,9 @@ export default function Pagination({ meta, links: routeLinks }) {
     }
 
     function buildUrl(page) {
+        if (typeof window === 'undefined') return '#'
         const params = new URLSearchParams(window.location.search)
-        params.set('page', page)
+        params.set(pageParam, page)
         return window.location.pathname + '?' + params.toString()
     }
 
