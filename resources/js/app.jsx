@@ -1,3 +1,35 @@
+// URL constructor safety wrapper for iframe/srcdoc/null-origin environments
+if (typeof window !== 'undefined') {
+    const OriginalURL = window.URL
+    const defaultBase = 'https://familyhome-co.com'
+
+    function SafeURL(url, base) {
+        let resolvedBase = base
+        const currentOrigin = window.location.origin
+        const currentHref = window.location.href
+
+        if (!resolvedBase || resolvedBase === 'null' || (typeof resolvedBase === 'string' && resolvedBase.startsWith('about:'))) {
+            resolvedBase = (currentOrigin && currentOrigin !== 'null' && !currentHref.startsWith('about:'))
+                ? currentHref
+                : defaultBase
+        }
+
+        try {
+            return new OriginalURL(url, resolvedBase)
+        } catch (e) {
+            try {
+                return new OriginalURL(url, defaultBase)
+            } catch {
+                return new OriginalURL(defaultBase)
+            }
+        }
+    }
+
+    SafeURL.prototype = OriginalURL.prototype
+    Object.setPrototypeOf(SafeURL, OriginalURL)
+    window.URL = SafeURL
+}
+
 import { createInertiaApp, router } from '@inertiajs/react'
 import { createRoot } from 'react-dom/client'
 import { Component } from 'react'
