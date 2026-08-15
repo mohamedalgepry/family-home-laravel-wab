@@ -239,6 +239,7 @@ class SeoService
             'canonical' => $params['canonical'] ?? url()->current(),
             'hreflang' => $params['hreflang'] ?? [],
             'og_type' => $params['og_type'] ?? 'website',
+            'robots' => $params['robots'] ?? (!empty($params['noindex']) ? 'noindex, follow' : null),
             'schema' => $params['schema'] ?? [],
         ];
     }

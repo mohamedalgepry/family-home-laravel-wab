@@ -9,6 +9,7 @@ export default function SeoHead({
     canonical,
     jsonLd,
     hreflang,
+    robots,
 }) {
     const { locale, seo_page, appUrl, seo_meta } = usePage().props
     const { url } = usePage()
@@ -42,6 +43,8 @@ export default function SeoHead({
     const rawDescription = pageSeo ? (isRtl ? (pageSeo.meta_description_ar || description) : (pageSeo.meta_description_en || description)) : (seo_meta?.description || description);
     const finalDescription = cleanMetaDescription(rawDescription);
 
+    const hasFilterQuery = typeof url === 'string' && url.includes('?') && /[?&](price_|size_|features|transaction|search|finishing_type|payment_method)/.test(url);
+    const finalRobots = robots || seo_meta?.robots || (hasFilterQuery ? 'noindex, follow' : null);
 
     // Clean canonical URL without query string
     const rawCanonical = canonical || seo_meta?.canonical || (baseUrl ? `${baseUrl}${cleanPath}` : cleanPath);
@@ -62,6 +65,7 @@ export default function SeoHead({
     return (
         <Head>
             {finalTitle && <title>{finalTitle}</title>}
+            {finalRobots && <meta head-key="robots" name="robots" content={finalRobots} />}
             {finalDescription && <meta head-key="description" name="description" content={finalDescription} />}
 
             {/* Open Graph */}

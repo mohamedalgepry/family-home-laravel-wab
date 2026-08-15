@@ -48,17 +48,23 @@ class PrerenderService
                     continue;
                 }
 
-                // 1. Surgical patch for max-width: 640px hero mobile link preload
-                $html = preg_replace(
-                    '/(<link[^>]*media=["\']\(max-width:\s*640px\)["\'][^>]*href=["\'])[^"\']*(["\'][^>]*>)/i',
-                    '${1}'.$mobileUrl.'${2}',
+                // 1. Surgical patch for max-width: 640px hero mobile link preload (flexible attribute order)
+                $html = preg_replace_callback(
+                    '/<link\b([^>]*media=["\']\(max-width:\s*640px\)["\'][^>]*)>/i',
+                    function ($m) use ($mobileUrl) {
+                        $tag = $m[1];
+                        return '<link'.preg_replace('/href=["\'][^"\']*["\']/i', 'href="'.$mobileUrl.'"', $tag).'>';
+                    },
                     $html
                 );
 
-                // 2. Surgical patch for min-width: 641px hero desktop link preload
-                $html = preg_replace(
-                    '/(<link[^>]*media=["\']\(min-width:\s*641px\)["\'][^>]*href=["\'])[^"\']*(["\'][^>]*>)/i',
-                    '${1}'.$desktopUrl.'${2}',
+                // 2. Surgical patch for min-width: 641px hero desktop link preload (flexible attribute order)
+                $html = preg_replace_callback(
+                    '/<link\b([^>]*media=["\']\(min-width:\s*641px\)["\'][^>]*)>/i',
+                    function ($m) use ($desktopUrl) {
+                        $tag = $m[1];
+                        return '<link'.preg_replace('/href=["\'][^"\']*["\']/i', 'href="'.$desktopUrl.'"', $tag).'>';
+                    },
                     $html
                 );
 

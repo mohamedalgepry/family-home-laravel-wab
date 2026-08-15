@@ -126,6 +126,7 @@ class UnitController
                 : (app()->getLocale() === 'ar' ? 'وحدات وعقارات للبيع ' : 'Properties for sale ');
             $customMeta['title'] = $prefix.implode(' ', $parts).' - '.config('app.name');
             $customMeta['description'] = (app()->getLocale() === 'ar' ? 'تصفح ' : 'Browse ').$prefix.implode(' ', $parts).' '.(app()->getLocale() === 'ar' ? 'بأفضل الأسعار والتسهيلات من فاميلي هوم' : 'with best prices from Family Home');
+            $customMeta['robots'] = 'noindex, follow';
         }
 
         $pageKey = $isDeals ? 'deals' : 'units_index';

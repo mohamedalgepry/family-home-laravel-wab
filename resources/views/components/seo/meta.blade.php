@@ -30,6 +30,9 @@
 <title inertia>{{ $title }}</title>
 <meta name="description" content="{{ $description }}" inertia head-key="description">
 <meta name="author" content="mohamed algebry" inertia head-key="author">
+@if(!empty($meta['robots']))
+<meta name="robots" content="{{ $meta['robots'] }}" inertia head-key="robots">
+@endif
 <link rel="canonical" href="{{ $canonical }}" inertia head-key="canonical">
 
 @foreach($hreflang as $lang => $url)
