@@ -141,14 +141,26 @@ export default function Home({ featuredUnits, latestUnits, latestProjects, popul
                                     <Link
                                         key={area.id}
                                         href={localizedPath(`/areas/${areaSlug}`, locale)}
-                                        className="group relative shrink-0 w-[180px] md:w-[220px] h-[240px] bg-secondary-900 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 snap-center"
+                                        className="group relative shrink-0 w-[180px] md:w-[220px] h-[240px] bg-gradient-to-br from-secondary-900 via-secondary-800 to-primary-950 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 snap-center"
                                     >
-                                        {areaImg && (
+                                        {(area.image_path || area.hero_image) ? (
                                             <img 
-                                                src={areaImg}
+                                                src={getStorageUrl(area.image_path || area.hero_image)}
                                                 alt={areaName}
+                                                onError={(e) => {
+                                                    e.currentTarget.style.display = 'none';
+                                                }}
                                                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                                             />
+                                        ) : (
+                                            <div className="w-full h-full flex flex-col items-center justify-center text-white/40 group-hover:text-primary-400 transition-colors pb-10">
+                                                <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center shadow-inner group-hover:scale-110 group-hover:bg-primary-900/30 transition-all">
+                                                    <svg className="w-7 h-7 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                                                    </svg>
+                                                </div>
+                                            </div>
                                         )}
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent"></div>
                                         <div className="absolute bottom-0 left-0 right-0 p-4 text-start">

@@ -51,13 +51,16 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
 
             <main className="flex-1">
                 {/* 1. Hero Section */}
-                <section className="relative min-h-[480px] md:min-h-[540px] pt-24 pb-20 md:pt-32 md:pb-28 flex items-center justify-center overflow-hidden bg-secondary-950">
+                <section className="relative min-h-[480px] md:min-h-[540px] pt-24 pb-20 md:pt-32 md:pb-28 flex items-center justify-center overflow-hidden bg-gradient-to-br from-secondary-950 via-secondary-900 to-primary-950">
                     <div className="absolute inset-0 z-0">
-                        <img 
-                            src={heroImage} 
-                            alt={heroTitle} 
-                            className="w-full h-full object-cover object-center scale-105 animate-subtle-zoom opacity-50" 
-                        />
+                        {(area?.image_path || area?.hero_image) && (
+                            <img 
+                                src={heroImage} 
+                                alt={heroTitle} 
+                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                className="w-full h-full object-cover object-center scale-105 animate-subtle-zoom opacity-50" 
+                            />
+                        )}
                         <div className="absolute inset-0 bg-gradient-to-t from-secondary-950 via-secondary-950/70 to-black/40" />
                     </div>
                     
@@ -372,9 +375,26 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                             {relatedAreas.map(rArea => {
                                 const rName = isRtl ? rArea.name_ar : rArea.name_en
                                 const rSlug = rArea.slug || rArea.id
+                                const rImg = (rArea.image_path || rArea.hero_image) ? getStorageUrl(rArea.image_path || rArea.hero_image) : null
                                 return (
-                                    <Link key={rArea.id} href={localizedPath(`/areas/${rSlug}`, locale)} className="group relative h-64 rounded-3xl overflow-hidden block">
-                                        <img src={rImg} alt={rName} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                                    <Link key={rArea.id} href={localizedPath(`/areas/${rSlug}`, locale)} className="group relative h-64 rounded-3xl overflow-hidden block bg-gradient-to-br from-secondary-900 via-secondary-800 to-primary-950">
+                                        {rImg ? (
+                                            <img 
+                                                src={rImg} 
+                                                alt={rName} 
+                                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex flex-col items-center justify-center text-white/40 group-hover:text-primary-400 transition-colors pb-10">
+                                                <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center shadow-inner group-hover:scale-110 group-hover:bg-primary-900/30 transition-all">
+                                                    <svg className="w-7 h-7 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                                                    </svg>
+                                                </div>
+                                            </div>
+                                        )}
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                                         <div className="absolute bottom-0 inset-x-0 p-6">
                                             <h3 className="text-white text-xl font-black mb-1">{rName}</h3>
