@@ -1,13 +1,14 @@
 import { usePage } from '@inertiajs/react'
 import { useTrans } from '../../Utils/trans'
 import { useEffect, useState, useCallback } from 'react'
+import { safeStorage } from '../../Utils/storage'
 
 const STORAGE_KEY = 'comparison_basket'
 const MAX_ITEMS = 4
 
 function getStoredItems() {
     try {
-        const raw = localStorage.getItem(STORAGE_KEY)
+        const raw = safeStorage.getItem(STORAGE_KEY)
         return raw ? JSON.parse(raw) : []
     } catch {
         return []
@@ -26,7 +27,7 @@ export default function ComparisonBasket({ type = 'unit', onItemsChange }) {
     }, [])
 
     useEffect(() => {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
+        safeStorage.setItem(STORAGE_KEY, JSON.stringify(items))
         if (onItemsChange) {
             onItemsChange(items)
         }

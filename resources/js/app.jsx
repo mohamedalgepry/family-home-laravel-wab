@@ -1,33 +1,74 @@
-// URL constructor safety wrapper for iframe/srcdoc/null-origin environments
+// URL & History safety wrapper for iframe/srcdoc/sandboxed environments
 if (typeof window !== 'undefined') {
-    const OriginalURL = window.URL
-    const defaultBase = 'https://familyhome-co.com'
+    const OriginalURL = window.URL;
+
+    function getSafeBase() {
+        const origin = window.location.origin;
+        const href = window.location.href;
+        if (origin && origin !== 'null' && !href.startsWith('about:')) {
+            return href;
+        }
+        if (typeof document !== 'undefined' && document.baseURI && !document.baseURI.startsWith('about:') && !document.baseURI.includes('null')) {
+            return document.baseURI;
+        }
+        return 'http://localhost';
+    }
 
     function SafeURL(url, base) {
-        let resolvedBase = base
-        const currentOrigin = window.location.origin
-        const currentHref = window.location.href
-
+        let resolvedBase = base;
         if (!resolvedBase || resolvedBase === 'null' || (typeof resolvedBase === 'string' && resolvedBase.startsWith('about:'))) {
-            resolvedBase = (currentOrigin && currentOrigin !== 'null' && !currentHref.startsWith('about:'))
-                ? currentHref
-                : defaultBase
+            resolvedBase = getSafeBase();
         }
 
         try {
-            return new OriginalURL(url, resolvedBase)
-        } catch (e) {
+            return new OriginalURL(url, resolvedBase);
+        } catch {
             try {
-                return new OriginalURL(url, defaultBase)
+                return new OriginalURL(url, 'http://localhost');
             } catch {
-                return new OriginalURL(defaultBase)
+                return new OriginalURL('http://localhost');
             }
         }
     }
 
-    SafeURL.prototype = OriginalURL.prototype
-    Object.setPrototypeOf(SafeURL, OriginalURL)
-    window.URL = SafeURL
+    SafeURL.prototype = OriginalURL.prototype;
+    Object.setPrototypeOf(SafeURL, OriginalURL);
+    window.URL = SafeURL;
+
+    if (window.history) {
+        const originalPushState = window.history.pushState.bind(window.history);
+        const originalReplaceState = window.history.replaceState.bind(window.history);
+
+        window.history.pushState = function (state, title, url) {
+            try {
+                return originalPushState(state, title, url);
+            } catch {
+                try {
+                    const relativeUrl = typeof url === 'string'
+                        ? (url.startsWith('http') ? (new OriginalURL(url)).pathname + (new OriginalURL(url)).search : url)
+                        : url;
+                    return originalPushState(state, title, relativeUrl);
+                } catch {
+                    // Silently ignore in sandboxed environments to prevent unhandled rejection
+                }
+            }
+        };
+
+        window.history.replaceState = function (state, title, url) {
+            try {
+                return originalReplaceState(state, title, url);
+            } catch {
+                try {
+                    const relativeUrl = typeof url === 'string'
+                        ? (url.startsWith('http') ? (new OriginalURL(url)).pathname + (new OriginalURL(url)).search : url)
+                        : url;
+                    return originalReplaceState(state, title, relativeUrl);
+                } catch {
+                    // Silently ignore in sandboxed environments
+                }
+            }
+        };
+    }
 }
 
 import { createInertiaApp, router } from '@inertiajs/react'

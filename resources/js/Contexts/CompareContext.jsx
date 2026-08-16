@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { safeStorage } from '../Utils/storage';
 
 const COMPARE_KEY_PREFIX = 'family_home_compare_list_';
 const MAX_COMPARE_ITEMS = 4;
@@ -11,18 +12,17 @@ function getStoredCompareList(type) {
     if (typeof window === 'undefined') return [];
     try {
         const key = getCompareKey(type);
-        let stored = localStorage.getItem(key);
+        let stored = safeStorage.getItem(key);
         if (!stored && type === 'unit') {
-            const legacy = localStorage.getItem('family_home_compare_list');
+            const legacy = safeStorage.getItem('family_home_compare_list');
             if (legacy) {
-                localStorage.setItem(key, legacy);
-                localStorage.removeItem('family_home_compare_list');
+                safeStorage.setItem(key, legacy);
+                safeStorage.removeItem('family_home_compare_list');
                 stored = legacy;
             }
         }
         return stored ? JSON.parse(stored) : [];
-    } catch (e) {
-        console.error('Failed to parse compare list', e);
+    } catch {
         return [];
     }
 }
@@ -64,16 +64,28 @@ export function CompareProvider({ children }) {
             if (currentList.length >= MAX_COMPARE_ITEMS) return false;
             newList = [...currentList, id];
         }
-        localStorage.setItem(getCompareKey(type), JSON.stringify(newList));
+        safeStorage.setItem(getCompareKey(type), JSON.stringify(newList));
         setLists((prev) => ({ ...prev, [type]: newList }));
-        window.dispatchEvent(new CustomEvent('compareListUpdated', { detail: { type } }));
+        if (typeof window !== 'undefined') {
+            try {
+                window.dispatchEvent(new CustomEvent('compareListUpdated', { detail: { type } }));
+            } catch {
+                // ignore
+            }
+        }
         return true;
     }, []);
 
     const clearCompare = useCallback((type) => {
-        localStorage.removeItem(getCompareKey(type));
+        safeStorage.removeItem(getCompareKey(type));
         setLists((prev) => ({ ...prev, [type]: [] }));
-        window.dispatchEvent(new CustomEvent('compareListUpdated', { detail: { type } }));
+        if (typeof window !== 'undefined') {
+            try {
+                window.dispatchEvent(new CustomEvent('compareListUpdated', { detail: { type } }));
+            } catch {
+                // ignore
+            }
+        }
     }, []);
 
     const getList = useCallback(

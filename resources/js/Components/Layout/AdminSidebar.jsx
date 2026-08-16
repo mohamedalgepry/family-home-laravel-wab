@@ -2,6 +2,7 @@ import { usePage, Link, router, Head } from '@inertiajs/react'
 import { useTrans } from '../../Utils/trans'
 import { localizedPath } from '../../Utils/route'
 import { useState, useEffect, useRef } from 'react'
+import { safeStorage } from '../../Utils/storage'
 
 const NAV_GROUPS = [
     {
@@ -84,10 +85,7 @@ export default function AdminSidebar({ children }) {
     const [showFlash, setShowFlash] = useState(true)
 
     const [soundEnabled, setSoundEnabled] = useState(() => {
-        if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
-            return localStorage.getItem('notification_sound') !== 'off'
-        }
-        return true
+        return safeStorage.getItem('notification_sound') !== 'off'
     })
     const [notifOpen, setNotifOpen] = useState(false)
     const [recentNotifs, setRecentNotifs] = useState([])
@@ -261,9 +259,7 @@ export default function AdminSidebar({ children }) {
     function toggleSound() {
         const next = !soundEnabled
         setSoundEnabled(next)
-        if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
-            localStorage.setItem('notification_sound', next ? 'on' : 'off')
-        }
+        safeStorage.setItem('notification_sound', next ? 'on' : 'off')
     }
 
     const isActive = (href) => {
