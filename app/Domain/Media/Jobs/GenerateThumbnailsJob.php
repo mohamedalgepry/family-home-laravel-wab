@@ -16,7 +16,7 @@ class GenerateThumbnailsJob implements ShouldQueue
 {
     use Queueable;
 
-    private const MAX_ORIGINAL_WIDTH_PX = 1600;
+    private const MAX_ORIGINAL_WIDTH_PX = 1400;
 
     private const THUMB_WIDTH_PX = 400;
 
@@ -102,11 +102,27 @@ class GenerateThumbnailsJob implements ShouldQueue
             return;
         }
 
+        // 1. Generate small mobile thumbnail (400px)
         $thumbImage = $this->scaleDownWithGd($sourceImage);
         imagewebp($thumbImage, $thumbFullPath, self::THUMB_QUALITY);
         imagedestroy($thumbImage);
 
+        // 2. Automatically scale down huge originals (> 1400px) in the background to save bandwidth & boost LCP
+        $this->scaleDownOriginalIfNeeded($sourceImage, $fullPath);
+
         imagedestroy($sourceImage);
+    }
+
+    private function scaleDownOriginalIfNeeded(\GdImage $source, string $fullPath): void
+    {
+        $sourceWidth = imagesx($source);
+        if ($sourceWidth > self::MAX_ORIGINAL_WIDTH_PX) {
+            $scaled = $this->scaleDownToMaxWidth($source, self::MAX_ORIGINAL_WIDTH_PX);
+            imagewebp($scaled, $fullPath, self::ORIGINAL_QUALITY);
+            if ($scaled !== $source) {
+                imagedestroy($scaled);
+            }
+        }
     }
 
     private function scaleDownWithGd(\GdImage $source): \GdImage
