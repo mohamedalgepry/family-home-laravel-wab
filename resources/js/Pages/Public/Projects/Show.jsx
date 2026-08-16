@@ -383,7 +383,7 @@ export default function ProjectShow({ project }) {
                             {/* Payment details if any */}
                             {['installment', 'both'].includes(project.payment_method) && (project.down_payment || project.installment_years) && (
                                 <div className="mt-6 pt-4 border-t border-secondary-100">
-                                    <h3 className="text-xs font-bold text-secondary-900 mb-3">{isRtl ? 'أنظمة الدفع والتسهيلات' : 'Payment Terms'}</h3>
+                                    <h2 className="text-xs font-bold text-secondary-900 mb-3">{isRtl ? 'أنظمة الدفع والتسهيلات' : 'Payment Terms'}</h2>
                                     <div className="grid grid-cols-2 gap-4 bg-surface p-4 rounded-xl border border-secondary-100 text-xs">
                                         {project.down_payment && (
                                             <div>
@@ -454,7 +454,7 @@ export default function ProjectShow({ project }) {
                     <div className="col-span-5 space-y-6 sticky top-24">
                         {/* Card 1: معلومات المشروع */}
                         <div className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4">
-                            <h3 className="text-sm font-black text-secondary-950 border-b border-secondary-100 pb-3">{isRtl ? 'معلومات المشروع' : 'Project Information'}</h3>
+                            <h2 className="text-sm font-black text-secondary-950 border-b border-secondary-100 pb-3">{isRtl ? 'معلومات المشروع' : 'Project Information'}</h2>
 
                             <div className="space-y-2.5 text-xs">
                                 <div className="flex items-center justify-between py-1.5 border-b border-secondary-100/60">
@@ -485,7 +485,7 @@ export default function ProjectShow({ project }) {
 
                         {/* Card 2: الموقع على الخريطة */}
                         <div id="location" className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4">
-                            <h3 className="text-sm font-black text-secondary-950">{isRtl ? 'الموقع على الخريطة' : 'Location Map'}</h3>
+                            <h2 className="text-sm font-black text-secondary-950">{isRtl ? 'الموقع على الخريطة' : 'Location Map'}</h2>
 
                             <div className="rounded-xl overflow-hidden border border-secondary-200 aspect-[16/9]">
                                 <iframe
@@ -574,7 +574,7 @@ export default function ProjectShow({ project }) {
 
                     {/* 3. Project Info Card */}
                     <div className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4">
-                        <h3 className="text-sm font-black text-secondary-950 border-b border-secondary-100 pb-3">{isRtl ? 'معلومات المشروع' : 'Project Information'}</h3>
+                        <h2 className="text-sm font-black text-secondary-950 border-b border-secondary-100 pb-3">{isRtl ? 'معلومات المشروع' : 'Project Information'}</h2>
                         <div className="space-y-2.5 text-xs">
                             <div className="flex items-center justify-between py-1.5 border-b border-secondary-100/60">
                                 <span className="text-secondary-500 font-semibold">{isRtl ? 'اسم المشروع' : 'Project Name'}</span>
@@ -589,7 +589,7 @@ export default function ProjectShow({ project }) {
 
                     {/* 4. Location Map */}
                     <div className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4">
-                        <h3 className="text-sm font-black text-secondary-950">{isRtl ? 'الموقع على الخريطة' : 'Location Map'}</h3>
+                        <h2 className="text-sm font-black text-secondary-950">{isRtl ? 'الموقع على الخريطة' : 'Location Map'}</h2>
                         <div className="rounded-xl overflow-hidden border border-secondary-200 aspect-[16/9]">
                             <iframe
                                 src={`https://maps.google.com/maps?q=${project.latitude || '30.0444'},${project.longitude || '31.2357'}&hl=${locale}&z=14&output=embed`}

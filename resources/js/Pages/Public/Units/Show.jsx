@@ -460,7 +460,7 @@ export default function UnitShow({ unit, similarUnits }) {
                                     {/* Payment Details */}
                                     {['installment', 'both'].includes(unit.payment_method) && (unit.down_payment || unit.installment_years) && (
                                         <div className="mt-6 pt-4 border-t border-secondary-100">
-                                            <h3 className="text-xs font-bold text-secondary-900 mb-3">{isRtl ? 'أنظمة الدفع والتسهيلات' : 'Payment Details'}</h3>
+                                            <h2 className="text-xs font-bold text-secondary-900 mb-3">{isRtl ? 'أنظمة الدفع والتسهيلات' : 'Payment Details'}</h2>
                                             <div className="grid grid-cols-2 gap-4 bg-surface p-4 rounded-xl border border-secondary-100 text-xs">
                                                 {unit.down_payment && (
                                                     <div>
@@ -608,7 +608,7 @@ export default function UnitShow({ unit, similarUnits }) {
                                 {/* Card 1: معلومات المشروع */}
                                 <div className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4">
                                     <div className="flex items-center justify-between border-b border-secondary-100 pb-3">
-                                        <h3 className="text-sm font-black text-secondary-950">{isRtl ? 'معلومات المشروع' : 'Project Info'}</h3>
+                                        <h2 className="text-sm font-black text-secondary-950">{isRtl ? 'معلومات المشروع' : 'Project Info'}</h2>
                                     </div>
 
                                     <div className="space-y-2.5 text-xs">
@@ -644,7 +644,7 @@ export default function UnitShow({ unit, similarUnits }) {
 
                                 {/* Card 2: الموقع على الخريطة */}
                                 <div id="location" className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4">
-                                    <h3 className="text-sm font-black text-secondary-950">{isRtl ? 'الموقع على الخريطة' : 'Location on Map'}</h3>
+                                    <h2 className="text-sm font-black text-secondary-950">{isRtl ? 'الموقع على الخريطة' : 'Location on Map'}</h2>
 
                                     <div className="rounded-xl overflow-hidden border border-secondary-200 aspect-[16/9]">
                                         <iframe
@@ -737,7 +737,7 @@ export default function UnitShow({ unit, similarUnits }) {
 
                             {/* 3. Project Info Card */}
                             <div className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4">
-                                <h3 className="text-sm font-black text-secondary-950 border-b border-secondary-100 pb-3">{isRtl ? 'معلومات المشروع' : 'Project Info'}</h3>
+                                <h2 className="text-sm font-black text-secondary-950 border-b border-secondary-100 pb-3">{isRtl ? 'معلومات المشروع' : 'Project Info'}</h2>
                                 <div className="space-y-2.5 text-xs">
                                     <div className="flex items-center justify-between py-1.5 border-b border-secondary-100/60">
                                         <span className="text-secondary-500 font-semibold">{isRtl ? 'اسم المشروع' : 'Project Name'}</span>
@@ -752,7 +752,7 @@ export default function UnitShow({ unit, similarUnits }) {
 
                             {/* 4. Location Map */}
                             <div className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4">
-                                <h3 className="text-sm font-black text-secondary-950">{isRtl ? 'الموقع على الخريطة' : 'Location on Map'}</h3>
+                                <h2 className="text-sm font-black text-secondary-950">{isRtl ? 'الموقع على الخريطة' : 'Location on Map'}</h2>
                                 <div className="rounded-xl overflow-hidden border border-secondary-200 aspect-[16/9]">
                                     <iframe
                                         src={`https://maps.google.com/maps?q=${unit.latitude || '30.0444'},${unit.longitude || '31.2357'}&hl=${locale}&z=14&output=embed`}
