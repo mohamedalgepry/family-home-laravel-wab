@@ -49,7 +49,7 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
             />
             <Header />
 
-            <main className="flex-1">
+            <main id="main-content" tabIndex="-1" className="flex-1 focus:outline-none">
                 {/* 1. Hero Section */}
                 <section className="relative min-h-[480px] md:min-h-[540px] pt-24 pb-20 md:pt-32 md:pb-28 flex items-center justify-center overflow-hidden bg-gradient-to-br from-secondary-950 via-secondary-900 to-primary-950">
                     <div className="absolute inset-0 z-0">

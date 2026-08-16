@@ -318,7 +318,7 @@ export default function Comparison({ items, type, max_items }) {
             />
             <Header />
 
-            <main className="flex-1 max-w-container mx-auto px-4 py-8 md:py-12 w-full">
+            <main id="main-content" tabIndex="-1" className="flex-1 max-w-container mx-auto px-4 py-8 md:py-12 w-full focus:outline-none">
                 {!hasAny ? (
                     <div className="text-center py-24 px-6 max-w-2xl mx-auto bg-white rounded-[2rem] border border-secondary-100 shadow-sm">
                         <div className="w-20 h-20 bg-secondary-50 rounded-full flex items-center justify-center mx-auto mb-6">

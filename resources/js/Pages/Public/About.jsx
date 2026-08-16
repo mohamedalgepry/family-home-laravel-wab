@@ -22,7 +22,7 @@ export default function About({ page }) {
             />
             <Header />
 
-            <main className="flex-1 max-w-4xl mx-auto px-4 py-12 sm:py-20 w-full">
+            <main id="main-content" tabIndex="-1" className="flex-1 max-w-4xl mx-auto px-4 py-12 sm:py-20 w-full focus:outline-none">
                 <div className="text-center mb-12">
                     <h1 className="text-4xl sm:text-5xl font-black text-secondary-950 tracking-tight">{trans('about')}</h1>
                     <div className="w-20 h-1.5 bg-primary-900 rounded-full mx-auto mt-6"></div>

@@ -46,7 +46,7 @@ export default function Contact() {
             />
             <Header />
 
-            <main className="flex-1 max-w-3xl mx-auto px-4 py-12 sm:py-20 w-full">
+            <main id="main-content" tabIndex="-1" className="flex-1 max-w-3xl mx-auto px-4 py-12 sm:py-20 w-full focus:outline-none">
                 <div className="text-center mb-12">
                     <h1 className="text-4xl sm:text-5xl font-black text-secondary-950 mb-4 tracking-tight">{trans('contact')}</h1>
                     <p className="text-sm md:text-base text-secondary-500 max-w-md mx-auto leading-relaxed">{trans('contact_info')}</p>

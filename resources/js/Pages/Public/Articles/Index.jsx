@@ -23,7 +23,7 @@ export default function ArticlesIndex({ articles, categories, currentCategory })
             />
             <Header />
 
-            <main className="flex-1 w-full flex flex-col">
+            <main id="main-content" tabIndex="-1" className="flex-1 w-full flex flex-col focus:outline-none">
                 {/* Premium Header Area */}
                 <div className="bg-gradient-to-b from-surface-hover to-surface pt-8 pb-10 px-4">
                     <div className="max-w-container mx-auto">

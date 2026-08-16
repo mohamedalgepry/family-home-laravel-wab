@@ -128,7 +128,7 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
             )}
             <Header />
 
-            <main className="flex-1 w-full py-8 sm:py-14 bg-white">
+            <main id="main-content" tabIndex="-1" className="flex-1 w-full py-8 sm:py-14 bg-white focus:outline-none">
                 
                 <div className="max-w-[1400px] mx-auto px-4 sm:px-6">
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-start">
@@ -137,7 +137,7 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                         <article className="lg:col-span-9 w-full">
                     
                     {/* Breadcrumb Navigation */}
-                    <nav className="flex items-center gap-2 text-xs font-semibold text-secondary-500 mb-6" aria-label="Breadcrumb">
+                    <nav className="flex items-center gap-2 text-xs font-semibold text-secondary-700 mb-6" aria-label="Breadcrumb">
                         <Link href={localizedPath('/', locale)} className="hover:text-primary-900 transition-colors">
                             {trans('home')}
                         </Link>
@@ -148,24 +148,24 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                         {categoryName && (
                             <>
                                 <span>/</span>
-                                <span className="text-secondary-800 font-bold">{categoryName}</span>
+                                <span className="text-secondary-900 font-bold">{categoryName}</span>
                             </>
                         )}
                     </nav>
 
                     {/* Meta Badge */}
-                    <div className="flex items-center gap-3 flex-wrap text-xs text-secondary-500 mb-4">
+                    <div className="flex items-center gap-3 flex-wrap text-xs text-secondary-700 mb-4">
                         {categoryName && (
-                            <span className="font-bold text-primary-900 bg-primary-50 px-3 py-1 rounded-xl border border-primary-100/80">
+                            <span className="font-bold text-primary-900 bg-primary-50 px-3 py-1 rounded-xl border border-primary-200">
                                 {categoryName}
                             </span>
                         )}
                         {formattedDate && (
-                            <span className="font-medium text-secondary-600">{formattedDate}</span>
+                            <span className="font-semibold text-secondary-700">{formattedDate}</span>
                         )}
                         <span>•</span>
-                        <span className="font-medium flex items-center gap-1 text-secondary-600">
-                            <svg className="w-3.5 h-3.5 text-secondary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                        <span className="font-semibold flex items-center gap-1 text-secondary-700">
+                            <svg className="w-3.5 h-3.5 text-secondary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             {readingTimeMin} {trans('min_read')}
@@ -185,7 +185,7 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                             </div>
                             <div>
                                 <span className="font-bold text-secondary-950 block text-xs">{trans('family_home_real_estate')}</span>
-                                <span className="text-xs text-secondary-500 font-medium">{trans('editorial_team')}</span>
+                                <span className="text-xs text-secondary-700 font-semibold">{trans('editorial_team')}</span>
                             </div>
                         </div>
 
@@ -195,7 +195,7 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                                 href={whatsappShareUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white rounded-xl text-xs font-bold transition-all duration-200"
+                                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-100 hover:bg-emerald-700 text-emerald-950 hover:text-white rounded-xl text-xs font-bold transition-all duration-200"
                                 title={trans('share_whatsapp')}
                             >
                                 <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24" aria-hidden="true">
@@ -207,7 +207,7 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                             <button
                                 type="button"
                                 onClick={handleCopyLink}
-                                className="px-3.5 py-2 bg-secondary-100 hover:bg-secondary-200 text-secondary-800 rounded-xl text-xs font-semibold transition-colors"
+                                className="px-3.5 py-2 bg-secondary-100 hover:bg-secondary-200 text-secondary-900 rounded-xl text-xs font-bold transition-colors"
                             >
                                 {copied ? (trans('copied')) : (trans('copy_link'))}
                             </button>
@@ -321,10 +321,10 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                     {/* Article End Share CTA */}
                     <div className="mt-14 pt-8 border-t border-secondary-200 flex flex-col sm:flex-row items-center justify-between gap-4 bg-secondary-50 p-6 rounded-3xl">
                         <div>
-                            <h3 className="text-sm font-bold text-secondary-950">
+                            <h2 className="text-sm font-bold text-secondary-950">
                                 {trans('share_this_article')}
-                            </h3>
-                            <p className="text-xs text-secondary-500 mt-0.5">
+                            </h2>
+                            <p className="text-xs text-secondary-700 font-medium mt-0.5">
                                 {trans('spread_knowledge')}
                             </p>
                         </div>
@@ -347,28 +347,28 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                             
                             {/* Quick Shortcuts */}
                             <div className="bg-white rounded-3xl p-6 shadow-sm border border-secondary-200/60">
-                                <h3 className="font-bold text-secondary-950 mb-4 text-sm flex items-center gap-2">
+                                <h2 className="font-bold text-secondary-950 mb-4 text-sm flex items-center gap-2">
                                     <svg className="w-4 h-4 text-primary-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                                     </svg>
                                     {trans('quick_links')}
-                                </h3>
+                                </h2>
                                 <ul className="space-y-2">
                                     <li>
-                                        <Link href={localizedPath('/', locale)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-secondary-700 hover:text-primary-900 hover:bg-primary-50 transition-colors border border-transparent hover:border-primary-100">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-secondary-300"></span>
+                                        <Link href={localizedPath('/', locale)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-secondary-800 hover:text-primary-900 hover:bg-primary-50 transition-colors border border-transparent hover:border-primary-100">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-secondary-400"></span>
                                             {trans('home')}
                                         </Link>
                                     </li>
                                     <li>
-                                        <Link href={localizedPath('/units', locale)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-secondary-700 hover:text-primary-900 hover:bg-primary-50 transition-colors border border-transparent hover:border-primary-100">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-secondary-300"></span>
+                                        <Link href={localizedPath('/units', locale)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-secondary-800 hover:text-primary-900 hover:bg-primary-50 transition-colors border border-transparent hover:border-primary-100">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-secondary-400"></span>
                                             {trans('browse_available_units')}
                                         </Link>
                                     </li>
                                     <li>
-                                        <Link href={localizedPath('/projects', locale)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-secondary-700 hover:text-primary-900 hover:bg-primary-50 transition-colors border border-transparent hover:border-primary-100">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-secondary-300"></span>
+                                        <Link href={localizedPath('/projects', locale)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-secondary-800 hover:text-primary-900 hover:bg-primary-50 transition-colors border border-transparent hover:border-primary-100">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-secondary-400"></span>
                                             {trans('explore_latest_projects')}
                                         </Link>
                                     </li>
@@ -378,17 +378,17 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                             {/* Suggested Units */}
                             {suggestedUnits?.length > 0 && (
                                 <div className="bg-white rounded-3xl p-6 shadow-sm border border-secondary-200/60">
-                                    <h3 className="font-bold text-secondary-950 mb-4 text-sm flex items-center justify-between">
+                                    <h2 className="font-bold text-secondary-950 mb-4 text-sm flex items-center justify-between">
                                         <span className="flex items-center gap-2">
                                             <svg className="w-4 h-4 text-primary-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                                             </svg>
                                             {trans('suggested_properties')}
                                         </span>
-                                        <Link href={localizedPath('/units', locale)} className="text-[10px] text-secondary-400 hover:text-primary-700">
+                                        <Link href={localizedPath('/units', locale)} className="text-xs text-secondary-600 hover:text-primary-700 font-semibold">
                                             {trans('view_all')}
                                         </Link>
-                                    </h3>
+                                    </h2>
                                     <ul className="space-y-4">
                                         {suggestedUnits.map(unit => {
                                             const unitImg = unit?.images?.find(img => img.is_primary) || unit?.images?.[0];
@@ -398,14 +398,14 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                                                     <Link href={localizedPath(`/units/${unit.slug}`, locale)} className="group flex gap-3 items-center">
                                                         {unitImgUrl && (
                                                             <div className="shrink-0 w-16 h-16 rounded-xl overflow-hidden bg-secondary-100 border border-secondary-200/50 shadow-xs">
-                                                                <img src={unitImgUrl} alt={unit.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                                                                <img src={unitImgUrl} alt={unit.title} width={64} height={64} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
                                                             </div>
                                                         )}
                                                         <div className="flex-1">
-                                                            <h4 className="text-xs font-bold text-secondary-900 group-hover:text-primary-700 line-clamp-2 leading-relaxed transition-colors">
+                                                            <h3 className="text-xs font-bold text-secondary-900 group-hover:text-primary-700 line-clamp-2 leading-relaxed transition-colors">
                                                                 {unit.title}
-                                                            </h4>
-                                                            <span className="text-[10px] text-primary-700 font-black mt-1.5 block">
+                                                            </h3>
+                                                            <span className="text-[11px] text-primary-800 font-black mt-1 block">
                                                                 {new Intl.NumberFormat(isRtl ? 'ar-EG' : 'en-US').format(unit.price)} {trans('egp')}
                                                             </span>
                                                         </div>
@@ -420,17 +420,17 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                             {/* Related Articles */}
                             {relatedArticles?.length > 0 && (
                                 <div className="bg-white rounded-3xl p-6 shadow-sm border border-secondary-200/60">
-                                    <h3 className="font-bold text-secondary-950 mb-4 text-sm flex items-center justify-between">
+                                    <h2 className="font-bold text-secondary-950 mb-4 text-sm flex items-center justify-between">
                                         <span className="flex items-center gap-2">
                                             <svg className="w-4 h-4 text-primary-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
                                             </svg>
                                             {trans('suggested_articles')}
                                         </span>
-                                        <Link href={localizedPath('/articles', locale)} className="text-[10px] text-secondary-400 hover:text-primary-700">
+                                        <Link href={localizedPath('/articles', locale)} className="text-xs text-secondary-600 hover:text-primary-700 font-semibold">
                                             {trans('view_all')}
                                         </Link>
-                                    </h3>
+                                    </h2>
                                     <ul className="space-y-4">
                                         {relatedArticles.slice(0, 4).map(related => {
                                             const relatedImg = related?.images?.find(img => img.position === 'header') || related?.images?.[0];
@@ -440,15 +440,15 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                                                     <Link href={localizedPath(`/articles/${related.slug}`, locale)} className="group flex gap-3 items-center">
                                                         {relatedImgUrl && (
                                                             <div className="shrink-0 w-16 h-16 rounded-xl overflow-hidden bg-secondary-100 border border-secondary-200/50 shadow-xs">
-                                                                <img src={relatedImgUrl} alt={related.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                                                                <img src={relatedImgUrl} alt={related.title} width={64} height={64} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
                                                             </div>
                                                         )}
                                                         <div className="flex-1">
-                                                            <h4 className="text-xs font-bold text-secondary-900 group-hover:text-primary-700 line-clamp-2 leading-relaxed transition-colors">
+                                                            <h3 className="text-xs font-bold text-secondary-900 group-hover:text-primary-700 line-clamp-2 leading-relaxed transition-colors">
                                                                 {related.title}
-                                                            </h4>
-                                                            <span className="text-[10px] text-secondary-400 mt-1.5 block font-medium">
-                                                                {new Date(related.published_at).toLocaleDateString(isRtl ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                                            </h3>
+                                                            <span className="text-[11px] text-secondary-600 mt-1 block font-medium">
+                                                                {related.created_at ? new Date(related.created_at).toLocaleDateString(isRtl ? 'ar-EG' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
                                                             </span>
                                                         </div>
                                                     </Link>
