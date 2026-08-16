@@ -449,16 +449,16 @@ export default function AdminProjectForm({ project, areas, features, finishingTy
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('content_ar')}</label>
-                                    <textarea value={data.description_ar} onChange={e => handleChange('description_ar', e.target.value)} rows={4} dir="rtl" maxLength={1000} className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900" />
-                                    <p className={`text-xs mt-1 text-end ${data.description_ar.length >= 950 ? 'text-red-500 font-semibold' : 'text-secondary-400'}`}>
-                                        {data.description_ar.length} / 1000
+                                    <textarea value={data.description_ar} onChange={e => handleChange('description_ar', e.target.value)} rows={6} dir="rtl" maxLength={50000} className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900" />
+                                    <p className={`text-xs mt-1 text-end ${data.description_ar.length >= 49500 ? 'text-red-500 font-semibold' : 'text-secondary-400'}`}>
+                                        {data.description_ar.length} / 50000
                                     </p>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('content_en')}</label>
-                                    <textarea value={data.description_en} onChange={e => handleChange('description_en', e.target.value)} rows={4} maxLength={1000} className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900" />
-                                    <p className={`text-xs mt-1 text-end ${data.description_en.length >= 950 ? 'text-red-500 font-semibold' : 'text-secondary-400'}`}>
-                                        {data.description_en.length} / 1000
+                                    <textarea value={data.description_en} onChange={e => handleChange('description_en', e.target.value)} rows={6} maxLength={50000} className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900" />
+                                    <p className={`text-xs mt-1 text-end ${data.description_en.length >= 49500 ? 'text-red-500 font-semibold' : 'text-secondary-400'}`}>
+                                        {data.description_en.length} / 50000
                                     </p>
                                 </div>
                             </div>

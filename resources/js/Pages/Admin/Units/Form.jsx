@@ -696,16 +696,16 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('description_ar', {}, 'units')}</label>
-                                    <textarea value={data.description_ar} onChange={e => handleChange('description_ar', e.target.value)} rows={4} dir="rtl" maxLength={1000} className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none" />
-                                    <p className={`text-xs mt-1 text-end ${data.description_ar.length >= 950 ? 'text-red-500 font-semibold' : 'text-secondary-400'}`}>
-                                        {data.description_ar.length} / 1000
+                                    <textarea value={data.description_ar} onChange={e => handleChange('description_ar', e.target.value)} rows={6} dir="rtl" maxLength={50000} className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none" />
+                                    <p className={`text-xs mt-1 text-end ${data.description_ar.length >= 49500 ? 'text-red-500 font-semibold' : 'text-secondary-400'}`}>
+                                        {data.description_ar.length} / 50000
                                     </p>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('description_en', {}, 'units')}</label>
-                                    <textarea value={data.description_en} onChange={e => handleChange('description_en', e.target.value)} rows={4} dir="ltr" maxLength={1000} className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none" />
-                                    <p className={`text-xs mt-1 text-end ${data.description_en.length >= 950 ? 'text-red-500 font-semibold' : 'text-secondary-400'}`}>
-                                        {data.description_en.length} / 1000
+                                    <textarea value={data.description_en} onChange={e => handleChange('description_en', e.target.value)} rows={6} dir="ltr" maxLength={50000} className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none" />
+                                    <p className={`text-xs mt-1 text-end ${data.description_en.length >= 49500 ? 'text-red-500 font-semibold' : 'text-secondary-400'}`}>
+                                        {data.description_en.length} / 50000
                                     </p>
                                 </div>
                             </div>
