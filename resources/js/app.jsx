@@ -161,19 +161,22 @@ if (typeof window !== 'undefined') {
         }
     });
 
-    // تأثير تلوين النص عند اللمس على الموبايل (a:active لا يعمل بموثوقية على متصفحات Android/iOS)
-    document.addEventListener('touchstart', (e) => {
-        const el = e.target.closest('a, button, [role="button"]');
-        if (!el) return;
-        el.classList.add('touch-active');
-        const cleanup = () => {
-            el.classList.remove('touch-active');
-            document.removeEventListener('touchend', cleanup);
-            document.removeEventListener('touchcancel', cleanup);
-        };
-        document.addEventListener('touchend', cleanup, { once: true });
-        document.addEventListener('touchcancel', cleanup, { once: true });
-    }, { passive: true });
+    // تأمين التنقل الداخلي (SPA Navigation) ومنع فتح نوافذ منبثقة أو تبويبات في بيئات المعاينة المدمجة
+    document.addEventListener('click', (e) => {
+        const link = e.target.closest('a');
+        if (!link) return;
+
+        if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.altKey || e.ctrlKey || e.shiftKey) return;
+        if (link.target === '_blank' || link.hasAttribute('download')) return;
+
+        const href = link.getAttribute('href');
+        if (!href || href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('tel:') || href.startsWith('mailto:')) return;
+
+        if (href.startsWith('/') && !href.startsWith('//') && !href.startsWith('/storage') && !href.startsWith('/locale/')) {
+            e.preventDefault();
+            router.visit(href);
+        }
+    });
 }
 
 async function boot() {

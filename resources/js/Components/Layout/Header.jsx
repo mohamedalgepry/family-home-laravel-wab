@@ -1,5 +1,5 @@
 import { localizedPath } from '../../Utils/route'
-import { usePage, Link } from '@inertiajs/react'
+import { usePage, Link, router } from '@inertiajs/react'
 import { useTrans } from '../../Utils/trans'
 import { useState } from 'react'
 import OptimizedImage from '../OptimizedImage'
@@ -44,8 +44,11 @@ export default function Header({ compareCount = 0 }) {
             if (currentPath === locHref || currentPath === `${locHref}/`) {
                 e.preventDefault();
                 window.scrollTo({ top: 0, behavior: 'smooth' });
+                return;
             }
         }
+        e.preventDefault();
+        router.visit(locHref);
     }
 
     return (
