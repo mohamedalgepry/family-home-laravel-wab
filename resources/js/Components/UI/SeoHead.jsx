@@ -4,6 +4,7 @@ import { useTrans } from '../../Utils/trans'
 export default function SeoHead({
     title,
     description,
+    keywords,
     ogImage,
     ogType = 'website',
     canonical,
@@ -43,6 +44,9 @@ export default function SeoHead({
     const rawDescription = pageSeo ? (isRtl ? (pageSeo.meta_description_ar || description) : (pageSeo.meta_description_en || description)) : (seo_meta?.description || description);
     const finalDescription = cleanMetaDescription(rawDescription);
 
+    const rawKeywords = keywords || seo_meta?.keywords || (pageSeo ? (isRtl ? pageSeo.meta_keywords_ar : pageSeo.meta_keywords_en) : null);
+    const keywordsString = Array.isArray(rawKeywords) ? rawKeywords.filter(Boolean).join(', ') : (typeof rawKeywords === 'string' ? rawKeywords : null);
+
     const hasFilterQuery = typeof url === 'string' && url.includes('?') && /[?&](price_|size_|features|transaction|search|finishing_type|payment_method)/.test(url);
     const finalRobots = robots || seo_meta?.robots || (hasFilterQuery ? 'noindex, follow' : null);
 
@@ -67,6 +71,7 @@ export default function SeoHead({
             {finalTitle && <title>{finalTitle}</title>}
             {finalRobots && <meta head-key="robots" name="robots" content={finalRobots} />}
             {finalDescription && <meta head-key="description" name="description" content={finalDescription} />}
+            {keywordsString && <meta head-key="keywords" name="keywords" content={keywordsString} />}
 
             {/* Open Graph */}
             {finalTitle && <meta head-key="og:title" property="og:title" content={finalTitle} />}
@@ -74,7 +79,6 @@ export default function SeoHead({
             <meta head-key="og:type" property="og:type" content={ogType} />
             <meta head-key="og:site_name" property="og:site_name" content={siteName} />
             {finalOgImage && <meta head-key="og:image" property="og:image" content={finalOgImage} />}
-            {finalOgImage && <meta head-key="og:image:secure_url" property="og:image:secure_url" content={finalOgImage} />}
             <meta head-key="og:url" property="og:url" content={finalCanonical} />
 
             {/* Twitter Card */}
@@ -93,7 +97,7 @@ export default function SeoHead({
 
             {/* Structured Data (Schema.org) */}
             {jsonLd && (
-                <script type="application/ld+json">
+                <script head-key="jsonld" type="application/ld+json">
                     {JSON.stringify(jsonLd)}
                 </script>
             )}

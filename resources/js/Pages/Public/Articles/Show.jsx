@@ -127,15 +127,11 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
             <SeoHead
                 title={`${article?.title || ''} - ${trans('site_title')}`}
                 description={article?.meta_description || article?.excerpt || ''}
+                keywords={isRtl ? (article?.keywords_ar || article?.keywords) : (article?.keywords_en || article?.keywords || article?.keywords_ar)}
                 ogImage={headerImgUrl}
                 ogType="article"
+                jsonLd={jsonLd}
             />
-            {jsonLd && (
-                <script
-                    type="application/ld+json"
-                    dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
-                />
-            )}
             <Header />
 
             <main id="main-content" tabIndex="-1" className="flex-1 w-full py-8 sm:py-14 bg-white focus:outline-none">

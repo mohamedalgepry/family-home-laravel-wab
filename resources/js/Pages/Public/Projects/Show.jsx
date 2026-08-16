@@ -85,15 +85,11 @@ export default function ProjectShow({ project }) {
             <SeoHead
                 title={`${project?.name || ''} - ${trans('site_title')}`}
                 description={project?.meta_description || project?.description || ''}
+                keywords={isRtl ? (project?.keywords_ar || project?.keywords) : (project?.keywords_en || project?.keywords || project?.keywords_ar)}
                 ogImage={mainImage?.url || (mainImage?.path ? `/storage/${mainImage.path}` : null)}
                 ogType="website"
+                jsonLd={jsonLd}
             />
-            {jsonLd && (
-                <script
-                    type="application/ld+json"
-                    dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
-                />
-            )}
             <Header />
 
             <main id="main-content" className="flex-1 max-w-container mx-auto px-4 py-6 md:py-8 w-full pb-28 md:pb-12">

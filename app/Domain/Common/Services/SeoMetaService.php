@@ -47,9 +47,23 @@ class SeoMetaService
         $relativeImage = $this->resolveImage($model->images);
         $ogType = $model instanceof Article || $model instanceof Unit ? 'article' : 'website';
 
+        $keywords = $locale === 'ar'
+            ? ($model->keywords_ar ?? $model->keywords ?? [])
+            : ($model->keywords_en ?? $model->keywords ?? $model->keywords_ar ?? []);
+
+        if (is_string($keywords)) {
+            $decoded = json_decode($keywords, true);
+            $keywords = is_array($decoded) ? $decoded : array_map('trim', explode(',', $keywords));
+        }
+
+        if (is_array($keywords)) {
+            $keywords = array_values(array_filter($keywords));
+        }
+
         return [
             'title' => $title,
             'description' => $description,
+            'keywords' => $keywords,
             'image' => $relativeImage,
             'canonical' => url("/{$locale}/{$section}/".($model->$slugField ?? $model->slug)),
             'hreflang' => [

@@ -25,10 +25,17 @@
     $hreflang = $meta['hreflang'] ?? [];
     $ogType = $meta['og_type'] ?? 'website';
     $schemas = $meta['schema'] ?? [];
+    $keywords = $meta['keywords'] ?? null;
+    if (is_array($keywords)) {
+        $keywords = implode(', ', array_filter($keywords));
+    }
 @endphp
 
 <title inertia>{{ $title }}</title>
 <meta name="description" content="{{ $description }}" inertia head-key="description">
+@if(!empty($keywords))
+<meta name="keywords" content="{{ $keywords }}" inertia head-key="keywords">
+@endif
 <meta name="author" content="mohamed algebry" inertia head-key="author">
 @if(!empty($meta['robots']))
 <meta name="robots" content="{{ $meta['robots'] }}" inertia head-key="robots">

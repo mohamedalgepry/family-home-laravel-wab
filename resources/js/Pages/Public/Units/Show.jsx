@@ -108,15 +108,11 @@ export default function UnitShow({ unit, similarUnits }) {
             <SeoHead
                 title={`${unit?.name || ''} - ${trans('site_title')}`}
                 description={unit?.meta_description || unit?.description || ''}
+                keywords={isRtl ? (unit?.keywords_ar || unit?.keywords) : (unit?.keywords_en || unit?.keywords || unit?.keywords_ar)}
                 ogImage={unit?.images?.find(img => img.is_main || img.is_primary)?.url || unit?.images?.[0]?.url || null}
                 ogType={seo_meta?.og_type || 'article'}
+                jsonLd={jsonLd}
             />
-            {jsonLd && (
-                <script
-                    type="application/ld+json"
-                    dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
-                />
-            )}
             <Header />
 
             <main id="main-content" className="flex-1 max-w-container mx-auto px-4 py-6 md:py-8 w-full pb-28 md:pb-12">
