@@ -18,6 +18,9 @@
     @if(isset($lcpImage))
     <!-- Preload LCP Image (Dynamic from Controller) -->
     <link rel="preload" as="image" href="{{ $lcpImage }}" fetchpriority="high">
+    @elseif(!empty($seo_meta['image']) && !str_contains($seo_meta['image'], 'icon.webp') && !str_contains($seo_meta['image'], 'site_logo'))
+    <!-- Preload Entity Featured Cover Image for Instant LCP Discovery -->
+    <link rel="preload" as="image" href="{{ str_starts_with($seo_meta['image'], 'http') ? $seo_meta['image'] : asset(ltrim($seo_meta['image'], '/')) }}" fetchpriority="high">
     @elseif(request()->routeIs('home') || request()->is('/') || request()->is('ar') || request()->is('en'))
     <!-- Preload LCP Hero Image for Mobile & Desktop (Home Page Only) -->
     <link rel="preload" as="image" href="{{ $heroMobileUrl }}" type="image/webp" media="(max-width: 640px)" fetchpriority="high">
@@ -30,7 +33,7 @@
     <link rel="dns-prefetch" href="https://www.youtube.com">
     <link rel="dns-prefetch" href="https://i.ytimg.com">
 
-    <!-- Google Analytics (Deferred to user interaction to eliminate Unused JS & TBT in PageSpeed/Lighthouse) -->
+    <!-- Google Analytics (Deferred to user interaction & idle to eliminate Unused JS & TBT in PageSpeed/Lighthouse) -->
     <script>
       (function() {
         var loaded = false;
@@ -52,7 +55,11 @@
         ['scroll', 'mousemove', 'touchstart', 'keydown', 'click'].forEach(function(e) {
           window.addEventListener(e, loadGA, { passive: true });
         });
-        setTimeout(loadGA, 4000);
+        if ('requestIdleCallback' in window) {
+          requestIdleCallback(function() { setTimeout(loadGA, 5000); });
+        } else {
+          setTimeout(loadGA, 6000);
+        }
       })();
     </script>
 
