@@ -412,9 +412,9 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                                                             </div>
                                                         )}
                                                         <div className="flex-1">
-                                                            <h3 className="text-xs font-bold text-secondary-900 group-hover:text-primary-700 line-clamp-2 leading-relaxed transition-colors">
+                                                            <p className="text-xs font-bold text-secondary-900 group-hover:text-primary-700 line-clamp-2 leading-relaxed transition-colors">
                                                                 {unit.title}
-                                                            </h3>
+                                                            </p>
                                                             <span className="text-[11px] text-primary-800 font-black mt-1 block">
                                                                 {new Intl.NumberFormat(isRtl ? 'ar-EG' : 'en-US').format(unit.price)} {trans('egp')}
                                                             </span>
@@ -454,9 +454,9 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                                                             </div>
                                                         )}
                                                         <div className="flex-1">
-                                                            <h3 className="text-xs font-bold text-secondary-900 group-hover:text-primary-700 line-clamp-2 leading-relaxed transition-colors">
+                                                            <p className="text-xs font-bold text-secondary-900 group-hover:text-primary-700 line-clamp-2 leading-relaxed transition-colors">
                                                                 {related.title}
-                                                            </h3>
+                                                            </p>
                                                             <span className="text-[11px] text-secondary-600 mt-1 block font-medium">
                                                                 {related.created_at ? new Date(related.created_at).toLocaleDateString(isRtl ? 'ar-EG' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
                                                             </span>
