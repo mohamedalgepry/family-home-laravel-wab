@@ -19,6 +19,14 @@ export default function Home({ featuredUnits, latestUnits, latestProjects, popul
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
 
+    const heroTitle = isRtl
+        ? (settings?.hero_title_ar || trans('hero_title'))
+        : (settings?.hero_title_en || settings?.hero_title_ar || trans('hero_title'))
+
+    const heroSubtitle = isRtl
+        ? (settings?.hero_subtitle_ar || trans('hero_subtitle'))
+        : (settings?.hero_subtitle_en || settings?.hero_subtitle_ar || trans('hero_subtitle'))
+
     const heroImage = settings?.hero_image ? getStorageUrl(settings.hero_image, HERO_BG) : HERO_BG
     const heroImageMobile = settings?.hero_image_mobile ? getStorageUrl(settings.hero_image_mobile, HERO_BG_MOBILE) : (settings?.hero_image ? getStorageUrl(settings.hero_image, HERO_BG_MOBILE) : HERO_BG_MOBILE)
 
@@ -34,7 +42,7 @@ export default function Home({ featuredUnits, latestUnits, latestProjects, popul
         <div dir={isRtl ? 'rtl' : 'ltr'} className="min-h-screen bg-surface flex flex-col font-sans">
             <SeoHead
                 title={`${trans('app_name')} | ${trans('site_title')}`}
-                description={trans('hero_subtitle')}
+                description={heroSubtitle || trans('hero_subtitle')}
                 ogImage={homeOgImage}
                 ogType="website"
             />
@@ -60,10 +68,10 @@ export default function Home({ featuredUnits, latestUnits, latestProjects, popul
                     <div className="relative z-10 max-w-container mx-auto w-full text-center space-y-6 md:space-y-8 mt-2">
                         <div className="space-y-3 max-w-3xl mx-auto px-2">
                             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white leading-tight tracking-tight drop-shadow-md">
-                                {trans('hero_title') || 'ابحث عن عقارك المثالي بسهولة'}
+                                {heroTitle}
                             </h1>
                             <p className="text-sm sm:text-base md:text-lg text-white/80 font-medium max-w-2xl mx-auto drop-shadow">
-                                {trans('hero_subtitle') || 'آلاف العقارات المتاحة للبيع والشرء والتمليك في أفضل المناطق'}
+                                {heroSubtitle}
                             </p>
                         </div>
 
