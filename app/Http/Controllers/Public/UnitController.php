@@ -24,13 +24,15 @@ class UnitController
         private readonly SeoMetaService $seoMetaService,
     ) {}
 
-    public function index(SearchService $searchService): Response
+    public function index(SearchService $searchService, \App\Domain\Listings\Services\FilterResolver $filterResolver): Response
     {
         $filters = request()->only(self::FILTERABLE);
 
         if (! empty($filters['search'])) {
             $searchService->recordSearch($filters['search']);
         }
+
+        $filters = $filterResolver->resolve($filters);
 
         $units = $this->listingService->getUnitsByFilters($filters);
         $meta = $this->buildFilteredUnitsMeta($filters);

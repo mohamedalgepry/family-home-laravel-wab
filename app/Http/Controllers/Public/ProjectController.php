@@ -22,13 +22,15 @@ class ProjectController
         private readonly SeoMetaService $seoMetaService,
     ) {}
 
-    public function index(SearchService $searchService): Response
+    public function index(SearchService $searchService, \App\Domain\Listings\Services\FilterResolver $filterResolver): Response
     {
         $filters = request()->only(['area_id', 'search', 'payment_method', 'finishing_type_id', 'features']);
 
         if (! empty($filters['search'])) {
             $searchService->recordSearch($filters['search']);
         }
+
+        $filters = $filterResolver->resolve($filters);
 
         $projects = $this->listingService->getProjectsByFilters($filters);
 

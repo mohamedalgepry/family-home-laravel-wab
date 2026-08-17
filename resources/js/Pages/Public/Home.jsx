@@ -196,34 +196,6 @@ export default function Home({ featuredUnits, latestUnits, latestProjects, popul
                         )}
                 </section>
 
-                {/* Featured Units Section */}
-                <section className="bg-transparent py-8 max-w-container mx-auto px-4">
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-xl sm:text-2xl font-black text-secondary-950 tracking-tight">{trans('featured_units') || 'الوحدات المميزة'}</h2>
-                        <Link href={localizedPath('/units', locale)} className="px-4 py-1.5 bg-white text-secondary-800 border border-border rounded-full text-xs font-bold hover:bg-surface-hover hover:text-primary-900 transition-colors shadow-sm">
-                            {trans('view_all') || 'عرض الكل'}
-                        </Link>
-                    </div>
-
-                    {isLoading ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                            {Array.from({ length: 4 }).map((_, i) => (
-                                <UnitCard key={i} loading={true} />
-                            ))}
-                        </div>
-                    ) : hasFeatured && Array.isArray(featuredUnits?.data) ? (
-                        <>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                                {featuredUnits.data.map(unit => (
-                                    <UnitCard key={unit.id} unit={unit} />
-                                ))}
-                            </div>
-                            <Pagination meta={featuredUnits} links={featuredUnits?.links} />
-                        </>
-                    ) : (
-                        <p className="text-sm text-muted text-center py-12">{trans('no_results')}</p>
-                    )}
-                </section>
 
                 {/* Latest Units Section */}
                 <section className="bg-transparent py-8 max-w-container mx-auto px-4 mb-12">
