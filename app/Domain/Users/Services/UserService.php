@@ -94,13 +94,32 @@ class UserService
     public function destroyUser(int $userId, ?int $transferToId = null): void
     {
         DB::transaction(function () use ($userId, $transferToId) {
-            $user = User::findOrFail($userId);
+            $user = User::with(['profile'])->findOrFail($userId);
 
             if ($transferToId) {
                 $this->transferProjects($userId, $transferToId);
                 // إذا كان للمستخدم وكلاء (agents) يجب نقلهم أيضًا أو تحريرهم
                 if ($user->agents()->count() > 0) {
                     $user->agents()->update(['manager_id' => $transferToId]);
+                }
+            } else {
+                // If not transferring, the database will cascade-delete the units and projects.
+                // We MUST delete the physical images to prevent disk space bloat.
+                $projectImages = \App\Domain\Listings\Models\ProjectImage::whereHas('project', function ($q) use ($userId) {
+                    $q->where('user_id', $userId);
+                })->pluck('path')->toArray();
+
+                $unitImages = \App\Domain\Listings\Models\UnitImage::whereHas('unit', function ($q) use ($userId) {
+                    $q->where('user_id', $userId);
+                })->pluck('path')->toArray();
+
+                $allImages = array_merge($projectImages, $unitImages);
+                if ($user->profile?->avatar) {
+                    $allImages[] = $user->profile->avatar;
+                }
+
+                if (! empty($allImages)) {
+                    app(\App\Domain\Listings\Services\ListingImageService::class)->deleteImageFiles($allImages);
                 }
             }
 

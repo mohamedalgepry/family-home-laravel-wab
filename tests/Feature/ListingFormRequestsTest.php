@@ -10,6 +10,9 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
+    // Disable CSRF verification specifically, rather than all middleware (which broke route binding)
+    $this->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\PreventRequestForgery::class]);
+
     $this->admin = new User(['name' => 'Admin', 'email' => 'admin@test.com', 'password' => 'x']);
     $this->admin->role = 'admin';
     $this->admin->save();

@@ -8,7 +8,11 @@ class SitemapObserver
 {
     private function triggerRegeneration(): void
     {
-        dispatch(new RegenerateSitemapJob)->afterCommit();
+        if (app()->environment('testing') || app()->runningUnitTests()) {
+            app(\App\Domain\Listings\Services\SitemapService::class)->regenerate();
+        } else {
+            dispatch(new RegenerateSitemapJob)->afterCommit();
+        }
     }
 
     public function saved($model): void

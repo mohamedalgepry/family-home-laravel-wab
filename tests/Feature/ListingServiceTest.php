@@ -108,8 +108,8 @@ it('skips inactive units', function () {
 });
 
 it('keeps slugs unique when names collide', function () {
-    createUnit('first-copy');
-    $second = createUnit('first-copy', ['slug' => null]);
+    createUnit('first-copy', ['name' => 'first-copy', 'name_en' => 'first-copy']);
+    $second = createUnit('first-copy', ['name' => 'first-copy', 'name_en' => 'first-copy', 'slug' => null]);
 
     expect($second->slug)->toBe('first-copy-1')
         ->and(Unit::where('slug', 'like', 'first-copy%')->count())->toBe(2);
