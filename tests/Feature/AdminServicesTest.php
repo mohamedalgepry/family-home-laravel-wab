@@ -24,7 +24,7 @@ beforeEach(function () {
 });
 
 it('filters paginated units by search, area, type and transaction', function () {
-    $unitA = new Unit([
+    $unitA = createTestUnit([
         'user_id' => $this->user->id,
         'type_id' => $this->type->id,
         'area_id' => $this->area->id,
@@ -35,9 +35,8 @@ it('filters paginated units by search, area, type and transaction', function () 
         'name_en' => 'Nile Villa',
         'slug' => 'nile-villa',
     ]);
-    $unitA->save();
 
-    $unitB = new Unit([
+    $unitB = createTestUnit([
         'user_id' => $this->user->id,
         'type_id' => $this->type->id,
         'area_id' => $this->otherArea->id,
@@ -48,7 +47,6 @@ it('filters paginated units by search, area, type and transaction', function () 
         'name_en' => 'City Flat',
         'slug' => 'city-flat',
     ]);
-    $unitB->save();
 
     $service = app(UnitService::class);
 
@@ -59,7 +57,7 @@ it('filters paginated units by search, area, type and transaction', function () 
 });
 
 it('sorts paginated units by price and falls back to featured order', function () {
-    $cheap = new Unit([
+    $cheap = createTestUnit([
         'user_id' => $this->user->id,
         'type_id' => $this->type->id,
         'area_id' => $this->area->id,
@@ -71,9 +69,8 @@ it('sorts paginated units by price and falls back to featured order', function (
         'slug' => 'cheap',
         'priority_points' => 5,
     ]);
-    $cheap->save();
 
-    $expensive = new Unit([
+    $expensive = createTestUnit([
         'user_id' => $this->user->id,
         'type_id' => $this->type->id,
         'area_id' => $this->area->id,
@@ -85,7 +82,6 @@ it('sorts paginated units by price and falls back to featured order', function (
         'slug' => 'expensive',
         'priority_points' => 1,
     ]);
-    $expensive->save();
 
     $service = app(UnitService::class);
 
@@ -98,7 +94,7 @@ it('sorts paginated units by price and falls back to featured order', function (
 });
 
 it('caps the per page value at fifty', function () {
-    $unit = new Unit([
+    $unit = createTestUnit([
         'user_id' => $this->user->id,
         'type_id' => $this->type->id,
         'area_id' => $this->area->id,
@@ -109,7 +105,6 @@ it('caps the per page value at fifty', function () {
         'name_en' => 'Unit',
         'slug' => 'unit',
     ]);
-    $unit->save();
 
     $service = app(UnitService::class);
 
@@ -187,7 +182,7 @@ it('ignores disallowed sort fields', function () {
 });
 
 it('does not search when the term is shorter than the minimum length', function () {
-    $unit = new Unit([
+    $unit = createTestUnit([
         'user_id' => $this->user->id,
         'type_id' => $this->type->id,
         'area_id' => $this->area->id,
@@ -198,7 +193,6 @@ it('does not search when the term is shorter than the minimum length', function 
         'name_en' => 'Unit',
         'slug' => 'unit',
     ]);
-    $unit->save();
 
     $service = app(UnitService::class);
 

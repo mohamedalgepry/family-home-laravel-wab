@@ -40,7 +40,8 @@ class AdjustUnitPointsAction
             }
 
             // 2. Update unit points
-            $unit->update(['priority_points' => $newPoints]);
+            $unit->priority_points = $newPoints;
+            $unit->save();
 
             // 3. Record the new admin adjustment transaction
             // Admin doesn't have a points_balance, but we log the transaction under the admin

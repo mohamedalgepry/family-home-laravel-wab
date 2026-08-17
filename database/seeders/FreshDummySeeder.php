@@ -122,7 +122,8 @@ class FreshDummySeeder extends Seeder
         // 4. Create Dummy Units
         for ($i = 1; $i <= 6; $i++) {
             $project = $projects[array_rand($projects)];
-            $unit = Unit::create([
+            $unit = new Unit();
+            $unit->forceFill([
                 'project_id' => $project->id,
                 'user_id' => $admin->id,
                 'area_id' => $project->area_id,
@@ -142,6 +143,7 @@ class FreshDummySeeder extends Seeder
                 'bathrooms' => rand(1, 4),
                 'is_active' => true,
             ]);
+            $unit->save();
 
             $unit->features()->attach(collect($features)->random(2)->pluck('id')->toArray());
 

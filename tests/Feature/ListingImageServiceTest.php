@@ -21,7 +21,7 @@ beforeEach(function () {
     $this->user->role = 'agent';
     $this->user->save();
 
-    $this->unit = new Unit([
+    $this->unit = createTestUnit([
         'user_id' => $this->user->id,
         'type_id' => UnitType::create(['name_ar' => 'شقة', 'name_en' => 'Apartment'])->id,
         'area_id' => Area::create(['name_ar' => 'منطقة', 'name_en' => 'Area'])->id,
@@ -32,7 +32,6 @@ beforeEach(function () {
         'name_en' => 'Villa',
         'slug' => 'villa',
     ]);
-    $this->unit->save();
 
     $this->imageService = app(ListingImageService::class);
 });

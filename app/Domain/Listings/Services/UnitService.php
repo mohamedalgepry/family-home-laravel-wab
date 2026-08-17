@@ -121,7 +121,8 @@ class UnitService
     public function togglePin(int $unitId): Unit
     {
         $unit = Unit::findOrFail($unitId);
-        $unit->update(['is_pinned' => ! $unit->is_pinned]);
+        $unit->is_pinned = ! $unit->is_pinned;
+        $unit->save();
 
         $this->clearListingsCache();
 
@@ -131,7 +132,8 @@ class UnitService
     public function toggleDeal(int $unitId): Unit
     {
         $unit = Unit::findOrFail($unitId);
-        $unit->update(['is_deal' => ! $unit->is_deal]);
+        $unit->is_deal = ! $unit->is_deal;
+        $unit->save();
 
         $this->clearListingsCache();
 
@@ -142,7 +144,8 @@ class UnitService
     {
         $unit = Unit::findOrFail($unitId);
         $wasActive = $unit->is_active;
-        $unit->update(['is_active' => ! $wasActive]);
+        $unit->is_active = ! $wasActive;
+        $unit->save();
 
         $this->clearListingsCache();
 
