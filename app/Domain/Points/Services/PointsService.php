@@ -122,7 +122,8 @@ class PointsService
                     $deduction = min($unit->priority_points, $value);
                     $newPoints = max(0, $unit->priority_points - $deduction);
 
-                    $unit->update(['priority_points' => $newPoints]);
+                    $unit->priority_points = $newPoints;
+                    $unit->save();
 
                     $managerId = $unit->user?->manager_id ?? $unit->user_id;
 
