@@ -70,11 +70,10 @@ class PointsService
                         'manager_id' => $manager->id,
                         'unit_id' => null,
                         'type' => 'monthly_reset',
-                        'amount' => $amount,
+                        'points' => $amount,
                         'balance_after' => $manager->initial_monthly_balance,
-                        'performed_by_id' => $performedBy?->id,
+                        'performed_by' => $performedBy?->id,
                         'created_at' => $now,
-                        'updated_at' => $now,
                     ];
                 }
             }
@@ -87,7 +86,7 @@ class PointsService
             }
 
             $updated = User::managers()
-                ->update(['points_balance' => DB::raw('initial_monthly_balance')]);
+                ->update(['points_balance' => DB::raw('`initial_monthly_balance`')]);
 
             return $updated;
         });
