@@ -4,7 +4,6 @@ use App\Domain\Listings\Models\Area;
 use App\Domain\Listings\Models\Article;
 use App\Domain\Listings\Models\Category;
 use App\Domain\Listings\Models\Project;
-use App\Domain\Listings\Models\Unit;
 use App\Domain\Listings\Models\UnitType;
 use App\Domain\Users\Models\Message;
 use App\Domain\Users\Models\User;
@@ -17,7 +16,7 @@ beforeEach(function () {
     $type = UnitType::create(['name_ar' => 'نوع', 'name_en' => 'Type']);
     $area = Area::create(['name_ar' => 'منطقة', 'name_en' => 'Area']);
 
-    $this->unit = Unit::create([
+    $this->unit = createTestUnit([
         'user_id' => $this->admin->id,
         'type_id' => $type->id,
         'area_id' => $area->id,
@@ -29,7 +28,7 @@ beforeEach(function () {
         'slug' => 'villa-nile',
     ]);
 
-    $this->numericSlugUnit = Unit::create([
+    $this->numericSlugUnit = createTestUnit([
         'user_id' => $this->admin->id,
         'type_id' => $type->id,
         'area_id' => $area->id,
@@ -56,7 +55,7 @@ it('does not resolve a numeric slug as an id on admin routes', function () {
 });
 
 it('resolves the right unit when a numeric slug collides with an id', function () {
-    $collision = Unit::create([
+    $collision = createTestUnit([
         'user_id' => $this->admin->id,
         'type_id' => $this->unit->type_id,
         'area_id' => $this->unit->area_id,

@@ -28,6 +28,7 @@ use App\Domain\Users\Models\User;
 use App\Domain\Users\Policies\MessagePolicy;
 use App\Domain\Users\Policies\UserPolicy;
 use App\Observers\LookupObserver;
+use App\Observers\SitemapObserver;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -66,10 +67,10 @@ class AppServiceProvider extends ServiceProvider
         Feature::observe(LookupObserver::class);
         FinishingType::observe(LookupObserver::class);
 
-        Unit::observe(\App\Observers\SitemapObserver::class);
-        Project::observe(\App\Observers\SitemapObserver::class);
-        Article::observe(\App\Observers\SitemapObserver::class);
-        Area::observe(\App\Observers\SitemapObserver::class);
+        Unit::observe(SitemapObserver::class);
+        Project::observe(SitemapObserver::class);
+        Article::observe(SitemapObserver::class);
+        Area::observe(SitemapObserver::class);
 
         Gate::policy(User::class, UserPolicy::class);
         Gate::policy(Project::class, ProjectPolicy::class);

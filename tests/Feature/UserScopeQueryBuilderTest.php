@@ -19,10 +19,10 @@ beforeEach(function () {
 
     $unitAttributes = ['type_id' => $type->id, 'area_id' => $area->id, 'transaction' => 'sale', 'price' => 1000];
 
-    $this->managerUnit = Unit::create([...$unitAttributes, 'name' => 'Manager Unit', 'name_ar' => 'وحدة المدير', 'name_en' => 'Manager Unit', 'user_id' => $this->manager->id]);
-    $this->agentAUnit = Unit::create([...$unitAttributes, 'name' => 'Agent A Unit', 'name_ar' => 'وحدة الوكيل أ', 'name_en' => 'Agent A Unit', 'user_id' => $this->agentA->id]);
-    $this->agentBUnit = Unit::create([...$unitAttributes, 'name' => 'Agent B Unit', 'name_ar' => 'وحدة الوكيل ب', 'name_en' => 'Agent B Unit', 'user_id' => $this->agentB->id]);
-    $this->lonelyUnit = Unit::create([...$unitAttributes, 'name' => 'Lonely Agent Unit', 'name_ar' => 'وحدة الوكيل الوحيد', 'name_en' => 'Lonely Agent Unit', 'user_id' => $this->lonelyAgent->id]);
+    $this->managerUnit = createTestUnit([...$unitAttributes, 'name' => 'Manager Unit', 'name_ar' => 'وحدة المدير', 'name_en' => 'Manager Unit', 'user_id' => $this->manager->id]);
+    $this->agentAUnit = createTestUnit([...$unitAttributes, 'name' => 'Agent A Unit', 'name_ar' => 'وحدة الوكيل أ', 'name_en' => 'Agent A Unit', 'user_id' => $this->agentA->id]);
+    $this->agentBUnit = createTestUnit([...$unitAttributes, 'name' => 'Agent B Unit', 'name_ar' => 'وحدة الوكيل ب', 'name_en' => 'Agent B Unit', 'user_id' => $this->agentB->id]);
+    $this->lonelyUnit = createTestUnit([...$unitAttributes, 'name' => 'Lonely Agent Unit', 'name_ar' => 'وحدة الوكيل الوحيد', 'name_en' => 'Lonely Agent Unit', 'user_id' => $this->lonelyAgent->id]);
 
     $this->managerProject = Project::create(['name' => 'Manager Project', 'name_ar' => 'مشروع المدير', 'name_en' => 'Manager Project', 'user_id' => $this->manager->id]);
     $this->otherManagerProject = Project::create(['name' => 'Other Manager Project', 'name_ar' => 'مشروع المدير الآخر', 'name_en' => 'Other Manager Project', 'user_id' => $this->otherManager->id]);

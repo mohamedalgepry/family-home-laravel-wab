@@ -3,7 +3,8 @@
 namespace App\Domain\Listings\Services;
 
 use Illuminate\Support\Facades\Http;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Log;
+use Psr\Http\Message\ResponseInterface;
 
 class GoogleMapsUrlResolverService
 {
@@ -40,7 +41,7 @@ class GoogleMapsUrlResolverService
         }
 
         $coords = $this->extractCoordinatesFromUrl($finalUrl);
-        
+
         if (! $coords && $html) {
             $coords = $this->extractCoordinatesFromHtml($html);
         }
@@ -114,11 +115,11 @@ class GoogleMapsUrlResolverService
                         CURLOPT_RESOLVE => ["{$targetHost}:443:{$targetIp}"],
                     ],
                     // P0-6: Early abort if Content-Length is maliciously large
-                    'on_headers' => function (\Psr\Http\Message\ResponseInterface $response) {
+                    'on_headers' => function (ResponseInterface $response) {
                         if ($response->hasHeader('Content-Length')) {
                             $length = (int) $response->getHeaderLine('Content-Length');
                             if ($length > 1024 * 1024) { // 1MB limit
-                                throw new \Exception("Response size exceeds 1MB limit");
+                                throw new \Exception('Response size exceeds 1MB limit');
                             }
                         }
                     },
@@ -130,21 +131,22 @@ class GoogleMapsUrlResolverService
                 $body = $response->getBody();
                 $downloadedBytes = 0;
                 $html = '';
-                while (!$body->eof()) {
+                while (! $body->eof()) {
                     if (microtime(true) >= $deadline) {
-                        throw new \Exception("Global timeout exceeded during body stream");
+                        throw new \Exception('Global timeout exceeded during body stream');
                     }
                     $chunk = $body->read(8192); // 8KB chunks
                     $downloadedBytes += strlen($chunk);
                     if ($downloadedBytes > 1024 * 1024) {
-                        throw new \Exception("Response size exceeds 1MB limit (chunked)");
+                        throw new \Exception('Response size exceeds 1MB limit (chunked)');
                     }
                     $html .= $chunk;
                 }
                 $body->close();
 
             } catch (\Throwable $e) {
-                \Illuminate\Support\Facades\Log::error('GoogleMapsUrlResolverService error: ' . $e->getMessage());
+                Log::error('GoogleMapsUrlResolverService error: '.$e->getMessage());
+
                 return null;
             }
 
@@ -171,6 +173,7 @@ class GoogleMapsUrlResolverService
                 }
 
                 $current = $next;
+
                 continue;
             }
 
@@ -205,7 +208,7 @@ class GoogleMapsUrlResolverService
         if (preg_match('/@(-?\d+\.\d+),(-?\d+\.\d+)/', $url, $matches)) {
             return ['latitude' => $matches[1], 'longitude' => $matches[2]];
         }
-        
+
         // Pattern 5: embed ?pb=... !2dlng!3dlat
         if (preg_match('/!2d(-?\d+\.\d+).*?!3d(-?\d+\.\d+)/', $url, $matches)) {
             return ['latitude' => $matches[2], 'longitude' => $matches[1]];
@@ -217,11 +220,11 @@ class GoogleMapsUrlResolverService
     protected function extractCoordinatesFromHtml(string $html): ?array
     {
         // Extract the og:image meta tag content which often contains a static map URL with coordinates
-        if (preg_match('/meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']/i', $html, $m) || 
+        if (preg_match('/meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']/i', $html, $m) ||
             preg_match('/meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:image["\']/i', $html, $m)) {
-            
+
             $imageUrl = html_entity_decode($m[1]);
-            
+
             // Look for center=LAT,LNG or center=LAT%2CLNG
             if (preg_match('/center=(-?\d+\.\d+)(?:,|%2C)(-?\d+\.\d+)/i', $imageUrl, $coords)) {
                 return ['latitude' => $coords[1], 'longitude' => $coords[2]];
@@ -280,6 +283,7 @@ class GoogleMapsUrlResolverService
      * Reject hosts whose DNS resolves to a private / reserved IP to prevent SSRF.
      * Fail-closed: if DNS resolution yields no IPs, the host is considered unsafe.
      * Explicitly blocks 169.254.0.0/16 (link-local / cloud metadata service).
+     *
      * @return string|null Returns the safe IP address to connect to, or null if invalid.
      */
     private function hostIsPublic(string $host): ?string
@@ -338,6 +342,7 @@ class GoogleMapsUrlResolverService
 
         if (str_starts_with($location, '/')) {
             $parts = parse_url($base);
+
             return ($parts['scheme'] ?? 'https').'://'.($parts['host'] ?? '').$location;
         }
 

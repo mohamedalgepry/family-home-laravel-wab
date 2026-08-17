@@ -57,5 +57,3 @@ test('sitemap articles subfile returns valid urlset xml', function () {
     $response->assertHeader('Content-Type', 'application/xml');
     $this->assertStringContainsString('<urlset', $response->getContent());
 });
-
-

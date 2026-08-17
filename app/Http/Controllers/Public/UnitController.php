@@ -7,6 +7,7 @@ use App\Domain\Listings\Models\Unit;
 use App\Domain\Listings\Services\ListingLookupService;
 use App\Domain\Listings\Services\ListingService;
 use App\Domain\Listings\Services\PageViewService;
+use App\Domain\Listings\Services\SearchService;
 use App\Http\Resources\Public\UnitPublicResource;
 use App\Services\SeoService;
 use Inertia\Inertia;
@@ -23,9 +24,13 @@ class UnitController
         private readonly SeoMetaService $seoMetaService,
     ) {}
 
-    public function index(): Response
+    public function index(SearchService $searchService): Response
     {
         $filters = request()->only(self::FILTERABLE);
+
+        if (! empty($filters['search'])) {
+            $searchService->recordSearch($filters['search']);
+        }
 
         $units = $this->listingService->getUnitsByFilters($filters);
         $meta = $this->buildFilteredUnitsMeta($filters);
@@ -84,7 +89,7 @@ class UnitController
         $mainImage = $unit->images->firstWhere('is_main', true)
             ?? $unit->images->firstWhere('is_primary', true)
             ?? $unit->images->first();
-            
+
         $lcpImage = $mainImage ? $mainImage->url : null;
 
         return Inertia::render('Public/Units/Show', [

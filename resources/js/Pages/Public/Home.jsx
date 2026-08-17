@@ -110,28 +110,7 @@ export default function Home({ featuredUnits, latestUnits, latestProjects, popul
                     </div>
                 </section>
 
-                {/* Popular Searches */}
-                {popularSearches?.length > 0 && (
-                    <section className="max-w-container mx-auto px-4 py-8">
-                        <div className="flex items-center gap-2 mb-4">
-                            <svg className="w-4 h-4 text-primary-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-                            </svg>
-                            <h2 className="text-sm font-bold text-secondary-950 uppercase tracking-wider">{trans('popular_searches')}</h2>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                            {popularSearches.map(ps => (
-                                <Link
-                                    key={ps.keyword}
-                                    href={localizedPath(`/units?search=${encodeURIComponent(ps.keyword)}`, locale)}
-                                    className="px-3.5 py-1.5 bg-white text-xs font-semibold text-secondary-700 rounded-full border border-secondary-200 hover:border-primary-900 hover:text-primary-900 hover:shadow-sm transition-all"
-                                >
-                                    {ps.keyword}
-                                </Link>
-                            ))}
-                        </div>
-                    </section>
-                )}
+
 
                 {/* Explore Areas Section */}
                 {areas?.length > 0 && (

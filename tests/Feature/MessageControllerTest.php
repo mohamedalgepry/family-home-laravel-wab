@@ -1,7 +1,6 @@
 <?php
 
 use App\Domain\Listings\Models\Area;
-use App\Domain\Listings\Models\Unit;
 use App\Domain\Listings\Models\UnitType;
 use App\Domain\Users\Models\Message;
 
@@ -11,7 +10,7 @@ test('admin can view all messages on messages index page', function () {
     $type = UnitType::create(['name_ar' => 'نوع', 'name_en' => 'Type']);
     $area = Area::create(['name_ar' => 'منطقة', 'name_en' => 'Area']);
 
-    $unit = Unit::create([
+    $unit = createTestUnit([
         'name' => 'وحدة تجريبية',
         'name_ar' => 'وحدة تجريبية',
         'name_en' => 'Test Unit',
@@ -49,7 +48,7 @@ test('manager can view messages for their agents', function () {
     $type = UnitType::create(['name_ar' => 'نوع', 'name_en' => 'Type']);
     $area = Area::create(['name_ar' => 'منطقة', 'name_en' => 'Area']);
 
-    $unit = Unit::create([
+    $unit = createTestUnit([
         'name' => 'وحدة تجريبية',
         'name_ar' => 'وحدة تجريبية',
         'name_en' => 'Test Unit',

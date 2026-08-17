@@ -30,7 +30,7 @@ test('adding a unit dynamically adds it to sitemap and deleting it removes it fr
     $unitType = UnitType::create(['name_ar' => 'شقة سايتماب', 'name_en' => 'Sitemap Apartment', 'slug_ar' => 'sitemap-apt-ar', 'slug_en' => 'sitemap-apt-en']);
     $user = createUser('Unit Owner', 'agent', null);
 
-    $unit = Unit::create([
+    $unit = createTestUnit([
         'name' => 'Sitemap Test Unit',
         'name_ar' => 'وحدة السايت ماب الاختيارية',
         'name_en' => 'Sitemap Test Unit',
@@ -46,7 +46,6 @@ test('adding a unit dynamically adds it to sitemap and deleting it removes it fr
         'rooms' => 3,
         'bathrooms' => 2,
         'is_active' => true,
-        'status' => 'approved',
     ]);
 
     $unitsXml = file_get_contents(public_path('sitemap-units.xml'));

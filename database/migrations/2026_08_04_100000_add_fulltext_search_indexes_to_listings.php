@@ -31,7 +31,7 @@ return new class extends Migration
                     'units_fulltext_search_idx'
                 );
             });
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             // الفهرس موجود بالفعل أو المحرك لا يدعمه — نتجاهل الخطأ
         }
 
@@ -42,7 +42,7 @@ return new class extends Migration
                     'projects_fulltext_search_idx'
                 );
             });
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             // الفهرس موجود بالفعل أو المحرك لا يدعمه — نتجاهل الخطأ
         }
     }
@@ -57,14 +57,14 @@ return new class extends Migration
             Schema::table('units', function (Blueprint $table) {
                 $table->dropFullText('units_fulltext_search_idx');
             });
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
         }
 
         try {
             Schema::table('projects', function (Blueprint $table) {
                 $table->dropFullText('projects_fulltext_search_idx');
             });
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
         }
     }
 };

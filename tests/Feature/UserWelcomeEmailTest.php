@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Users\Models\User;
 use App\Domain\Users\Notifications\SendWelcomeNotification;
 use Illuminate\Support\Facades\Notification;
 
@@ -18,7 +19,7 @@ test('admin creating a user sends welcome email with credentials', function () {
 
     $response->assertRedirect(route('admin.users.index'));
 
-    $user = \App\Domain\Users\Models\User::where('email', 'newagent@example.com')->first();
+    $user = User::where('email', 'newagent@example.com')->first();
     $this->assertNotNull($user);
 
     Notification::assertSentTo($user, SendWelcomeNotification::class, function ($notification) {

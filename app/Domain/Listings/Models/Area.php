@@ -2,7 +2,9 @@
 
 namespace App\Domain\Listings\Models;
 
+use App\Domain\Listings\Services\ListingLookupService;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 class Area extends Model
@@ -52,11 +54,11 @@ class Area extends Model
         });
 
         static::saved(function () {
-            \Illuminate\Support\Facades\Cache::forget(\App\Domain\Listings\Services\ListingLookupService::CACHE_KEY_AREAS);
+            Cache::forget(ListingLookupService::CACHE_KEY_AREAS);
         });
 
         static::deleted(function () {
-            \Illuminate\Support\Facades\Cache::forget(\App\Domain\Listings\Services\ListingLookupService::CACHE_KEY_AREAS);
+            Cache::forget(ListingLookupService::CACHE_KEY_AREAS);
         });
     }
 

@@ -64,14 +64,19 @@ class ListingQueryBuilder
         $useFulltext = self::hasFulltextIndex($table)
             && count(array_intersect($fields, $fulltextColumns)) > 0;
 
-        $query->where(function (Builder $q) use ($search, $fulltextTerm, $likeTerm, $fields, $slugFields, $fulltextColumns, $useFulltext, $relation) {
+        $query->where(function (Builder $q) use ($fulltextTerm, $likeTerm, $fields, $slugFields, $fulltextColumns, $useFulltext, $relation) {
             if ($useFulltext && $fulltextTerm !== '') {
                 // FULLTEXT بحث سريع على الأعمدة النصية الرئيسية
                 $q->whereFullText($fulltextColumns, $fulltextTerm);
 
                 // Slug fields: LIKE بدون wildcard في البداية للاستفادة من الـ unique index
+                // Keywords: LIKE مع wildcard في البداية لأنها بصيغة JSON
                 foreach ($slugFields as $field) {
-                    $q->orWhere($field, 'like', "{$likeTerm}%");
+                    if (str_contains($field, 'keyword')) {
+                        $q->orWhere($field, 'like', "%{$likeTerm}%");
+                    } else {
+                        $q->orWhere($field, 'like', "{$likeTerm}%");
+                    }
                 }
             } else {
                 // Fallback لـ SQLite (بيئة الاختبار) أو في حال عدم وجود الفهرس على MySQL
@@ -107,13 +112,13 @@ class ListingQueryBuilder
         try {
             return Cache::remember("fulltext_idx_exists_{$table}", 3600, function () use ($table) {
                 $indexes = DB::select("SHOW INDEX FROM `{$table}` WHERE Index_type = 'FULLTEXT'");
+
                 return ! empty($indexes);
             });
         } catch (\Throwable $e) {
             return false;
         }
     }
-
 
     public static function applySort(Builder $query, array $filters, array $allowedSorts, ?string $defaultSort = null): bool
     {

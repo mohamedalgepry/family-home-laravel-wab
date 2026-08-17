@@ -45,7 +45,7 @@ it('accepts a valid unit store request', function () {
 });
 
 it('rejects an invalid unit update request', function () {
-    $unit = new Unit([
+    $unit = createTestUnit([
         'user_id' => $this->admin->id,
         'type_id' => $this->type->id,
         'area_id' => $this->area->id,
@@ -55,7 +55,6 @@ it('rejects an invalid unit update request', function () {
         'name_ar' => 'فيلا',
         'name_en' => 'Villa',
     ]);
-    $unit->save();
 
     $this->actingAs($this->admin)
         ->put("/admin/units/{$unit->id}", [
@@ -70,7 +69,7 @@ it('rejects an invalid unit update request', function () {
 });
 
 it('accepts a valid unit update request', function () {
-    $unit = new Unit([
+    $unit = createTestUnit([
         'user_id' => $this->admin->id,
         'type_id' => $this->type->id,
         'area_id' => $this->area->id,
@@ -80,7 +79,6 @@ it('accepts a valid unit update request', function () {
         'name_ar' => 'فيلا',
         'name_en' => 'Villa',
     ]);
-    $unit->save();
 
     $this->actingAs($this->admin)
         ->put("/admin/units/{$unit->id}", [
@@ -98,7 +96,7 @@ it('accepts a valid unit update request', function () {
 });
 
 it('retains meta description ar and en when updating a unit', function () {
-    $unit = new Unit([
+    $unit = createTestUnit([
         'user_id' => $this->admin->id,
         'type_id' => $this->type->id,
         'area_id' => $this->area->id,
@@ -110,7 +108,6 @@ it('retains meta description ar and en when updating a unit', function () {
         'meta_description_ar' => 'وصف ميتا قديم',
         'meta_description_en' => 'Old meta description',
     ]);
-    $unit->save();
 
     $this->actingAs($this->admin)
         ->put("/admin/units/{$unit->id}", [
@@ -194,7 +191,7 @@ it('stores uploaded images under the given folder', function () {
     expect($paths)->toHaveCount(1)
         ->and($paths[0])->toContain('units/'.now()->format('Y/m'))
         ->and($paths[0])->not->toEndWith('.webp'); // Original extension is preserved; thumbnails are generated async
-    
+
     // We can't assert the .webp exists because it's processed asynchronously,
     // but we can check if the directory has the uploaded file.
     $files = Storage::disk('public')->allFiles('units/'.now()->format('Y/m'));

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domain\Listings\Jobs\RegenerateSitemapJob;
 use App\Domain\Listings\Models\Project;
 use App\Domain\Listings\Models\Setting;
 use App\Domain\Listings\Models\Unit;
@@ -53,7 +54,7 @@ class NotificationController extends Controller
         abort_unless($request->user()->isAdmin(), 403);
 
         $project->update(['is_active' => true]);
-        dispatch(new \App\Domain\Listings\Jobs\RegenerateSitemapJob())->afterCommit();
+        dispatch(new RegenerateSitemapJob)->afterCommit();
         $this->clearListingsCache();
 
         $this->notificationService->markEntityNotificationsAsRead(
@@ -189,7 +190,7 @@ class NotificationController extends Controller
             'auto_delete_at' => now()->addDays($this->extensionDays()),
         ]);
 
-        dispatch(new \App\Domain\Listings\Jobs\RegenerateSitemapJob())->afterCommit();
+        dispatch(new RegenerateSitemapJob)->afterCommit();
         $this->clearListingsCache();
 
         $this->notificationService->markEntityNotificationsAsRead($user, $entityColumn, $listing->id);

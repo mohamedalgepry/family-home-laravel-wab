@@ -94,9 +94,17 @@ test('verify otp page renders with session email', function () {
 });
 
 test('user can verify valid 6 digit OTP and receives 5 minute reset token', function () {
+    Notification::fake();
     $user = createUser('User Verify OTP', 'agent', null);
     $authService = app(AuthService::class);
-    $otpCode = $authService->sendOtp($user->email);
+    $authService->sendOtp($user->email);
+
+    $otpCode = null;
+    Notification::assertSentTo($user, SendOtpResetNotification::class, function ($notification) use (&$otpCode) {
+        $otpCode = $notification->otpCode;
+
+        return true;
+    });
 
     $response = $this->withSession(['password_reset_email' => $user->email])
         ->post('/verify-otp', [
@@ -114,6 +122,7 @@ test('user can verify valid 6 digit OTP and receives 5 minute reset token', func
 });
 
 test('user cannot verify invalid 6 digit OTP code', function () {
+    Notification::fake();
     $user = createUser('User Invalid OTP', 'agent', null);
     $authService = app(AuthService::class);
     $authService->sendOtp($user->email);
@@ -128,9 +137,18 @@ test('user cannot verify invalid 6 digit OTP code', function () {
 });
 
 test('user can reset password within 5 minute window', function () {
+    Notification::fake();
     $user = createUser('User Timed Reset Success', 'agent', null);
     $authService = app(AuthService::class);
-    $otpCode = $authService->sendOtp($user->email);
+    $authService->sendOtp($user->email);
+
+    $otpCode = null;
+    Notification::assertSentTo($user, SendOtpResetNotification::class, function ($notification) use (&$otpCode) {
+        $otpCode = $notification->otpCode;
+
+        return true;
+    });
+
     $resetToken = $authService->verifyOtp($user->email, $otpCode);
 
     $response = $this->withSession(['password_reset_email' => $user->email])
@@ -149,9 +167,18 @@ test('user can reset password within 5 minute window', function () {
 });
 
 test('user cannot reset password after 5 minute window expires', function () {
+    Notification::fake();
     $user = createUser('User Timed Reset Expired', 'agent', null);
     $authService = app(AuthService::class);
-    $otpCode = $authService->sendOtp($user->email);
+    $authService->sendOtp($user->email);
+
+    $otpCode = null;
+    Notification::assertSentTo($user, SendOtpResetNotification::class, function ($notification) use (&$otpCode) {
+        $otpCode = $notification->otpCode;
+
+        return true;
+    });
+
     $resetToken = $authService->verifyOtp($user->email, $otpCode);
 
     Carbon::setTestNow(now()->addMinutes(6));

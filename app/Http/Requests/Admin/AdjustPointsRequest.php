@@ -8,7 +8,7 @@ class AdjustPointsRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->isAdmin() ?? false;
+        return $this->user()?->can('allocate-points', $this->route('unit')) ?? false;
     }
 
     public function rules(): array

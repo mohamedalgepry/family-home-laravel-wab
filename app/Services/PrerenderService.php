@@ -53,6 +53,7 @@ class PrerenderService
                     '/<link\b([^>]*media=["\']\(max-width:\s*640px\)["\'][^>]*)>/i',
                     function ($m) use ($mobileUrl) {
                         $tag = $m[1];
+
                         return '<link'.preg_replace('/href=["\'][^"\']*["\']/i', 'href="'.$mobileUrl.'"', $tag).'>';
                     },
                     $html
@@ -63,6 +64,7 @@ class PrerenderService
                     '/<link\b([^>]*media=["\']\(min-width:\s*641px\)["\'][^>]*)>/i',
                     function ($m) use ($desktopUrl) {
                         $tag = $m[1];
+
                         return '<link'.preg_replace('/href=["\'][^"\']*["\']/i', 'href="'.$desktopUrl.'"', $tag).'>';
                     },
                     $html

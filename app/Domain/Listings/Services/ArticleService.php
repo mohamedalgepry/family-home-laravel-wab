@@ -52,7 +52,6 @@ class ArticleService
             return $article->load(['category', 'images']);
         });
 
-
         return $article;
     }
 
@@ -80,7 +79,6 @@ class ArticleService
 
             return $article->load(['category', 'images']);
         });
-
 
         return $article;
     }

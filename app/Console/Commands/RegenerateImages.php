@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Domain\Listings\Models\Article;
 use App\Domain\Listings\Models\Project;
 use App\Domain\Listings\Models\Unit;
+use App\Domain\Media\Jobs\GenerateThumbnailsJob;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Storage;
 
@@ -57,11 +58,12 @@ class RegenerateImages extends Command
 
             if (! $disk->exists($relativePath)) {
                 $skipped++;
+
                 continue;
             }
 
             try {
-                $job = new \App\Domain\Media\Jobs\GenerateThumbnailsJob(
+                $job = new GenerateThumbnailsJob(
                     $item['modelType'],
                     $item['modelId'],
                     $item['paths'],

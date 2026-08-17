@@ -14,7 +14,6 @@ use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
 
-
 class AreaController
 {
     public function __construct(
@@ -63,23 +62,22 @@ class AreaController
         $areaName = $locale === 'ar' ? ($area->name_ar ?? $area->name_en) : ($area->name_en ?? $area->name_ar);
 
         $metaTitle = $locale === 'ar'
-            ? ($area->meta_title_ar ?: "عقارات ومشاريع في {$areaName} - " . config('app.name'))
-            : ($area->meta_title_en ?: "Properties & Projects in {$areaName} - " . config('app.name'));
+            ? ($area->meta_title_ar ?: "عقارات ومشاريع في {$areaName} - ".config('app.name'))
+            : ($area->meta_title_en ?: "Properties & Projects in {$areaName} - ".config('app.name'));
 
         $metaDescription = $locale === 'ar'
             ? ($area->meta_description_ar ?: "تصفح أفضل الوحدات والمشاريع العقارية المتاحة للبيع والاستثمار في منطقة {$areaName}.")
             : ($area->meta_description_en ?: "Explore the best real estate units and projects available in {$areaName}.");
 
-
         $ogImage = null;
         if ($area->image_path) {
-            $ogImage = str_starts_with($area->image_path, 'http') ? $area->image_path : asset('storage/' . $area->image_path);
+            $ogImage = str_starts_with($area->image_path, 'http') ? $area->image_path : asset('storage/'.$area->image_path);
         } elseif ($units->first()?->images?->first()) {
             $img = $units->first()->images->first();
-            $ogImage = $img->url ?? asset('storage/' . $img->path);
+            $ogImage = $img->url ?? asset('storage/'.$img->path);
         } elseif ($projects->first()?->images?->first()) {
             $img = $projects->first()->images->first();
-            $ogImage = $img->url ?? asset('storage/' . $img->path);
+            $ogImage = $img->url ?? asset('storage/'.$img->path);
         }
 
         $canonical = url("/{$locale}/areas/{$area->slug}");
@@ -119,12 +117,12 @@ class AreaController
             'description' => $metaDescription,
             'url' => $canonical,
         ];
-        
+
         if ($ogImage) {
             $placeSchema['image'] = [$ogImage];
         }
-        
-        if (!empty($area->latitude) && !empty($area->longitude) && $area->latitude != '0' && $area->longitude != '0') {
+
+        if (! empty($area->latitude) && ! empty($area->longitude) && $area->latitude != '0' && $area->longitude != '0') {
             $placeSchema['geo'] = [
                 '@type' => 'GeoCoordinates',
                 'latitude' => $area->latitude,
@@ -181,7 +179,6 @@ class AreaController
                 ->take(3)
                 ->get()
         );
-
 
         return Inertia::render('Public/Areas/Show', [
             'area' => AreaPublicResource::make($area)->resolve(),

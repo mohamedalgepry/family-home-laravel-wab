@@ -65,9 +65,9 @@ class LoginController extends Controller
 
         $this->ensureIsNotRateLimited($rateLimitKey, maxAttempts: 3, decaySeconds: 300, errorKey: 'email');
 
-        $code = $this->authService->sendOtp($email, app()->getLocale());
+        $success = $this->authService->sendOtp($email, app()->getLocale());
 
-        if ($code === null) {
+        if (! $success) {
             throw ValidationException::withMessages([
                 'email' => __('auth.user_not_found'),
             ]);

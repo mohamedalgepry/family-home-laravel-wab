@@ -2,11 +2,11 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Domain\Listings\Models\Area;
+use App\Domain\Listings\Models\AreaFaq;
 use App\Domain\Listings\Models\AreaFeature;
 use App\Domain\Listings\Models\AreaNearbyPlace;
-use App\Domain\Listings\Models\AreaFaq;
+use Illuminate\Database\Seeder;
 
 class PopulateAllAreasSeeder extends Seeder
 {
@@ -50,7 +50,7 @@ class PopulateAllAreasSeeder extends Seeder
                     ['question_ar' => 'ما هي أفضل أنواع العقارات في الشيخ زايد؟', 'question_en' => 'What types of properties are most popular in Sheikh Zayed City?', 'answer_ar' => 'تتنوع الخيارات بين الشقق والفلل والتاون هاوس والوحدات التجارية، ويعتمد الأنسب على الهدف من الشراء والميزانية وموقع المشروع.', 'answer_en' => 'Popular choices include apartments, villas, townhouses, and commercial units. The best fit depends on budget, location, and whether the goal is living or investment.'],
                     ['question_ar' => 'هل الشيخ زايد مناسبة للسكن العائلي؟', 'question_en' => 'Is Sheikh Zayed City suitable for families?', 'answer_ar' => 'نعم، تتميز بكثرة الخدمات والمساحات الخضراء وتنوع المدارس والمرافق الطبية والمناطق التجارية، مع طابع سكني أكثر هدوءاً من المناطق المركزية.', 'answer_en' => 'Yes. The city combines green areas, schools, healthcare, retail, and a calmer residential environment than central Cairo.'],
                     ['question_ar' => 'ما الذي يدعم الطلب العقاري في الشيخ زايد؟', 'question_en' => 'What supports real estate demand in Sheikh Zayed City?', 'answer_ar' => 'الموقع غرب القاهرة، وتنوع الكمبوندات والخدمات، وقربها من المحاور الرئيسية ومناطق الأعمال والترفيه، كلها عوامل تدعم الطلب على السكن والاستثمار.', 'answer_en' => 'West Cairo access, established communities, diversified services, and proximity to major business and lifestyle destinations support housing demand.'],
-                ]
+                ],
             ],
             [
                 'slug' => 'alexandria',
@@ -89,7 +89,7 @@ class PopulateAllAreasSeeder extends Seeder
                     ['question_ar' => 'ما أفضل مناطق الإسكندرية لشراء شقة؟', 'question_en' => 'Which areas of Alexandria are popular for buying apartments?', 'answer_ar' => 'تختلف الأفضلية حسب الهدف؛ سموحة مناسبة لمن يبحث عن الخدمات والسكن الحضري، بينما تحظى جليم وكفر عبده والمنتزه بطلب قوي على السكن الراقي والقرب من البحر.', 'answer_en' => 'The right area depends on the goal. Smouha is popular for services and urban convenience, while Gleem, Kafr Abdo, and Montazah are sought after for upscale living and coastal access.'],
                     ['question_ar' => 'هل العقارات المطلة على البحر مناسبة للاستثمار؟', 'question_en' => 'Are sea-view properties suitable for investment?', 'answer_ar' => 'يمكن أن تكون جذابة بسبب الطلب على الإطلالات والموقع الساحلي، لكن العائد الفعلي يعتمد على السعر، حالة الوحدة، الموقع الدقيق، والإشغال.', 'answer_en' => 'They can be attractive because of location and view premiums, but actual returns depend on purchase price, property condition, exact location, and occupancy.'],
                     ['question_ar' => 'هل الإسكندرية مناسبة للسكن طوال العام؟', 'question_en' => 'Is Alexandria suitable for year-round living?', 'answer_ar' => 'نعم، فهي مدينة متكاملة الخدمات وليست وجهة صيفية فقط، مع أحياء سكنية نشطة ومؤسسات تعليمية وطبية وتجارية على مدار العام.', 'answer_en' => 'Yes. Alexandria is a full-time city with active residential districts and year-round education, healthcare, retail, and public services.'],
-                ]
+                ],
             ],
             [
                 'slug' => 'new-cairo',
@@ -128,7 +128,7 @@ class PopulateAllAreasSeeder extends Seeder
                     ['question_ar' => 'هل التجمع الخامس مناسب للسكن أم الاستثمار؟', 'question_en' => 'Is the Fifth Settlement better for living or investment?', 'answer_ar' => 'يصلح للاثنين بفضل الطلب على السكن ووجود مراكز أعمال وخدمات ومشروعات متنوعة، لكن اختيار الوحدة يجب أن يرتبط بالموقع والسعر ونوع الاستخدام.', 'answer_en' => 'It can work well for both, supported by residential demand and business activity. The right purchase depends on location, pricing, and property type.'],
                     ['question_ar' => 'ما أكثر المناطق المطلوبة داخل التجمع الخامس؟', 'question_en' => 'Which areas are most sought after in the Fifth Settlement?', 'answer_ar' => 'من المناطق المعروفة النرجس والياسمين واللوتس، إضافة إلى المشروعات والكمبوندات القريبة من شارع التسعين والمناطق الخدمية.', 'answer_en' => 'Popular pockets include Al Narges, Al Yasmeen, Al Lotus, and compounds close to 90th Street and major service hubs.'],
                     ['question_ar' => 'ما أهم ما يجب فحصه قبل شراء عقار في التجمع؟', 'question_en' => 'What should buyers check before purchasing in the Fifth Settlement?', 'answer_ar' => 'يُنصح بفحص موقع المشروع، موقف المطور، حالة التنفيذ، وديعة الصيانة، الخدمات، وخطة السداد والعائد المتوقع قبل اتخاذ القرار.', 'answer_en' => 'Buyers should review exact location, developer track record, construction status, maintenance arrangements, services, payment plan, and expected rental or resale demand.'],
-                ]
+                ],
             ],
             [
                 'slug' => 'pyramids-gardens',
@@ -167,7 +167,7 @@ class PopulateAllAreasSeeder extends Seeder
                     ['question_ar' => 'هل حدائق الأهرام مناسبة للسكن العائلي؟', 'question_en' => 'Is Hadayek Al Ahram suitable for families?', 'answer_ar' => 'تتوفر بها مساحات سكنية متنوعة وخدمات يومية، ويعتمد الاختيار الأفضل على البوابة والموقع الداخلي ومستوى الخدمات حول العقار.', 'answer_en' => 'Yes, the area offers varied residential options and daily services. The best choice depends on the gate, exact location, and surrounding services.'],
                     ['question_ar' => 'هل قرب المتحف المصري الكبير يؤثر على الطلب العقاري؟', 'question_en' => 'Does proximity to the Grand Egyptian Museum affect property demand?', 'answer_ar' => 'القرب من المعالم السياحية الرئيسية قد يدعم الطلب على بعض أنواع السكن والإيجارات، لكن العائد يعتمد على الموقع ونوع الوحدة وإدارة العقار.', 'answer_en' => 'Proximity to major attractions can support demand for selected residential and rental properties, while performance still depends on exact location and property type.'],
                     ['question_ar' => 'ما الذي يجب مراجعته قبل الشراء في حدائق الأهرام؟', 'question_en' => 'What should buyers check before purchasing?', 'answer_ar' => 'يُفضل مراجعة موقف العقار القانوني، المرافق، عرض الشارع، حالة العمارة، التشطيب، وإمكانية الوصول من الطرق الرئيسية.', 'answer_en' => 'Review legal status, utilities, street width, building condition, finish quality, and access to major roads before purchasing.'],
-                ]
+                ],
             ],
             [
                 'slug' => 'north-coast',
@@ -206,7 +206,7 @@ class PopulateAllAreasSeeder extends Seeder
                     ['question_ar' => 'لماذا يختار المشترون الساحل الشمالي؟', 'question_en' => 'Why do buyers choose North Coast, Egypt?', 'answer_ar' => 'يرتبط الطلب بموقع المنطقة ونوعية الخدمات وتنوع العقارات وسهولة الوصول، مع اختلاف الأفضلية حسب الهدف والميزانية.', 'answer_en' => 'Demand is shaped by location, services, property variety, and accessibility, while the best choice depends on budget and purchase objective.'],
                     ['question_ar' => 'ما أهم العوامل قبل شراء عقار في الساحل الشمالي؟', 'question_en' => 'What should buyers check before purchasing in North Coast, Egypt?', 'answer_ar' => 'يجب مراجعة الموقع الدقيق، حالة المشروع والعقار، الخدمات، الموقف القانوني، وتفاصيل السداد والتكاليف الإضافية.', 'answer_en' => 'Buyers should review the exact location, project and building condition, services, legal status, payment terms, and additional costs.'],
                     ['question_ar' => 'هل الساحل الشمالي مناسبة للسكن والاستثمار؟', 'question_en' => 'Is North Coast, Egypt suitable for living and investment?', 'answer_ar' => 'يمكن أن تناسب الاستخدامين، لكن القرار يعتمد على نوع العقار والسعر والطلب الفعلي ومستوى الخدمات والموقع داخل المنطقة.', 'answer_en' => 'It can suit both uses, but the decision depends on property type, pricing, actual demand, service level, and the exact location.'],
-                ]
+                ],
             ],
             [
                 'slug' => 'el-shorouk',
@@ -245,7 +245,7 @@ class PopulateAllAreasSeeder extends Seeder
                     ['question_ar' => 'لماذا يختار المشترون الشروق؟', 'question_en' => 'Why do buyers choose El Shorouk City?', 'answer_ar' => 'يرتبط الطلب بموقع المنطقة ونوعية الخدمات وتنوع العقارات وسهولة الوصول، مع اختلاف الأفضلية حسب الهدف والميزانية.', 'answer_en' => 'Demand is shaped by location, services, property variety, and accessibility, while the best choice depends on budget and purchase objective.'],
                     ['question_ar' => 'ما أهم العوامل قبل شراء عقار في الشروق؟', 'question_en' => 'What should buyers check before purchasing in El Shorouk City?', 'answer_ar' => 'يجب مراجعة الموقع الدقيق، حالة المشروع والعقار، الخدمات، الموقف القانوني، وتفاصيل السداد والتكاليف الإضافية.', 'answer_en' => 'Buyers should review the exact location, project and building condition, services, legal status, payment terms, and additional costs.'],
                     ['question_ar' => 'هل الشروق مناسبة للسكن والاستثمار؟', 'question_en' => 'Is El Shorouk City suitable for living and investment?', 'answer_ar' => 'يمكن أن تناسب الاستخدامين، لكن القرار يعتمد على نوع العقار والسعر والطلب الفعلي ومستوى الخدمات والموقع داخل المنطقة.', 'answer_en' => 'It can suit both uses, but the decision depends on property type, pricing, actual demand, service level, and the exact location.'],
-                ]
+                ],
             ],
             [
                 'slug' => 'new-administrative-capital',
@@ -284,7 +284,7 @@ class PopulateAllAreasSeeder extends Seeder
                     ['question_ar' => 'لماذا يختار المشترون العاصمة الإدارية الجديدة؟', 'question_en' => 'Why do buyers choose New Administrative Capital (New Capital)?', 'answer_ar' => 'يرتبط الطلب بموقع المنطقة ونوعية الخدمات وتنوع العقارات وسهولة الوصول، مع اختلاف الأفضلية حسب الهدف والميزانية.', 'answer_en' => 'Demand is shaped by location, services, property variety, and accessibility, while the best choice depends on budget and purchase objective.'],
                     ['question_ar' => 'ما أهم العوامل قبل شراء عقار في العاصمة الإدارية الجديدة؟', 'question_en' => 'What should buyers check before purchasing in New Administrative Capital (New Capital)?', 'answer_ar' => 'يجب مراجعة الموقع الدقيق، حالة المشروع والعقار، الخدمات، الموقف القانوني، وتفاصيل السداد والتكاليف الإضافية.', 'answer_en' => 'Buyers should review the exact location, project and building condition, services, legal status, payment terms, and additional costs.'],
                     ['question_ar' => 'هل العاصمة الإدارية الجديدة مناسبة للسكن والاستثمار؟', 'question_en' => 'Is New Administrative Capital (New Capital) suitable for living and investment?', 'answer_ar' => 'يمكن أن تناسب الاستخدامين، لكن القرار يعتمد على نوع العقار والسعر والطلب الفعلي ومستوى الخدمات والموقع داخل المنطقة.', 'answer_en' => 'It can suit both uses, but the decision depends on property type, pricing, actual demand, service level, and the exact location.'],
-                ]
+                ],
             ],
             [
                 'slug' => 'new-alamein',
@@ -323,7 +323,7 @@ class PopulateAllAreasSeeder extends Seeder
                     ['question_ar' => 'لماذا يختار المشترون العلمين الجديدة؟', 'question_en' => 'Why do buyers choose New Alamein City?', 'answer_ar' => 'يرتبط الطلب بموقع المنطقة ونوعية الخدمات وتنوع العقارات وسهولة الوصول، مع اختلاف الأفضلية حسب الهدف والميزانية.', 'answer_en' => 'Demand is shaped by location, services, property variety, and accessibility, while the best choice depends on budget and purchase objective.'],
                     ['question_ar' => 'ما أهم العوامل قبل شراء عقار في العلمين الجديدة؟', 'question_en' => 'What should buyers check before purchasing in New Alamein City?', 'answer_ar' => 'يجب مراجعة الموقع الدقيق، حالة المشروع والعقار، الخدمات، الموقف القانوني، وتفاصيل السداد والتكاليف الإضافية.', 'answer_en' => 'Buyers should review the exact location, project and building condition, services, legal status, payment terms, and additional costs.'],
                     ['question_ar' => 'هل العلمين الجديدة مناسبة للسكن والاستثمار؟', 'question_en' => 'Is New Alamein City suitable for living and investment?', 'answer_ar' => 'يمكن أن تناسب الاستخدامين، لكن القرار يعتمد على نوع العقار والسعر والطلب الفعلي ومستوى الخدمات والموقع داخل المنطقة.', 'answer_en' => 'It can suit both uses, but the decision depends on property type, pricing, actual demand, service level, and the exact location.'],
-                ]
+                ],
             ],
             [
                 'slug' => 'agami',
@@ -362,7 +362,7 @@ class PopulateAllAreasSeeder extends Seeder
                     ['question_ar' => 'لماذا يختار المشترون العجمي؟', 'question_en' => 'Why do buyers choose El Agami?', 'answer_ar' => 'يرتبط الطلب بموقع المنطقة ونوعية الخدمات وتنوع العقارات وسهولة الوصول، مع اختلاف الأفضلية حسب الهدف والميزانية.', 'answer_en' => 'Demand is shaped by location, services, property variety, and accessibility, while the best choice depends on budget and purchase objective.'],
                     ['question_ar' => 'ما أهم العوامل قبل شراء عقار في العجمي؟', 'question_en' => 'What should buyers check before purchasing in El Agami?', 'answer_ar' => 'يجب مراجعة الموقع الدقيق، حالة المشروع والعقار، الخدمات، الموقف القانوني، وتفاصيل السداد والتكاليف الإضافية.', 'answer_en' => 'Buyers should review the exact location, project and building condition, services, legal status, payment terms, and additional costs.'],
                     ['question_ar' => 'هل العجمي مناسبة للسكن والاستثمار؟', 'question_en' => 'Is El Agami suitable for living and investment?', 'answer_ar' => 'يمكن أن تناسب الاستخدامين، لكن القرار يعتمد على نوع العقار والسعر والطلب الفعلي ومستوى الخدمات والموقع داخل المنطقة.', 'answer_en' => 'It can suit both uses, but the decision depends on property type, pricing, actual demand, service level, and the exact location.'],
-                ]
+                ],
             ],
             [
                 'slug' => 'ain-sokhna',
@@ -401,7 +401,7 @@ class PopulateAllAreasSeeder extends Seeder
                     ['question_ar' => 'لماذا يختار المشترون العين السخنة؟', 'question_en' => 'Why do buyers choose Ain Sokhna?', 'answer_ar' => 'يرتبط الطلب بموقع المنطقة ونوعية الخدمات وتنوع العقارات وسهولة الوصول، مع اختلاف الأفضلية حسب الهدف والميزانية.', 'answer_en' => 'Demand is shaped by location, services, property variety, and accessibility, while the best choice depends on budget and purchase objective.'],
                     ['question_ar' => 'ما أهم العوامل قبل شراء عقار في العين السخنة؟', 'question_en' => 'What should buyers check before purchasing in Ain Sokhna?', 'answer_ar' => 'يجب مراجعة الموقع الدقيق، حالة المشروع والعقار، الخدمات، الموقف القانوني، وتفاصيل السداد والتكاليف الإضافية.', 'answer_en' => 'Buyers should review the exact location, project and building condition, services, legal status, payment terms, and additional costs.'],
                     ['question_ar' => 'هل العين السخنة مناسبة للسكن والاستثمار؟', 'question_en' => 'Is Ain Sokhna suitable for living and investment?', 'answer_ar' => 'يمكن أن تناسب الاستخدامين، لكن القرار يعتمد على نوع العقار والسعر والطلب الفعلي ومستوى الخدمات والموقع داخل المنطقة.', 'answer_en' => 'It can suit both uses, but the decision depends on property type, pricing, actual demand, service level, and the exact location.'],
-                ]
+                ],
             ],
             [
                 'slug' => 'maadi',
@@ -440,7 +440,7 @@ class PopulateAllAreasSeeder extends Seeder
                     ['question_ar' => 'لماذا يختار المشترون المعادي؟', 'question_en' => 'Why do buyers choose Maadi?', 'answer_ar' => 'يرتبط الطلب بموقع المنطقة ونوعية الخدمات وتنوع العقارات وسهولة الوصول، مع اختلاف الأفضلية حسب الهدف والميزانية.', 'answer_en' => 'Demand is shaped by location, services, property variety, and accessibility, while the best choice depends on budget and purchase objective.'],
                     ['question_ar' => 'ما أهم العوامل قبل شراء عقار في المعادي؟', 'question_en' => 'What should buyers check before purchasing in Maadi?', 'answer_ar' => 'يجب مراجعة الموقع الدقيق، حالة المشروع والعقار، الخدمات، الموقف القانوني، وتفاصيل السداد والتكاليف الإضافية.', 'answer_en' => 'Buyers should review the exact location, project and building condition, services, legal status, payment terms, and additional costs.'],
                     ['question_ar' => 'هل المعادي مناسبة للسكن والاستثمار؟', 'question_en' => 'Is Maadi suitable for living and investment?', 'answer_ar' => 'يمكن أن تناسب الاستخدامين، لكن القرار يعتمد على نوع العقار والسعر والطلب الفعلي ومستوى الخدمات والموقع داخل المنطقة.', 'answer_en' => 'It can suit both uses, but the decision depends on property type, pricing, actual demand, service level, and the exact location.'],
-                ]
+                ],
             ],
             [
                 'slug' => 'mohandessin',
@@ -479,7 +479,7 @@ class PopulateAllAreasSeeder extends Seeder
                     ['question_ar' => 'لماذا يختار المشترون المهندسين؟', 'question_en' => 'Why do buyers choose Mohandessin?', 'answer_ar' => 'يرتبط الطلب بموقع المنطقة ونوعية الخدمات وتنوع العقارات وسهولة الوصول، مع اختلاف الأفضلية حسب الهدف والميزانية.', 'answer_en' => 'Demand is shaped by location, services, property variety, and accessibility, while the best choice depends on budget and purchase objective.'],
                     ['question_ar' => 'ما أهم العوامل قبل شراء عقار في المهندسين؟', 'question_en' => 'What should buyers check before purchasing in Mohandessin?', 'answer_ar' => 'يجب مراجعة الموقع الدقيق، حالة المشروع والعقار، الخدمات، الموقف القانوني، وتفاصيل السداد والتكاليف الإضافية.', 'answer_en' => 'Buyers should review the exact location, project and building condition, services, legal status, payment terms, and additional costs.'],
                     ['question_ar' => 'هل المهندسين مناسبة للسكن والاستثمار؟', 'question_en' => 'Is Mohandessin suitable for living and investment?', 'answer_ar' => 'يمكن أن تناسب الاستخدامين، لكن القرار يعتمد على نوع العقار والسعر والطلب الفعلي ومستوى الخدمات والموقع داخل المنطقة.', 'answer_en' => 'It can suit both uses, but the decision depends on property type, pricing, actual demand, service level, and the exact location.'],
-                ]
+                ],
             ],
             [
                 'slug' => 'ras-el-hekma',
@@ -518,7 +518,7 @@ class PopulateAllAreasSeeder extends Seeder
                     ['question_ar' => 'لماذا يختار المشترون رأس الحكمة؟', 'question_en' => 'Why do buyers choose Ras El Hekma?', 'answer_ar' => 'يرتبط الطلب بموقع المنطقة ونوعية الخدمات وتنوع العقارات وسهولة الوصول، مع اختلاف الأفضلية حسب الهدف والميزانية.', 'answer_en' => 'Demand is shaped by location, services, property variety, and accessibility, while the best choice depends on budget and purchase objective.'],
                     ['question_ar' => 'ما أهم العوامل قبل شراء عقار في رأس الحكمة؟', 'question_en' => 'What should buyers check before purchasing in Ras El Hekma?', 'answer_ar' => 'يجب مراجعة الموقع الدقيق، حالة المشروع والعقار، الخدمات، الموقف القانوني، وتفاصيل السداد والتكاليف الإضافية.', 'answer_en' => 'Buyers should review the exact location, project and building condition, services, legal status, payment terms, and additional costs.'],
                     ['question_ar' => 'هل رأس الحكمة مناسبة للسكن والاستثمار؟', 'question_en' => 'Is Ras El Hekma suitable for living and investment?', 'answer_ar' => 'يمكن أن تناسب الاستخدامين، لكن القرار يعتمد على نوع العقار والسعر والطلب الفعلي ومستوى الخدمات والموقع داخل المنطقة.', 'answer_en' => 'It can suit both uses, but the decision depends on property type, pricing, actual demand, service level, and the exact location.'],
-                ]
+                ],
             ],
             [
                 'slug' => 'sidi-kerir',
@@ -557,7 +557,7 @@ class PopulateAllAreasSeeder extends Seeder
                     ['question_ar' => 'لماذا يختار المشترون سيدي كرير؟', 'question_en' => 'Why do buyers choose Sidi Krir?', 'answer_ar' => 'يرتبط الطلب بموقع المنطقة ونوعية الخدمات وتنوع العقارات وسهولة الوصول، مع اختلاف الأفضلية حسب الهدف والميزانية.', 'answer_en' => 'Demand is shaped by location, services, property variety, and accessibility, while the best choice depends on budget and purchase objective.'],
                     ['question_ar' => 'ما أهم العوامل قبل شراء عقار في سيدي كرير؟', 'question_en' => 'What should buyers check before purchasing in Sidi Krir?', 'answer_ar' => 'يجب مراجعة الموقع الدقيق، حالة المشروع والعقار، الخدمات، الموقف القانوني، وتفاصيل السداد والتكاليف الإضافية.', 'answer_en' => 'Buyers should review the exact location, project and building condition, services, legal status, payment terms, and additional costs.'],
                     ['question_ar' => 'هل سيدي كرير مناسبة للسكن والاستثمار؟', 'question_en' => 'Is Sidi Krir suitable for living and investment?', 'answer_ar' => 'يمكن أن تناسب الاستخدامين، لكن القرار يعتمد على نوع العقار والسعر والطلب الفعلي ومستوى الخدمات والموقع داخل المنطقة.', 'answer_en' => 'It can suit both uses, but the decision depends on property type, pricing, actual demand, service level, and the exact location.'],
-                ]
+                ],
             ],
             [
                 'slug' => 'sidi-abdel-rahman',
@@ -596,7 +596,7 @@ class PopulateAllAreasSeeder extends Seeder
                     ['question_ar' => 'لماذا يختار المشترون سيدي عبد الرحمن؟', 'question_en' => 'Why do buyers choose Sidi Abdel Rahman?', 'answer_ar' => 'يرتبط الطلب بموقع المنطقة ونوعية الخدمات وتنوع العقارات وسهولة الوصول، مع اختلاف الأفضلية حسب الهدف والميزانية.', 'answer_en' => 'Demand is shaped by location, services, property variety, and accessibility, while the best choice depends on budget and purchase objective.'],
                     ['question_ar' => 'ما أهم العوامل قبل شراء عقار في سيدي عبد الرحمن؟', 'question_en' => 'What should buyers check before purchasing in Sidi Abdel Rahman?', 'answer_ar' => 'يجب مراجعة الموقع الدقيق، حالة المشروع والعقار، الخدمات، الموقف القانوني، وتفاصيل السداد والتكاليف الإضافية.', 'answer_en' => 'Buyers should review the exact location, project and building condition, services, legal status, payment terms, and additional costs.'],
                     ['question_ar' => 'هل سيدي عبد الرحمن مناسبة للسكن والاستثمار؟', 'question_en' => 'Is Sidi Abdel Rahman suitable for living and investment?', 'answer_ar' => 'يمكن أن تناسب الاستخدامين، لكن القرار يعتمد على نوع العقار والسعر والطلب الفعلي ومستوى الخدمات والموقع داخل المنطقة.', 'answer_en' => 'It can suit both uses, but the decision depends on property type, pricing, actual demand, service level, and the exact location.'],
-                ]
+                ],
             ],
             [
                 'slug' => 'marina',
@@ -635,7 +635,7 @@ class PopulateAllAreasSeeder extends Seeder
                     ['question_ar' => 'لماذا يختار المشترون مارينا؟', 'question_en' => 'Why do buyers choose Marina El Alamein?', 'answer_ar' => 'يرتبط الطلب بموقع المنطقة ونوعية الخدمات وتنوع العقارات وسهولة الوصول، مع اختلاف الأفضلية حسب الهدف والميزانية.', 'answer_en' => 'Demand is shaped by location, services, property variety, and accessibility, while the best choice depends on budget and purchase objective.'],
                     ['question_ar' => 'ما أهم العوامل قبل شراء عقار في مارينا؟', 'question_en' => 'What should buyers check before purchasing in Marina El Alamein?', 'answer_ar' => 'يجب مراجعة الموقع الدقيق، حالة المشروع والعقار، الخدمات، الموقف القانوني، وتفاصيل السداد والتكاليف الإضافية.', 'answer_en' => 'Buyers should review the exact location, project and building condition, services, legal status, payment terms, and additional costs.'],
                     ['question_ar' => 'هل مارينا مناسبة للسكن والاستثمار؟', 'question_en' => 'Is Marina El Alamein suitable for living and investment?', 'answer_ar' => 'يمكن أن تناسب الاستخدامين، لكن القرار يعتمد على نوع العقار والسعر والطلب الفعلي ومستوى الخدمات والموقع داخل المنطقة.', 'answer_en' => 'It can suit both uses, but the decision depends on property type, pricing, actual demand, service level, and the exact location.'],
-                ]
+                ],
             ],
             [
                 'slug' => 'marsa-matruh',
@@ -674,7 +674,7 @@ class PopulateAllAreasSeeder extends Seeder
                     ['question_ar' => 'لماذا يختار المشترون مرسى مطروح؟', 'question_en' => 'Why do buyers choose Marsa Matrouh?', 'answer_ar' => 'يرتبط الطلب بموقع المنطقة ونوعية الخدمات وتنوع العقارات وسهولة الوصول، مع اختلاف الأفضلية حسب الهدف والميزانية.', 'answer_en' => 'Demand is shaped by location, services, property variety, and accessibility, while the best choice depends on budget and purchase objective.'],
                     ['question_ar' => 'ما أهم العوامل قبل شراء عقار في مرسى مطروح؟', 'question_en' => 'What should buyers check before purchasing in Marsa Matrouh?', 'answer_ar' => 'يجب مراجعة الموقع الدقيق، حالة المشروع والعقار، الخدمات، الموقف القانوني، وتفاصيل السداد والتكاليف الإضافية.', 'answer_en' => 'Buyers should review the exact location, project and building condition, services, legal status, payment terms, and additional costs.'],
                     ['question_ar' => 'هل مرسى مطروح مناسبة للسكن والاستثمار؟', 'question_en' => 'Is Marsa Matrouh suitable for living and investment?', 'answer_ar' => 'يمكن أن تناسب الاستخدامين، لكن القرار يعتمد على نوع العقار والسعر والطلب الفعلي ومستوى الخدمات والموقع داخل المنطقة.', 'answer_en' => 'It can suit both uses, but the decision depends on property type, pricing, actual demand, service level, and the exact location.'],
-                ]
+                ],
             ],
             [
                 'slug' => 'nasr-city',
@@ -713,7 +713,7 @@ class PopulateAllAreasSeeder extends Seeder
                     ['question_ar' => 'لماذا يختار المشترون مدينة نصر؟', 'question_en' => 'Why do buyers choose Nasr City?', 'answer_ar' => 'يرتبط الطلب بموقع المنطقة ونوعية الخدمات وتنوع العقارات وسهولة الوصول، مع اختلاف الأفضلية حسب الهدف والميزانية.', 'answer_en' => 'Demand is shaped by location, services, property variety, and accessibility, while the best choice depends on budget and purchase objective.'],
                     ['question_ar' => 'ما أهم العوامل قبل شراء عقار في مدينة نصر؟', 'question_en' => 'What should buyers check before purchasing in Nasr City?', 'answer_ar' => 'يجب مراجعة الموقع الدقيق، حالة المشروع والعقار، الخدمات، الموقف القانوني، وتفاصيل السداد والتكاليف الإضافية.', 'answer_en' => 'Buyers should review the exact location, project and building condition, services, legal status, payment terms, and additional costs.'],
                     ['question_ar' => 'هل مدينة نصر مناسبة للسكن والاستثمار؟', 'question_en' => 'Is Nasr City suitable for living and investment?', 'answer_ar' => 'يمكن أن تناسب الاستخدامين، لكن القرار يعتمد على نوع العقار والسعر والطلب الفعلي ومستوى الخدمات والموقع داخل المنطقة.', 'answer_en' => 'It can suit both uses, but the decision depends on property type, pricing, actual demand, service level, and the exact location.'],
-                ]
+                ],
             ],
             [
                 'slug' => 'rehab',
@@ -752,7 +752,7 @@ class PopulateAllAreasSeeder extends Seeder
                     ['question_ar' => 'لماذا يختار المشترون الرحاب؟', 'question_en' => 'Why do buyers choose Al Rehab City?', 'answer_ar' => 'يرتبط الطلب بموقع المنطقة ونوعية الخدمات وتنوع العقارات وسهولة الوصول، مع اختلاف الأفضلية حسب الهدف والميزانية.', 'answer_en' => 'Demand is shaped by location, services, property variety, and accessibility, while the best choice depends on budget and purchase objective.'],
                     ['question_ar' => 'ما أهم العوامل قبل شراء عقار في الرحاب؟', 'question_en' => 'What should buyers check before purchasing in Al Rehab City?', 'answer_ar' => 'يجب مراجعة الموقع الدقيق، حالة المشروع والعقار، الخدمات، الموقف القانوني، وتفاصيل السداد والتكاليف الإضافية.', 'answer_en' => 'Buyers should review the exact location, project and building condition, services, legal status, payment terms, and additional costs.'],
                     ['question_ar' => 'هل الرحاب مناسبة للسكن والاستثمار؟', 'question_en' => 'Is Al Rehab City suitable for living and investment?', 'answer_ar' => 'يمكن أن تناسب الاستخدامين، لكن القرار يعتمد على نوع العقار والسعر والطلب الفعلي ومستوى الخدمات والموقع داخل المنطقة.', 'answer_en' => 'It can suit both uses, but the decision depends on property type, pricing, actual demand, service level, and the exact location.'],
-                ]
+                ],
             ],
             [
                 'slug' => '6th-october',
@@ -791,7 +791,7 @@ class PopulateAllAreasSeeder extends Seeder
                     ['question_ar' => 'لماذا يختار المشترون 6 أكتوبر؟', 'question_en' => 'Why do buyers choose 6th of October City?', 'answer_ar' => 'يرتبط الطلب بموقع المنطقة ونوعية الخدمات وتنوع العقارات وسهولة الوصول، مع اختلاف الأفضلية حسب الهدف والميزانية.', 'answer_en' => 'Demand is shaped by location, services, property variety, and accessibility, while the best choice depends on budget and purchase objective.'],
                     ['question_ar' => 'ما أهم العوامل قبل شراء عقار في 6 أكتوبر؟', 'question_en' => 'What should buyers check before purchasing in 6th of October City?', 'answer_ar' => 'يجب مراجعة الموقع الدقيق، حالة المشروع والعقار، الخدمات، الموقف القانوني، وتفاصيل السداد والتكاليف الإضافية.', 'answer_en' => 'Buyers should review the exact location, project and building condition, services, legal status, payment terms, and additional costs.'],
                     ['question_ar' => 'هل 6 أكتوبر مناسبة للسكن والاستثمار؟', 'question_en' => 'Is 6th of October City suitable for living and investment?', 'answer_ar' => 'يمكن أن تناسب الاستخدامين، لكن القرار يعتمد على نوع العقار والسعر والطلب الفعلي ومستوى الخدمات والموقع داخل المنطقة.', 'answer_en' => 'It can suit both uses, but the decision depends on property type, pricing, actual demand, service level, and the exact location.'],
-                ]
+                ],
             ],
             [
                 'slug' => 'heliopolis',
@@ -830,7 +830,7 @@ class PopulateAllAreasSeeder extends Seeder
                     ['question_ar' => 'لماذا يختار المشترون مصر الجديدة؟', 'question_en' => 'Why do buyers choose Heliopolis?', 'answer_ar' => 'يرتبط الطلب بموقع المنطقة ونوعية الخدمات وتنوع العقارات وسهولة الوصول، مع اختلاف الأفضلية حسب الهدف والميزانية.', 'answer_en' => 'Demand is shaped by location, services, property variety, and accessibility, while the best choice depends on budget and purchase objective.'],
                     ['question_ar' => 'ما أهم العوامل قبل شراء عقار في مصر الجديدة؟', 'question_en' => 'What should buyers check before purchasing in Heliopolis?', 'answer_ar' => 'يجب مراجعة الموقع الدقيق، حالة المشروع والعقار، الخدمات، الموقف القانوني، وتفاصيل السداد والتكاليف الإضافية.', 'answer_en' => 'Buyers should review the exact location, project and building condition, services, legal status, payment terms, and additional costs.'],
                     ['question_ar' => 'هل مصر الجديدة مناسبة للسكن والاستثمار؟', 'question_en' => 'Is Heliopolis suitable for living and investment?', 'answer_ar' => 'يمكن أن تناسب الاستخدامين، لكن القرار يعتمد على نوع العقار والسعر والطلب الفعلي ومستوى الخدمات والموقع داخل المنطقة.', 'answer_en' => 'It can suit both uses, but the decision depends on property type, pricing, actual demand, service level, and the exact location.'],
-                ]
+                ],
             ],
         ];
 
@@ -857,7 +857,7 @@ class PopulateAllAreasSeeder extends Seeder
             }
 
             // Sync features
-            if (!empty($features)) {
+            if (! empty($features)) {
                 AreaFeature::where('area_id', $area->id)->delete();
                 foreach ($features as $idx => $feat) {
                     AreaFeature::create([
@@ -874,7 +874,7 @@ class PopulateAllAreasSeeder extends Seeder
             }
 
             // Sync nearby places
-            if (!empty($nearbyPlaces)) {
+            if (! empty($nearbyPlaces)) {
                 AreaNearbyPlace::where('area_id', $area->id)->delete();
                 foreach ($nearbyPlaces as $idx => $place) {
                     AreaNearbyPlace::create([
@@ -892,7 +892,7 @@ class PopulateAllAreasSeeder extends Seeder
             }
 
             // Sync FAQs
-            if (!empty($faqs)) {
+            if (! empty($faqs)) {
                 AreaFaq::where('area_id', $area->id)->delete();
                 foreach ($faqs as $idx => $faq) {
                     AreaFaq::create([

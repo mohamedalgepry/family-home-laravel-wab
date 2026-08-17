@@ -60,8 +60,6 @@ class SitemapController
         );
     }
 
-
-
     public function robots(): Response
     {
         return response($this->builder->buildRobots(), 200, [

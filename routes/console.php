@@ -30,7 +30,9 @@ Schedule::command('queue:work --stop-when-empty --max-time=30')
     ->withoutOverlapping();
 
 Schedule::command('points:daily-deduct')
-    ->dailyAt('00:01');
+    ->dailyAt('00:01')
+    ->withoutOverlapping()
+    ->onOneServer();
 
 Schedule::command('points:monthly-reset')
     ->dailyAt('01:00')

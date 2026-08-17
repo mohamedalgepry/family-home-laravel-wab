@@ -44,7 +44,7 @@ export default function SearchBar({ areas = [], unitTypes = [], features = [], f
             onSearch(params)
             setTimeout(() => setIsSearching(false), 300)
         } else {
-            router.get(`/${locale}/units`, params, { 
+            router.get(`/${locale}/units`, params, {
                 preserveState: true,
                 onFinish: () => setIsSearching(false)
             })
@@ -167,7 +167,7 @@ export default function SearchBar({ areas = [], unitTypes = [], features = [], f
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
                             </svg>
                         </button>
-                        
+
                         <button
                             type="submit"
                             disabled={isSearching}
@@ -189,7 +189,7 @@ export default function SearchBar({ areas = [], unitTypes = [], features = [], f
                 </div>
 
                 {/* Desktop Advanced Filters */}
-                <div 
+                <div
                     className={`transition-all duration-300 ease-in-out origin-top rounded-2xl absolute left-0 right-0 top-full mt-2 z-50 bg-white shadow-2xl border border-secondary-200 ${showAdvanced ? 'opacity-100 overflow-visible scale-y-100' : 'opacity-0 overflow-hidden pointer-events-none scale-y-95 max-h-0'}`}
                     style={{
                         maxHeight: showAdvanced ? '1500px' : '0px',
@@ -215,7 +215,7 @@ export default function SearchBar({ areas = [], unitTypes = [], features = [], f
                                 <input id="d-size-max" type="number" min="0" value={local.size_max} onChange={e => update('size_max', e.target.value)} placeholder={locale === 'ar' ? 'لا يوجد حد' : 'No limit'} className="w-full px-4 h-11 border border-secondary-200 bg-surface rounded-xl text-sm focus:ring-2 focus:ring-primary-900 transition-all outline-none" />
                             </div>
                         </div>
-                        
+
                         {/* More Selects */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
@@ -255,7 +255,7 @@ export default function SearchBar({ areas = [], unitTypes = [], features = [], f
                                 </div>
                             </div>
                         )}
-                        
+
                         <div className="w-full flex justify-end pt-4 border-t border-secondary-100/50">
                             <button type="button" onClick={handleReset} className="px-6 h-10 text-secondary-700 bg-transparent hover:bg-secondary-100 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2">
                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -298,7 +298,7 @@ export default function SearchBar({ areas = [], unitTypes = [], features = [], f
                     <div dir={isRtl ? 'rtl' : 'ltr'} className="fixed inset-0 z-[100] flex flex-col justify-end pointer-events-auto">
                         <div className="absolute inset-0 bg-secondary-950/40 backdrop-blur-sm transition-opacity" onClick={() => setShowAdvanced(false)}></div>
                         <div className="relative bg-white rounded-t-[2rem] w-full max-h-[90vh] flex flex-col shadow-2xl animate-slideUp">
-                            
+
                             {/* Drag Handle & Header */}
                             <div className="flex-none p-5 pb-3 border-b border-secondary-100 flex items-center justify-between sticky top-0 bg-white rounded-t-[2rem] z-10">
                                 <h3 className="text-lg font-black text-secondary-950 tracking-tight">{locale === 'ar' ? 'الفلاتر' : 'Filters'}</h3>
@@ -316,7 +316,7 @@ export default function SearchBar({ areas = [], unitTypes = [], features = [], f
                                     <label htmlFor="m-search" className="block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-2">{trans('search')}</label>
                                     <input id="m-search" type="text" value={local.search} onChange={e => update('search', e.target.value)} placeholder={locale === 'ar' ? 'ابحث بالاسم...' : 'Search...'} className="w-full px-4 h-12 border border-secondary-200 bg-surface rounded-xl text-sm focus:ring-2 focus:ring-primary-900 transition-all outline-none" />
                                 </div>
-                                
+
                                 {/* Transaction & Type */}
                                 <div className="grid grid-cols-2 gap-3">
                                     <div>
@@ -398,11 +398,10 @@ export default function SearchBar({ areas = [], unitTypes = [], features = [], f
                                                         key={`m-feat-${feature.id}`}
                                                         type="button"
                                                         onClick={() => toggleFeature(feature.id)}
-                                                        className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
-                                                            isChecked 
-                                                            ? 'bg-primary-900 border-primary-900 text-white' 
-                                                            : 'bg-white border-secondary-200 text-secondary-700 hover:border-primary-900 hover:text-primary-900'
-                                                        }`}
+                                                        className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors ${isChecked
+                                                                ? 'bg-primary-900 border-primary-900 text-white'
+                                                                : 'bg-white border-secondary-200 text-secondary-700 hover:border-primary-900 hover:text-primary-900'
+                                                            }`}
                                                     >
                                                         {locale === 'ar' ? feature.name_ar : feature.name_en}
                                                     </button>

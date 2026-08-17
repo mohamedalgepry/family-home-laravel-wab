@@ -23,7 +23,7 @@ beforeEach(function () {
 
 function makeUnit(array $overrides = []): Unit
 {
-    $unit = new Unit(array_merge([
+    return createTestUnit(array_merge([
         'user_id' => test()->user->id,
         'type_id' => test()->type->id,
         'area_id' => test()->area->id,
@@ -37,9 +37,6 @@ function makeUnit(array $overrides = []): Unit
         'description_en' => 'Description En',
         'meta_description_en' => 'Unit meta description',
     ], $overrides));
-    $unit->save();
-
-    return $unit;
 }
 
 function schemaOf(array|string $metaSchema): array
@@ -47,7 +44,7 @@ function schemaOf(array|string $metaSchema): array
     if (is_array($metaSchema)) {
         return $metaSchema;
     }
-    
+
     preg_match('/<script type="application\/ld\+json">(.*?)<\/script>/s', $metaSchema, $matches);
 
     return json_decode($matches[1] ?? '{}', true);
@@ -80,11 +77,11 @@ it('builds a localized unit meta with canonical, hreflang and schema', function 
         ->and($schema['datePosted'])->not->toBeNull()
         ->and($schema['dateModified'])->not->toBeNull()
         ->and($schema['offers'])->toBe([
-            '@type'         => 'Offer',
-            'price'         => '1000.00',
+            '@type' => 'Offer',
+            'price' => '1000.00',
             'priceCurrency' => 'EGP',
-            'availability'  => 'https://schema.org/InStock',
-            'url'           => url('/en/units/'.$unit->slug_en),
+            'availability' => 'https://schema.org/InStock',
+            'url' => url('/en/units/'.$unit->slug_en),
         ]);
 });
 
@@ -152,17 +149,17 @@ it('builds an article meta with an Article schema', function () {
         ->and($schema['dateModified'])->not->toBeNull()
         ->and($schema['author'])->toBe([
             '@type' => 'Organization',
-            'name'  => config('app.name'),
-            'url'   => url('/'),
+            'name' => config('app.name'),
+            'url' => url('/'),
         ])
         ->and($schema['publisher'])->toBe([
             '@type' => 'Organization',
-            'name'  => config('app.name'),
-            'logo'  => [
+            'name' => config('app.name'),
+            'logo' => [
                 '@type' => 'ImageObject',
-                'url'   => url('/icon.png'),
+                'url' => url('/icon.png'),
             ],
-            'url'   => url('/'),
+            'url' => url('/'),
         ]);
 });
 

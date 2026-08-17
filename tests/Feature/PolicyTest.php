@@ -31,15 +31,12 @@ beforeEach(function () {
 
 function createPolicyUnit(string $name, ?int $userId, array $attributes): Unit
 {
-    $unit = new Unit(array_merge($attributes, [
+    return createTestUnit(array_merge($attributes, [
         'user_id' => $userId,
         'name' => $name,
         'name_ar' => $name,
         'name_en' => $name,
     ]));
-    $unit->save();
-
-    return $unit;
 }
 
 it('lets admins do everything', function () {

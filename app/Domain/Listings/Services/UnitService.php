@@ -31,7 +31,7 @@ class UnitService
         $query = Unit::with(['type', 'area', 'project', 'images']);
 
         UserScopeQueryBuilder::applyListingsScope($query, $user);
-        ListingQueryBuilder::applySearch($query, $filters, ['name_en', 'name_ar', 'slug', 'slug_ar', 'slug_en']);
+        ListingQueryBuilder::applySearch($query, $filters, ['name_en', 'name_ar', 'slug', 'slug_ar', 'slug_en', 'keywords_ar', 'keywords_en']);
         ListingQueryBuilder::applyExactMatches($query, $filters, ['area_id', 'type_id', 'transaction']);
 
         if (! ListingQueryBuilder::applySort($query, $filters, ['created_at', 'name', 'price', 'area_sqm', 'priority_points'])) {
@@ -95,7 +95,6 @@ class UnitService
 
             return $unit->load(['type', 'area', 'images']);
         });
-
 
         return $unit;
     }

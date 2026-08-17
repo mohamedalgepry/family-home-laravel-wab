@@ -28,15 +28,27 @@ class SecurityHeadersMiddleware
             ."img-src 'self' data: blob: https: https://*.googleapis.com https://maps.gstatic.com; "
             ."font-src 'self' data: https://fonts.gstatic.com; "
             ."connect-src 'self' https://*.google-analytics.com https://*.googletagmanager.com https://*.googleapis.com https://maps.googleapis.com; "
-            ."frame-src https://maps.google.com https://www.google.com https://www.youtube.com; "
+            .'frame-src https://maps.google.com https://www.google.com https://www.youtube.com; '
             ."form-action 'self'; "
-            ."frame-ancestors 'self';";
+            ."frame-ancestors 'self'; "
+            .'report-uri /csp-report; '
+            .'report-to csp-endpoint;';
 
         if (app()->environment('local')) {
             $csp = "default-src 'self' data: blob: http: https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' http: https:; style-src 'self' 'unsafe-inline' http: https:; img-src 'self' data: blob: http: https:; font-src 'self' data: http: https:; connect-src 'self' http: https: ws: wss:; form-action 'self';";
         }
 
         $response->headers->set('Content-Security-Policy', $csp);
+
+        if (! app()->environment('local')) {
+            $response->headers->set('Report-To', json_encode([
+                'group' => 'csp-endpoint',
+                'max_age' => 10886400,
+                'endpoints' => [
+                    ['url' => url('/csp-report')],
+                ],
+            ]));
+        }
 
         return $response;
     }

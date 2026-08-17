@@ -28,7 +28,7 @@ export default function UnitsIndex({ units, filters, areas, unitTypes, features,
             <Header />
 
             <main id="main-content" tabIndex="-1" className="flex-1 w-full flex flex-col focus:outline-none">
-                
+
                 {/* Premium Header Area */}
                 <div className="bg-gradient-to-b from-surface-hover to-surface pt-8 pb-10 px-4">
                     <div className="max-w-container mx-auto">
@@ -56,33 +56,33 @@ export default function UnitsIndex({ units, filters, areas, unitTypes, features,
 
                 <div className="flex-1 max-w-container mx-auto px-4 py-8 w-full">
 
-                {/* Units Grid */}
-                {isLoading ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {Array.from({ length: 8 }).map((_, i) => (
-                            <UnitCard key={i} loading={true} />
-                        ))}
-                    </div>
-                ) : hasUnits ? (
-                    <div className="flex flex-col gap-8">
+                    {/* Units Grid */}
+                    {isLoading ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                            {units.data.map(unit => (
-                                <UnitCard key={unit.id} unit={unit} />
+                            {Array.from({ length: 8 }).map((_, i) => (
+                                <UnitCard key={i} loading={true} />
                             ))}
                         </div>
-                        <Pagination meta={units.meta || units} links={units.links} />
-                    </div>
-                ) : (
-                    <div className="text-center py-20 bg-white rounded-[2rem] border border-secondary-100 shadow-sm max-w-2xl mx-auto w-full">
-                        <div className="w-16 h-16 bg-surface-hover text-secondary-400 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-                            </svg>
+                    ) : hasUnits ? (
+                        <div className="flex flex-col gap-8">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                {units.data.map(unit => (
+                                    <UnitCard key={unit.id} unit={unit} />
+                                ))}
+                            </div>
+                            <Pagination meta={units.meta || units} links={units.links} />
                         </div>
-                        <p className="text-secondary-900 font-bold text-lg mb-2">{trans('no_results')}</p>
-                        <p className="text-secondary-500 text-sm">{trans('try_different_filters')}</p>
-                    </div>
-                )}
+                    ) : (
+                        <div className="text-center py-20 bg-white rounded-[2rem] border border-secondary-100 shadow-sm max-w-2xl mx-auto w-full">
+                            <div className="w-16 h-16 bg-surface-hover text-secondary-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                                </svg>
+                            </div>
+                            <p className="text-secondary-900 font-bold text-lg mb-2">{trans('no_results')}</p>
+                            <p className="text-secondary-500 text-sm">{trans('try_different_filters')}</p>
+                        </div>
+                    )}
                 </div>
             </main>
 

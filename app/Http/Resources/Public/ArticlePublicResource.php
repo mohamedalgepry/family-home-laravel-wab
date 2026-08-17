@@ -29,7 +29,7 @@ class ArticlePublicResource extends JsonResource
             'is_published' => $this->is_published,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
-            
+
             // Relations
             'category' => $this->whenLoaded('category', function () {
                 return [
@@ -44,8 +44,8 @@ class ArticlePublicResource extends JsonResource
                     return [
                         'id' => $image->id,
                         'path' => $image->path,
-                        'url' => asset('storage/' . $image->path),
-                        'thumb_url' => $image->thumb_path ? asset('storage/' . $image->thumb_path) : null,
+                        'url' => asset('storage/'.$image->path),
+                        'thumb_url' => $image->thumb_path ? asset('storage/'.$image->thumb_path) : null,
                         'is_main' => $image->is_main,
                         'is_primary' => $image->is_primary,
                         'alt_text' => $image->alt_text,

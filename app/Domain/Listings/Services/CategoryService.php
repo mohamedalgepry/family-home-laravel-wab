@@ -27,7 +27,6 @@ class CategoryService
             'slug' => $slug,
         ]);
 
-
         return $category;
     }
 
@@ -45,7 +44,6 @@ class CategoryService
             'name_en' => $data->name_en,
             'slug' => $slug,
         ]);
-
 
         return $category->fresh();
     }

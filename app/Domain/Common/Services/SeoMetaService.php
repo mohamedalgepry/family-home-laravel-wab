@@ -5,6 +5,7 @@ namespace App\Domain\Common\Services;
 use App\Domain\Listings\Models\Article;
 use App\Domain\Listings\Models\Project;
 use App\Domain\Listings\Models\Unit;
+use App\Domain\Listings\Services\SettingsService;
 use App\Services\SeoService;
 
 class SeoMetaService
@@ -78,52 +79,52 @@ class SeoMetaService
 
     private function listingSchema(Unit|Project $listing): array
     {
-        $locale    = app()->getLocale();
+        $locale = app()->getLocale();
         $slugField = "slug_{$locale}";
-        $section   = $listing instanceof Unit ? 'units' : 'projects';
-        $url       = url("/{$locale}/{$section}/".($listing->$slugField ?? $listing->slug));
+        $section = $listing instanceof Unit ? 'units' : 'projects';
+        $url = url("/{$locale}/{$section}/".($listing->$slugField ?? $listing->slug));
 
         $isUnit = $listing instanceof Unit;
 
         $schema = array_filter([
-            '@context'     => 'https://schema.org',
-            '@type'        => 'RealEstateListing',
-            '@id'          => $url.'#'.($isUnit ? 'listing' : 'project'),
-            'name'         => $listing->name,
-            'description'  => $this->description($listing->meta_description ?? $listing->description),
-            'image'        => $this->resolveImage($listing->images, assetUrl: true) ?: null,
-            'url'          => $url,
-            'datePosted'   => $listing->created_at?->toIso8601String(),
+            '@context' => 'https://schema.org',
+            '@type' => 'RealEstateListing',
+            '@id' => $url.'#'.($isUnit ? 'listing' : 'project'),
+            'name' => $listing->name,
+            'description' => $this->description($listing->meta_description ?? $listing->description),
+            'image' => $this->resolveImage($listing->images, assetUrl: true) ?: null,
+            'url' => $url,
+            'datePosted' => $listing->created_at?->toIso8601String(),
             'dateModified' => $listing->updated_at?->toIso8601String(),
-        ], fn($v) => $v !== null && $v !== '');
+        ], fn ($v) => $v !== null && $v !== '');
 
         if ($isUnit && $listing->price !== null) {
             $schema['offers'] = [
-                '@type'         => 'Offer',
-                'price'         => $listing->price,
+                '@type' => 'Offer',
+                'price' => $listing->price,
                 'priceCurrency' => config('app.currency', 'EGP'),
-                'availability'  => 'https://schema.org/InStock',
-                'url'           => $url,
+                'availability' => 'https://schema.org/InStock',
+                'url' => $url,
             ];
         }
 
-        $hasCoords = !empty($listing->latitude) && !empty($listing->longitude) && $listing->latitude != '0' && $listing->longitude != '0';
+        $hasCoords = ! empty($listing->latitude) && ! empty($listing->longitude) && $listing->latitude != '0' && $listing->longitude != '0';
         $locationAddress = $listing->location_address ?? null;
 
-        if ($hasCoords || !empty($locationAddress)) {
+        if ($hasCoords || ! empty($locationAddress)) {
             $schema['contentLocation'] = array_filter([
-                '@type'   => 'Place',
-                'name'    => $listing->name,
-                'address' => !empty($locationAddress) ? [
-                    '@type'          => 'PostalAddress',
+                '@type' => 'Place',
+                'name' => $listing->name,
+                'address' => ! empty($locationAddress) ? [
+                    '@type' => 'PostalAddress',
                     'streetAddress' => $locationAddress,
                 ] : null,
-                'geo'     => $hasCoords ? [
-                    '@type'     => 'GeoCoordinates',
-                    'latitude'  => (float) $listing->latitude,
+                'geo' => $hasCoords ? [
+                    '@type' => 'GeoCoordinates',
+                    'latitude' => (float) $listing->latitude,
                     'longitude' => (float) $listing->longitude,
                 ] : null,
-            ], fn($v) => $v !== null);
+            ], fn ($v) => $v !== null);
         }
 
         return $schema;
@@ -131,33 +132,33 @@ class SeoMetaService
 
     private function articleSchema(Article $article): array
     {
-        $settingsService = app(\App\Domain\Listings\Services\SettingsService::class);
+        $settingsService = app(SettingsService::class);
         $logoPath = $settingsService->get('site_logo');
         $logoUrl = $logoPath ? asset('storage/'.$logoPath) : asset('icon.png');
 
         return array_filter([
-            '@context'      => 'https://schema.org',
-            '@type'         => 'Article',
-            'headline'      => $article->title,
-            'description'   => $this->description($article->meta_description ?? $article->content),
-            'image'         => $this->resolveImage($article->images, assetUrl: true) ?: null,
+            '@context' => 'https://schema.org',
+            '@type' => 'Article',
+            'headline' => $article->title,
+            'description' => $this->description($article->meta_description ?? $article->content),
+            'image' => $this->resolveImage($article->images, assetUrl: true) ?: null,
             'datePublished' => $article->created_at?->toIso8601String(),
-            'dateModified'  => $article->updated_at?->toIso8601String(),
-            'author'        => [
+            'dateModified' => $article->updated_at?->toIso8601String(),
+            'author' => [
                 '@type' => 'Organization',
-                'name'  => config('app.name'),
-                'url'   => url('/'),
+                'name' => config('app.name'),
+                'url' => url('/'),
             ],
-            'publisher'     => [
+            'publisher' => [
                 '@type' => 'Organization',
-                'name'  => config('app.name'),
-                'logo'  => [
+                'name' => config('app.name'),
+                'logo' => [
                     '@type' => 'ImageObject',
-                    'url'   => $logoUrl,
+                    'url' => $logoUrl,
                 ],
-                'url'   => url('/'),
+                'url' => url('/'),
             ],
-        ], fn($v) => $v !== null && $v !== '');
+        ], fn ($v) => $v !== null && $v !== '');
     }
 
     /**
@@ -199,6 +200,4 @@ class SeoMetaService
         // 3. Collapse whitespace and trim, then limit to 160 chars for SEO
         return (string) str($clean)->squish()->limit(160);
     }
-
-
 }

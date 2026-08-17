@@ -24,8 +24,10 @@ class PageController extends Controller
         if ($targetPath && str_starts_with($targetPath, '/') && ! str_starts_with($targetPath, '//')) {
             if (preg_match('#^/(ar|en)(/.*)?$#', $targetPath, $matches)) {
                 $rest = $matches[2] ?? '';
+
                 return redirect('/'.$lang.$rest);
             }
+
             return redirect($targetPath);
         }
 
@@ -37,6 +39,7 @@ class PageController extends Controller
 
             if ($path && preg_match('#^/(ar|en)(/.*)?$#', $path, $matches)) {
                 $rest = $matches[2] ?? '';
+
                 return redirect('/'.$lang.$rest.$query);
             }
 

@@ -1,7 +1,6 @@
 <?php
 
 use App\Domain\Listings\Models\Area;
-use App\Domain\Listings\Models\Unit;
 use App\Domain\Listings\Models\UnitType;
 
 test('it bypasses public cache and sets no-cache on contact page', function () {
@@ -17,7 +16,7 @@ test('it bypasses public cache and sets no-cache on single unit detail page with
     $type = UnitType::create(['name_ar' => 'نوع', 'name_en' => 'Type']);
     $area = Area::create(['name_ar' => 'منطقة', 'name_en' => 'Area']);
 
-    $unit = Unit::create([
+    $unit = createTestUnit([
         'name' => 'وحدة تجريبية',
         'name_ar' => 'وحدة تجريبية',
         'name_en' => 'Test Unit',

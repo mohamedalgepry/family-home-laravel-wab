@@ -5,11 +5,13 @@ namespace App\Domain\Users\Models;
 use App\Domain\Listings\Models\Project;
 use App\Domain\Listings\Models\Unit;
 use App\Domain\Points\Models\PointsTransaction;
+use App\Domain\Users\Notifications\ResetPasswordNotification;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 
 class User extends Authenticatable
 {
@@ -36,18 +38,18 @@ class User extends Authenticatable
 
     public static function generateUniqueSlug(string $name): string
     {
-        $baseSlug = \Illuminate\Support\Str::slug($name);
+        $baseSlug = Str::slug($name);
         if (empty($baseSlug)) {
             $baseSlug = 'user'; // fallback for fully arabic names if slug fails, although Str::slug supports arabic somewhat, it's better to be safe. But wait, Laravel's Str::slug supports Arabic natively in recent versions, but sometimes we need to pass a dictionary. Actually, Laravel 9+ supports Arabic well.
         }
         $slug = $baseSlug;
         $count = 1;
-        
+
         while (static::where('slug', $slug)->exists()) {
-            $slug = $baseSlug . '-' . $count;
+            $slug = $baseSlug.'-'.$count;
             $count++;
         }
-        
+
         return $slug;
     }
 
@@ -55,7 +57,7 @@ class User extends Authenticatable
 
     public function sendPasswordResetNotification($token): void
     {
-        $this->notify(new \App\Domain\Users\Notifications\ResetPasswordNotification($token));
+        $this->notify(new ResetPasswordNotification($token));
     }
 
     protected function casts(): array

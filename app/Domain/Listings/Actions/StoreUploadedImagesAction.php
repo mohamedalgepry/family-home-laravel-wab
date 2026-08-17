@@ -4,7 +4,6 @@ namespace App\Domain\Listings\Actions;
 
 use App\Domain\Media\Services\ImageOptimizerService;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 
 class StoreUploadedImagesAction
 {

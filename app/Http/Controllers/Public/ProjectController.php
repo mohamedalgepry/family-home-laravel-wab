@@ -7,6 +7,7 @@ use App\Domain\Listings\Models\Project;
 use App\Domain\Listings\Services\ListingLookupService;
 use App\Domain\Listings\Services\ListingService;
 use App\Domain\Listings\Services\PageViewService;
+use App\Domain\Listings\Services\SearchService;
 use App\Http\Resources\Public\ProjectPublicResource;
 use App\Services\SeoService;
 use Inertia\Inertia;
@@ -21,9 +22,13 @@ class ProjectController
         private readonly SeoMetaService $seoMetaService,
     ) {}
 
-    public function index(): Response
+    public function index(SearchService $searchService): Response
     {
         $filters = request()->only(['area_id', 'search', 'payment_method', 'finishing_type_id', 'features']);
+
+        if (! empty($filters['search'])) {
+            $searchService->recordSearch($filters['search']);
+        }
 
         $projects = $this->listingService->getProjectsByFilters($filters);
 
@@ -69,7 +74,7 @@ class ProjectController
         $mainImage = $project->images->firstWhere('is_main', true)
             ?? $project->images->firstWhere('is_primary', true)
             ?? $project->images->first();
-            
+
         $lcpImage = $mainImage ? $mainImage->url : null;
 
         return Inertia::render('Public/Projects/Show', [

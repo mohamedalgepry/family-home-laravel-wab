@@ -2,10 +2,9 @@
 
 namespace App\Http\Requests\Admin;
 
-use App\Domain\Listings\Models\Area;
+use App\Http\Requests\Traits\ExtractsCoordinatesFromUrl;
 use App\Rules\AllowedIconName;
 use Illuminate\Foundation\Http\FormRequest;
-use App\Http\Requests\Traits\ExtractsCoordinatesFromUrl;
 
 class UpdateAreaRequest extends FormRequest
 {
@@ -65,7 +64,7 @@ class UpdateAreaRequest extends FormRequest
             'is_active' => 'boolean',
             'sort_order' => 'integer|min:0',
             'parent_id' => 'nullable|exists:areas,id',
-            
+
             'short_description_ar' => 'nullable|string',
             'short_description_en' => 'nullable|string',
             'hero_title_ar' => 'nullable|string|max:255',
@@ -76,10 +75,10 @@ class UpdateAreaRequest extends FormRequest
             'hero_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:20480',
             'gallery' => 'nullable|array',
             'gallery.*' => 'image|mimes:jpeg,png,jpg,webp|max:20480',
-            
+
             'about_ar' => 'nullable|string',
             'about_en' => 'nullable|string',
-            
+
             'address_ar' => 'nullable|string|max:255',
             'address_en' => 'nullable|string|max:255',
             'latitude' => [
@@ -98,7 +97,7 @@ class UpdateAreaRequest extends FormRequest
                 },
             ],
             'map_url' => 'nullable|url',
-            
+
             'meta_title_ar' => 'nullable|string|max:255',
             'meta_title_en' => 'nullable|string|max:255',
             'meta_description_ar' => 'nullable|string|max:500',
@@ -107,7 +106,7 @@ class UpdateAreaRequest extends FormRequest
             'meta_keywords_ar.*' => 'string|max:100',
             'meta_keywords_en' => 'nullable|array|max:25',
             'meta_keywords_en.*' => 'string|max:100',
-            
+
             'features' => 'nullable|array',
             'features.*.id' => 'nullable|exists:area_features,id',
             'features.*.title_ar' => 'required_with:features|string|max:255',
@@ -117,7 +116,7 @@ class UpdateAreaRequest extends FormRequest
             'features.*.icon' => ['nullable', 'string', 'max:50', new AllowedIconName],
             'features.*.sort_order' => 'nullable|integer',
             'features.*.is_active' => 'boolean',
-            
+
             'nearby_places' => 'nullable|array',
             'nearby_places.*.id' => 'nullable|exists:area_nearby_places,id',
             'nearby_places.*.name_ar' => 'required_with:nearby_places|string|max:255',
@@ -129,7 +128,7 @@ class UpdateAreaRequest extends FormRequest
             'nearby_places.*.icon' => ['nullable', 'string', 'max:50', new AllowedIconName],
             'nearby_places.*.sort_order' => 'nullable|integer',
             'nearby_places.*.is_active' => 'boolean',
-            
+
             'faqs' => 'nullable|array',
             'faqs.*.id' => 'nullable|exists:area_faqs,id',
             'faqs.*.question_ar' => 'required_with:faqs|string',

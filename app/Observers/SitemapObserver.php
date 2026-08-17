@@ -2,13 +2,13 @@
 
 namespace App\Observers;
 
-use App\Domain\Listings\Services\SitemapService;
+use App\Domain\Listings\Jobs\RegenerateSitemapJob;
 
 class SitemapObserver
 {
     private function triggerRegeneration(): void
     {
-        dispatch(new \App\Domain\Listings\Jobs\RegenerateSitemapJob())->afterCommit();
+        dispatch(new RegenerateSitemapJob)->afterCommit();
     }
 
     public function saved($model): void

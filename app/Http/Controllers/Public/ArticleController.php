@@ -6,6 +6,7 @@ use App\Domain\Common\Services\SeoMetaService;
 use App\Domain\Common\Support\Sanitizer;
 use App\Domain\Listings\Models\Article;
 use App\Domain\Listings\Models\Category;
+use App\Domain\Listings\Models\Unit;
 use App\Domain\Listings\Services\PageViewService;
 use App\Http\Resources\Public\ArticlePublicResource;
 use App\Http\Resources\Public\UnitPublicResource;
@@ -99,7 +100,7 @@ class ArticleController
             $relatedArticles = $relatedArticles->concat($moreArticles);
         }
 
-        $suggestedUnits = \App\Domain\Listings\Models\Unit::where('is_active', true)
+        $suggestedUnits = Unit::where('is_active', true)
             ->with(['images', 'area'])
             ->inRandomOrder()
             ->limit(3)

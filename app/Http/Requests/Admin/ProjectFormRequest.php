@@ -3,12 +3,12 @@
 namespace App\Http\Requests\Admin;
 
 use App\Http\Requests\Admin\Concerns\HasMapEmbedRule;
-use Illuminate\Foundation\Http\FormRequest;
 use App\Http\Requests\Traits\ExtractsCoordinatesFromUrl;
+use Illuminate\Foundation\Http\FormRequest;
 
 abstract class ProjectFormRequest extends FormRequest
 {
-    use HasMapEmbedRule, ExtractsCoordinatesFromUrl;
+    use ExtractsCoordinatesFromUrl, HasMapEmbedRule;
 
     protected function prepareForValidation(): void
     {

@@ -56,7 +56,7 @@ class HandleInertiaRequests extends Middleware
             $seoPages = Cache::remember('seo_pages_cache', 3600, function () {
                 return PageSeo::all()->keyBy('page_key')->toArray();
             });
-            $path = '/' . trim((string) preg_replace('#^/(ar|en)(/|$)#', '/', $request->path()), '/');
+            $path = '/'.trim((string) preg_replace('#^/(ar|en)(/|$)#', '/', $request->path()), '/');
             $segment = strtok($path, '/') ?: '/';
             $keyMap = [
                 '/' => 'home',

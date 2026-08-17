@@ -29,7 +29,7 @@ class ProjectService
         $query = Project::with(['area', 'images'])->withCount('units');
 
         UserScopeQueryBuilder::applyOwnershipScope($query, $user);
-        ListingQueryBuilder::applySearch($query, $filters, ['name_en', 'name_ar', 'slug', 'slug_ar', 'slug_en']);
+        ListingQueryBuilder::applySearch($query, $filters, ['name_en', 'name_ar', 'slug', 'slug_ar', 'slug_en', 'keywords_ar', 'keywords_en']);
         ListingQueryBuilder::applyExactMatches($query, $filters, ['area_id']);
         ListingQueryBuilder::applySort($query, $filters, ['created_at', 'name', 'units_count'], 'created_at');
 
@@ -82,7 +82,6 @@ class ProjectService
 
             return $project->load(['area', 'images']);
         });
-
 
         return $project;
     }

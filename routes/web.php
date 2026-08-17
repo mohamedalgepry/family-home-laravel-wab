@@ -19,7 +19,7 @@ Route::get('/health', function () {
         DB::connection()->getPdo();
 
         return response()->json(['status' => 'ok', 'database' => 'connected']);
-    } catch (\Throwable $e) {
+    } catch (Throwable $e) {
         return response()->json(['status' => 'error', 'database' => 'unavailable'], 503);
     }
 })->name('health.check');

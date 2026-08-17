@@ -44,9 +44,9 @@ class UnitPublicResource extends JsonResource
             'longitude' => $this->longitude,
             'map_embed_url' => $this->map_embed_url,
             'video_url' => $this->video_url,
-            'video_path' => $this->video_path ? asset('storage/' . $this->video_path) : null,
+            'video_path' => $this->video_path ? asset('storage/'.$this->video_path) : null,
             'meta_description' => $this->meta_description,
-            
+
             // Relations
             'area' => $this->whenLoaded('area', function () {
                 return [
@@ -97,8 +97,8 @@ class UnitPublicResource extends JsonResource
                     return [
                         'id' => $image->id,
                         'path' => $image->path,
-                        'url' => asset('storage/' . $image->path),
-                        'thumb_url' => $image->thumb_path ? asset('storage/' . $image->thumb_path) : null,
+                        'url' => asset('storage/'.$image->path),
+                        'thumb_url' => $image->thumb_path ? asset('storage/'.$image->thumb_path) : null,
                         'is_main' => $image->is_main,
                         'is_primary' => $image->is_primary,
                         'alt_text' => $image->alt_text,

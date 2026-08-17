@@ -46,17 +46,17 @@ class AuthService
         session()->regenerateToken();
     }
 
-    public function forgotPassword(string $email): string
+    public function forgotPassword(string $email): bool
     {
-        return (string) $this->sendOtp($email, app()->getLocale());
+        return $this->sendOtp($email, app()->getLocale());
     }
 
-    public function sendOtp(string $email, string $locale = 'ar'): ?string
+    public function sendOtp(string $email, string $locale = 'ar'): bool
     {
         $user = User::where('email', $email)->first();
 
         if (! $user) {
-            return null;
+            return false;
         }
 
         $code = (string) random_int(100000, 999999);
@@ -75,7 +75,7 @@ class AuthService
 
         $user->notify(new SendOtpResetNotification($code, $locale));
 
-        return $code;
+        return true;
     }
 
     public function verifyOtp(string $email, string $code): string

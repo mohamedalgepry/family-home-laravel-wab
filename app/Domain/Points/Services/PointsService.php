@@ -57,7 +57,35 @@ class PointsService
     {
         $performedBy = $performedBy ?? request()?->user();
 
-        return DB::transaction(function () {
+        return DB::transaction(function () use ($performedBy) {
+            $managers = User::managers()->get(['id', 'points_balance', 'initial_monthly_balance']);
+
+            $transactions = [];
+            $now = Carbon::now();
+
+            foreach ($managers as $manager) {
+                if ($manager->points_balance != $manager->initial_monthly_balance) {
+                    $amount = $manager->initial_monthly_balance - $manager->points_balance;
+                    $transactions[] = [
+                        'manager_id' => $manager->id,
+                        'unit_id' => null,
+                        'type' => 'monthly_reset',
+                        'amount' => $amount,
+                        'balance_after' => $manager->initial_monthly_balance,
+                        'performed_by_id' => $performedBy?->id,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                }
+            }
+
+            if (! empty($transactions)) {
+                // Chunk inserts to avoid query size limits on many managers
+                foreach (array_chunk($transactions, 500) as $chunk) {
+                    PointsTransaction::insert($chunk);
+                }
+            }
+
             $updated = User::managers()
                 ->update(['points_balance' => DB::raw('initial_monthly_balance')]);
 
@@ -88,7 +116,7 @@ class PointsService
             ->chunk(100, function ($units) use ($value, $now, &$processedCount) {
                 $transactions = [];
 
-                $managerIds = $units->map(fn($u) => $u->user?->manager_id ?? $u->user_id)->unique()->filter();
+                $managerIds = $units->map(fn ($u) => $u->user?->manager_id ?? $u->user_id)->unique()->filter();
                 $managers = User::whereIn('id', $managerIds)->pluck('points_balance', 'id');
 
                 foreach ($units as $unit) {
@@ -105,7 +133,7 @@ class PointsService
                         'points' => -$deduction,
                         'type' => 'daily_deduct',
                         'balance_after' => $managers[$managerId] ?? 0,
-                        'notes' => 'auto_daily_deduction (Unit Remaining: ' . $newPoints . ')',
+                        'notes' => 'auto_daily_deduction (Unit Remaining: '.$newPoints.')',
                         'performed_by' => $unit->user_id,
                         'created_at' => $now,
                     ];

@@ -2,7 +2,6 @@
 
 use App\Domain\Listings\Models\Area;
 use App\Domain\Listings\Models\Project;
-use App\Domain\Listings\Models\Unit;
 use App\Domain\Listings\Models\UnitType;
 
 beforeEach(function () {
@@ -63,7 +62,7 @@ test('manager cannot change project user_id to another user', function () {
 });
 
 test('admin can assign and update unit user_id', function () {
-    $unit = Unit::create([
+    $unit = createTestUnit([
         'user_id' => $this->agent1->id,
         'type_id' => $this->unitType->id,
         'area_id' => $this->area->id,
@@ -90,7 +89,7 @@ test('admin can assign and update unit user_id', function () {
 });
 
 test('manager cannot change unit user_id to another user', function () {
-    $unit = Unit::create([
+    $unit = createTestUnit([
         'user_id' => $this->manager->id,
         'type_id' => $this->unitType->id,
         'area_id' => $this->area->id,

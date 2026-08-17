@@ -1,6 +1,5 @@
 <?php
 
-use App\Domain\Users\Models\User;
 use Illuminate\Support\Facades\Cache;
 
 test('admin dashboard renders successfully and caches statistics per user', function () {

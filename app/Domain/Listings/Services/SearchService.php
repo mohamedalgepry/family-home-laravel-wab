@@ -34,12 +34,12 @@ class SearchService
             return;
         }
 
-        PopularSearch::updateOrCreate(
-            ['keyword' => $keyword],
+        PopularSearch::upsert(
             [
-                'search_count' => \DB::raw('search_count + 1'),
-                'last_searched_at' => now(),
-            ]
+                ['keyword' => $keyword, 'search_count' => 1, 'last_searched_at' => now()],
+            ],
+            ['keyword'],
+            ['search_count' => \DB::raw('search_count + 1'), 'last_searched_at']
         );
 
         // أي بحث جديد يجعل نسخة الكاش الحالية قديمة فوراً لتظهر البيانات المحدّثة

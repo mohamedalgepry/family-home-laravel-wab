@@ -2,9 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Domain\Listings\Models\Area;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Seeder;
 
 class FamilyHomeAreasSeeder extends Seeder
 {

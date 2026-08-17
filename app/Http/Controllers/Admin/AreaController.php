@@ -3,15 +3,15 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Domain\Listings\Models\Area;
+use App\Domain\Listings\Services\ListingLookupService;
+use App\Domain\Listings\Services\ListingService;
+use App\Domain\Listings\Services\SitemapService;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreAreaRequest;
 use App\Http\Requests\Admin\UpdateAreaRequest;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Storage;
-use App\Domain\Listings\Services\SitemapService;
 use Illuminate\Support\Facades\Cache;
-use App\Domain\Listings\Services\ListingService;
-use App\Domain\Listings\Services\ListingLookupService;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -21,6 +21,7 @@ class AreaController extends Controller
     public function __construct(
         private readonly SitemapService $sitemapService,
     ) {}
+
     public function index(): Response
     {
         $this->authorize('viewAny', Area::class);
@@ -208,12 +209,12 @@ class AreaController extends Controller
             $features = $request->input('features') ?: [];
             $this->syncHasMany($area, 'features', $features);
         }
-        
+
         if ($request->has('nearby_places')) {
             $places = $request->input('nearby_places') ?: [];
             $this->syncHasMany($area, 'nearbyPlaces', $places);
         }
-        
+
         if ($request->has('faqs')) {
             $faqs = $request->input('faqs') ?: [];
             $this->syncHasMany($area, 'faqs', $faqs);

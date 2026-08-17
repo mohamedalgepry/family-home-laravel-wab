@@ -207,8 +207,6 @@ class UnitController extends Controller
 
     public function adjustPoints(Unit $unit, AdjustPointsRequest $request, AdjustUnitPointsAction $action): RedirectResponse
     {
-        $this->authorize('allocate-points', $unit);
-
         $action->execute($unit, (int) $request->input('points'), $request->user());
 
         return redirect()->route('admin.units.index')

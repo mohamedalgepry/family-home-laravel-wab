@@ -13,7 +13,6 @@ class SeoService
         private readonly SettingsService $settingsService,
     ) {}
 
-
     public function forArticle(Article $article): array
     {
         $locale = app()->getLocale();
@@ -131,7 +130,7 @@ class SeoService
                 $title => $canonical,
             ]);
         }
-        
+
         $pageTypeMap = [
             'about' => 'AboutPage',
             'contact' => 'ContactPage',
@@ -141,7 +140,7 @@ class SeoService
             'articles_index' => 'CollectionPage',
         ];
         $webPageType = $pageTypeMap[$pageKey] ?? 'WebPage';
-        
+
         $schemas[] = [
             '@context' => 'https://schema.org',
             '@type' => $webPageType,
@@ -239,7 +238,7 @@ class SeoService
             'canonical' => $params['canonical'] ?? url()->current(),
             'hreflang' => $params['hreflang'] ?? [],
             'og_type' => $params['og_type'] ?? 'website',
-            'robots' => $params['robots'] ?? (!empty($params['noindex']) ? 'noindex, follow' : null),
+            'robots' => $params['robots'] ?? (! empty($params['noindex']) ? 'noindex, follow' : null),
             'schema' => $params['schema'] ?? [],
         ];
     }

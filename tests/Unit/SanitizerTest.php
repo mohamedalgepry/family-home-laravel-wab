@@ -47,3 +47,17 @@ it('keeps safe color and font-size styles while stripping unsafe ones', function
         ->not->toContain('background-color')
         ->not->toContain('999px');
 });
+
+it('enforces rel noopener noreferrer on target _blank links', function () {
+    $html = Sanitizer::rich(
+        '<a href="https://example.com" target="_blank">External Link</a>'
+        .'<a href="https://example.com" target="_self">Internal Link</a>'
+        .'<a href="https://example.com">Normal Link</a>'
+    );
+
+    expect($html)
+        ->toContain('target="_blank" rel="noopener noreferrer"')
+        ->toContain('target="_self"')
+        ->not->toContain('target="_self" rel="noopener noreferrer"')
+        ->not->toContain('Normal Link" rel="noopener noreferrer"'); // should not append to normal links without target
+});

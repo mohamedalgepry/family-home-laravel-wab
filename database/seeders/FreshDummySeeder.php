@@ -52,6 +52,7 @@ class FreshDummySeeder extends Seeder
 
         if ($areas->isEmpty() || $unitTypes->isEmpty()) {
             $this->command->warn('يرجى التأكد من تشغيل AreaSeeder و UnitTypeSeeder.');
+
             return;
         }
 
@@ -91,7 +92,7 @@ class FreshDummySeeder extends Seeder
                 'name' => "مشروع استثماري {$i}",
                 'name_ar' => "مشروع استثماري {$i}",
                 'name_en' => "Investment Project {$i}",
-                'slug_en' => "investment-project-{$i}-" . Str::random(5),
+                'slug_en' => "investment-project-{$i}-".Str::random(5),
                 'description' => "وصف تفصيلي للمشروع {$i} بجميع مرافقه وخدماته الرائعة.",
                 'description_ar' => "وصف تفصيلي للمشروع {$i} بجميع مرافقه وخدماته الرائعة.",
                 'description_en' => "Detailed description of project {$i} with all its wonderful facilities.",
@@ -130,10 +131,10 @@ class FreshDummySeeder extends Seeder
                 'name' => "وحدة سكنية فاخرة {$i}",
                 'name_ar' => "وحدة سكنية فاخرة {$i}",
                 'name_en' => "Luxury Unit {$i}",
-                'slug_en' => "luxury-unit-{$i}-" . Str::random(5),
-                'description' => "وحدة سكنية رائعة بإطلالة مميزة ومساحة واسعة في موقع استراتيجي.",
-                'description_ar' => "وحدة سكنية رائعة بإطلالة مميزة ومساحة واسعة في موقع استراتيجي.",
-                'description_en' => "Wonderful residential unit with a distinctive view and spacious area.",
+                'slug_en' => "luxury-unit-{$i}-".Str::random(5),
+                'description' => 'وحدة سكنية رائعة بإطلالة مميزة ومساحة واسعة في موقع استراتيجي.',
+                'description_ar' => 'وحدة سكنية رائعة بإطلالة مميزة ومساحة واسعة في موقع استراتيجي.',
+                'description_en' => 'Wonderful residential unit with a distinctive view and spacious area.',
                 'transaction' => rand(0, 1) ? 'sale' : 'rent',
                 'price' => rand(500000, 5000000),
                 'area_sqm' => rand(80, 300),
@@ -170,7 +171,7 @@ class FreshDummySeeder extends Seeder
                 'title' => "مقال عقاري تجريبي {$i}",
                 'title_ar' => "مقال عقاري تجريبي {$i}",
                 'title_en' => "Dummy Real Estate Article {$i}",
-                'slug_en' => "dummy-article-{$i}-" . Str::random(5),
+                'slug_en' => "dummy-article-{$i}-".Str::random(5),
                 'content' => "<p>هذا نص تجريبي للمقال رقم {$i}، يتحدث عن السوق العقاري وأحدث التطورات.</p>",
                 'content_ar' => "<p>هذا نص تجريبي للمقال رقم {$i}، يتحدث عن السوق العقاري وأحدث التطورات.</p>",
                 'content_en' => "<p>This is dummy text for article {$i}, talking about the real estate market.</p>",

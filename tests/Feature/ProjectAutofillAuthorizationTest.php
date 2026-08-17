@@ -10,7 +10,7 @@ beforeEach(function () {
 test('admin can access autofill for any project', function () {
     $admin = createUser('Admin', 'admin', null);
     $otherUser = createUser('Other', 'agent', null);
-    
+
     $project = Project::create([
         'name' => 'Project',
         'name_ar' => 'مشروع',
@@ -29,7 +29,7 @@ test('admin can access autofill for any project', function () {
 
 test('manager owner can access autofill for their project', function () {
     $manager = createUser('Manager', 'manager', null);
-    
+
     $project = Project::create([
         'name' => 'Project',
         'name_ar' => 'مشروع',
@@ -49,7 +49,7 @@ test('manager owner can access autofill for their project', function () {
 test('manager cannot access autofill for another manager project', function () {
     $manager1 = createUser('Manager1', 'manager', null);
     $manager2 = createUser('Manager2', 'manager', null);
-    
+
     $project = Project::create([
         'name' => 'Project',
         'name_ar' => 'مشروع',
@@ -69,7 +69,7 @@ test('manager cannot access autofill for another manager project', function () {
 test('agent cannot access autofill for a project owned by another manager', function () {
     $manager2 = createUser('Manager2', 'manager', null);
     $agent = createUser('Agent', 'agent', null); // no manager_id set, wait let's create a manager for the agent
-    
+
     $project = Project::create([
         'name' => 'Project',
         'name_ar' => 'مشروع',
@@ -94,7 +94,7 @@ test('agent cannot access autofill for a project owned by another manager', func
     $agentWithManager = createUser('Agent2', 'agent', null);
     $agentWithManager->manager_id = $manager2->id + 1; // fake manager id
     $agentWithManager->save();
-    
+
     $response2 = $this->actingAs($agentWithManager)->getJson("/admin/projects/{$project->id}/autofill");
     $response2->assertStatus(403);
 });

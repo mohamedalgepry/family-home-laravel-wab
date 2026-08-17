@@ -94,8 +94,14 @@ class Sanitizer
             }
         }
 
-        if ($tag === 'a' && $element->hasAttribute('href') && ! self::isSafeLink($element->getAttribute('href'))) {
-            $element->removeAttribute('href');
+        if ($tag === 'a') {
+            if ($element->hasAttribute('href') && ! self::isSafeLink($element->getAttribute('href'))) {
+                $element->removeAttribute('href');
+            }
+
+            if ($element->getAttribute('target') === '_blank') {
+                $element->setAttribute('rel', 'noopener noreferrer');
+            }
         }
 
         if ($tag === 'img' && $element->hasAttribute('src') && ! self::isSafeImageSource($element->getAttribute('src'))) {

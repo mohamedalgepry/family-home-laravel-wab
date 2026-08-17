@@ -46,7 +46,7 @@ return new class extends Migration
                 'about_ar', 'about_en',
                 'address_ar', 'address_en',
                 'latitude', 'longitude', 'map_url',
-                'parent_id'
+                'parent_id',
             ]);
         });
     }

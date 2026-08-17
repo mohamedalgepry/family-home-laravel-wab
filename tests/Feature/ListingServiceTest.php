@@ -23,21 +23,20 @@ beforeEach(function () {
 
 function createUnit(string $slug, array $overrides = []): Unit
 {
-    $unit = new Unit(array_merge([
+    return createTestUnit(array_merge([
         'user_id' => test()->user->id,
         'type_id' => test()->type->id,
         'area_id' => test()->area->id,
         'transaction' => 'sale',
         'price' => 1000,
-        'name' => ucfirst($slug),
-        'name_ar' => ucfirst($slug),
-        'name_en' => ucfirst($slug),
+        'name' => 'Nile-villa',
+        'name_ar' => 'Nile-villa',
+        'name_en' => 'Nile-villa',
         'slug' => $slug,
+        'slug_ar' => $slug,
+        'slug_en' => $slug,
         'is_active' => true,
     ], $overrides));
-    $unit->save();
-
-    return $unit;
 }
 
 it('finds units by any of the three slugs', function () {
