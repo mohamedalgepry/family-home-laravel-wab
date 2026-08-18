@@ -185,7 +185,7 @@ export default function ProjectShow({ project }) {
                                             type="button"
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                setActiveImageIndex(prev => (prev === 0 ? images.length - 1 : prev - 1));
+                                                setActiveImageIndex(selectedImageIndex === 0 ? images.length - 1 : selectedImageIndex - 1);
                                             }}
                                             className="absolute start-3 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/75 text-white p-2 rounded-full shadow-lg backdrop-blur-sm transition-all z-10"
                                             aria-label="Previous image"
@@ -199,7 +199,7 @@ export default function ProjectShow({ project }) {
                                             type="button"
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                setActiveImageIndex(prev => (prev === images.length - 1 ? 0 : prev + 1));
+                                                setActiveImageIndex(selectedImageIndex === images.length - 1 ? 0 : selectedImageIndex + 1);
                                             }}
                                             className="absolute end-3 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/75 text-white p-2 rounded-full shadow-lg backdrop-blur-sm transition-all z-10"
                                             aria-label="Next image"
