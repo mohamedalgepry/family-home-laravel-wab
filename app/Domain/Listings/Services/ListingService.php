@@ -151,6 +151,9 @@ class ListingService
                 ->with(['area', 'images', 'user.profile', 'features', 'finishingType', 'units' => function ($q) {
                     $q->active()->with(['type', 'area', 'images'])->limit(24);
                 }])
+                ->withCount(['units' => function ($q) {
+                    $q->active();
+                }])
                 ->first();
         });
     }

@@ -304,7 +304,7 @@ export default function ProjectShow({ project }) {
                         <div className="grid grid-cols-2 gap-3 pt-2">
                             <div className="p-3 bg-surface rounded-xl border border-secondary-100 text-center">
                                 <span className="text-secondary-500 text-xs font-semibold block mb-1">{isRtl ? 'عدد الوحدات' : 'Units'}</span>
-                                <p className="text-base font-black text-secondary-950">{units.length} {isRtl ? 'وحدة' : 'Units'}</p>
+                                <p className="text-base font-black text-secondary-950">{project.units_count ?? units.length} {isRtl ? 'وحدة' : 'Units'}</p>
                             </div>
 
                             <div className="p-3 bg-surface rounded-xl border border-secondary-100 text-center">
@@ -578,7 +578,7 @@ export default function ProjectShow({ project }) {
                             </div>
                             <div className="flex items-center justify-between py-1.5 border-b border-secondary-100/60">
                                 <span className="text-secondary-500 font-semibold">{isRtl ? 'عدد الوحدات' : 'Total Units'}</span>
-                                <span className="font-bold text-secondary-950">{units.length} {isRtl ? 'وحدة' : 'Units'}</span>
+                                <span className="font-bold text-secondary-950">{project.units_count ?? units.length} {isRtl ? 'وحدة' : 'Units'}</span>
                             </div>
                         </div>
                     </div>
@@ -608,7 +608,7 @@ export default function ProjectShow({ project }) {
                                 <h2 className="text-lg md:text-xl font-black text-secondary-950 tracking-tight">{trans('units_in_project', {}, 'projects')}</h2>
                             </div>
                             <span className="px-3.5 py-1 bg-surface border border-secondary-200 text-xs font-bold rounded-full text-secondary-800">
-                                {units.length} {trans('units_count')}
+                                {project.units_count ?? units.length} {trans('units_count')}
                             </span>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
