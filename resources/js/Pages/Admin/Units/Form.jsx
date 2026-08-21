@@ -682,12 +682,12 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('name_ar')} *</label>
-                                    <input type="text" maxLength={50} value={data.name_ar} onChange={e => handleChange('name_ar', e.target.value)} dir="rtl" required className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none" />
+                                    <input type="text" maxLength={100} value={data.name_ar} onChange={e => handleChange('name_ar', e.target.value)} dir="rtl" required className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none" />
                                     {errors.name_ar && <p className="text-xs text-red-500 mt-1">{errors.name_ar}</p>}
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('name_en')} *</label>
-                                    <input type="text" maxLength={50} value={data.name_en} onChange={e => handleChange('name_en', e.target.value)} dir="ltr" required className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none" />
+                                    <input type="text" maxLength={100} value={data.name_en} onChange={e => handleChange('name_en', e.target.value)} dir="ltr" required className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none" />
                                     {errors.name_en && <p className="text-xs text-red-500 mt-1">{errors.name_en}</p>}
                                 </div>
                             </div>
