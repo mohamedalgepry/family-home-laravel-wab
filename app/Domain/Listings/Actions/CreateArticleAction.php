@@ -28,14 +28,9 @@ class CreateArticleAction
         $excerpt_en = isset($raw['excerpt_en']) ? Sanitizer::text($raw['excerpt_en']) : null;
         $excerpt = $excerpt_ar ?: ($excerpt_en ?: null);
 
-        $slugBase = $title_en ?: ($title_ar ?: 'article');
-        $slug = Str::slug($slugBase);
-        if (! $slug) {
-            $slug = 'article-'.Str::random(6);
-        }
-
-        $slugAr = Str::slug($title_ar) ?: $slug.'-ar';
-        $slugEn = Str::slug($title_en) ?: $slug;
+        $slugAr = \App\Domain\Common\Support\SlugHelper::makeArabic($title_ar ?: $title, 'article');
+        $slugEn = \App\Domain\Common\Support\SlugHelper::makeEnglish($title_en ?: $title, 'article');
+        $slug = $slugEn;
 
         // Use retry-on-collision instead of check-then-insert to handle
         // concurrent inserts safely. The UNIQUE index is the final authority.

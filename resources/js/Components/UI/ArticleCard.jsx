@@ -41,9 +41,11 @@ export default function ArticleCard({ article, loading = false }) {
         })
         : ''
 
+    const articleSlug = isRtl && article.slug_ar ? article.slug_ar : (article.slug_en || article.slug || article.id)
+
     return (
         <Link
-            href={localizedPath(`/articles/${article.slug}`, locale)}
+            href={localizedPath(`/articles/${articleSlug}`, locale)}
             className="group bg-white rounded-2xl border border-secondary-200/80 shadow-card hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col h-full overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary-500"
         >
             <div className="relative aspect-[16/10] w-full overflow-hidden bg-secondary-100">

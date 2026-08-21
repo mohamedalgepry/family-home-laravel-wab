@@ -87,13 +87,13 @@ class Article extends Model
                 $article->excerpt = $article->excerpt_ar ?: ($article->excerpt_en ?: null);
             }
             if (! $article->slug) {
-                $article->slug = Str::slug($article->title_en ?: $article->title) ?: 'article-'.Str::random(6);
+                $article->slug = \App\Domain\Common\Support\SlugHelper::makeEnglish($article->title_en ?: $article->title, 'article');
             }
             if (! $article->slug_ar) {
-                $article->slug_ar = Str::slug($article->title_ar ?: $article->title) ?: $article->slug.'-ar';
+                $article->slug_ar = \App\Domain\Common\Support\SlugHelper::makeArabic($article->title_ar ?: $article->title, $article->slug);
             }
             if (! $article->slug_en) {
-                $article->slug_en = Str::slug($article->title_en ?: $article->title) ?: $article->slug;
+                $article->slug_en = \App\Domain\Common\Support\SlugHelper::makeEnglish($article->title_en ?: $article->title, $article->slug);
             }
             $article->ensureUniqueSlugs();
         });
@@ -101,11 +101,11 @@ class Article extends Model
         static::updating(function (self $article) {
             $changed = false;
             if ($article->isDirty('title_en') && ! $article->isDirty('slug_en')) {
-                $article->slug_en = Str::slug($article->title_en);
+                $article->slug_en = \App\Domain\Common\Support\SlugHelper::makeEnglish($article->title_en, 'article');
                 $changed = true;
             }
             if ($article->isDirty('title_ar') && ! $article->isDirty('slug_ar')) {
-                $article->slug_ar = Str::slug($article->title_ar) ?: $article->slug_en.'-ar';
+                $article->slug_ar = \App\Domain\Common\Support\SlugHelper::makeArabic($article->title_ar, $article->slug_en ?? 'article');
                 $changed = true;
             }
             if ($changed) {

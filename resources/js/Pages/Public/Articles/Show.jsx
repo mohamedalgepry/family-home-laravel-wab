@@ -114,8 +114,13 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
             const altText = (targetImg.alt_text || article.title || '').replace(/"/g, '&quot;')
             let imageHtml = `<figure class="my-8"><img src="${imgPath}" alt="${altText}" width="1200" height="800" class="w-full h-auto rounded-2xl border border-secondary-200/60 object-cover shadow-sm" loading="lazy" /></figure>`
             if (targetImg.link_url) {
-                const safeLink = targetImg.link_url.replace(/"/g, '&quot;')
-                imageHtml = `<figure class="my-8"><a href="${safeLink}" target="_blank" rel="noopener noreferrer" class="block hover:opacity-95 transition-opacity"><img src="${imgPath}" alt="${altText}" width="1200" height="800" class="w-full h-auto rounded-2xl border border-secondary-200/60 object-cover shadow-sm" loading="lazy" /></a></figure>`
+                let safeLink = targetImg.link_url.trim()
+                if (!/^(https?:|\/|#|mailto:|tel:)/i.test(safeLink)) {
+                    safeLink = 'https://' + safeLink
+                }
+                const isExternal = /^https?:\/\//i.test(safeLink)
+                const safeLinkAttr = safeLink.replace(/"/g, '&quot;')
+                imageHtml = `<figure class="my-8"><a href="${safeLinkAttr}" ${isExternal ? 'target="_blank" rel="noopener noreferrer"' : ''} class="block hover:opacity-95 transition-opacity"><img src="${imgPath}" alt="${altText}" width="1200" height="800" class="w-full h-auto rounded-2xl border border-secondary-200/60 object-cover shadow-sm" loading="lazy" /></a></figure>`
             }
             return imageHtml
         }
@@ -144,6 +149,23 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
             .replace(/<(\/?)h4\b([^>]*)>/gi, '<$1h5$2>')
             .replace(/<(\/?)h3\b([^>]*)>/gi, '<$1h2$2>');
     }
+
+    // Ensure all inline <a> tags resolve properly and external links open in new tabs securely
+    normalizedContent = normalizedContent.replace(/<a\b([^>]*)\bhref=["']([^"']+)["']([^>]*)>/gi, (match, prefix, href, suffix) => {
+        let cleanHref = href.trim();
+        if (cleanHref.startsWith('www.')) {
+            cleanHref = 'https://' + cleanHref;
+        }
+        const isExternal = /^https?:\/\//i.test(cleanHref);
+        const hasTarget = /target=/i.test(match);
+        const hasRel = /rel=/i.test(match);
+
+        let extra = '';
+        if (isExternal && !hasTarget) extra += ' target="_blank"';
+        if (isExternal && !hasRel) extra += ' rel="noopener noreferrer"';
+
+        return `<a${prefix}href="${cleanHref}"${suffix}${extra}>`;
+    });
 
     const currentUrl = typeof window !== 'undefined' ? window.location.href : appUrl
     const whatsappShareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(`${article.title}\n${currentUrl}`)}`
@@ -425,9 +447,10 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                                         {suggestedUnits.map(unit => {
                                             const unitImg = unit?.images?.find(img => img.is_primary) || unit?.images?.[0];
                                             const unitImgUrl = unitImg?.url || (unitImg?.path ? (unitImg.path.startsWith('http') || unitImg.path.startsWith('/') ? unitImg.path : `/storage/${unitImg.path}`) : null);
+                                            const unitSlug = isRtl && unit.slug_ar ? unit.slug_ar : (unit.slug_en || unit.slug || unit.id);
                                             return (
                                                 <li key={unit.id}>
-                                                    <Link href={localizedPath(`/units/${unit.slug}`, locale)} className="group flex gap-3 items-center">
+                                                    <Link href={localizedPath(`/units/${unitSlug}`, locale)} className="group flex gap-3 items-center">
                                                         {unitImgUrl && (
                                                             <div className="shrink-0 w-16 h-16 rounded-xl overflow-hidden bg-secondary-100 border border-secondary-200/50 shadow-xs">
                                                                 <img src={unitImgUrl} alt={unit.title} width={64} height={64} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
@@ -467,9 +490,10 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                                         {relatedArticles.slice(0, 4).map(related => {
                                             const relatedImg = related?.images?.find(img => img.position === 'header') || related?.images?.[0];
                                             const relatedImgUrl = relatedImg?.url || (relatedImg?.path ? (relatedImg.path.startsWith('http') || relatedImg.path.startsWith('/') ? relatedImg.path : `/storage/${relatedImg.path}`) : null);
+                                            const relatedSlug = isRtl && related.slug_ar ? related.slug_ar : (related.slug_en || related.slug || related.id);
                                             return (
                                                 <li key={related.id}>
-                                                    <Link href={localizedPath(`/articles/${related.slug}`, locale)} className="group flex gap-3 items-center">
+                                                    <Link href={localizedPath(`/articles/${relatedSlug}`, locale)} className="group flex gap-3 items-center">
                                                         {relatedImgUrl && (
                                                             <div className="shrink-0 w-16 h-16 rounded-xl overflow-hidden bg-secondary-100 border border-secondary-200/50 shadow-xs">
                                                                 <img src={relatedImgUrl} alt={related.title} width={64} height={64} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />

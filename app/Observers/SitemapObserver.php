@@ -8,9 +8,10 @@ class SitemapObserver
 {
     private function triggerRegeneration(): void
     {
-        if (app()->environment('testing') || app()->runningUnitTests()) {
+        try {
             app(\App\Domain\Listings\Services\SitemapService::class)->regenerate();
-        } else {
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Direct sitemap regeneration failed in observer, dispatching job fallback: ' . $e->getMessage());
             dispatch(new RegenerateSitemapJob)->afterCommit();
         }
     }

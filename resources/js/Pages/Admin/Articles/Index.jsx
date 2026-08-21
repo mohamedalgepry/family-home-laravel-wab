@@ -82,13 +82,26 @@ export default function AdminArticlesIndex({ articles, categories, filters }) {
                                     <td className="px-4 py-3 text-xs text-muted whitespace-nowrap">{a.created_at}</td>
                                     <td className="px-4 py-3">
                                         <div className="flex gap-2 items-center">
-                                            <a href={`/admin/articles/${a.id}/edit`} className="text-xs px-2 py-1 rounded bg-surface text-secondary-700 hover:bg-secondary-200 transition-colors">
+                                            <a
+                                                href={`/articles/${a.slug_ar || a.slug || a.id}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-xs px-2.5 py-1.5 rounded-lg bg-primary-50 text-primary-900 hover:bg-primary-100 font-medium transition-colors flex items-center gap-1"
+                                                title={isRtl ? 'معاينة المقال في الموقع' : 'Preview Article on site'}
+                                            >
+                                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                </svg>
+                                                <span>{isRtl ? 'معاينة' : 'Preview'}</span>
+                                            </a>
+                                            <a href={`/admin/articles/${a.id}/edit`} className="text-xs px-2.5 py-1.5 rounded-lg bg-surface text-secondary-700 hover:bg-secondary-200 font-medium transition-colors">
                                                 {trans('edit')}
                                             </a>
-                                            <button onClick={() => togglePublish(a.id)} className={`text-xs px-2 py-1 rounded transition-colors ${a.is_published ? 'bg-amber-50 text-amber-700 hover:bg-amber-100' : 'bg-green-50 text-green-700 hover:bg-green-100'}`}>
+                                            <button onClick={() => togglePublish(a.id)} className={`text-xs px-2.5 py-1.5 rounded-lg font-medium transition-colors ${a.is_published ? 'bg-amber-50 text-amber-700 hover:bg-amber-100' : 'bg-green-50 text-green-700 hover:bg-green-100'}`}>
                                                 {a.is_published ? (trans('unpublish') ) : (trans('publish') )}
                                             </button>
-                                            <button onClick={() => confirmDelete(a.id)} className="text-xs px-2 py-1 rounded bg-error/10 text-error hover:bg-error/20 transition-colors">
+                                            <button onClick={() => confirmDelete(a.id)} className="text-xs px-2.5 py-1.5 rounded-lg bg-error/10 text-error hover:bg-error/20 font-medium transition-colors">
                                                 {trans('delete')}
                                             </button>
                                         </div>

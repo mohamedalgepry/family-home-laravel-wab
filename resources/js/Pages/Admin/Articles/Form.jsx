@@ -21,15 +21,26 @@ function MenuBar({ editor, trans, isRtl = false }) {
 
     const setLink = useCallback(() => {
         const previousUrl = editor.getAttributes('link').href
-        const url = window.prompt(trans('enter_url') || 'أدخل الرابط (URL):', previousUrl || 'https://')
+        let url = window.prompt(trans('enter_url') || 'أدخل الرابط (URL):', previousUrl || '')
 
         if (url === null) return
+        url = url.trim()
         if (url === '') {
             editor.chain().focus().extendMarkRange('link').unsetLink().run()
             return
         }
 
-        editor.chain().focus().extendMarkRange('link').setLink({ href: url, target: '_blank', rel: 'noopener noreferrer' }).run()
+        // Auto-fix domain links missing protocol (e.g. "example.com" -> "https://example.com")
+        if (!/^(https?:|\/|#|mailto:|tel:)/i.test(url)) {
+            url = 'https://' + url
+        }
+
+        const isInternal = url.startsWith('/') || url.startsWith('#')
+        editor.chain().focus().extendMarkRange('link').setLink({
+            href: url,
+            target: isInternal ? null : '_blank',
+            rel: isInternal ? null : 'noopener noreferrer'
+        }).run()
     }, [editor, trans])
 
     const addImageByUrl = useCallback(() => {
