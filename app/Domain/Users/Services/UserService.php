@@ -103,8 +103,7 @@ class UserService
                     $user->agents()->update(['manager_id' => $transferToId]);
                 }
             } else {
-                // If not transferring, the database will cascade-delete the units and projects.
-                // We MUST delete the physical images to prevent disk space bloat.
+                // If not transferring, explicitly clean up unit images, units, project images, projects, and avatar
                 $projectImages = \App\Domain\Listings\Models\ProjectImage::whereHas('project', function ($q) use ($userId) {
                     $q->where('user_id', $userId);
                 })->pluck('path')->toArray();
@@ -117,6 +116,13 @@ class UserService
                 if ($user->profile?->avatar) {
                     $allImages[] = $user->profile->avatar;
                 }
+
+                // Delete child image records first
+                \App\Domain\Listings\Models\UnitImage::whereHas('unit', fn ($q) => $q->where('user_id', $userId))->delete();
+                \App\Domain\Listings\Models\Unit::where('user_id', $userId)->delete();
+
+                \App\Domain\Listings\Models\ProjectImage::whereHas('project', fn ($q) => $q->where('user_id', $userId))->delete();
+                \App\Domain\Listings\Models\Project::where('user_id', $userId)->delete();
 
                 if (! empty($allImages)) {
                     app(\App\Domain\Listings\Services\ListingImageService::class)->deleteImageFiles($allImages);

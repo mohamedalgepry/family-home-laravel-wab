@@ -97,9 +97,8 @@ class UnitPublicResource extends JsonResource
                     return [
                         'id' => $image->id,
                         'path' => $image->path,
-                        'url' => asset('storage/'.$image->path),
-                        'thumb_url' => $image->thumb_path ? asset('storage/'.$image->thumb_path) : null,
-                        'is_main' => $image->is_main,
+                        'url' => $image->url,
+                        'thumb_url' => $image->thumb_url ?: null,
                         'is_primary' => $image->is_primary,
                         'alt_text' => $image->alt_text,
                     ];

@@ -65,13 +65,9 @@ class LoginController extends Controller
 
         $this->ensureIsNotRateLimited($rateLimitKey, maxAttempts: 3, decaySeconds: 300, errorKey: 'email');
 
-        $success = $this->authService->sendOtp($email, app()->getLocale());
-
-        if (! $success) {
-            throw ValidationException::withMessages([
-                'email' => __('auth.user_not_found'),
-            ]);
-        }
+        // Attempt to send OTP; result is intentionally not exposed to the user
+        // to prevent account enumeration.
+        $this->authService->sendOtp($email, app()->getLocale());
 
         RateLimiter::hit($rateLimitKey, 300);
         $request->session()->put('password_reset_email', $email);

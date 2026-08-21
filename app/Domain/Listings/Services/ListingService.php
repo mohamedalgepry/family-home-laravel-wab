@@ -30,25 +30,25 @@ class ListingService
         return self::CACHE_PREFIX."{$prefix}_{$hash}_v{$this->version()}";
     }
 
-    public function getFeaturedUnits(int $limit = 8): Paginator
+    public function getFeaturedUnits(int $limit = 8, string $pageName = 'featured_page'): Paginator
     {
-        $page = request()->input('page', 1);
+        $page = request()->input($pageName, 1);
 
-        return Cache::remember(self::CACHE_PREFIX."featured_{$limit}_page_{$page}_v{$this->version()}", self::CACHE_TTL, function () use ($limit) {
+        return Cache::remember(self::CACHE_PREFIX."featured_{$limit}_{$pageName}_{$page}_v{$this->version()}", self::CACHE_TTL, function () use ($limit, $pageName) {
             return Unit::featured()
                 ->with(['type', 'area', 'images', 'user.profile'])
-                ->paginate($limit);
+                ->paginate($limit, ['*'], $pageName);
         });
     }
 
-    public function getLatestUnits(int $limit = 12): Paginator
+    public function getLatestUnits(int $limit = 12, string $pageName = 'latest_units_page'): Paginator
     {
-        $page = request()->input('page', 1);
+        $page = request()->input($pageName, 1);
 
-        return Cache::remember(self::CACHE_PREFIX."latest_{$limit}_page_{$page}_v{$this->version()}", self::CACHE_TTL, function () use ($limit) {
+        return Cache::remember(self::CACHE_PREFIX."latest_{$limit}_{$pageName}_{$page}_v{$this->version()}", self::CACHE_TTL, function () use ($limit, $pageName) {
             return $this->unitBaseQuery()
                 ->orderByFeatured()
-                ->paginate($limit);
+                ->paginate($limit, ['*'], $pageName);
         });
     }
 
@@ -74,7 +74,7 @@ class ListingService
     {
         ListingQueryBuilder::applyExactMatches($query, $filters, ['area_id', 'type_id', 'transaction', 'payment_method', 'finishing_type_id']);
         ListingQueryBuilder::applyRange($query, $filters, 'price', 'price_min', 'price_max');
-        ListingQueryBuilder::applyRange($query, $filters, 'size', 'size_min', 'size_max');
+        ListingQueryBuilder::applyRange($query, $filters, 'area_sqm', 'size_min', 'size_max');
 
         if (! empty($filters['is_deal'])) {
             $query->where('is_deal', true);
@@ -102,18 +102,18 @@ class ListingService
         });
     }
 
-    public function getLatestProjects(int $limit = 8): Paginator
+    public function getLatestProjects(int $limit = 8, string $pageName = 'latest_projects_page'): Paginator
     {
-        $page = request()->input('page', 1);
+        $page = request()->input($pageName, 1);
 
-        return Cache::remember(self::CACHE_PREFIX."latest_projects_{$limit}_page_{$page}_v{$this->version()}", self::CACHE_TTL, function () use ($limit) {
+        return Cache::remember(self::CACHE_PREFIX."latest_projects_{$limit}_{$pageName}_{$page}_v{$this->version()}", self::CACHE_TTL, function () use ($limit, $pageName) {
             return Project::where('is_active', true)
                 ->with(['area', 'images', 'user.profile'])
                 ->withCount(['units' => function ($q) {
                     $q->active();
                 }])
                 ->orderByDesc('created_at')
-                ->paginate($limit);
+                ->paginate($limit, ['*'], $pageName);
         });
     }
 

@@ -44,11 +44,13 @@ class ArticlePublicResource extends JsonResource
                     return [
                         'id' => $image->id,
                         'path' => $image->path,
-                        'url' => asset('storage/'.$image->path),
-                        'thumb_url' => $image->thumb_path ? asset('storage/'.$image->thumb_path) : null,
-                        'is_main' => $image->is_main,
-                        'is_primary' => $image->is_primary,
+                        'url' => $image->url,
+                        'thumb_url' => $image->thumb_url ?: null,
+                        'is_primary' => $image->is_primary ?? false,
+                        'position' => $image->position ?? 'middle',
+                        'link_url' => $image->link_url,
                         'alt_text' => $image->alt_text,
+                        'sort_order' => $image->sort_order,
                     ];
                 });
             }),

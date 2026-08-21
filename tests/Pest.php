@@ -4,10 +4,10 @@ use App\Domain\Listings\Models\Area;
 use App\Domain\Listings\Models\Unit;
 use App\Domain\Listings\Models\UnitType;
 use App\Domain\Users\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
-uses(TestCase::class, RefreshDatabase::class)->in('Feature');
+uses(TestCase::class, DatabaseTransactions::class)->in('Feature');
 
 uses()->in('Unit');
 
@@ -42,4 +42,10 @@ function createTestUnit(array $attributes = []): Unit
     $unit->save();
 
     return $unit;
+}
+
+function createFakeImage(string $name = 'photo.jpg'): \Illuminate\Http\UploadedFile
+{
+    $jpegContent = base64_decode('/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=');
+    return \Illuminate\Http\UploadedFile::fake()->createWithContent($name, $jpegContent);
 }

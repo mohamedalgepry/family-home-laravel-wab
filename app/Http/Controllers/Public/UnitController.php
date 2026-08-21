@@ -88,8 +88,7 @@ class UnitController
 
         $meta = $this->seoMetaService->forListing($unit, 'units');
 
-        $mainImage = $unit->images->firstWhere('is_main', true)
-            ?? $unit->images->firstWhere('is_primary', true)
+        $mainImage = $unit->images->firstWhere('is_primary', true)
             ?? $unit->images->first();
 
         $lcpImage = $mainImage ? $mainImage->url : null;

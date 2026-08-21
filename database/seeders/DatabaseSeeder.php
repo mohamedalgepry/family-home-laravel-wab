@@ -30,8 +30,8 @@ class DatabaseSeeder extends Seeder
         );
 
         if (empty(env('ADMIN_SEED_PASSWORD'))) {
-            $this->warn("⚠️  ADMIN_SEED_PASSWORD غير معرف في .env — تم إنشاء باسورد عشوائي: {$adminPassword}");
-            $this->warn('⚠️  سجّل الدخول فوراً وغيّر الباسورد!');
+            $this->command?->warn("⚠️  ADMIN_SEED_PASSWORD غير معرف في .env — تم إنشاء باسورد عشوائي: {$adminPassword}");
+            $this->command?->warn('⚠️  سجّل الدخول فوراً وغيّر الباسورد!');
         }
 
         $managerPassword = env('MANAGER_SEED_PASSWORD', str()->random(16));
@@ -49,8 +49,8 @@ class DatabaseSeeder extends Seeder
         );
 
         if (empty(env('MANAGER_SEED_PASSWORD'))) {
-            $this->warn("⚠️  MANAGER_SEED_PASSWORD غير معرف في .env — تم إنشاء باسورد عشوائي: {$managerPassword}");
-            $this->warn('⚠️  سجّل الدخول فوراً وغيّر الباسورد!');
+            $this->command?->warn("⚠️  MANAGER_SEED_PASSWORD غير معرف في .env — تم إنشاء باسورد عشوائي: {$managerPassword}");
+            $this->command?->warn('⚠️  سجّل الدخول فوراً وغيّر الباسورد!');
         }
     }
 }

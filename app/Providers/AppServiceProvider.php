@@ -8,6 +8,7 @@ use App\Domain\Listings\Models\Article;
 use App\Domain\Listings\Models\Category;
 use App\Domain\Listings\Models\Feature;
 use App\Domain\Listings\Models\FinishingType;
+use App\Domain\Listings\Models\PageSeo;
 use App\Domain\Listings\Models\Project;
 use App\Domain\Listings\Models\Setting;
 use App\Domain\Listings\Models\Unit;
@@ -18,6 +19,7 @@ use App\Domain\Listings\Policies\ArticlePolicy;
 use App\Domain\Listings\Policies\CategoryPolicy;
 use App\Domain\Listings\Policies\FeaturePolicy;
 use App\Domain\Listings\Policies\FinishingTypePolicy;
+use App\Domain\Listings\Policies\PageSeoPolicy;
 use App\Domain\Listings\Policies\ProjectPolicy;
 use App\Domain\Listings\Policies\SettingPolicy;
 use App\Domain\Listings\Policies\UnitPolicy;
@@ -84,6 +86,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(UnitType::class, UnitTypePolicy::class);
         Gate::policy(Feature::class, FeaturePolicy::class);
         Gate::policy(FinishingType::class, FinishingTypePolicy::class);
+        Gate::policy(PageSeo::class, PageSeoPolicy::class);
 
         Gate::define('allocate-points', [AllocatePointsPolicy::class, 'allocate']);
 

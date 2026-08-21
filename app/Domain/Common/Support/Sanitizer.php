@@ -71,7 +71,7 @@ class Sanitizer
         $tag = strtolower($element->tagName);
         $allowed = match ($tag) {
             'a' => ['href', 'title', 'class', 'target', 'rel'],
-            'img' => ['src', 'alt', 'title', 'width', 'height', 'class'],
+            'img' => ['src', 'alt', 'title', 'width', 'height', 'class', 'loading'],
             'span' => ['class', 'style'],
             default => ['class'],
         };
@@ -182,8 +182,12 @@ class Sanitizer
 
         return str_starts_with($url, '/storage/')
             || str_starts_with($url, 'storage/')
+            || str_starts_with($url, 'articles/')
+            || str_starts_with($url, 'editor/')
+            || str_starts_with($url, 'images/')
             || str_starts_with($url, '/')
-            || (bool) preg_match('#^https?://#i', $url);
+            || (bool) preg_match('#^https?://#i', $url)
+            || (bool) preg_match('#^data:image/(png|jpeg|jpg|webp|gif);base64,#i', $url);
     }
 
     public static function isValidMapEmbed(string $value): bool

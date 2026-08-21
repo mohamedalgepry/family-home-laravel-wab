@@ -8,9 +8,11 @@ import StarterKit from '@tiptap/starter-kit'
 import TextAlign from '@tiptap/extension-text-align'
 import Underline from '@tiptap/extension-underline'
 import LinkExtension from '@tiptap/extension-link'
+import ImageExtension from '@tiptap/extension-image'
 import { Color } from '@tiptap/extension-color'
 import { TextStyle } from '@tiptap/extension-text-style'
 import { FontSize } from '../../../Utils/tiptapFontSize'
+import axios from 'axios'
 
 const FONT_SIZES = ['12px', '14px', '16px', '18px', '20px', '24px', '28px', '32px']
 
@@ -29,6 +31,33 @@ function MenuBar({ editor, trans, isRtl = false }) {
 
         editor.chain().focus().extendMarkRange('link').setLink({ href: url, target: '_blank', rel: 'noopener noreferrer' }).run()
     }, [editor, trans])
+
+    const addImageByUrl = useCallback(() => {
+        const url = window.prompt(trans('enter_image_url') || 'أدخل رابط الصورة (URL):', 'https://')
+        if (url && url.trim()) {
+            editor.chain().focus().setImage({ src: url.trim() }).run()
+        }
+    }, [editor, trans])
+
+    const handleImageUpload = useCallback((e) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        const formData = new FormData()
+        formData.append('image', file)
+
+        axios.post('/admin/media/upload', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        }).then(res => {
+            if (res.data?.url) {
+                editor.chain().focus().setImage({ src: res.data.url }).run()
+            }
+        }).catch(err => {
+            alert(err.response?.data?.message || 'فشل رفع الصورة')
+        }).finally(() => {
+            e.target.value = ''
+        })
+    }, [editor])
 
     return (
         <div className="flex flex-wrap gap-1 p-2 border-b border-secondary-200 bg-surface/50 items-center">
@@ -52,6 +81,17 @@ function MenuBar({ editor, trans, isRtl = false }) {
                     ✕
                 </button>
             )}
+            <span className="w-px bg-secondary-200 mx-1 h-4" />
+            <label className="px-2 py-1 text-xs rounded bg-white text-secondary-700 hover:bg-secondary-100 cursor-pointer flex items-center gap-1" title={trans('upload_image') || 'رفع صورة وإدراجها'}>
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span>{trans('image') || 'صورة'}</span>
+                <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+            </label>
+            <button type="button" onClick={addImageByUrl} className="px-2 py-1 text-xs rounded bg-white text-secondary-700 hover:bg-secondary-100 flex items-center gap-1" title={trans('insert_image_url') || 'إدراج صورة برابط'}>
+                <span>🔗 {trans('image_url') || 'رابط صورة'}</span>
+            </button>
             <span className="w-px bg-secondary-200 mx-1 h-4" />
             <button type="button" onClick={() => editor.chain().focus().toggleBulletList().run()} className={`px-2 py-1 text-xs rounded ${editor.isActive('bulletList') ? 'bg-primary-900 text-white' : 'bg-white text-secondary-700 hover:bg-secondary-100'}`}>
                 {trans('list')}
@@ -180,6 +220,12 @@ export default function AdminArticlesForm({ article, categories }) {
             StarterKit,
             Underline,
             LinkExtension.configure({ openOnClick: false, HTMLAttributes: { target: '_blank', rel: 'noopener noreferrer' } }),
+            ImageExtension.configure({
+                allowBase64: true,
+                HTMLAttributes: {
+                    class: 'w-full h-auto rounded-2xl my-6 border border-secondary-200/60 object-cover shadow-sm',
+                },
+            }),
             TextAlign.configure({ types: ['heading', 'paragraph'] }),
             TextStyle,
             Color,
@@ -197,6 +243,12 @@ export default function AdminArticlesForm({ article, categories }) {
             StarterKit,
             Underline,
             LinkExtension.configure({ openOnClick: false, HTMLAttributes: { target: '_blank', rel: 'noopener noreferrer' } }),
+            ImageExtension.configure({
+                allowBase64: true,
+                HTMLAttributes: {
+                    class: 'w-full h-auto rounded-2xl my-6 border border-secondary-200/60 object-cover shadow-sm',
+                },
+            }),
             TextAlign.configure({ types: ['heading', 'paragraph'] }),
             TextStyle,
             Color,

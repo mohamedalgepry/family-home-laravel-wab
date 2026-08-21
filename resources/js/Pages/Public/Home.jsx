@@ -189,7 +189,7 @@ export default function Home({ featuredUnits, latestUnits, latestProjects, popul
                                         <ProjectCard key={project.id} project={project} />
                                     ))}
                                 </div>
-                                <Pagination meta={latestProjects} links={latestProjects?.links} />
+                                <Pagination meta={latestProjects} links={latestProjects?.links} pageParam="latest_projects_page" />
                             </>
                         ) : (
                             <p className="text-sm text-muted text-center py-12">{trans('no_results')}</p>
@@ -219,7 +219,7 @@ export default function Home({ featuredUnits, latestUnits, latestProjects, popul
                                         <UnitCard key={unit.id} unit={unit} />
                                     ))}
                                 </div>
-                                <Pagination meta={latestUnits} links={latestUnits?.links} />
+                                <Pagination meta={latestUnits} links={latestUnits?.links} pageParam="latest_units_page" />
                             </>
                         ) : (
                             <p className="text-sm text-muted text-center py-12">{trans('no_results')}</p>

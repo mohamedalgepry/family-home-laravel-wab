@@ -71,10 +71,10 @@ class UpdateAreaRequest extends FormRequest
             'hero_title_en' => 'nullable|string|max:255',
             'hero_description_ar' => 'nullable|string',
             'hero_description_en' => 'nullable|string',
-            'image_path' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:20480',
-            'hero_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:20480',
+            'image_path' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:10240|dimensions:max_width=6000,max_height=6000',
+            'hero_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:10240|dimensions:max_width=6000,max_height=6000',
             'gallery' => 'nullable|array',
-            'gallery.*' => 'image|mimes:jpeg,png,jpg,webp|max:20480',
+            'gallery.*' => 'image|mimes:jpeg,png,jpg,webp|max:10240|dimensions:max_width=6000,max_height=6000',
 
             'about_ar' => 'nullable|string',
             'about_en' => 'nullable|string',

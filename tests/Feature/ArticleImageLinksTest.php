@@ -299,7 +299,7 @@ describe('HTTP article store/update with link_url', function () {
 
         Storage::disk('public')->put('articles/2026/01/upload.jpg', 'fake-image-data');
 
-        $fakeFile = UploadedFile::fake()->image('photo.jpg');
+        $fakeFile = createFakeImage('photo.jpg');
 
         $this->actingAs($this->admin)
             ->post(route('admin.articles.store'), [
@@ -349,5 +349,39 @@ describe('HTTP article store/update with link_url', function () {
             ->assertRedirect(route('admin.articles.index'));
 
         expect(ArticleImage::find($imageId)->link_url)->toBe('https://updated-link.com');
+    });
+
+    it('includes position, link_url, and sort_order in ArticlePublicResource output', function () {
+        $category = makeCategory();
+        $article = $this->service->createArticle(
+            data: makeArticleData($category->id, 'Resource Test'),
+            newImages: new ArticleImageData(
+                paths: ['articles/2026/01/inline.jpg'],
+                alts: ['0' => 'Alt Image'],
+                positions: ['0' => 'middle'],
+                links: ['0' => 'https://example.com'],
+            ),
+        );
+
+        $resource = \App\Http\Resources\Public\ArticlePublicResource::make($article->load('images'))->resolve();
+
+        expect($resource['images'])->toHaveCount(1)
+            ->and($resource['images'][0]['position'])->toBe('middle')
+            ->and($resource['images'][0]['link_url'])->toBe('https://example.com')
+            ->and($resource['images'][0]['alt_text'])->toBe('Alt Image');
+    });
+
+    it('allows admins to upload media for editor inline insertion', function () {
+        $fakeFile = createFakeImage('inline-editor.jpg');
+
+        $response = $this->actingAs($this->admin)
+            ->postJson(route('admin.media.upload'), [
+                'image' => $fakeFile,
+            ]);
+
+        $response->assertOk()
+            ->assertJsonStructure(['url']);
+
+        expect($response->json('url'))->toContain('/storage/editor/');
     });
 });

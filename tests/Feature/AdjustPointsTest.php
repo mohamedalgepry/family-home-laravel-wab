@@ -13,30 +13,12 @@ test('admin can adjust points for any unit', function () {
     $this->assertEquals(150, $unit->fresh()->priority_points);
 });
 
-test('manager can adjust points for units assigned to their team', function () {
+test('manager cannot adjust points via adjust-points route', function () {
     $manager = createUser('Manager User', 'manager');
     $agent = createUser('Agent in Team', 'agent', $manager->id);
 
     // Create a unit owned by an agent in the manager's team
     $unit = createTestUnit(['user_id' => $agent->id]);
-
-    $response = $this->actingAs($manager)->post(route('admin.units.adjust-points', $unit), [
-        'points' => 100,
-    ]);
-
-    $response->assertRedirect();
-    $this->assertEquals(100, $unit->fresh()->priority_points);
-});
-
-test('manager cannot adjust points for units not in their team', function () {
-    $manager = createUser('Manager User 2', 'manager');
-
-    // Create another manager and agent
-    $otherManager = createUser('Manager User 3', 'manager');
-    $otherAgent = createUser('Agent Other Team', 'agent', $otherManager->id);
-
-    // Create a unit owned by the other agent
-    $unit = createTestUnit(['user_id' => $otherAgent->id]);
 
     $response = $this->actingAs($manager)->post(route('admin.units.adjust-points', $unit), [
         'points' => 100,

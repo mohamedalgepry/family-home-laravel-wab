@@ -59,9 +59,10 @@ class ListingQueryBuilder
         // الأعمدة الأخرى في قائمة الفلتر (slugs) — مفهرسة بـ unique، تبقى بـ LIKE
         $slugFields = array_values(array_diff($fields, $fulltextColumns));
 
-        // نستخدم FULLTEXT فقط إذا كانت قاعدة البيانات MySQL والفهرس موجود فعلياً
+        // نستخدم FULLTEXT فقط إذا كانت قاعدة البيانات MySQL والفهرس موجود فعلياً (وليس داخل بيئة الاختبار transactional)
         $table = $query->getModel()->getTable();
-        $useFulltext = self::hasFulltextIndex($table)
+        $useFulltext = ! app()->environment('testing')
+            && self::hasFulltextIndex($table)
             && count(array_intersect($fields, $fulltextColumns)) > 0;
 
         $query->where(function (Builder $q) use ($fulltextTerm, $likeTerm, $fields, $slugFields, $fulltextColumns, $useFulltext, $relation) {

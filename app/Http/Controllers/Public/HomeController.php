@@ -24,17 +24,19 @@ class HomeController
 
     public function __invoke(): Response
     {
-        $page = (int) request()->input('page', 1);
+        $featuredPage = (int) request()->input('featured_page', 1);
+        $latestUnitsPage = (int) request()->input('latest_units_page', 1);
+        $latestProjectsPage = (int) request()->input('latest_projects_page', 1);
         $version = Cache::get(ListingService::CACHE_VERSION_KEY, 1);
 
         $homeData = Cache::remember(
-            "home_page_data_page_{$page}_v{$version}",
+            "home_page_data_f{$featuredPage}_u{$latestUnitsPage}_p{$latestProjectsPage}_v{$version}",
             300,
             function () {
                 return [
-                    'featuredUnits' => $this->listingService->getFeaturedUnits(8),
-                    'latestUnits' => $this->listingService->getLatestUnits(12),
-                    'latestProjects' => $this->listingService->getLatestProjects(8),
+                    'featuredUnits' => $this->listingService->getFeaturedUnits(8, 'featured_page'),
+                    'latestUnits' => $this->listingService->getLatestUnits(12, 'latest_units_page'),
+                    'latestProjects' => $this->listingService->getLatestProjects(8, 'latest_projects_page'),
                     'popularSearches' => $this->searchService->getPopularSearches(),
                     'areas' => $this->lookupService->areas(),
                     'unitTypes' => $this->lookupService->unitTypes(),

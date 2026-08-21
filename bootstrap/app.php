@@ -27,6 +27,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => EnsureUserHasRole::class,
         ]);
+        $middleware->validateCsrfTokens(except: [
+            'csp-report',
+        ]);
         $middleware->web(append: [
             HttpCacheControl::class,
             DetectBot::class,

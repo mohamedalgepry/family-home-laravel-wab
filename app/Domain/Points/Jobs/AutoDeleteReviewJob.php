@@ -10,13 +10,22 @@ use App\Domain\Listings\Notifications\UnitExpiryNotification;
 use App\Domain\Listings\Services\SitemapService;
 use App\Domain\Users\Models\User;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class AutoDeleteReviewJob implements ShouldQueue
 {
-    use Queueable;
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public int $tries = 3;
+
+    public int $timeout = 120;
+
+    public array $backoff = [30, 60, 120];
 
     private bool $listingsChanged = false;
 
@@ -82,9 +91,22 @@ class AutoDeleteReviewJob implements ShouldQueue
 
         if ($oldDeactivated->isNotEmpty()) {
             $ids = $oldDeactivated->pluck('id')->toArray();
+
+            // Load images before deletion to clean up files
+            $unitsWithImages = Unit::with('images')->whereIn('id', $ids)->get();
+            $allImagePaths = $unitsWithImages->flatMap(fn ($u) => $u->images->pluck('path'))->toArray();
+
             DB::transaction(function () use ($ids) {
+                // Delete image records first, then units
+                \App\Domain\Listings\Models\UnitImage::whereIn('unit_id', $ids)->delete();
                 Unit::whereIn('id', $ids)->delete();
             });
+
+            // Delete image files from disk after DB cleanup
+            if (! empty($allImagePaths)) {
+                $imageService = app(\App\Domain\Listings\Services\ListingImageService::class);
+                $imageService->deleteImageFiles($allImagePaths);
+            }
 
             Log::info('AutoDeleteReviewJob: permanently deleted old deactivated units.', [
                 'count' => count($ids),
@@ -145,9 +167,21 @@ class AutoDeleteReviewJob implements ShouldQueue
 
         if ($oldDeactivated->isNotEmpty()) {
             $ids = $oldDeactivated->pluck('id')->toArray();
+
+            // Load images before deletion to clean up files
+            $projectsWithImages = Project::with('images')->whereIn('id', $ids)->get();
+            $allImagePaths = $projectsWithImages->flatMap(fn ($p) => $p->images->pluck('path'))->toArray();
+
             DB::transaction(function () use ($ids) {
+                \App\Domain\Listings\Models\ProjectImage::whereIn('project_id', $ids)->delete();
                 Project::whereIn('id', $ids)->delete();
             });
+
+            // Delete image files from disk after DB cleanup
+            if (! empty($allImagePaths)) {
+                $imageService = app(\App\Domain\Listings\Services\ListingImageService::class);
+                $imageService->deleteImageFiles($allImagePaths);
+            }
 
             Log::info('AutoDeleteReviewJob: permanently deleted old deactivated projects.', [
                 'count' => count($ids),

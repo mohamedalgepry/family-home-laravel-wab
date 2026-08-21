@@ -25,7 +25,7 @@ Artisan::command('units:check-expiry', function () {
     dispatch(new AutoDeleteReviewJob);
 })->purpose('Flag expired units as pending review for admin');
 
-Schedule::command('queue:work --stop-when-empty --max-time=30')
+Schedule::command('queue:work --stop-when-empty --max-time=50 --tries=3')
     ->everyMinute()
     ->withoutOverlapping();
 
@@ -36,6 +36,8 @@ Schedule::command('points:daily-deduct')
 
 Schedule::command('points:monthly-reset')
     ->dailyAt('01:00')
+    ->withoutOverlapping()
+    ->onOneServer()
     ->when(function () {
         $enabled = Setting::getValue('monthly_reset_auto', 'false');
         $day = (int) Setting::getValue('monthly_reset_day', '1');
@@ -44,19 +46,25 @@ Schedule::command('points:monthly-reset')
     });
 
 Schedule::command('units:check-expiry')
-    ->dailyAt('02:00');
+    ->dailyAt('02:00')
+    ->withoutOverlapping()
+    ->onOneServer();
 
 Schedule::command('notifications:cleanup')
-    ->dailyAt('03:00');
+    ->dailyAt('03:00')
+    ->withoutOverlapping();
 
 Schedule::command('backup:run --only-db')
-    ->dailyAt('03:00');
+    ->dailyAt('03:00')
+    ->withoutOverlapping();
 
 Schedule::command('backup:run')
-    ->dailyAt('04:00');
+    ->dailyAt('04:00')
+    ->withoutOverlapping();
 
 Schedule::command('backup:clean')
-    ->dailyAt('04:30');
+    ->dailyAt('04:30')
+    ->withoutOverlapping();
 
 Schedule::command('sitemap:generate')
     ->hourly()

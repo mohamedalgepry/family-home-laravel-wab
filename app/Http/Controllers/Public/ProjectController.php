@@ -73,8 +73,7 @@ class ProjectController
 
         $meta = $this->seoMetaService->forListing($project, 'projects');
 
-        $mainImage = $project->images->firstWhere('is_main', true)
-            ?? $project->images->firstWhere('is_primary', true)
+        $mainImage = $project->images->firstWhere('is_primary', true)
             ?? $project->images->first();
 
         $lcpImage = $mainImage ? $mainImage->url : null;

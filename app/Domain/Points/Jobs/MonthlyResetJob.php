@@ -4,12 +4,21 @@ namespace App\Domain\Points\Jobs;
 
 use App\Domain\Points\Services\PointsService;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
 class MonthlyResetJob implements ShouldQueue
 {
-    use Queueable;
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public int $tries = 3;
+
+    public int $timeout = 120;
+
+    public array $backoff = [30, 60, 120];
 
     public function __construct() {}
 

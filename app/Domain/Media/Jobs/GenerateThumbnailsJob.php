@@ -4,7 +4,10 @@ namespace App\Domain\Media\Jobs;
 
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -14,7 +17,13 @@ use Intervention\Image\ImageManager;
 
 class GenerateThumbnailsJob implements ShouldQueue
 {
-    use Queueable;
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public int $tries = 3;
+
+    public int $timeout = 180;
+
+    public array $backoff = [10, 30, 60];
 
     private const MAX_ORIGINAL_WIDTH_PX = 1400;
 
@@ -118,7 +127,15 @@ class GenerateThumbnailsJob implements ShouldQueue
         $sourceWidth = imagesx($source);
         if ($sourceWidth > self::MAX_ORIGINAL_WIDTH_PX) {
             $scaled = $this->scaleDownToMaxWidth($source, self::MAX_ORIGINAL_WIDTH_PX);
-            imagewebp($scaled, $fullPath, self::ORIGINAL_QUALITY);
+
+            // Preserve the original format instead of writing WebP bytes into a .jpg/.png file
+            $extension = strtolower(pathinfo($fullPath, PATHINFO_EXTENSION));
+            $saved = match ($extension) {
+                'png' => imagepng($scaled, $fullPath, 8),
+                'webp' => imagewebp($scaled, $fullPath, self::ORIGINAL_QUALITY),
+                default => imagejpeg($scaled, $fullPath, self::ORIGINAL_QUALITY), // jpg/jpeg
+            };
+
             if ($scaled !== $source) {
                 imagedestroy($scaled);
             }

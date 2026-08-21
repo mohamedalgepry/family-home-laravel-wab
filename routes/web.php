@@ -114,6 +114,16 @@ Route::middleware('auth')->group(function () {
 
 Route::get('/', [PageController::class, 'rootRedirect'])->name('root');
 
+Route::post('/csp-report', function (\Illuminate\Http\Request $request) {
+    \Illuminate\Support\Facades\Log::warning('CSP Violation Report', [
+        'report' => $request->all() ?: json_decode($request->getContent(), true),
+        'ip' => $request->ip(),
+        'user_agent' => $request->userAgent(),
+    ]);
+
+    return response()->noContent();
+})->name('csp.report');
+
 Route::prefix('{locale}')->whereIn('locale', ['ar', 'en'])->middleware(SetLocale::class)->group(function () {
     Route::get('/', HomeController::class)->name('home');
 

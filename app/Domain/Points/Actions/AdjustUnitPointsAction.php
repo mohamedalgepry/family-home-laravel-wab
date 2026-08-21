@@ -11,7 +11,16 @@ class AdjustUnitPointsAction
 {
     public function execute(Unit $unit, int $newPoints, User $admin): void
     {
+        // Defense in depth: prevent negative points
+        $newPoints = max(0, $newPoints);
+
         DB::transaction(function () use ($unit, $newPoints, $admin) {
+            // Lock the unit row for update to prevent concurrent modifications
+            $unit = Unit::lockForUpdate()->find($unit->id);
+            if (! $unit) {
+                return;
+            }
+
             $oldPoints = $unit->priority_points;
 
             // 1. Refund to the manager if there was a previous allocation
@@ -26,12 +35,15 @@ class AdjustUnitPointsAction
                     if ($manager) {
                         $manager->increment('points_balance', $oldPoints);
 
+                        // Read fresh balance after increment for accurate ledger
+                        $freshBalance = User::where('id', $manager->id)->value('points_balance');
+
                         PointsTransaction::create([
                             'manager_id' => $manager->id,
                             'unit_id' => $unit->id,
                             'points' => $oldPoints,
                             'type' => 'refund',
-                            'balance_after' => $manager->fresh()->points_balance,
+                            'balance_after' => $freshBalance,
                             'notes' => 'Refund for admin adjustment',
                             'performed_by' => $admin->id,
                         ]);

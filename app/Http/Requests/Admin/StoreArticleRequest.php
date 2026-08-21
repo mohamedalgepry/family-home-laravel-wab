@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Domain\Listings\Models\Article;
+use App\Rules\SafeUrl;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreArticleRequest extends FormRequest
@@ -35,7 +36,7 @@ class StoreArticleRequest extends FormRequest
             'new_image_positions' => 'nullable|array',
             'new_image_positions.*' => 'nullable|in:top,middle,bottom',
             'new_image_links' => 'nullable|array',
-            'new_image_links.*' => 'nullable|string|max:2048',
+            'new_image_links.*' => ['nullable', 'string', 'max:2048', new SafeUrl],
         ];
     }
 }

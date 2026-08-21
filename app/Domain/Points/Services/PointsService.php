@@ -108,40 +108,75 @@ class PointsService
 
         $processedCount = 0;
         $now = Carbon::now();
+        $startOfDay = $now->copy()->startOfDay();
+        $endOfDay = $now->copy()->endOfDay();
 
-        Unit::with('user')
+        // 1. Query only units that have NOT already had a daily deduction today (Idempotency Step 1)
+        Unit::with(['user.manager'])
             ->where('is_pinned', false)
             ->where('priority_points', '>', 0)
-            ->chunk(100, function ($units) use ($value, $now, &$processedCount) {
-                $transactions = [];
+            ->whereDoesntHave('pointsTransactions', function ($q) use ($startOfDay, $endOfDay) {
+                $q->where('type', 'daily_deduct')
+                    ->whereBetween('created_at', [$startOfDay, $endOfDay]);
+            })
+            ->chunkById(100, function ($units) use ($value, $now, $startOfDay, $endOfDay, &$processedCount) {
+                DB::transaction(function () use ($units, $value, $now, $startOfDay, $endOfDay, &$processedCount) {
+                    $unitIds = $units->pluck('id')->toArray();
 
-                $managerIds = $units->map(fn ($u) => $u->user?->manager_id ?? $u->user_id)->unique()->filter();
-                $managers = User::whereIn('id', $managerIds)->pluck('points_balance', 'id');
+                    // 2. Lock units and eager load users to prevent N+1 queries
+                    $lockedUnits = Unit::with('user')->lockForUpdate()->whereIn('id', $unitIds)->get();
 
-                foreach ($units as $unit) {
-                    $deduction = min($unit->priority_points, $value);
-                    $newPoints = max(0, $unit->priority_points - $deduction);
+                    // 3. Concurrency check: find any units in this chunk already deducted today (Idempotency Step 2)
+                    $alreadyDeductedUnitIds = PointsTransaction::whereIn('unit_id', $unitIds)
+                        ->where('type', 'daily_deduct')
+                        ->whereBetween('created_at', [$startOfDay, $endOfDay])
+                        ->pluck('unit_id')
+                        ->flip()
+                        ->toArray();
 
-                    $unit->priority_points = $newPoints;
-                    $unit->save();
+                    // 4. Collect unique manager IDs and lock their rows for fresh balance
+                    $managerIds = $lockedUnits->map(fn ($u) => $u->user?->manager_id ?? $u->user_id)->unique()->filter();
+                    $managers = User::lockForUpdate()->whereIn('id', $managerIds)->pluck('points_balance', 'id');
 
-                    $managerId = $unit->user?->manager_id ?? $unit->user_id;
+                    $transactions = [];
 
-                    $transactions[] = [
-                        'manager_id' => $managerId,
-                        'unit_id' => $unit->id,
-                        'points' => -$deduction,
-                        'type' => 'daily_deduct',
-                        'balance_after' => $managers[$managerId] ?? 0,
-                        'notes' => 'auto_daily_deduction (Unit Remaining: '.$newPoints.')',
-                        'performed_by' => $unit->user_id,
-                        'created_at' => $now,
-                    ];
+                    foreach ($lockedUnits as $unit) {
+                        // Skip if already deducted in another concurrent transaction
+                        if (isset($alreadyDeductedUnitIds[$unit->id])) {
+                            continue;
+                        }
 
-                    $processedCount++;
-                }
+                        // Skip if points were depleted concurrently
+                        if ($unit->priority_points <= 0) {
+                            continue;
+                        }
 
-                PointsTransaction::insert($transactions);
+                        $deduction = min($unit->priority_points, $value);
+                        $newPoints = max(0, $unit->priority_points - $deduction);
+
+                        $unit->priority_points = $newPoints;
+                        $unit->save();
+
+                        $managerId = $unit->user?->manager_id ?? $unit->user_id;
+
+                        $transactions[] = [
+                            'manager_id' => $managerId,
+                            'unit_id' => $unit->id,
+                            'points' => -$deduction,
+                            'type' => 'daily_deduct',
+                            'balance_after' => $managers[$managerId] ?? 0,
+                            'notes' => 'auto_daily_deduction (Unit Remaining: '.$newPoints.')',
+                            'performed_by' => $unit->user_id,
+                            'created_at' => $now,
+                        ];
+
+                        $processedCount++;
+                    }
+
+                    if (! empty($transactions)) {
+                        PointsTransaction::insert($transactions);
+                    }
+                });
             });
 
         return $processedCount;

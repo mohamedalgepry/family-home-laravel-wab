@@ -187,7 +187,7 @@ it('stores uploaded images under the given folder', function () {
     Storage::fake('public');
 
     $paths = app(StoreUploadedImagesAction::class)->execute([
-        UploadedFile::fake()->image('photo.jpg'),
+        createFakeImage('photo.jpg'),
         'not-a-file',
     ], 'units');
 

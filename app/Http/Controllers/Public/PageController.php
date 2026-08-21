@@ -21,7 +21,7 @@ class PageController extends Controller
         App::setLocale($lang);
 
         $targetPath = request()->query('path');
-        if ($targetPath && str_starts_with($targetPath, '/') && ! str_starts_with($targetPath, '//')) {
+        if ($targetPath && str_starts_with($targetPath, '/') && ! str_starts_with($targetPath, '//') && ! str_starts_with($targetPath, '/\\') && ! str_contains($targetPath, '\\')) {
             if (preg_match('#^/(ar|en)(/.*)?$#', $targetPath, $matches)) {
                 $rest = $matches[2] ?? '';
 

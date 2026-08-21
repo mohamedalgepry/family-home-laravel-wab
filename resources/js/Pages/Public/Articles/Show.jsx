@@ -88,26 +88,36 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
         )
     }
 
-    /* Process middle image shortcodes */
+    /* Process middle image shortcodes and inline images */
     let parsedContent = article.content || ''
     const usedMiddleIndices = new Set()
     middleImages.forEach((img, index) => {
-        const shortcodeEn = `[image:${index + 1}]`
-        const shortcodeAr = `[صورة:${index + 1}]`
-        if (parsedContent.includes(shortcodeEn) || parsedContent.includes(shortcodeAr)) {
+        const regexEn = new RegExp(`\\[image\\s*:\\s*${index + 1}\\]`, 'gi')
+        const regexAr = new RegExp(`\\[صورة\\s*:\\s*${index + 1}\\]`, 'gi')
+        if (regexEn.test(parsedContent) || regexAr.test(parsedContent)) {
             usedMiddleIndices.add(index)
-            const imgPath = img.url || (img.path.startsWith('http') || img.path.startsWith('/') ? img.path : `/storage/${img.path}`)
+            const imgPath = img.url || (img.path ? (img.path.startsWith('http') || img.path.startsWith('/') ? img.path : `/storage/${img.path}`) : '')
             const altText = (img.alt_text || article.title || '').replace(/"/g, '&quot;')
             let imageHtml = `<img src="${imgPath}" alt="${altText}" width="1200" height="800" class="w-full h-auto rounded-2xl my-8 border border-secondary-200/60 object-cover shadow-sm" loading="lazy" />`
             if (img.link_url) {
                 const safeLink = img.link_url.replace(/"/g, '&quot;')
                 imageHtml = `<a href="${safeLink}" target="_blank" rel="noopener noreferrer" class="block hover:opacity-95 transition-opacity">${imageHtml}</a>`
             }
-            parsedContent = parsedContent.replaceAll(shortcodeEn, imageHtml)
-            parsedContent = parsedContent.replaceAll(shortcodeAr, imageHtml)
+            parsedContent = parsedContent.replace(regexEn, imageHtml).replace(regexAr, imageHtml)
         }
     })
     const unusedMiddleImages = middleImages.filter((_, idx) => !usedMiddleIndices.has(idx))
+
+    // Ensure all inline <img> tags resolve to proper /storage/ paths if saved with relative path
+    parsedContent = parsedContent.replace(/<img\b([^>]*)\bsrc=["']([^"']+)["']([^>]*)>/gi, (match, prefix, src, suffix) => {
+        let resolvedSrc = src;
+        if (src.startsWith('articles/') || src.startsWith('editor/') || src.startsWith('uploads/')) {
+            resolvedSrc = `/storage/${src}`;
+        } else if (src.startsWith('storage/')) {
+            resolvedSrc = `/${src}`;
+        }
+        return `<img${prefix}src="${resolvedSrc}"${suffix}>`;
+    });
 
     /* Normalize article body headings so they strictly follow h1 -> h2 -> h3 hierarchy */
     let normalizedContent = parsedContent;

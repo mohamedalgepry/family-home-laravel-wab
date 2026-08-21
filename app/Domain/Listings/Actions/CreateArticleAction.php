@@ -5,10 +5,13 @@ namespace App\Domain\Listings\Actions;
 use App\Domain\Common\Support\Sanitizer;
 use App\Domain\Listings\DTOs\CreateArticleData;
 use App\Domain\Listings\Models\Article;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Str;
 
 class CreateArticleAction
 {
+    private const MAX_SLUG_RETRIES = 10;
+
     public function execute(CreateArticleData $data): Article
     {
         $raw = $data->toArray();
@@ -30,32 +33,55 @@ class CreateArticleAction
         if (! $slug) {
             $slug = 'article-'.Str::random(6);
         }
-        $base = $slug;
-        $suffix = 1;
 
-        while (Article::where('slug', $slug)->exists()) {
-            $slug = $base.'-'.$suffix++;
+        $slugAr = Str::slug($title_ar) ?: $slug.'-ar';
+        $slugEn = Str::slug($title_en) ?: $slug;
+
+        // Use retry-on-collision instead of check-then-insert to handle
+        // concurrent inserts safely. The UNIQUE index is the final authority.
+        $lastException = null;
+        for ($attempt = 0; $attempt < self::MAX_SLUG_RETRIES; $attempt++) {
+            try {
+                $currentSlug = $attempt === 0 ? $slug : $slug.'-'.$attempt;
+                $currentSlugAr = $attempt === 0 ? $slugAr : $slugAr.'-'.$attempt;
+                $currentSlugEn = $attempt === 0 ? $slugEn : $slugEn.'-'.$attempt;
+
+                return Article::create([
+                    'category_id' => $raw['category_id'] ?? null,
+                    'title' => $title,
+                    'title_en' => $title_en,
+                    'title_ar' => $title_ar,
+                    'slug' => $currentSlug,
+                    'slug_ar' => $currentSlugAr,
+                    'slug_en' => $currentSlugEn,
+                    'content' => $content,
+                    'content_en' => $content_en,
+                    'content_ar' => $content_ar,
+                    'excerpt' => $excerpt,
+                    'excerpt_en' => $excerpt_en,
+                    'excerpt_ar' => $excerpt_ar,
+                    'alt_text' => isset($raw['alt_text']) ? Sanitizer::text($raw['alt_text']) : null,
+                    'keywords' => $raw['keywords'] ?? null,
+                    'meta_description' => isset($raw['meta_description']) ? Sanitizer::text($raw['meta_description']) : null,
+                    'is_published' => $raw['is_published'] ?? false,
+                    'published_at' => ($raw['is_published'] ?? false) ? now() : null,
+                ]);
+            } catch (QueryException $e) {
+                // MySQL error 1062 = Duplicate entry (UNIQUE constraint violation)
+                // SQLite error 19 / SQLSTATE 23000
+                $errorCode = (int) ($e->errorInfo[1] ?? 0);
+                $sqlState = (string) ($e->errorInfo[0] ?? '');
+
+                if ($errorCode === 1062 || $errorCode === 19 || $sqlState === '23000') {
+                    $lastException = $e;
+
+                    continue;
+                }
+                throw $e;
+            }
         }
 
-        return Article::create([
-            'category_id' => $raw['category_id'] ?? null,
-            'title' => $title,
-            'title_en' => $title_en,
-            'title_ar' => $title_ar,
-            'slug' => $slug,
-            'slug_ar' => Str::slug($title_ar) ?: $slug.'-ar',
-            'slug_en' => Str::slug($title_en) ?: $slug,
-            'content' => $content,
-            'content_en' => $content_en,
-            'content_ar' => $content_ar,
-            'excerpt' => $excerpt,
-            'excerpt_en' => $excerpt_en,
-            'excerpt_ar' => $excerpt_ar,
-            'alt_text' => isset($raw['alt_text']) ? Sanitizer::text($raw['alt_text']) : null,
-            'keywords' => $raw['keywords'] ?? null,
-            'meta_description' => isset($raw['meta_description']) ? Sanitizer::text($raw['meta_description']) : null,
-            'is_published' => $raw['is_published'] ?? false,
-            'published_at' => ($raw['is_published'] ?? false) ? now() : null,
-        ]);
+        // All retries exhausted — re-throw the last collision exception
+        throw $lastException;
     }
 }
