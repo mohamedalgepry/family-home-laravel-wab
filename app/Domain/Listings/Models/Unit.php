@@ -80,13 +80,13 @@ class Unit extends Model
     {
         static::creating(function (self $unit) {
             if (! $unit->slug) {
-                $unit->slug = Str::slug($unit->name_en ?: $unit->name);
+                $unit->slug = \App\Domain\Common\Support\SlugHelper::makeEnglish($unit->name_en ?: $unit->name, 'unit');
             }
             if (! $unit->slug_ar) {
-                $unit->slug_ar = Str::slug($unit->name_ar ?: $unit->name) ?: $unit->slug.'-ar';
+                $unit->slug_ar = \App\Domain\Common\Support\SlugHelper::makeArabic($unit->name_ar ?: $unit->name, $unit->slug);
             }
             if (! $unit->slug_en) {
-                $unit->slug_en = Str::slug($unit->name_en ?: $unit->name) ?: $unit->slug;
+                $unit->slug_en = \App\Domain\Common\Support\SlugHelper::makeEnglish($unit->name_en ?: $unit->name, $unit->slug);
             }
             $unit->ensureUniqueSlugs();
         });
@@ -94,11 +94,11 @@ class Unit extends Model
         static::updating(function (self $unit) {
             $changed = false;
             if ($unit->isDirty('name_en') && ! $unit->isDirty('slug_en')) {
-                $unit->slug_en = Str::slug($unit->name_en);
+                $unit->slug_en = \App\Domain\Common\Support\SlugHelper::makeEnglish($unit->name_en, 'unit');
                 $changed = true;
             }
             if ($unit->isDirty('name_ar') && ! $unit->isDirty('slug_ar')) {
-                $unit->slug_ar = Str::slug($unit->name_ar) ?: $unit->slug_en.'-ar';
+                $unit->slug_ar = \App\Domain\Common\Support\SlugHelper::makeArabic($unit->name_ar, $unit->slug_en ?? 'unit');
                 $changed = true;
             }
             if ($changed) {

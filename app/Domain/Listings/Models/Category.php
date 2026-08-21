@@ -15,13 +15,13 @@ class Category extends Model
     {
         static::creating(function (self $category) {
             if (! $category->slug) {
-                $category->slug = Str::slug($category->name_en ?: $category->name_ar);
+                $category->slug = \App\Domain\Common\Support\SlugHelper::makeEnglish($category->name_en ?: $category->name_ar, 'category');
             }
             if (! $category->slug_ar) {
-                $category->slug_ar = Str::slug($category->name_ar) ?: $category->slug.'-ar';
+                $category->slug_ar = \App\Domain\Common\Support\SlugHelper::makeArabic($category->name_ar ?: $category->name_en, $category->slug);
             }
             if (! $category->slug_en) {
-                $category->slug_en = Str::slug($category->name_en) ?: $category->slug;
+                $category->slug_en = \App\Domain\Common\Support\SlugHelper::makeEnglish($category->name_en ?: $category->name_ar, $category->slug);
             }
             $category->ensureUniqueSlugs();
         });
@@ -29,11 +29,11 @@ class Category extends Model
         static::updating(function (self $category) {
             $changed = false;
             if ($category->isDirty('name_en') && ! $category->isDirty('slug_en')) {
-                $category->slug_en = Str::slug($category->name_en);
+                $category->slug_en = \App\Domain\Common\Support\SlugHelper::makeEnglish($category->name_en, 'category');
                 $changed = true;
             }
             if ($category->isDirty('name_ar') && ! $category->isDirty('slug_ar')) {
-                $category->slug_ar = Str::slug($category->name_ar) ?: $category->slug_en.'-ar';
+                $category->slug_ar = \App\Domain\Common\Support\SlugHelper::makeArabic($category->name_ar, $category->slug_en ?? 'category');
                 $changed = true;
             }
             if ($changed) {

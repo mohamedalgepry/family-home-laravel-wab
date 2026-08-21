@@ -42,6 +42,7 @@ export default function ProjectCard({ project, loading = false }) {
     const areaName = project.area?.name || project.area_name || (isRtl ? 'مصر' : 'Egypt')
     const imageAlt = project.alt_text || `${project.name || (isRtl ? 'مشروع عقاري' : 'Project')} ${isRtl ? 'في' : 'in'} ${areaName} - ${trans('app_name')}`
     const unitsCount = project.units_count ?? project.units?.length ?? 0
+    const projectSlug = isRtl && project.slug_ar ? project.slug_ar : (project.slug_en || project.slug || project.id)
 
     return (
         <article 
@@ -51,7 +52,7 @@ export default function ProjectCard({ project, loading = false }) {
             {/* Image Container */}
             <div className="relative overflow-hidden aspect-[4/3] bg-secondary-100">
                 <Link 
-                    href={localizedPath(`/projects/${project.slug || project.id}`, locale)} 
+                    href={localizedPath(`/projects/${projectSlug}`, locale)} 
                     className="block w-full h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                 >
                     <OptimizedImage
@@ -68,26 +69,46 @@ export default function ProjectCard({ project, loading = false }) {
                 {/* Top Badge Overlay */}
                 <div className="absolute top-3 inset-x-3 flex items-center justify-between pointer-events-none z-10">
                     <span className="bg-white/95 text-secondary-900 text-xs font-bold px-3 py-1 rounded-full shadow-sm backdrop-blur-md border border-white/40">
-                        {areaName}
+                        {trans('project')}
                     </span>
 
-                    {project.payment_method && (
-                        <span className="bg-secondary-900/90 text-white text-xs font-semibold px-2.5 py-1 rounded-full shadow-sm backdrop-blur-md">
-                            {project.payment_method === 'cash' 
-                                ? (isRtl ? 'كاش' : 'Cash') 
-                                : project.payment_method === 'installment' 
-                                ? (isRtl ? 'تقسيط' : 'Installment') 
-                                : (isRtl ? 'كاش وتقسيط' : 'Cash & Installment')}
-                        </span>
-                    )}
+                    {/* Compare Button */}
+                    <button
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            toggleCompare(project.id);
+                        }}
+                        className={`pointer-events-auto p-2 rounded-full backdrop-blur-md transition-all shadow-sm ${
+                            isCompared 
+                                ? 'bg-primary-900 text-white' 
+                                : 'bg-white/90 text-secondary-700 hover:bg-white hover:text-primary-900'
+                        }`}
+                        title={isCompared ? (trans('remove_from_compare') || 'إزالة من المقارنة') : (trans('add_to_compare') || 'إضافة للمقارنة')}
+                    >
+                        <svg className="w-4 h-4" fill={isCompared ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 6l3 18h12l3-18H3zm5 4v10m4-10v10m4-10v10" />
+                        </svg>
+                    </button>
                 </div>
+
+                {/* Area Tag */}
+                {project.area?.name && (
+                    <span className="absolute bottom-3 start-3 text-white text-xs font-medium bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded-md flex items-center gap-1">
+                        <svg className="w-3.5 h-3.5 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                        </svg>
+                        {project.area.name}
+                    </span>
+                )}
             </div>
 
-            {/* Content Details */}
-            <div className="p-5 flex flex-col flex-1 justify-between gap-4">
+            {/* Details */}
+            <div className="p-5 flex-1 flex flex-col justify-between">
                 <div>
                     <Link 
-                        href={localizedPath(`/projects/${project.slug || project.id}`, locale)} 
+                        href={localizedPath(`/projects/${projectSlug}`, locale)} 
                         className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded"
                     >
                         <h2 className="text-base font-bold text-secondary-950 group-hover:text-primary-900 transition-colors line-clamp-1 mb-1.5">

@@ -72,13 +72,13 @@ class Project extends Model
     {
         static::creating(function (self $project) {
             if (! $project->slug) {
-                $project->slug = Str::slug($project->name_en ?: $project->name);
+                $project->slug = \App\Domain\Common\Support\SlugHelper::makeEnglish($project->name_en ?: $project->name, 'project');
             }
             if (! $project->slug_ar) {
-                $project->slug_ar = Str::slug($project->name_ar ?: $project->name) ?: $project->slug.'-ar';
+                $project->slug_ar = \App\Domain\Common\Support\SlugHelper::makeArabic($project->name_ar ?: $project->name, $project->slug);
             }
             if (! $project->slug_en) {
-                $project->slug_en = Str::slug($project->name_en ?: $project->name) ?: $project->slug;
+                $project->slug_en = \App\Domain\Common\Support\SlugHelper::makeEnglish($project->name_en ?: $project->name, $project->slug);
             }
             $project->ensureUniqueSlugs();
         });
@@ -86,11 +86,11 @@ class Project extends Model
         static::updating(function (self $project) {
             $changed = false;
             if ($project->isDirty('name_en') && ! $project->isDirty('slug_en')) {
-                $project->slug_en = Str::slug($project->name_en);
+                $project->slug_en = \App\Domain\Common\Support\SlugHelper::makeEnglish($project->name_en, 'project');
                 $changed = true;
             }
             if ($project->isDirty('name_ar') && ! $project->isDirty('slug_ar')) {
-                $project->slug_ar = Str::slug($project->name_ar) ?: $project->slug_en.'-ar';
+                $project->slug_ar = \App\Domain\Common\Support\SlugHelper::makeArabic($project->name_ar, $project->slug_en ?? 'project');
                 $changed = true;
             }
             if ($changed) {
