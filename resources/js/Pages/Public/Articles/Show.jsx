@@ -91,21 +91,37 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
     /* Process middle image shortcodes and inline images */
     let parsedContent = article.content || ''
     const usedMiddleIndices = new Set()
-    middleImages.forEach((img, index) => {
-        const regexEn = new RegExp(`\\[image\\s*:\\s*${index + 1}\\]`, 'gi')
-        const regexAr = new RegExp(`\\[صورة\\s*:\\s*${index + 1}\\]`, 'gi')
-        if (regexEn.test(parsedContent) || regexAr.test(parsedContent)) {
-            usedMiddleIndices.add(index)
-            const imgPath = img.url || (img.path ? (img.path.startsWith('http') || img.path.startsWith('/') ? img.path : `/storage/${img.path}`) : '')
-            const altText = (img.alt_text || article.title || '').replace(/"/g, '&quot;')
-            let imageHtml = `<img src="${imgPath}" alt="${altText}" width="1200" height="800" class="w-full h-auto rounded-2xl my-8 border border-secondary-200/60 object-cover shadow-sm" loading="lazy" />`
-            if (img.link_url) {
-                const safeLink = img.link_url.replace(/"/g, '&quot;')
-                imageHtml = `<a href="${safeLink}" target="_blank" rel="noopener noreferrer" class="block hover:opacity-95 transition-opacity">${imageHtml}</a>`
+
+    const middleAndOtherImages = [
+        ...middleImages,
+        ...(article?.images || []).filter(img => img.position !== 'header' && !middleImages.some(m => m.id === img.id))
+    ]
+
+    // Matches shortcodes like [صورة:1], [صوره:1], [صره:1], [image:1], [img:1]
+    // Even if wrapped in <p>, <span>, <code>, <strong>, <font> with inline styles/colors
+    const shortcodeRegex = /(?:<p[^>]*>\s*)?(?:<(?:span|code|strong|b|em|font|mark)\b[^>]*>\s*)*\[\s*(?:صورة|صوره|صره|image|img)\s*[:\-_\s]?\s*([0-9\u0660-\u0669]+)\s*\](?:\s*<\/(?:span|code|strong|b|em|font|mark)>)*(?:\s*<\/p>)?/gi
+
+    parsedContent = parsedContent.replace(shortcodeRegex, (match, rawIndex) => {
+        const normalizedIndex = parseInt(
+            rawIndex.replace(/[\u0660-\u0669]/g, d => String(d.charCodeAt(0) - 0x0660)),
+            10
+        )
+        const targetImg = middleImages[normalizedIndex - 1] || middleAndOtherImages[normalizedIndex - 1]
+
+        if (targetImg) {
+            usedMiddleIndices.add(normalizedIndex - 1)
+            const imgPath = targetImg.url || (targetImg.path ? (targetImg.path.startsWith('http') || targetImg.path.startsWith('/') ? targetImg.path : `/storage/${targetImg.path}`) : '')
+            const altText = (targetImg.alt_text || article.title || '').replace(/"/g, '&quot;')
+            let imageHtml = `<figure class="my-8"><img src="${imgPath}" alt="${altText}" width="1200" height="800" class="w-full h-auto rounded-2xl border border-secondary-200/60 object-cover shadow-sm" loading="lazy" /></figure>`
+            if (targetImg.link_url) {
+                const safeLink = targetImg.link_url.replace(/"/g, '&quot;')
+                imageHtml = `<figure class="my-8"><a href="${safeLink}" target="_blank" rel="noopener noreferrer" class="block hover:opacity-95 transition-opacity"><img src="${imgPath}" alt="${altText}" width="1200" height="800" class="w-full h-auto rounded-2xl border border-secondary-200/60 object-cover shadow-sm" loading="lazy" /></a></figure>`
             }
-            parsedContent = parsedContent.replace(regexEn, imageHtml).replace(regexAr, imageHtml)
+            return imageHtml
         }
+        return match
     })
+
     const unusedMiddleImages = middleImages.filter((_, idx) => !usedMiddleIndices.has(idx))
 
     // Ensure all inline <img> tags resolve to proper /storage/ paths if saved with relative path

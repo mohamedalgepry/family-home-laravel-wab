@@ -263,7 +263,24 @@ export default function AdminArticlesForm({ article, categories }) {
 
     const [keywordInput, setKeywordInput] = useState('')
     const [kwWarning, setKwWarning] = useState(false)
+    const [copiedCode, setCopiedCode] = useState(null)
     const MAX_KEYWORDS = 25
+
+    function copyShortcode(code) {
+        if (typeof navigator !== 'undefined' && navigator.clipboard) {
+            navigator.clipboard.writeText(code)
+            setCopiedCode(code)
+            setTimeout(() => setCopiedCode(null), 2000)
+        }
+    }
+
+    function insertShortcodeToEditor(code) {
+        if (editorAr && !editorAr.isDestroyed) {
+            editorAr.chain().focus().insertContent(` ${code} `).run()
+        } else if (editorEn && !editorEn.isDestroyed) {
+            editorEn.chain().focus().insertContent(` ${code} `).run()
+        }
+    }
 
     function parseKeywords(text) {
         if (!text) return []
@@ -479,11 +496,35 @@ export default function AdminArticlesForm({ article, categories }) {
                                             <option value="middle">وسط المقال</option>
                                             <option value="bottom">آخر المقال</option>
                                         </select>
-                                        {((data.image_updates[img.id]?.position ?? (img.position || 'middle')) === 'middle') && (
-                                            <p className="text-xs text-secondary-600 bg-secondary-100 p-1 rounded text-center" dir="rtl">
-                                                كود الإضافة: <code className="font-bold text-primary-900 bg-white px-1 rounded inline-block" dir="ltr">[صورة:{getShortcodeIndex('existing', img.id)}]</code>
-                                            </p>
-                                        )}
+                                        {((data.image_updates[img.id]?.position ?? (img.position || 'middle')) === 'middle') && (() => {
+                                            const codeStr = `[صورة:${getShortcodeIndex('existing', img.id)}]`;
+                                            return (
+                                                <div className="flex items-center justify-between gap-1 bg-secondary-50 p-1.5 rounded-lg border border-secondary-200" dir="rtl">
+                                                    <div className="text-[11px] text-secondary-700 font-semibold flex items-center gap-1">
+                                                        <span>الكود:</span>
+                                                        <span className="font-mono font-bold text-primary-900 bg-white px-1.5 py-0.5 rounded border border-secondary-200" dir="ltr">{codeStr}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => copyShortcode(codeStr)}
+                                                            className="px-2 py-0.5 text-[11px] font-semibold bg-white border border-secondary-200 hover:bg-primary-50 text-secondary-800 hover:text-primary-900 rounded transition-colors"
+                                                            title="نسخ الكود كنص نقي"
+                                                        >
+                                                            {copiedCode === codeStr ? '✓ تم' : 'نسخ'}
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => insertShortcodeToEditor(codeStr)}
+                                                            className="px-2 py-0.5 text-[11px] font-semibold bg-primary-900 hover:bg-primary-950 text-white rounded transition-colors"
+                                                            title="إدراج الكود في مكان المؤشر داخل محرر المقال"
+                                                        >
+                                                            إدراج
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
                                 ))}
                             </div>
@@ -525,11 +566,35 @@ export default function AdminArticlesForm({ article, categories }) {
                                                 <option value="middle">وسط المقال</option>
                                                 <option value="bottom">آخر المقال</option>
                                             </select>
-                                            {((data.new_image_positions || {})[fileIndex] || 'middle') === 'middle' && (
-                                                <p className="text-xs text-secondary-600 bg-secondary-100 p-1 rounded text-center" dir="rtl">
-                                                    كود الإضافة: <code className="font-bold text-primary-900 bg-white px-1 rounded inline-block" dir="ltr">[صورة:{getShortcodeIndex('new', fileIndex)}]</code>
-                                                </p>
-                                            )}
+                                            {((data.new_image_positions || {})[fileIndex] || 'middle') === 'middle' && (() => {
+                                                const codeStr = `[صورة:${getShortcodeIndex('new', fileIndex)}]`;
+                                                return (
+                                                    <div className="flex items-center justify-between gap-1 bg-secondary-50 p-1.5 rounded-lg border border-secondary-200" dir="rtl">
+                                                        <div className="text-[11px] text-secondary-700 font-semibold flex items-center gap-1">
+                                                            <span>الكود:</span>
+                                                            <span className="font-mono font-bold text-primary-900 bg-white px-1.5 py-0.5 rounded border border-secondary-200" dir="ltr">{codeStr}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => copyShortcode(codeStr)}
+                                                                className="px-2 py-0.5 text-[11px] font-semibold bg-white border border-secondary-200 hover:bg-primary-50 text-secondary-800 hover:text-primary-900 rounded transition-colors"
+                                                                title="نسخ الكود كنص نقي"
+                                                            >
+                                                                {copiedCode === codeStr ? '✓ تم' : 'نسخ'}
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => insertShortcodeToEditor(codeStr)}
+                                                                className="px-2 py-0.5 text-[11px] font-semibold bg-primary-900 hover:bg-primary-950 text-white rounded transition-colors"
+                                                                title="إدراج الكود في مكان المؤشر داخل محرر المقال"
+                                                            >
+                                                                إدراج
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })()}
                                         </div>
                                     ))}
                                 </div>
