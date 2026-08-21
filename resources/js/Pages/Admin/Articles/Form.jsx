@@ -192,8 +192,12 @@ export default function AdminArticlesForm({ article, categories }) {
         excerpt_ar: article?.excerpt_ar || '',
         excerpt_en: article?.excerpt_en || article?.excerpt || '',
         alt_text: article?.alt_text || '',
-        keywords: article?.keywords || [],
-        meta_description: article?.meta_description || '',
+        alt_text_ar: article?.alt_text_ar || article?.alt_text || '',
+        alt_text_en: article?.alt_text_en || '',
+        keywords_ar: article?.keywords_ar || (Array.isArray(article?.keywords) ? article.keywords : []),
+        keywords_en: article?.keywords_en || [],
+        meta_description_ar: article?.meta_description_ar || article?.meta_description || '',
+        meta_description_en: article?.meta_description_en || '',
         is_published: article?.is_published || false,
         cover_image: null,
         images: [],
@@ -261,8 +265,10 @@ export default function AdminArticlesForm({ article, categories }) {
         onUpdate: ({ editor }) => setData('content_en', editor.getHTML()),
     })
 
-    const [keywordInput, setKeywordInput] = useState('')
-    const [kwWarning, setKwWarning] = useState(false)
+    const [keywordInputAr, setKeywordInputAr] = useState('')
+    const [kwWarningAr, setKwWarningAr] = useState(false)
+    const [keywordInputEn, setKeywordInputEn] = useState('')
+    const [kwWarningEn, setKwWarningEn] = useState(false)
     const [copiedCode, setCopiedCode] = useState(null)
     const MAX_KEYWORDS = 25
 
@@ -290,35 +296,66 @@ export default function AdminArticlesForm({ article, categories }) {
             .filter(s => s.length > 0)
     }
 
-    function addKeyword() {
-        if (!keywordInput) return
-        const parsed = parseKeywords(keywordInput)
+    function addKeywordAr() {
+        if (!keywordInputAr) return
+        const parsed = parseKeywords(keywordInputAr)
         if (parsed.length > 0) {
-            const existing = new Set(data.keywords || [])
+            const existing = new Set(data.keywords_ar || [])
             const toAdd = parsed.filter(k => !existing.has(k))
-            const available = MAX_KEYWORDS - (data.keywords || []).length
+            const available = MAX_KEYWORDS - (data.keywords_ar || []).length
             if (available <= 0) {
-                setKwWarning(true)
-                setKeywordInput('')
+                setKwWarningAr(true)
+                setKeywordInputAr('')
                 return
             }
             const limited = toAdd.slice(0, available)
-            setKwWarning(toAdd.length > available)
+            setKwWarningAr(toAdd.length > available)
             if (limited.length > 0) {
-                setData('keywords', [...(data.keywords || []), ...limited])
+                setData('keywords_ar', [...(data.keywords_ar || []), ...limited])
             }
         }
-        setKeywordInput('')
+        setKeywordInputAr('')
     }
 
-    function removeKeyword(kw) {
-        setData('keywords', (data.keywords || []).filter(k => k !== kw))
-        setKwWarning(false)
+    function removeKeywordAr(kw) {
+        setData('keywords_ar', (data.keywords_ar || []).filter(k => k !== kw))
+        setKwWarningAr(false)
     }
 
-    function clearKeywords() {
-        setData('keywords', [])
-        setKwWarning(false)
+    function clearKeywordsAr() {
+        setData('keywords_ar', [])
+        setKwWarningAr(false)
+    }
+
+    function addKeywordEn() {
+        if (!keywordInputEn) return
+        const parsed = parseKeywords(keywordInputEn)
+        if (parsed.length > 0) {
+            const existing = new Set(data.keywords_en || [])
+            const toAdd = parsed.filter(k => !existing.has(k))
+            const available = MAX_KEYWORDS - (data.keywords_en || []).length
+            if (available <= 0) {
+                setKwWarningEn(true)
+                setKeywordInputEn('')
+                return
+            }
+            const limited = toAdd.slice(0, available)
+            setKwWarningEn(toAdd.length > available)
+            if (limited.length > 0) {
+                setData('keywords_en', [...(data.keywords_en || []), ...limited])
+            }
+        }
+        setKeywordInputEn('')
+    }
+
+    function removeKeywordEn(kw) {
+        setData('keywords_en', (data.keywords_en || []).filter(k => k !== kw))
+        setKwWarningEn(false)
+    }
+
+    function clearKeywordsEn() {
+        setData('keywords_en', [])
+        setKwWarningEn(false)
     }
 
     function handleImageDelete(imageId) {
@@ -332,19 +369,32 @@ export default function AdminArticlesForm({ article, categories }) {
     function handleSubmit(e) {
         e.preventDefault()
 
-        let currentKeywords = data.keywords || []
-        if (keywordInput.trim()) {
-            const parsed = parseKeywords(keywordInput)
+        let currentKeywordsAr = data.keywords_ar || []
+        if (keywordInputAr.trim()) {
+            const parsed = parseKeywords(keywordInputAr)
             if (parsed.length > 0) {
-                const existing = new Set(currentKeywords)
+                const existing = new Set(currentKeywordsAr)
                 const toAdd = parsed.filter(k => !existing.has(k))
-                currentKeywords = [...currentKeywords, ...toAdd]
+                currentKeywordsAr = [...currentKeywordsAr, ...toAdd]
+            }
+        }
+
+        let currentKeywordsEn = data.keywords_en || []
+        if (keywordInputEn.trim()) {
+            const parsed = parseKeywords(keywordInputEn)
+            if (parsed.length > 0) {
+                const existing = new Set(currentKeywordsEn)
+                const toAdd = parsed.filter(k => !existing.has(k))
+                currentKeywordsEn = [...currentKeywordsEn, ...toAdd]
             }
         }
 
         const payload = {
             ...data,
-            keywords: currentKeywords,
+            keywords_ar: currentKeywordsAr,
+            keywords_en: currentKeywordsEn,
+            keywords: currentKeywordsAr.length > 0 ? currentKeywordsAr : currentKeywordsEn,
+            meta_description: data.meta_description_ar || data.meta_description_en || '',
         }
 
         if (isEditing) {
@@ -605,79 +655,178 @@ export default function AdminArticlesForm({ article, categories }) {
                     </div>
 
                     {/* SEO */}
-                    <div className="bg-white rounded-xl shadow-card p-6 space-y-4">
+                    <div className="bg-white rounded-xl shadow-card p-6 space-y-6">
                         <h2 className="text-lg font-semibold text-secondary-950">{trans('seo')}</h2>
 
-                        <div>
-                            <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('meta_description')}</label>
-                            <textarea value={data.meta_description} onChange={e => setData('meta_description', e.target.value)} rows={2} className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900" />
-                            {errors.meta_description && <p className="text-xs text-error mt-1">{errors.meta_description}</p>}
+                        {/* Meta Descriptions (Arabic & English) */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-secondary-950 mb-1">
+                                    {trans('meta_description')} ({trans('lang_ar') || 'العربية'})
+                                </label>
+                                <textarea
+                                    value={data.meta_description_ar}
+                                    onChange={e => setData('meta_description_ar', e.target.value)}
+                                    rows={3}
+                                    maxLength={500}
+                                    dir="rtl"
+                                    placeholder={isRtl ? 'وصف الميتا لمحركات البحث باللغة العربية (حتى 500 حرف)...' : 'Arabic meta description for search engines...'}
+                                    className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
+                                />
+                                {errors.meta_description_ar && <p className="text-xs text-error mt-1">{errors.meta_description_ar}</p>}
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-secondary-950 mb-1">
+                                    {trans('meta_description')} ({trans('lang_en') || 'English'})
+                                </label>
+                                <textarea
+                                    value={data.meta_description_en}
+                                    onChange={e => setData('meta_description_en', e.target.value)}
+                                    rows={3}
+                                    maxLength={500}
+                                    dir="ltr"
+                                    placeholder="English meta description for search engines (up to 500 characters)..."
+                                    className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
+                                />
+                                {errors.meta_description_en && <p className="text-xs text-error mt-1">{errors.meta_description_en}</p>}
+                            </div>
                         </div>
 
-                        <div>
-                            <div className="flex items-center justify-between mb-2">
-                                <label className="block text-sm font-semibold text-secondary-950">
-                                    {trans('keywords')}
-                                    <span className={`text-xs font-normal ms-1 ${(data.keywords || []).length >= MAX_KEYWORDS ? 'text-red-500' : 'text-muted'}`}>
-                                        ({(data.keywords || []).length} / {MAX_KEYWORDS})
-                                    </span>
-                                </label>
-                                {(data.keywords || []).length > 0 && (
+                        {/* Keywords (Arabic & English) */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 border-t border-secondary-100">
+                            {/* Arabic Keywords */}
+                            <div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <label className="block text-sm font-semibold text-secondary-950">
+                                        {trans('keywords')} ({trans('lang_ar') || 'العربية'})
+                                        <span className={`text-xs font-normal ms-1 ${(data.keywords_ar || []).length >= MAX_KEYWORDS ? 'text-red-500' : 'text-muted'}`}>
+                                            ({(data.keywords_ar || []).length} / {MAX_KEYWORDS})
+                                        </span>
+                                    </label>
+                                    {(data.keywords_ar || []).length > 0 && (
+                                        <button
+                                            type="button"
+                                            onClick={clearKeywordsAr}
+                                            className="text-xs text-red-600 hover:text-red-700 font-medium transition-colors"
+                                        >
+                                            {isRtl ? 'تفريغ الكل' : 'Clear All'}
+                                        </button>
+                                    )}
+                                </div>
+
+                                <div className="flex gap-2 mb-2">
+                                    <textarea
+                                        value={keywordInputAr}
+                                        onChange={e => { setKeywordInputAr(e.target.value); setKwWarningAr(false) }}
+                                        onKeyDown={e => {
+                                            if (e.key === 'Enter' && !e.shiftKey) {
+                                                e.preventDefault()
+                                                addKeywordAr()
+                                            }
+                                        }}
+                                        rows={2}
+                                        dir="rtl"
+                                        disabled={(data.keywords_ar || []).length >= MAX_KEYWORDS}
+                                        placeholder={(data.keywords_ar || []).length >= MAX_KEYWORDS
+                                            ? (isRtl ? 'وصلت للحد الأقصى 25 كلمة' : 'Max 25 keywords reached')
+                                            : (isRtl ? 'الصق الكلمات العربية مفصولة بفاصلة (، أو .) أو سطر جديد...' : 'Paste Arabic keywords separated by commas or newlines...')}
+                                        className="flex-1 px-3 py-2 border border-secondary-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 resize-y disabled:opacity-50 disabled:cursor-not-allowed"
+                                    />
                                     <button
                                         type="button"
-                                        onClick={clearKeywords}
-                                        className="text-xs text-red-600 hover:text-red-700 font-medium transition-colors"
+                                        onClick={addKeywordAr}
+                                        disabled={(data.keywords_ar || []).length >= MAX_KEYWORDS}
+                                        className="px-4 py-2 bg-primary-900 text-white rounded-xl text-sm font-medium hover:bg-primary-800 transition-colors self-end h-10 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        {isRtl ? 'تفريغ الكل' : 'Clear All'}
+                                        {trans('add')}
                                     </button>
-                                )}
-                            </div>
-
-                            <div className="flex gap-2 mb-2">
-                                <textarea
-                                    value={keywordInput}
-                                    onChange={e => { setKeywordInput(e.target.value); setKwWarning(false) }}
-                                    onKeyDown={e => {
-                                        if (e.key === 'Enter' && !e.shiftKey) {
-                                            e.preventDefault()
-                                            addKeyword()
-                                        }
-                                    }}
-                                    rows={2}
-                                    dir={isRtl ? 'rtl' : 'ltr'}
-                                    disabled={(data.keywords || []).length >= MAX_KEYWORDS}
-                                    placeholder={(data.keywords || []).length >= MAX_KEYWORDS
-                                        ? (isRtl ? 'وصلت للحد الأقصى 25 كلمة' : 'Max 25 keywords reached')
-                                        : (isRtl ? 'الصق النص أو الكلمات مفصولة بفاصلة (، أو .) أو سطر جديد...' : 'Paste text or keywords separated by commas or newlines...')}
-                                    className="flex-1 px-3 py-2 border border-secondary-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 resize-y disabled:opacity-50 disabled:cursor-not-allowed"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={addKeyword}
-                                    disabled={(data.keywords || []).length >= MAX_KEYWORDS}
-                                    className="px-4 py-2 bg-primary-900 text-white rounded-xl text-sm font-medium hover:bg-primary-800 transition-colors self-end h-10 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    {trans('add')}
-                                </button>
-                            </div>
-
-                            {kwWarning && (
-                                <p className="text-xs text-red-500 mb-2">
-                                    {isRtl ? 'وصلت للحد الأقصى ٢٥ كلمة مفتاحية' : 'Max 25 keywords reached'}
-                                </p>
-                            )}
-
-                            {(data.keywords || []).length > 0 && (
-                                <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto p-2.5 border border-secondary-200 rounded-xl bg-surface">
-                                    {data.keywords.map(kw => (
-                                        <span key={kw} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white text-xs font-medium text-secondary-800 rounded-lg border border-secondary-200 shadow-2xs group hover:border-red-300 transition-colors">
-                                            {kw}
-                                            <button type="button" onClick={() => removeKeyword(kw)} className="text-secondary-400 group-hover:text-red-600 text-sm font-bold leading-none">&times;</button>
-                                        </span>
-                                    ))}
                                 </div>
-                            )}
-                            {errors.keywords && <p className="text-xs text-error mt-1">{errors.keywords}</p>}
+
+                                {kwWarningAr && (
+                                    <p className="text-xs text-red-500 mb-2">
+                                        {isRtl ? 'وصلت للحد الأقصى ٢٥ كلمة مفتاحية' : 'Max 25 keywords reached'}
+                                    </p>
+                                )}
+
+                                {(data.keywords_ar || []).length > 0 && (
+                                    <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto p-2.5 border border-secondary-200 rounded-xl bg-surface">
+                                        {data.keywords_ar.map(kw => (
+                                            <span key={kw} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white text-xs font-medium text-secondary-800 rounded-lg border border-secondary-200 shadow-2xs group hover:border-red-300 transition-colors">
+                                                {kw}
+                                                <button type="button" onClick={() => removeKeywordAr(kw)} className="text-secondary-400 group-hover:text-red-600 text-sm font-bold leading-none">&times;</button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+                                {errors.keywords_ar && <p className="text-xs text-error mt-1">{errors.keywords_ar}</p>}
+                            </div>
+
+                            {/* English Keywords */}
+                            <div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <label className="block text-sm font-semibold text-secondary-950">
+                                        {trans('keywords')} ({trans('lang_en') || 'English'})
+                                        <span className={`text-xs font-normal ms-1 ${(data.keywords_en || []).length >= MAX_KEYWORDS ? 'text-red-500' : 'text-muted'}`}>
+                                            ({(data.keywords_en || []).length} / {MAX_KEYWORDS})
+                                        </span>
+                                    </label>
+                                    {(data.keywords_en || []).length > 0 && (
+                                        <button
+                                            type="button"
+                                            onClick={clearKeywordsEn}
+                                            className="text-xs text-red-600 hover:text-red-700 font-medium transition-colors"
+                                        >
+                                            {isRtl ? 'تفريغ الكل' : 'Clear All'}
+                                        </button>
+                                    )}
+                                </div>
+
+                                <div className="flex gap-2 mb-2">
+                                    <textarea
+                                        value={keywordInputEn}
+                                        onChange={e => { setKeywordInputEn(e.target.value); setKwWarningEn(false) }}
+                                        onKeyDown={e => {
+                                            if (e.key === 'Enter' && !e.shiftKey) {
+                                                e.preventDefault()
+                                                addKeywordEn()
+                                            }
+                                        }}
+                                        rows={2}
+                                        dir="ltr"
+                                        disabled={(data.keywords_en || []).length >= MAX_KEYWORDS}
+                                        placeholder={(data.keywords_en || []).length >= MAX_KEYWORDS
+                                            ? 'Max 25 keywords reached'
+                                            : 'Paste English keywords separated by commas or newlines...'}
+                                        className="flex-1 px-3 py-2 border border-secondary-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 resize-y disabled:opacity-50 disabled:cursor-not-allowed"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={addKeywordEn}
+                                        disabled={(data.keywords_en || []).length >= MAX_KEYWORDS}
+                                        className="px-4 py-2 bg-primary-900 text-white rounded-xl text-sm font-medium hover:bg-primary-800 transition-colors self-end h-10 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {trans('add')}
+                                    </button>
+                                </div>
+
+                                {kwWarningEn && (
+                                    <p className="text-xs text-red-500 mb-2">
+                                        Max 25 keywords reached
+                                    </p>
+                                )}
+
+                                {(data.keywords_en || []).length > 0 && (
+                                    <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto p-2.5 border border-secondary-200 rounded-xl bg-surface">
+                                        {data.keywords_en.map(kw => (
+                                            <span key={kw} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white text-xs font-medium text-secondary-800 rounded-lg border border-secondary-200 shadow-2xs group hover:border-red-300 transition-colors">
+                                                {kw}
+                                                <button type="button" onClick={() => removeKeywordEn(kw)} className="text-secondary-400 group-hover:text-red-600 text-sm font-bold leading-none">&times;</button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+                                {errors.keywords_en && <p className="text-xs text-error mt-1">{errors.keywords_en}</p>}
+                            </div>
                         </div>
                     </div>
 

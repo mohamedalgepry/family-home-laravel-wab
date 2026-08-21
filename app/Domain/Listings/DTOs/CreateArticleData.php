@@ -15,8 +15,14 @@ class CreateArticleData extends Data
         public readonly ?string $excerpt_ar = null,
         public readonly ?string $excerpt_en = null,
         public readonly ?string $alt_text = null,
+        public readonly ?string $alt_text_ar = null,
+        public readonly ?string $alt_text_en = null,
         public readonly ?array $keywords = null,
+        public readonly ?array $keywords_ar = null,
+        public readonly ?array $keywords_en = null,
         public readonly ?string $meta_description = null,
+        public readonly ?string $meta_description_ar = null,
+        public readonly ?string $meta_description_en = null,
         public readonly bool $is_published = false,
     ) {}
 }

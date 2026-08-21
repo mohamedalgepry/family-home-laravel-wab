@@ -9,14 +9,17 @@ class Article extends Model
 {
     protected $fillable = [
         'category_id', 'title', 'title_ar', 'title_en', 'slug', 'slug_ar', 'slug_en', 'content', 'content_ar', 'content_en',
-        'excerpt', 'excerpt_ar', 'excerpt_en', 'alt_text',
-        'keywords', 'meta_description', 'is_published', 'published_at', 'views_count',
+        'excerpt', 'excerpt_ar', 'excerpt_en', 'alt_text', 'alt_text_ar', 'alt_text_en',
+        'keywords', 'keywords_ar', 'keywords_en', 'meta_description', 'meta_description_ar', 'meta_description_en',
+        'is_published', 'published_at', 'views_count',
     ];
 
     protected function casts(): array
     {
         return [
             'keywords' => 'array',
+            'keywords_ar' => 'array',
+            'keywords_en' => 'array',
             'is_published' => 'boolean',
             'published_at' => 'datetime',
             'views_count' => 'integer',
@@ -42,6 +45,33 @@ class Article extends Model
         $locale = app()->getLocale();
 
         return $locale === 'ar' ? ($this->excerpt_ar ?? $value) : ($this->excerpt_en ?? $value);
+    }
+
+    public function getMetaDescriptionAttribute($value)
+    {
+        $locale = app()->getLocale();
+
+        return $locale === 'ar'
+            ? ($this->meta_description_ar ?? $value ?? $this->meta_description_en)
+            : ($this->meta_description_en ?? $value ?? $this->meta_description_ar);
+    }
+
+    public function getKeywordsAttribute($value)
+    {
+        $locale = app()->getLocale();
+
+        return $locale === 'ar'
+            ? ($this->keywords_ar ?? $value ?? $this->keywords_en ?? [])
+            : ($this->keywords_en ?? $value ?? $this->keywords_ar ?? []);
+    }
+
+    public function getAltTextAttribute($value)
+    {
+        $locale = app()->getLocale();
+
+        return $locale === 'ar'
+            ? ($this->alt_text_ar ?? $value ?? $this->alt_text_en)
+            : ($this->alt_text_en ?? $value ?? $this->alt_text_ar);
     }
 
     protected static function booted(): void
