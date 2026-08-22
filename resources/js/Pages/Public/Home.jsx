@@ -56,6 +56,8 @@ export default function Home({ featuredUnits, latestUnits, latestProjects, popul
                         <img 
                             src={heroImage} 
                             alt={trans('site_title')} 
+                            width={1920}
+                            height={1080}
                             className="w-full h-full object-cover object-center scale-105 animate-subtle-zoom" 
                             fetchPriority="high"
                             loading="eager"
@@ -128,12 +130,16 @@ export default function Home({ featuredUnits, latestUnits, latestProjects, popul
                                     <Link
                                         key={area.id}
                                         href={localizedPath(`/areas/${areaSlug}`, locale)}
-                                        className="group relative shrink-0 w-[180px] md:w-[220px] h-[240px] bg-gradient-to-br from-secondary-900 via-secondary-800 to-primary-950 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 snap-center"
+                                        className="group relative shrink-0 w-[180px] md:w-[220px] h-[240px] bg-gradient-to-br from-secondary-900 via-secondary-800 to-primary-950 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-[transform,box-shadow] duration-300 snap-center"
                                     >
                                         {(area.image_path || area.hero_image) ? (
                                             <img 
                                                 src={getStorageUrl(area.image_path || area.hero_image)}
                                                 alt={areaName}
+                                                width={220}
+                                                height={240}
+                                                loading="lazy"
+                                                decoding="async"
                                                 onError={(e) => {
                                                     e.currentTarget.style.display = 'none';
                                                 }}
@@ -141,7 +147,7 @@ export default function Home({ featuredUnits, latestUnits, latestProjects, popul
                                             />
                                         ) : (
                                             <div className="w-full h-full flex flex-col items-center justify-center text-white/40 group-hover:text-primary-400 transition-colors pb-10">
-                                                <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center shadow-inner group-hover:scale-110 group-hover:bg-primary-900/30 transition-all">
+                                                <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center shadow-inner group-hover:scale-110 group-hover:bg-primary-900/30 transition-[transform,background-color] duration-200">
                                                     <svg className="w-7 h-7 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                                         <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
                                                         <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />

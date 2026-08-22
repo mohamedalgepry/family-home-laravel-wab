@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { localizedPath } from '../../Utils/route'
 import { usePage, Link } from '@inertiajs/react'
 import { useTrans } from '../../Utils/trans'
@@ -21,7 +22,7 @@ function SkeletonCard() {
     )
 }
 
-export default function ProjectCard({ project, loading = false }) {
+function ProjectCard({ project, loading = false }) {
     const { locale } = usePage().props
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
@@ -47,7 +48,7 @@ export default function ProjectCard({ project, loading = false }) {
     return (
         <article 
             dir={isRtl ? 'rtl' : 'ltr'} 
-            className="bg-white rounded-2xl shadow-card hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-300 overflow-hidden group border border-secondary-100/80 flex flex-col h-full"
+            className="bg-white rounded-2xl shadow-card hover:shadow-2xl hover:-translate-y-1.5 transition-[transform,box-shadow] duration-300 overflow-hidden group border border-secondary-100/80 flex flex-col h-full"
         >
             {/* Image Container */}
             <div className="relative overflow-hidden aspect-[4/3] bg-secondary-100">
@@ -79,7 +80,7 @@ export default function ProjectCard({ project, loading = false }) {
                             e.stopPropagation();
                             toggleCompare(project.id);
                         }}
-                        className={`pointer-events-auto p-2 rounded-full backdrop-blur-md transition-all shadow-sm ${
+                        className={`pointer-events-auto p-2 rounded-full backdrop-blur-md transition-colors shadow-sm ${
                             isCompared 
                                 ? 'bg-primary-900 text-white' 
                                 : 'bg-white/90 text-secondary-700 hover:bg-white hover:text-primary-900'
@@ -139,7 +140,7 @@ export default function ProjectCard({ project, loading = false }) {
                 <div className="flex items-center justify-between pt-3 border-t border-secondary-100/70 mt-auto">
                     <button
                         onClick={e => { e.preventDefault(); toggleCompare(project.id); }}
-                        className={`text-xs px-3.5 py-1.5 rounded-xl border transition-all duration-200 font-semibold ${
+                        className={`text-xs px-3.5 py-1.5 rounded-xl border transition-colors duration-200 font-semibold ${
                             isCompared 
                                 ? 'bg-primary-900 text-white border-primary-900 shadow-sm' 
                                 : 'bg-secondary-50 text-secondary-700 border-secondary-200 hover:border-primary-900 hover:text-primary-900 hover:bg-white'
@@ -151,7 +152,7 @@ export default function ProjectCard({ project, loading = false }) {
                     </button>
 
                     <Link
-                        href={localizedPath(`/projects/${project.slug || project.id}`, locale)}
+                        href={localizedPath(`/projects/${projectSlug}`, locale)}
                         className="text-xs font-bold text-primary-900 hover:text-primary-700 flex items-center gap-1 group/link transition-colors"
                     >
                         <span>{trans('show_more') || (isRtl ? 'التفاصيل' : 'Details')}</span>
@@ -164,3 +165,5 @@ export default function ProjectCard({ project, loading = false }) {
         </article>
     )
 }
+
+export default memo(ProjectCard)

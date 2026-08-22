@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect, useId } from 'react'
+import { usePage } from '@inertiajs/react'
+import { useTrans } from '../../Utils/trans'
 
 export function Select({ 
     value, 
@@ -13,6 +15,8 @@ export function Select({
     'aria-label': ariaLabel,
     variant = 'default'
 }) {
+    const { locale } = usePage().props || {}
+    const trans = useTrans(locale)
     const [isOpen, setIsOpen] = useState(false)
     const [search, setSearch] = useState('')
     const [focusedIndex, setFocusedIndex] = useState(-1)
@@ -140,6 +144,10 @@ export function Select({
         }
     };
 
+    const activeDescendantId = isOpen && focusedIndex >= 0 && focusedIndex < filteredOptions.length 
+        ? `${listboxId}-opt-${focusedIndex}` 
+        : undefined;
+
     return (
         <div 
             ref={wrapperRef} 
@@ -174,8 +182,9 @@ export function Select({
                 aria-haspopup="listbox"
                 aria-expanded={isOpen}
                 aria-controls={listboxId}
+                aria-activedescendant={activeDescendantId}
                 aria-label={ariaLabel || (typeof selectedOption?.label === 'string' ? selectedOption.label : 'Select option')}
-                className={`w-full h-full min-h-[44px] px-4 py-2.5 text-sm transition-all duration-200 outline-none flex items-center justify-between disabled:opacity-50 disabled:cursor-not-allowed shadow-sm ${
+                className={`w-full h-full min-h-[44px] px-4 py-2.5 text-sm transition-colors duration-200 outline-none flex items-center justify-between disabled:opacity-50 disabled:cursor-not-allowed shadow-sm ${
                     variant === 'ghost' 
                         ? 'bg-transparent border border-transparent rounded-xl hover:bg-surface-hover ' + (isOpen ? 'bg-surface-hover text-primary-900' : '') 
                         : 'bg-white border border-border rounded-xl focus:ring-4 focus:ring-primary-900/10 focus:border-primary-900 hover:bg-surface-hover/50 hover:border-secondary-300 ' + (isOpen ? 'bg-white border-primary-900 ring-4 ring-primary-900/10' : '')
@@ -183,7 +192,7 @@ export function Select({
                 style={{ textAlign: 'start' }}
             >
                 <span className={`truncate text-[14px] ${!selectedOption?.value && selectedOption?.value !== 0 ? 'text-secondary-500' : 'text-secondary-900 font-medium'}`}>
-                    {selectedOption ? selectedOption.label : 'Select...'}
+                    {selectedOption ? selectedOption.label : (trans('select') || 'Select...')}
                 </span>
                 
                 {/* Custom Arrow */}
@@ -201,7 +210,7 @@ export function Select({
 
             {/* Dropdown Menu */}
             <div 
-                className={`absolute z-[100] top-full left-0 right-0 w-full mt-2 bg-white rounded-2xl shadow-xl border border-border flex flex-col origin-top transition-all duration-200 ease-out min-w-[160px] ${isOpen ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 -translate-y-1 pointer-events-none'}`}
+                className={`absolute z-[100] top-full left-0 right-0 w-full mt-2 bg-white rounded-2xl shadow-xl border border-border flex flex-col origin-top transition-[opacity,transform] duration-200 ease-out min-w-[160px] ${isOpen ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 -translate-y-1 pointer-events-none'}`}
                 style={{ maxHeight: '300px' }}
             >
                 {/* Search Box */}
@@ -216,9 +225,9 @@ export function Select({
                                 type="text"
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Search..."
-                                aria-label="Filter options"
-                                className="w-full pl-9 rtl:pr-9 rtl:pl-3 py-2.5 bg-surface border border-border rounded-xl text-sm text-secondary-900 focus:ring-2 focus:ring-primary-900/10 focus:bg-white focus:border-primary-900 transition-all outline-none"
+                                placeholder={trans('search') || 'Search...'}
+                                aria-label={trans('filter_options') || 'Filter options'}
+                                className="w-full pl-9 rtl:pr-9 rtl:pl-3 py-2.5 bg-surface border border-border rounded-xl text-sm text-secondary-900 focus:ring-2 focus:ring-primary-900/10 focus:bg-white focus:border-primary-900 transition-colors outline-none"
                                 onClick={(e) => e.stopPropagation()} 
                             />
                         </div>
@@ -230,21 +239,23 @@ export function Select({
                     id={listboxId}
                     role="listbox"
                     tabIndex={-1}
-                    aria-label={ariaLabel || 'Options'}
+                    aria-label={ariaLabel || (trans('options') || 'Options')}
                     className="overflow-y-auto p-2 custom-scrollbar"
                 >
                     {filteredOptions.length === 0 ? (
                         <div className="px-4 py-6 text-sm text-secondary-500 text-center font-medium" role="option" aria-selected="false">
-                            No results found
+                            {trans('no_results') || 'No results found'}
                         </div>
                     ) : (
                         filteredOptions.map((opt, idx) => {
                             const isSelected = String(opt.value) === String(currentValue)
                             const isKeyboardFocused = idx === focusedIndex
+                            const optionId = `${listboxId}-opt-${idx}`
 
                             return (
                                 <button
                                     key={opt.value}
+                                    id={optionId}
                                     type="button"
                                     role="option"
                                     aria-selected={isSelected}

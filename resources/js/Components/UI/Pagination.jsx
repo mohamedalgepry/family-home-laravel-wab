@@ -31,18 +31,18 @@ export default function Pagination({ meta, links: routeLinks, pageParam = 'page'
     }
 
     return (
-        <nav dir={isRtl ? 'rtl' : 'ltr'} className="flex items-center justify-center gap-1 mt-8" aria-label={isRtl ? 'صفحات النتائج' : 'Pagination'}>
+        <nav dir={isRtl ? 'rtl' : 'ltr'} className="flex items-center justify-center gap-1.5 mt-8 flex-wrap" aria-label={isRtl ? 'صفحات النتائج' : 'Pagination'}>
             {/* Previous */}
             {current_page > 1 ? (
                 <Link
                     href={buildUrl(current_page - 1)}
-                    className="min-w-[40px] h-10 px-3 flex items-center justify-center text-sm font-semibold text-secondary-700 hover:bg-surface-hover rounded-xl transition-colors"
+                    className="min-w-[44px] min-h-[44px] px-3.5 flex items-center justify-center text-sm font-semibold text-secondary-700 hover:bg-surface-hover rounded-xl transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                     {...preserveState}
                 >
                     {trans('previous')}
                 </Link>
             ) : (
-                <span className="min-w-[40px] h-10 px-3 flex items-center justify-center text-sm font-semibold text-secondary-300 cursor-not-allowed">
+                <span className="min-w-[44px] min-h-[44px] px-3.5 flex items-center justify-center text-sm font-semibold text-secondary-300 cursor-not-allowed">
                     {trans('previous')}
                 </span>
             )}
@@ -50,10 +50,10 @@ export default function Pagination({ meta, links: routeLinks, pageParam = 'page'
             {/* First page + ellipsis */}
             {start > 1 && (
                 <>
-                    <Link href={buildUrl(1)} className="min-w-[40px] h-10 px-3 flex items-center justify-center text-sm font-semibold text-secondary-700 hover:bg-surface-hover rounded-xl transition-colors" {...preserveState}>
+                    <Link href={buildUrl(1)} className="min-w-[44px] min-h-[44px] px-3.5 flex items-center justify-center text-sm font-semibold text-secondary-700 hover:bg-surface-hover rounded-xl transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500" {...preserveState}>
                         1
                     </Link>
-                    {start > 2 && <span className="min-w-[40px] h-10 px-2 flex items-center justify-center text-secondary-400 text-sm">...</span>}
+                    {start > 2 && <span className="min-w-[36px] min-h-[44px] px-1 flex items-center justify-center text-secondary-400 text-sm">...</span>}
                 </>
             )}
 
@@ -62,7 +62,7 @@ export default function Pagination({ meta, links: routeLinks, pageParam = 'page'
                 <Link
                     key={page}
                     href={buildUrl(page)}
-                    className={`min-w-[40px] h-10 px-3 flex items-center justify-center text-sm font-semibold rounded-xl transition-all duration-200 ${
+                    className={`min-w-[44px] min-h-[44px] px-3.5 flex items-center justify-center text-sm font-semibold rounded-xl transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${
                         page === current_page
                             ? 'bg-primary-900 text-white shadow-sm'
                             : 'text-secondary-700 hover:bg-surface-hover'
@@ -76,8 +76,8 @@ export default function Pagination({ meta, links: routeLinks, pageParam = 'page'
             {/* Last page + ellipsis */}
             {end < last_page && (
                 <>
-                    {end < last_page - 1 && <span className="min-w-[40px] h-10 px-2 flex items-center justify-center text-secondary-400 text-sm">...</span>}
-                    <Link href={buildUrl(last_page)} className="min-w-[40px] h-10 px-3 flex items-center justify-center text-sm font-semibold text-secondary-700 hover:bg-surface-hover rounded-xl transition-colors" {...preserveState}>
+                    {end < last_page - 1 && <span className="min-w-[36px] min-h-[44px] px-1 flex items-center justify-center text-secondary-400 text-sm">...</span>}
+                    <Link href={buildUrl(last_page)} className="min-w-[44px] min-h-[44px] px-3.5 flex items-center justify-center text-sm font-semibold text-secondary-700 hover:bg-surface-hover rounded-xl transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500" {...preserveState}>
                         {last_page}
                     </Link>
                 </>
@@ -87,13 +87,13 @@ export default function Pagination({ meta, links: routeLinks, pageParam = 'page'
             {current_page < last_page ? (
                 <Link
                     href={buildUrl(current_page + 1)}
-                    className="min-w-[40px] h-10 px-3 flex items-center justify-center text-sm font-semibold text-secondary-700 hover:bg-surface-hover rounded-xl transition-colors"
+                    className="min-w-[44px] min-h-[44px] px-3.5 flex items-center justify-center text-sm font-semibold text-secondary-700 hover:bg-surface-hover rounded-xl transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                     {...preserveState}
                 >
                     {trans('next')}
                 </Link>
             ) : (
-                <span className="min-w-[40px] h-10 px-3 flex items-center justify-center text-sm font-semibold text-secondary-300 cursor-not-allowed">
+                <span className="min-w-[44px] min-h-[44px] px-3.5 flex items-center justify-center text-sm font-semibold text-secondary-300 cursor-not-allowed">
                     {trans('next')}
                 </span>
             )}

@@ -96,6 +96,18 @@ export default function AdminSidebar({ children }) {
     const soundReadyRef = useRef(false)
     const soundRef = useRef(soundEnabled)
 
+    // Handle Escape key for mobile drawer and notif dropdown
+    useEffect(() => {
+        function handleKeyDown(e) {
+            if (e.key === 'Escape') {
+                if (mobileOpen) setMobileOpen(false)
+                if (notifOpen) setNotifOpen(false)
+            }
+        }
+        window.addEventListener('keydown', handleKeyDown)
+        return () => window.removeEventListener('keydown', handleKeyDown)
+    }, [mobileOpen, notifOpen])
+
     useEffect(() => {
         function handleClickOutside(e) {
             if (notifRef.current && !notifRef.current.contains(e.target)) {
@@ -180,6 +192,9 @@ export default function AdminSidebar({ children }) {
     }, [initialCount])
 
     async function pollCounts() {
+        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+            return null
+        }
         try {
             const [notifRes, msgRes] = await Promise.all([
                 fetch('/admin/notifications/unread-count', {
@@ -211,6 +226,8 @@ export default function AdminSidebar({ children }) {
         if (count > prevNotifRef.current) {
             if (soundRef.current) playNotificationSound()
             const el = document.createElement('div')
+            el.setAttribute('role', 'alert')
+            el.setAttribute('aria-live', 'polite')
             el.className = 'fixed top-4 end-4 z-50 bg-amber-500 text-white px-4 py-3 rounded-xl shadow-lg text-sm font-bold animate-fade-in'
             el.textContent = isRtl ? `🔔 لديك ${count} إشعار جديد` : `🔔 You have ${count} new notifications`
             document.body.appendChild(el)
@@ -225,6 +242,8 @@ export default function AdminSidebar({ children }) {
         if (count > prevMsgRef.current) {
             if (soundRef.current) playNotificationSound()
             const el = document.createElement('div')
+            el.setAttribute('role', 'alert')
+            el.setAttribute('aria-live', 'polite')
             el.className = 'fixed top-4 end-4 z-50 bg-blue-500 text-white px-4 py-3 rounded-xl shadow-lg text-sm font-bold animate-fade-in'
             el.textContent = isRtl ? `💬 لديك ${count} رسالة جديدة` : `💬 You have ${count} new messages`
             document.body.appendChild(el)
@@ -247,10 +266,20 @@ export default function AdminSidebar({ children }) {
 
         tick()
         const interval = setInterval(tick, 30000)
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                tick()
+            }
+        }
+
         window.addEventListener('focus', tick)
+        document.addEventListener('visibilitychange', handleVisibilityChange)
+
         return () => {
             clearInterval(interval)
             window.removeEventListener('focus', tick)
+            document.removeEventListener('visibilitychange', handleVisibilityChange)
         }
     }, [auth?.user])
 
@@ -294,7 +323,7 @@ export default function AdminSidebar({ children }) {
                                         key={item.key}
                                         href={item.href}
                                         onClick={() => setMobileOpen(false)}
-                                        className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 ${active
+                                        className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-colors duration-200 ${active
                                                 ? 'bg-primary-900 text-white shadow-md'
                                                 : 'text-secondary-300 hover:bg-secondary-900/80 hover:text-white'
                                             }`}
@@ -349,7 +378,7 @@ export default function AdminSidebar({ children }) {
 
                 <div className="p-3 border-t border-secondary-800/80 bg-secondary-950/50">
                     <Link href={localizedPath('/', locale)} className="flex items-center gap-2 px-3 py-2 text-xs text-secondary-400 hover:text-white hover:bg-secondary-900 rounded-lg transition-colors">
-                        <span>&larr;</span>
+                        <span className="rtl:rotate-180">&larr;</span>
                         <span>{trans('home')}</span>
                     </Link>
                 </div>
@@ -357,24 +386,28 @@ export default function AdminSidebar({ children }) {
 
             {/* Mobile Drawer */}
             {mobileOpen && (
-                <div className="fixed inset-0 z-50 md:hidden flex">
-                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
-                    <aside className="relative w-64 bg-secondary-950 text-white flex flex-col z-10 shadow-2xl h-full">
+                <div dir={isRtl ? 'rtl' : 'ltr'} className="fixed inset-0 z-50 md:hidden flex justify-start">
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-xs sm:backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
+                    <aside className="relative w-64 bg-secondary-950 text-white flex flex-col z-10 shadow-2xl h-full animate-fade-in">
                         <div className="p-4 border-b border-secondary-800 flex items-center justify-between">
                             <Link href="/admin" className="flex items-center gap-2">
                                 <img src="/icon.png" alt={trans('app_name')} className="h-7 w-auto" />
                                 <span className="text-sm font-bold text-primary-900">{trans('app_name')}</span>
                             </Link>
-                            <button onClick={() => setMobileOpen(false)} className="text-secondary-400 hover:text-white p-1">
-                                &times;
+                            <button 
+                                onClick={() => setMobileOpen(false)} 
+                                aria-label={trans('close') || 'Close'}
+                                className="text-secondary-400 hover:text-white p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg transition-colors"
+                            >
+                                <span className="text-xl leading-none">&times;</span>
                             </button>
                         </div>
 
                         {renderNavContent()}
 
                         <div className="p-3 border-t border-secondary-800">
-                            <Link href={localizedPath('/', locale)} className="block px-3 py-2 text-xs text-secondary-400 hover:text-white rounded-lg">
-                                &larr; {trans('home')}
+                            <Link href={localizedPath('/', locale)} className="block px-3 py-2 text-xs text-secondary-400 hover:text-white rounded-lg transition-colors">
+                                <span className="rtl:rotate-180 inline-block">&larr;</span> {trans('home')}
                             </Link>
                         </div>
                     </aside>
@@ -388,8 +421,8 @@ export default function AdminSidebar({ children }) {
                     <div className="flex items-center gap-3">
                         <button
                             onClick={() => setMobileOpen(true)}
-                            className="md:hidden text-secondary-700 hover:text-primary-900 p-1.5 rounded-lg border border-secondary-200"
-                            aria-label="Toggle menu"
+                            className="md:hidden text-secondary-700 hover:text-primary-900 p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg border border-secondary-200 transition-colors"
+                            aria-label={trans('toggle_menu') || 'Toggle menu'}
                         >
                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
@@ -403,7 +436,7 @@ export default function AdminSidebar({ children }) {
                             href={`/locale/${isRtl ? 'en' : 'ar'}`}
                             method="get"
                             as="button"
-                            className="text-xs font-medium text-secondary-700 hover:text-primary-900 border border-secondary-200 rounded px-2.5 py-1 transition-colors focus-visible:ring-2 focus-visible:ring-primary-900 focus-visible:outline-none"
+                            className="text-xs font-medium text-secondary-700 hover:text-primary-900 border border-secondary-200 rounded px-2.5 py-1 transition-colors focus-visible:ring-2 focus-visible:ring-primary-900 focus-visible:outline-none min-h-[36px] flex items-center"
                         >
                             {isRtl ? trans('lang_en') : trans('lang_ar')}
                         </Link>
@@ -411,7 +444,7 @@ export default function AdminSidebar({ children }) {
                         <div className="flex items-center gap-3 border-s border-secondary-200 ps-4 rtl:border-s-0 rtl:border-r rtl:pr-4 rtl:ps-0">
                             <button
                                 onClick={toggleSound}
-                                className="w-8 h-8 rounded-full flex items-center justify-center text-secondary-500 hover:bg-secondary-100 hover:text-secondary-950 transition-colors"
+                                className="w-9 h-9 rounded-full flex items-center justify-center text-secondary-500 hover:bg-secondary-100 hover:text-secondary-950 transition-colors"
                                 title={soundEnabled ? trans('disable_sound') : trans('enable_sound')}
                             >
                                 {soundEnabled ? (
@@ -428,8 +461,10 @@ export default function AdminSidebar({ children }) {
                             <div ref={notifRef} className="relative">
                                 <button
                                     onClick={openNotifDropdown}
-                                    className="relative w-8 h-8 rounded-full flex items-center justify-center text-secondary-500 hover:bg-secondary-100 hover:text-secondary-950 transition-colors"
+                                    className="relative w-9 h-9 rounded-full flex items-center justify-center text-secondary-500 hover:bg-secondary-100 hover:text-secondary-950 transition-colors"
                                     title={trans('sidebar_notifications')}
+                                    aria-expanded={notifOpen}
+                                    aria-haspopup="true"
                                 >
                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
@@ -554,7 +589,7 @@ export default function AdminSidebar({ children }) {
                                 as="button"
                                 className="w-8 h-8 rounded-full flex items-center justify-center text-secondary-500 hover:bg-red-50 hover:text-error transition-colors focus-visible:ring-2 focus-visible:ring-error focus-visible:outline-none"
                                 title={trans('logout')}
-                                aria-label="Logout"
+                                aria-label={trans('logout') || 'Logout'}
                             >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -566,15 +601,15 @@ export default function AdminSidebar({ children }) {
 
                 {/* Flash Messages */}
                 {flash?.error && showFlash && (
-                    <div className="mx-4 md:mx-6 mt-4 px-4 py-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm flex items-center justify-between">
+                    <div role="alert" aria-live="polite" className="mx-4 md:mx-6 mt-4 px-4 py-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm flex items-center justify-between">
                         <span>{flash.error}</span>
-                        <button onClick={() => setShowFlash(false)} className="text-red-400 hover:text-red-600 me-2">&times;</button>
+                        <button onClick={() => setShowFlash(false)} aria-label={trans('close') || 'Close'} className="text-red-400 hover:text-red-600 me-2 min-w-[32px] min-h-[32px] flex items-center justify-center">&times;</button>
                     </div>
                 )}
                 {flash?.success && showFlash && (
-                    <div className="mx-4 md:mx-6 mt-4 px-4 py-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm flex items-center justify-between">
+                    <div role="alert" aria-live="polite" className="mx-4 md:mx-6 mt-4 px-4 py-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm flex items-center justify-between">
                         <span>{flash.success}</span>
-                        <button onClick={() => setShowFlash(false)} className="text-green-400 hover:text-green-600 me-2">&times;</button>
+                        <button onClick={() => setShowFlash(false)} aria-label={trans('close') || 'Close'} className="text-green-400 hover:text-green-600 me-2 min-w-[32px] min-h-[32px] flex items-center justify-center">&times;</button>
                     </div>
                 )}
 
@@ -586,4 +621,3 @@ export default function AdminSidebar({ children }) {
         </div>
     )
 }
-

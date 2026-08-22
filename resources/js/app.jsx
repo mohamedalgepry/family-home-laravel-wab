@@ -177,6 +177,13 @@ if (typeof window !== 'undefined') {
             router.visit(href);
         }
     });
+
+    router.on('navigate', (event) => {
+        const nextLocale = event.detail?.page?.props?.locale;
+        if (nextLocale) {
+            loadLocale(nextLocale);
+        }
+    });
 }
 
 async function boot() {

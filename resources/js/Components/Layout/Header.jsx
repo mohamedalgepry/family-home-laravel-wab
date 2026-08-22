@@ -1,7 +1,7 @@
 import { localizedPath } from '../../Utils/route'
 import { usePage, Link, router } from '@inertiajs/react'
 import { useTrans } from '../../Utils/trans'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import OptimizedImage from '../OptimizedImage'
 
 const NAV_ITEMS = [
@@ -21,6 +21,18 @@ export default function Header({ compareCount = 0 }) {
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
     const [menuOpen, setMenuOpen] = useState(false)
+
+    // Handle Escape key to close mobile menu
+    useEffect(() => {
+        if (!menuOpen) return
+        function handleKeyDown(e) {
+            if (e.key === 'Escape') {
+                setMenuOpen(false)
+            }
+        }
+        window.addEventListener('keydown', handleKeyDown)
+        return () => window.removeEventListener('keydown', handleKeyDown)
+    }, [menuOpen])
 
     const logoSrc = settings?.site_logo 
         ? (settings.site_logo.startsWith('http') || settings.site_logo.startsWith('/storage') ? settings.site_logo : `/storage/${settings.site_logo}`) 
@@ -54,7 +66,7 @@ export default function Header({ compareCount = 0 }) {
     return (
         <header
             dir={isRtl ? 'rtl' : 'ltr'}
-            className="sticky top-0 z-50 bg-white/95 backdrop-blur-xl shadow-sm transition-all duration-300 border-b border-border"
+            className="sticky top-0 z-50 bg-white/95 backdrop-blur-md md:backdrop-blur-xl shadow-sm transition-colors duration-300 border-b border-border"
             role="banner"
         >
             <div className="max-w-container mx-auto px-4 flex items-center justify-between h-16">
@@ -85,7 +97,7 @@ export default function Header({ compareCount = 0 }) {
                                 key={item.key}
                                 href={localizedPath(item.href, locale)}
                                 onClick={(e) => handleNavClick(e, item.href)}
-                                className={`text-sm transition-all duration-200 py-2 px-4 rounded-xl flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-900/10 ${
+                                className={`text-sm transition-colors duration-200 py-2 px-4 rounded-xl flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-900/10 ${
                                     active 
                                         ? 'text-primary-900 bg-primary-50 font-bold' 
                                         : 'text-secondary-800 hover:text-primary-900 hover:bg-surface-hover font-medium'
@@ -104,10 +116,10 @@ export default function Header({ compareCount = 0 }) {
 
                 {/* Actions */}
                 <div className="flex items-center gap-3">
-                    {/* Language Toggle — server redirect preserves the current path reliably on mobile */}
+                    {/* Language Toggle */}
                     <a
                         href={`/locale/${isRtl ? 'en' : 'ar'}?path=${encodeURIComponent(typeof url === 'string' && url ? url : `/${locale}`)}`}
-                        className="text-xs font-medium text-secondary-700 hover:text-primary-900 border border-secondary-200 rounded-lg px-2.5 py-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                        className="text-xs font-medium text-secondary-700 hover:text-primary-900 border border-secondary-200 rounded-lg px-2.5 py-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 min-h-[36px] flex items-center"
                         aria-label={isRtl ? 'تغيير اللغة إلى الإنجليزية' : 'Switch language to Arabic'}
                     >
                         {isRtl ? trans('lang_en') : trans('lang_ar')}
@@ -116,7 +128,7 @@ export default function Header({ compareCount = 0 }) {
                     {/* Mobile Menu Toggle */}
                     <button
                         onClick={() => setMenuOpen(prev => !prev)}
-                        className="md:hidden text-secondary-800 hover:text-primary-900 bg-surface hover:bg-surface-hover p-2 rounded-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-900/10 transition-colors"
+                        className="md:hidden text-secondary-800 hover:text-primary-900 bg-surface hover:bg-surface-hover p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-900/10 transition-colors"
                         aria-label={trans('toggle_menu')}
                         aria-expanded={menuOpen}
                         aria-controls="mobile-navigation"
@@ -141,7 +153,7 @@ export default function Header({ compareCount = 0 }) {
                             <Link
                                 key={item.key}
                                 href={localizedPath(item.href, locale)}
-                                className={`block py-3 px-4 text-sm rounded-xl transition-all duration-200 flex items-center justify-between focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-900/10 ${
+                                className={`block py-3 px-4 text-sm rounded-xl transition-colors duration-200 flex items-center justify-between min-h-[44px] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-900/10 ${
                                     active
                                         ? 'text-primary-900 bg-primary-50 font-bold'
                                         : 'text-secondary-900 hover:text-primary-900 hover:bg-surface-hover font-medium'

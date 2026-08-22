@@ -71,6 +71,93 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
         }
     }
 
+    const { normalizedContent, unusedMiddleImages } = useMemo(() => {
+        if (!article?.content) {
+            return { normalizedContent: '', unusedMiddleImages: middleImages }
+        }
+
+        /* Process middle image shortcodes and inline images */
+        let parsedContent = article.content || ''
+        const usedMiddleIndices = new Set()
+
+        const middleAndOtherImages = [
+            ...middleImages,
+            ...(article?.images || []).filter(img => img.position !== 'header' && !middleImages.some(m => m.id === img.id))
+        ]
+
+        // Matches shortcodes like [صورة:1], [صوره:1], [صره:1], [image:1], [img:1]
+        // Even if wrapped in <p>, <span>, <code>, <strong>, <font> with inline styles/colors
+        const shortcodeRegex = /(?:<p[^>]*>\s*)?(?:<(?:span|code|strong|b|em|font|mark)\b[^>]*>\s*)*\[\s*(?:صورة|صوره|صره|image|img)\s*[:\-_\s]?\s*([0-9\u0660-\u0669]+)\s*\](?:\s*<\/(?:span|code|strong|b|em|font|mark)>)*(?:\s*<\/p>)?/gi
+
+        parsedContent = parsedContent.replace(shortcodeRegex, (match, rawIndex) => {
+            const normalizedIndex = parseInt(
+                rawIndex.replace(/[\u0660-\u0669]/g, d => String(d.charCodeAt(0) - 0x0660)),
+                10
+            )
+            const targetImg = middleImages[normalizedIndex - 1] || middleAndOtherImages[normalizedIndex - 1]
+
+            if (targetImg) {
+                usedMiddleIndices.add(normalizedIndex - 1)
+                const imgPath = targetImg.url || (targetImg.path ? (targetImg.path.startsWith('http') || targetImg.path.startsWith('/') ? targetImg.path : `/storage/${targetImg.path}`) : '')
+                const altText = (targetImg.alt_text || article.title || '').replace(/"/g, '&quot;')
+                let imageHtml = `<figure class="my-8"><img src="${imgPath}" alt="${altText}" width="1200" height="800" class="w-full h-auto rounded-2xl border border-secondary-200/60 object-cover shadow-sm" loading="lazy" /></figure>`
+                if (targetImg.link_url) {
+                    let safeLink = targetImg.link_url.trim()
+                    if (!/^(https?:|\/|#|mailto:|tel:)/i.test(safeLink)) {
+                        safeLink = 'https://' + safeLink
+                    }
+                    const isExternal = /^https?:\/\//i.test(safeLink)
+                    const safeLinkAttr = safeLink.replace(/"/g, '&quot;')
+                    imageHtml = `<figure class="my-8"><a href="${safeLinkAttr}" ${isExternal ? 'target="_blank" rel="noopener noreferrer"' : ''} class="block hover:opacity-95 transition-opacity"><img src="${imgPath}" alt="${altText}" width="1200" height="800" class="w-full h-auto rounded-2xl border border-secondary-200/60 object-cover shadow-sm" loading="lazy" /></a></figure>`
+                }
+                return imageHtml
+            }
+            return match
+        })
+
+        const unused = middleImages.filter((_, idx) => !usedMiddleIndices.has(idx))
+
+        // Ensure all inline <img> tags resolve to proper /storage/ paths if saved with relative path
+        parsedContent = parsedContent.replace(/<img\b([^>]*)\bsrc=["']([^"']+)["']([^>]*)>/gi, (match, prefix, src, suffix) => {
+            let resolvedSrc = src;
+            if (src.startsWith('articles/') || src.startsWith('editor/') || src.startsWith('uploads/')) {
+                resolvedSrc = `/storage/${src}`;
+            } else if (src.startsWith('storage/')) {
+                resolvedSrc = `/${src}`;
+            }
+            return `<img${prefix}src="${resolvedSrc}"${suffix}>`;
+        });
+
+        /* Normalize article body headings so they strictly follow h1 -> h2 -> h3 hierarchy */
+        let normalized = parsedContent;
+        normalized = normalized.replace(/<(\/?)h1\b([^>]*)>/gi, '<$1h2$2>');
+        if (!/<h2\b/i.test(normalized) && /<h3\b/i.test(normalized)) {
+            normalized = normalized
+                .replace(/<(\/?)h5\b([^>]*)>/gi, '<$1h6$2>')
+                .replace(/<(\/?)h4\b([^>]*)>/gi, '<$1h5$2>')
+                .replace(/<(\/?)h3\b([^>]*)>/gi, '<$1h2$2>');
+        }
+
+        // Ensure all inline <a> tags resolve properly and external links open in new tabs securely
+        normalized = normalized.replace(/<a\b([^>]*)\bhref=["']([^"']+)["']([^>]*)>/gi, (match, prefix, href, suffix) => {
+            let cleanHref = href.trim();
+            if (cleanHref.startsWith('www.')) {
+                cleanHref = 'https://' + cleanHref;
+            }
+            const isExternal = /^https?:\/\//i.test(cleanHref);
+            const hasTarget = /target=/i.test(match);
+            const hasRel = /rel=/i.test(match);
+
+            let extra = '';
+            if (isExternal && !hasTarget) extra += ' target="_blank"';
+            if (isExternal && !hasRel) extra += ' rel="noopener noreferrer"';
+
+            return `<a${prefix}href="${cleanHref}"${suffix}${extra}>`;
+        });
+
+        return { normalizedContent: normalized, unusedMiddleImages: unused }
+    }, [article?.content, article?.images, middleImages, article?.title])
+
     if (!article) {
         return (
             <div dir={isRtl ? 'rtl' : 'ltr'} className="min-h-screen bg-white flex flex-col font-sans">
@@ -87,85 +174,6 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
             </div>
         )
     }
-
-    /* Process middle image shortcodes and inline images */
-    let parsedContent = article.content || ''
-    const usedMiddleIndices = new Set()
-
-    const middleAndOtherImages = [
-        ...middleImages,
-        ...(article?.images || []).filter(img => img.position !== 'header' && !middleImages.some(m => m.id === img.id))
-    ]
-
-    // Matches shortcodes like [صورة:1], [صوره:1], [صره:1], [image:1], [img:1]
-    // Even if wrapped in <p>, <span>, <code>, <strong>, <font> with inline styles/colors
-    const shortcodeRegex = /(?:<p[^>]*>\s*)?(?:<(?:span|code|strong|b|em|font|mark)\b[^>]*>\s*)*\[\s*(?:صورة|صوره|صره|image|img)\s*[:\-_\s]?\s*([0-9\u0660-\u0669]+)\s*\](?:\s*<\/(?:span|code|strong|b|em|font|mark)>)*(?:\s*<\/p>)?/gi
-
-    parsedContent = parsedContent.replace(shortcodeRegex, (match, rawIndex) => {
-        const normalizedIndex = parseInt(
-            rawIndex.replace(/[\u0660-\u0669]/g, d => String(d.charCodeAt(0) - 0x0660)),
-            10
-        )
-        const targetImg = middleImages[normalizedIndex - 1] || middleAndOtherImages[normalizedIndex - 1]
-
-        if (targetImg) {
-            usedMiddleIndices.add(normalizedIndex - 1)
-            const imgPath = targetImg.url || (targetImg.path ? (targetImg.path.startsWith('http') || targetImg.path.startsWith('/') ? targetImg.path : `/storage/${targetImg.path}`) : '')
-            const altText = (targetImg.alt_text || article.title || '').replace(/"/g, '&quot;')
-            let imageHtml = `<figure class="my-8"><img src="${imgPath}" alt="${altText}" width="1200" height="800" class="w-full h-auto rounded-2xl border border-secondary-200/60 object-cover shadow-sm" loading="lazy" /></figure>`
-            if (targetImg.link_url) {
-                let safeLink = targetImg.link_url.trim()
-                if (!/^(https?:|\/|#|mailto:|tel:)/i.test(safeLink)) {
-                    safeLink = 'https://' + safeLink
-                }
-                const isExternal = /^https?:\/\//i.test(safeLink)
-                const safeLinkAttr = safeLink.replace(/"/g, '&quot;')
-                imageHtml = `<figure class="my-8"><a href="${safeLinkAttr}" ${isExternal ? 'target="_blank" rel="noopener noreferrer"' : ''} class="block hover:opacity-95 transition-opacity"><img src="${imgPath}" alt="${altText}" width="1200" height="800" class="w-full h-auto rounded-2xl border border-secondary-200/60 object-cover shadow-sm" loading="lazy" /></a></figure>`
-            }
-            return imageHtml
-        }
-        return match
-    })
-
-    const unusedMiddleImages = middleImages.filter((_, idx) => !usedMiddleIndices.has(idx))
-
-    // Ensure all inline <img> tags resolve to proper /storage/ paths if saved with relative path
-    parsedContent = parsedContent.replace(/<img\b([^>]*)\bsrc=["']([^"']+)["']([^>]*)>/gi, (match, prefix, src, suffix) => {
-        let resolvedSrc = src;
-        if (src.startsWith('articles/') || src.startsWith('editor/') || src.startsWith('uploads/')) {
-            resolvedSrc = `/storage/${src}`;
-        } else if (src.startsWith('storage/')) {
-            resolvedSrc = `/${src}`;
-        }
-        return `<img${prefix}src="${resolvedSrc}"${suffix}>`;
-    });
-
-    /* Normalize article body headings so they strictly follow h1 -> h2 -> h3 hierarchy */
-    let normalizedContent = parsedContent;
-    normalizedContent = normalizedContent.replace(/<(\/?)h1\b([^>]*)>/gi, '<$1h2$2>');
-    if (!/<h2\b/i.test(normalizedContent) && /<h3\b/i.test(normalizedContent)) {
-        normalizedContent = normalizedContent
-            .replace(/<(\/?)h5\b([^>]*)>/gi, '<$1h6$2>')
-            .replace(/<(\/?)h4\b([^>]*)>/gi, '<$1h5$2>')
-            .replace(/<(\/?)h3\b([^>]*)>/gi, '<$1h2$2>');
-    }
-
-    // Ensure all inline <a> tags resolve properly and external links open in new tabs securely
-    normalizedContent = normalizedContent.replace(/<a\b([^>]*)\bhref=["']([^"']+)["']([^>]*)>/gi, (match, prefix, href, suffix) => {
-        let cleanHref = href.trim();
-        if (cleanHref.startsWith('www.')) {
-            cleanHref = 'https://' + cleanHref;
-        }
-        const isExternal = /^https?:\/\//i.test(cleanHref);
-        const hasTarget = /target=/i.test(match);
-        const hasRel = /rel=/i.test(match);
-
-        let extra = '';
-        if (isExternal && !hasTarget) extra += ' target="_blank"';
-        if (isExternal && !hasRel) extra += ' rel="noopener noreferrer"';
-
-        return `<a${prefix}href="${cleanHref}"${suffix}${extra}>`;
-    });
 
     const currentUrl = typeof window !== 'undefined' ? window.location.href : appUrl
     const whatsappShareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(`${article.title}\n${currentUrl}`)}`
@@ -249,12 +257,10 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                                 href={whatsappShareUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold transition-all duration-200 shadow-xs"
+                                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold transition-colors duration-200 shadow-xs"
                                 title={trans('share_whatsapp')}
                             >
-                                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24" aria-hidden="true">
-                                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
-                                </svg>
+                                <WhatsAppIcon className="w-4 h-4 fill-current" />
                                 <span>{trans('share')}</span>
                             </a>
 
@@ -284,8 +290,8 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                             <button
                                 type="button"
                                 onClick={() => setLightboxUrl(headerImgUrl)}
-                                className="absolute bottom-4 end-4 bg-black/60 hover:bg-black/80 text-white p-2.5 rounded-xl backdrop-blur-md transition-all text-xs font-semibold flex items-center gap-1.5"
-                                aria-label="Expand image"
+                                className="absolute bottom-4 end-4 bg-black/60 hover:bg-black/80 text-white p-2.5 rounded-xl backdrop-blur-md transition-colors text-xs font-semibold flex items-center gap-1.5"
+                                aria-label={trans('expand_image') || 'Expand image'}
                             >
                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6" />
@@ -386,11 +392,10 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                             href={whatsappShareUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold transition-all shadow-sm shrink-0"
+                            className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold transition-colors duration-200 shadow-sm shrink-0"
+                            title={trans('share_whatsapp')}
                         >
-                            <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24" aria-hidden="true">
-                                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
-                            </svg>
+                            <WhatsAppIcon className="w-4 h-4 fill-current" />
                             <span>{trans('share_whatsapp')}</span>
                         </a>
                     </div>
@@ -457,7 +462,7 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                                                             </div>
                                                         )}
                                                         <div className="flex-1">
-                                                            <p className="text-xs font-bold text-secondary-900 group-hover:text-primary-700 line-clamp-2 leading-relaxed transition-colors">
+                                                            <p className="text-xs font-bold text-secondary-950 group-hover:text-primary-700 line-clamp-2 leading-relaxed transition-colors">
                                                                 {unit.title}
                                                             </p>
                                                             <span className="text-[11px] text-primary-800 font-black mt-1 block">
@@ -500,7 +505,7 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                                                             </div>
                                                         )}
                                                         <div className="flex-1">
-                                                            <p className="text-xs font-bold text-secondary-900 group-hover:text-primary-700 line-clamp-2 leading-relaxed transition-colors">
+                                                            <p className="text-xs font-bold text-secondary-950 group-hover:text-primary-700 line-clamp-2 leading-relaxed transition-colors">
                                                                 {related.title}
                                                             </p>
                                                             <span className="text-[11px] text-secondary-600 mt-1 block font-medium">
@@ -531,8 +536,8 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                     <button
                         type="button"
                         onClick={() => setLightboxUrl(null)}
-                        className="absolute top-4 end-4 text-white bg-white/10 hover:bg-white/20 p-3 rounded-full transition-colors"
-                        aria-label="Close image"
+                        className="absolute top-4 end-4 text-white bg-white/10 hover:bg-white/20 p-3 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                        aria-label={trans('close_image') || 'Close image'}
                     >
                         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />

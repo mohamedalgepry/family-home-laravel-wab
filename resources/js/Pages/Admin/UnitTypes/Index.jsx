@@ -71,7 +71,7 @@ export default function AdminUnitTypesIndex({ unitTypes }) {
                 </div>
 
                 {flash?.success && (
-                    <div className="mb-4 px-4 py-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm">{flash.success}</div>
+                    <div role="alert" aria-live="polite" className="mb-4 px-4 py-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm">{flash.success}</div>
                 )}
 
                 {(editing === 'new' || typeof editing === 'number') && (
@@ -83,24 +83,22 @@ export default function AdminUnitTypesIndex({ unitTypes }) {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('name_en')}</label>
-                                <input type="text" value={data.name_en} onChange={e => setData('name_en', e.target.value)} required className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900" />
+                                <input type="text" value={data.name_en} onChange={e => setData('name_en', e.target.value)} required dir="ltr" className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900" />
                             </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-4 mb-4">
-                            <div>
-                                <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('sort_order')}</label>
-                                <input type="number" min="0" value={data.sort_order} onChange={e => setData('sort_order', parseInt(e.target.value) || 0)} className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white" />
-                            </div>
-                            <div className="flex items-end pb-2">
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <input type="checkbox" checked={data.is_active} onChange={e => setData('is_active', e.target.checked)} className="w-5 h-5 rounded border-secondary-300 text-primary-900 focus:ring-primary-900/20 cursor-pointer" />
-                                    <span className="text-sm font-medium text-secondary-950">{data.is_active ? trans('active') : trans('inactive')}</span>
-                                </label>
+                        <div className="flex items-center gap-6 mb-4">
+                            <label className="flex items-center gap-2 text-sm text-secondary-700">
+                                <input type="checkbox" checked={data.is_active} onChange={e => setData('is_active', e.target.checked)} className="rounded text-primary-900 focus:ring-primary-900" />
+                                {trans('active')}
+                            </label>
+                            <div className="flex items-center gap-2">
+                                <label className="text-sm font-medium text-secondary-700">{trans('sort_order')}</label>
+                                <input type="number" min="0" value={data.sort_order} onChange={e => setData('sort_order', parseInt(e.target.value) || 0)} className="w-20 px-3 py-1.5 border border-secondary-200 rounded-lg text-sm bg-white" />
                             </div>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex items-center gap-3">
                             <button type="submit" disabled={processing} className="px-4 py-2 bg-primary-900 text-white rounded-lg text-sm font-medium hover:bg-primary-950 disabled:opacity-50">
-                                {processing ? trans('loading') : trans('save')}
+                                {trans('save')}
                             </button>
                             <button type="button" onClick={cancelEdit} className="px-4 py-2 bg-surface text-secondary-700 rounded-lg text-sm font-medium hover:bg-secondary-200">
                                 {trans('cancel')}
@@ -112,7 +110,7 @@ export default function AdminUnitTypesIndex({ unitTypes }) {
                 <div className="bg-white rounded-xl shadow-card overflow-hidden">
                     <table className="w-full text-sm">
                         <thead>
-                            <tr className="bg-surface text-secondary-700 text-left">
+                            <tr className="bg-surface text-secondary-700 text-start">
                                 <th className="px-4 py-3 font-medium">{trans('name_ar')}</th>
                                 <th className="px-4 py-3 font-medium">{trans('name_en')}</th>
                                 <th className="px-4 py-3 font-medium">{trans('status')}</th>

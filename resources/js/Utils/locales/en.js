@@ -587,6 +587,13 @@ const en = {
         description_en: 'Description (English)',
         egp: 'EGP',
         areas: 'Areas',
+        previous_image: 'Previous image',
+        next_image: 'Next image',
+        expand_image: 'Expand image',
+        close_image: 'Close image',
+        remove_image: 'Remove image',
+        filter_options: 'Filter options',
+        options: 'Options',
 }
 
 export default en

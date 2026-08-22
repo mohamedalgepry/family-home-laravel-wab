@@ -1,7 +1,7 @@
 import { Select } from '../../Components/UI'
 import { usePage, router } from '@inertiajs/react'
 import { useTrans } from '../../Utils/trans'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 export default function SearchBar({ areas = [], unitTypes = [], features = [], finishingTypes = [], filters = {}, onSearch }) {
     const { locale } = usePage().props
@@ -24,6 +24,17 @@ export default function SearchBar({ areas = [], unitTypes = [], features = [], f
 
     const [isSearching, setIsSearching] = useState(false)
     const [showAdvanced, setShowAdvanced] = useState(false)
+
+    useEffect(() => {
+        if (!showAdvanced) return
+        function handleKeyDown(e) {
+            if (e.key === 'Escape') {
+                setShowAdvanced(false)
+            }
+        }
+        window.addEventListener('keydown', handleKeyDown)
+        return () => window.removeEventListener('keydown', handleKeyDown)
+    }, [showAdvanced])
 
     function update(key, value) {
         setLocal(prev => ({ ...prev, [key]: value }))
@@ -296,13 +307,18 @@ export default function SearchBar({ areas = [], unitTypes = [], features = [], f
                 {/* Mobile Bottom Sheet Modal */}
                 {showAdvanced && (
                     <div dir={isRtl ? 'rtl' : 'ltr'} className="fixed inset-0 z-[100] flex flex-col justify-end pointer-events-auto">
-                        <div className="absolute inset-0 bg-secondary-950/40 backdrop-blur-sm transition-opacity" onClick={() => setShowAdvanced(false)}></div>
+                        <div className="absolute inset-0 bg-secondary-950/40 backdrop-blur-xs sm:backdrop-blur-sm transition-opacity" onClick={() => setShowAdvanced(false)}></div>
                         <div className="relative bg-white rounded-t-[2rem] w-full max-h-[90vh] flex flex-col shadow-2xl animate-slideUp">
 
                             {/* Drag Handle & Header */}
                             <div className="flex-none p-5 pb-3 border-b border-secondary-100 flex items-center justify-between sticky top-0 bg-white rounded-t-[2rem] z-10">
                                 <h3 className="text-lg font-black text-secondary-950 tracking-tight">{locale === 'ar' ? 'الفلاتر' : 'Filters'}</h3>
-                                <button type="button" onClick={() => setShowAdvanced(false)} className="w-9 h-9 rounded-full bg-surface text-secondary-600 flex items-center justify-center hover:bg-secondary-200">
+                                <button 
+                                    type="button" 
+                                    onClick={() => setShowAdvanced(false)} 
+                                    aria-label={trans('close') || 'Close'}
+                                    className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-full bg-surface text-secondary-600 flex items-center justify-center hover:bg-secondary-200 transition-colors"
+                                >
                                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                                 </button>
                                 {/* Absolute center pill indicator */}

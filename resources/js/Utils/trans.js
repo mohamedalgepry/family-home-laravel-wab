@@ -1,17 +1,26 @@
-import ar from './locales/ar.js'
-import en from './locales/en.js'
-
-const dictionaries = {
-    ar,
-    en,
-}
+const dictionaries = {}
 
 export async function loadLocale(locale) {
-    return dictionaries[locale] || dictionaries.en
+    const lang = locale === 'ar' ? 'ar' : 'en'
+    if (!dictionaries[lang]) {
+        try {
+            if (lang === 'ar') {
+                const mod = await import('./locales/ar.js')
+                dictionaries.ar = mod.default || mod
+            } else {
+                const mod = await import('./locales/en.js')
+                dictionaries.en = mod.default || mod
+            }
+        } catch (e) {
+            console.warn(`Failed to load locale '${lang}', falling back.`, e)
+        }
+    }
+    return dictionaries[lang] || dictionaries.ar || dictionaries.en || {}
 }
 
 export function useTrans(locale) {
-    const lang = dictionaries[locale] || dictionaries.en || dictionaries.ar || {}
+    const langKey = locale === 'ar' ? 'ar' : 'en'
+    const lang = dictionaries[langKey] || dictionaries.ar || dictionaries.en || {}
     return (key, replacements = {}) => {
         let text = lang[key]
         if (!text) {
@@ -24,4 +33,5 @@ export function useTrans(locale) {
         return text
     }
 }
+
 

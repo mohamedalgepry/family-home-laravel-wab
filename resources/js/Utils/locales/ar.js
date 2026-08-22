@@ -585,6 +585,13 @@ const ar = {
         description_en: 'الوصف (بالإنجليزية)',
         egp: 'ج.م',
         areas: 'المناطق',
+        previous_image: 'الصورة السابقة',
+        next_image: 'الصورة التالية',
+        expand_image: 'تكبير الصورة',
+        close_image: 'إغلاق الصورة',
+        remove_image: 'إزالة الصورة',
+        filter_options: 'تصفية الخيارات',
+        options: 'الخيارات',
 }
 
 export default ar

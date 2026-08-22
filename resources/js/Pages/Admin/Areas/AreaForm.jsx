@@ -383,7 +383,7 @@ export default function AreaForm({ area, parents, mode = 'create' }) {
                                         <div className="relative">
                                             <input type="checkbox" className="sr-only" checked={data.is_active} onChange={e => setData('is_active', e.target.checked)} />
                                             <div className={`block w-14 h-8 rounded-full transition-colors duration-300 ${data.is_active ? 'bg-[#16a34a]' : 'bg-secondary-300'}`}></div>
-                                            <div className={`dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform duration-300 flex items-center justify-center ${data.is_active ? 'transform translate-x-6' : ''}`}>
+                                            <div className={`dot absolute start-1 top-1 bg-white w-6 h-6 rounded-full transition-transform duration-300 flex items-center justify-center ${data.is_active ? (isRtl ? '-translate-x-6' : 'translate-x-6') : ''}`}>
                                                 {data.is_active && (
                                                     <svg className="w-4 h-4 text-[#16a34a]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
                                                 )}

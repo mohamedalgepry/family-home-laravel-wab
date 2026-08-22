@@ -67,7 +67,7 @@ export default function AdminFinishingTypesIndex({ finishingTypes }) {
                 </div>
 
                 {flash?.success && (
-                    <div className="mb-4 px-4 py-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm">{flash.success}</div>
+                    <div role="alert" aria-live="polite" className="mb-4 px-4 py-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm">{flash.success}</div>
                 )}
 
                 {/* Create / Edit Form */}
@@ -99,10 +99,10 @@ export default function AdminFinishingTypesIndex({ finishingTypes }) {
                 <div className="bg-white rounded-xl shadow-card overflow-hidden">
                     <table className="w-full text-sm">
                         <thead>
-                            <tr className="bg-surface text-secondary-700 text-left">
-                                <th className={`px-4 py-3 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>{trans('name_ar') || 'Name (AR)'}</th>
-                                <th className={`px-4 py-3 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>{trans('name_en') || 'Name (EN)'}</th>
-                                <th className={`px-4 py-3 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>{trans('actions') || 'Actions'}</th>
+                            <tr className="bg-surface text-secondary-700 text-start">
+                                <th className="px-4 py-3 font-medium text-start">{trans('name_ar') || 'Name (AR)'}</th>
+                                <th className="px-4 py-3 font-medium text-start">{trans('name_en') || 'Name (EN)'}</th>
+                                <th className="px-4 py-3 font-medium text-start">{trans('actions') || 'Actions'}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-secondary-100">

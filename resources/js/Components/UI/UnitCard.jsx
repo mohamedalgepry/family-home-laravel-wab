@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { localizedPath } from '../../Utils/route'
 import { usePage, Link } from '@inertiajs/react'
 import { useTrans } from '../../Utils/trans'
@@ -5,6 +6,7 @@ import { useCompare } from '../../Hooks/useCompare'
 import OptimizedImage from '../OptimizedImage'
 import { getStorageUrl, PLACEHOLDER } from '../../Utils/image'
 import { getAgentContacts } from '../../Utils/contact'
+import WhatsAppIcon from './WhatsAppIcon'
 
 function SkeletonCard() {
     return (
@@ -19,7 +21,7 @@ function SkeletonCard() {
     )
 }
 
-export default function UnitCard({ unit, loading = false, priority = false }) {
+function UnitCard({ unit, loading = false, priority = false }) {
     const page = usePage()
     const { locale, settings } = page.props
     const trans = useTrans(locale)
@@ -36,7 +38,6 @@ export default function UnitCard({ unit, loading = false, priority = false }) {
 
     const mainImage = unit?.images?.find(img => img.is_main || img.is_primary) || unit?.images?.[0]
     const thumbnail = getStorageUrl(mainImage?.thumb_url || mainImage?.url || mainImage?.path, PLACEHOLDER)
-    const isFeatured = (unit?.priority_points ?? 0) > 0
     const isCompared = compareList.includes(unit?.id)
 
     const agentContacts = getAgentContacts(unit?.user || unit?.project?.user, settings)
@@ -50,7 +51,7 @@ export default function UnitCard({ unit, loading = false, priority = false }) {
     const unitSlug = isRtl && unit.slug_ar ? unit.slug_ar : (unit.slug_en || unit.slug || unit.id)
 
     return (
-        <article dir={isRtl ? 'rtl' : 'ltr'} className="bg-white rounded-2xl shadow-card overflow-hidden hover:shadow-2xl transition-all duration-300 group border border-secondary-100/70 hover:-translate-y-1.5 flex flex-col justify-between">
+        <article dir={isRtl ? 'rtl' : 'ltr'} className="bg-white rounded-2xl shadow-card overflow-hidden hover:shadow-2xl transition-[transform,box-shadow] duration-300 group border border-secondary-100/70 hover:-translate-y-1.5 flex flex-col justify-between">
             <div>
                 {/* Image */}
                 <Link href={localizedPath(`/units/${unitSlug}`, locale)} className="block relative overflow-hidden aspect-[4/3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
@@ -146,7 +147,7 @@ export default function UnitCard({ unit, loading = false, priority = false }) {
                     }}
                     aria-label={`${trans('compare')} ${unit.name}`}
                     aria-pressed={isCompared}
-                    className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${isCompared ? 'text-primary-900 bg-primary-50 border border-primary-200' : 'text-secondary-600 bg-secondary-50 hover:bg-secondary-100 hover:text-secondary-900'}`}
+                    className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${isCompared ? 'text-primary-900 bg-primary-50 border border-primary-200' : 'text-secondary-600 bg-secondary-50 hover:bg-secondary-100 hover:text-secondary-900'}`}
                 >
                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
@@ -160,15 +161,15 @@ export default function UnitCard({ unit, loading = false, priority = false }) {
                     rel="noopener noreferrer"
                     onClick={e => e.stopPropagation()}
                     aria-label={`${trans('inquire')} ${unit.name} ${trans('contact_via_whatsapp')}`}
-                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-600 hover:text-white rounded-xl transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-600 hover:text-white rounded-xl transition-colors duration-200 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                     title={trans('contact_via_whatsapp')}
                 >
-                    <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
-                    </svg>
+                    <WhatsAppIcon className="w-4 h-4" />
                     {trans('inquire')}
                 </a>
             </div>
         </article>
     )
 }
+
+export default memo(UnitCard)
