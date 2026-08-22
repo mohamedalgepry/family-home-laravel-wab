@@ -16,7 +16,7 @@ class MonthlyResetJob implements ShouldQueue
 
     public int $tries = 3;
 
-    public int $timeout = 120;
+    public int $timeout = 60;
 
     public array $backoff = [30, 60, 120];
 

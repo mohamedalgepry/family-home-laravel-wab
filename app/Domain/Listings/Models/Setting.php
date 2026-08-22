@@ -26,5 +26,6 @@ class Setting extends Model
     public static function setValue(string $key, mixed $value): void
     {
         self::updateOrCreate(['key' => $key], ['value' => (string) $value]);
+        \Illuminate\Support\Facades\Cache::forget('settings_all');
     }
 }

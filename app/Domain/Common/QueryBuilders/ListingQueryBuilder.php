@@ -74,7 +74,7 @@ class ListingQueryBuilder
                 // Keywords: LIKE مع wildcard في البداية لأنها بصيغة JSON
                 foreach ($slugFields as $field) {
                     if (str_contains($field, 'keyword')) {
-                        $q->orWhere($field, 'like', "%{$likeTerm}%");
+                        $q->orWhereRaw("CAST({$field} AS CHAR) LIKE ?", ["%{$likeTerm}%"]);
                     } else {
                         $q->orWhere($field, 'like', "{$likeTerm}%");
                     }
@@ -82,7 +82,11 @@ class ListingQueryBuilder
             } else {
                 // Fallback لـ SQLite (بيئة الاختبار) أو في حال عدم وجود الفهرس على MySQL
                 foreach ($fields as $field) {
-                    $q->orWhere($field, 'like', "%{$likeTerm}%");
+                    if (str_contains($field, 'keyword')) {
+                        $q->orWhereRaw("CAST({$field} AS CHAR) LIKE ?", ["%{$likeTerm}%"]);
+                    } else {
+                        $q->orWhere($field, 'like', "%{$likeTerm}%");
+                    }
                 }
             }
 

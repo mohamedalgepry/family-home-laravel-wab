@@ -59,10 +59,11 @@ class Article extends Model
     public function getKeywordsAttribute($value)
     {
         $locale = app()->getLocale();
+        $decoded = is_string($value) ? json_decode($value, true) : $value;
 
         return $locale === 'ar'
-            ? ($this->keywords_ar ?? $value ?? $this->keywords_en ?? [])
-            : ($this->keywords_en ?? $value ?? $this->keywords_ar ?? []);
+            ? ($this->keywords_ar ?? $decoded ?? $this->keywords_en ?? [])
+            : ($this->keywords_en ?? $decoded ?? $this->keywords_ar ?? []);
     }
 
     public function getAltTextAttribute($value)
