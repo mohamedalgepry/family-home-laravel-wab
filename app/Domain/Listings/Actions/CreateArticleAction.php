@@ -68,16 +68,26 @@ class CreateArticleAction
                     'published_at' => ($raw['is_published'] ?? false) ? now() : null,
                 ]);
             } catch (QueryException $e) {
-                // MySQL error 1062 = Duplicate entry (UNIQUE constraint violation)
-                // SQLite error 19 / SQLSTATE 23000
+                // Strictly detect UNIQUE constraint / Duplicate Entry violations:
+                // - MySQL error 1062 = ER_DUP_ENTRY
+                // - PostgreSQL SQLSTATE 23505 = unique_violation
+                // - SQLite error 19 with 'UNIQUE constraint failed'
                 $errorCode = (int) ($e->errorInfo[1] ?? 0);
                 $sqlState = (string) ($e->errorInfo[0] ?? '');
+                $message = $e->getMessage();
 
-                if ($errorCode === 1062 || $errorCode === 19 || $sqlState === '23000') {
+                $isDuplicateKey = ($errorCode === 1062)
+                    || ($sqlState === '23505')
+                    || (str_contains($message, 'Duplicate entry'))
+                    || ($errorCode === 19 && str_contains($message, 'UNIQUE constraint failed'));
+
+                if ($isDuplicateKey) {
                     $lastException = $e;
 
                     continue;
                 }
+
+                // Any other integrity violation (e.g. foreign key, not null) must be thrown immediately
                 throw $e;
             }
         }

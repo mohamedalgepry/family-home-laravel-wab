@@ -7,7 +7,9 @@ import AdminSidebar from '../../../Components/Layout/AdminSidebar'
 const TYPE_META = {
     unit_expiry_warning: { icon: 'clock', gradient: 'from-amber-500 to-orange-500', bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-800', label: { ar: 'تنبيه انتهاء وحدة', en: 'Unit Expiry Warning' } },
     unit_expired: { icon: 'exclamation', gradient: 'from-red-500 to-rose-500', bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-800', label: { ar: 'وحدة منتهية', en: 'Unit Expired' } },
+    unit_permanently_deleted: { icon: 'trash', gradient: 'from-rose-600 to-red-700', bg: 'bg-rose-50', border: 'border-rose-200', text: 'text-rose-800', label: { ar: 'حذف نهائي لوحدة', en: 'Unit Permanently Deleted' } },
     project_expiry_warning: { icon: 'clock', gradient: 'from-amber-500 to-orange-500', bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-800', label: { ar: 'تنبيه انتهاء مشروع', en: 'Project Expiry Warning' } },
+    project_permanently_deleted: { icon: 'trash', gradient: 'from-rose-600 to-red-700', bg: 'bg-rose-50', border: 'border-rose-200', text: 'text-rose-800', label: { ar: 'حذف نهائي لمشروع', en: 'Project Permanently Deleted' } },
     new_project_created: { icon: 'plus', gradient: 'from-emerald-500 to-green-500', bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-800', label: { ar: 'مشروع جديد', en: 'New Project' } },
     new_message: { icon: 'message', gradient: 'from-blue-500 to-indigo-500', bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-800', label: { ar: 'رسالة جديدة', en: 'New Message' } },
     unit_pending_approval: { icon: 'clock', gradient: 'from-amber-500 to-orange-500', bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-800', label: { ar: 'وحدة بانتظار الموافقة', en: 'Unit Pending Approval' } },
@@ -19,6 +21,7 @@ const TYPE_DEFAULT = { icon: 'bell', gradient: 'from-secondary-400 to-secondary-
 const ICON_PATHS = {
     clock: 'M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z',
     exclamation: 'M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z',
+    trash: 'M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0',
     plus: 'M12 4.5v15m7.5-7.5h-15',
     message: 'M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z',
     bell: 'M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0',
@@ -61,7 +64,7 @@ function groupByDate(items, isRtl, trans) {
     return Object.entries(groups).filter(([, v]) => v.length > 0).map(([key, items]) => ({ label: labels[key], items }))
 }
 
-export default function NotificationsIndex({ notifications, unreadCount }) {
+export default function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 }) {
     const { locale, auth, flash } = usePage().props
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
@@ -70,6 +73,10 @@ export default function NotificationsIndex({ notifications, unreadCount }) {
     const [activeTab, setActiveTab] = useState('all')
     const [confirmDeleteId, setConfirmDeleteId] = useState(null)
     const [confirmClearAll, setConfirmClearAll] = useState(false)
+    const [extendModalUnit, setExtendModalUnit] = useState(null)
+    const [selectedDuration, setSelectedDuration] = useState('auto_delete_setting')
+    const [customDays, setCustomDays] = useState('')
+    const [isExtending, setIsExtending] = useState(false)
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -113,8 +120,28 @@ export default function NotificationsIndex({ notifications, unreadCount }) {
         router.post(`/admin/projects/${projectId}/extend`, {}, { preserveScroll: true })
     }
 
-    function handleExtendUnit(unitId) {
-        router.post(`/admin/units/${unitId}/extend-expiry`, {}, { preserveScroll: true })
+    function openExtendModal(unitId, unitName) {
+        setExtendModalUnit({ id: unitId, name: unitName })
+        setSelectedDuration('auto_delete_setting')
+        setCustomDays('')
+    }
+
+    function submitExtendUnit() {
+        if (!extendModalUnit) return
+        setIsExtending(true)
+        const payload = {
+            duration_type: selectedDuration,
+        }
+        if (selectedDuration === 'custom') {
+            payload.days = parseInt(customDays, 10) || autoDeleteDays || 30
+        }
+        router.post(`/admin/units/${extendModalUnit.id}/extend-expiry`, payload, {
+            preserveScroll: true,
+            onFinish: () => {
+                setIsExtending(false)
+                setExtendModalUnit(null)
+            },
+        })
     }
 
     function handleApproveProject(projectId) {
@@ -415,7 +442,7 @@ export default function NotificationsIndex({ notifications, unreadCount }) {
 
                                                                 {isUnread && isUnitExpiry && item.unit_id && isAdmin && (
                                                                     <button
-                                                                        onClick={() => handleExtendUnit(item.unit_id)}
+                                                                        onClick={() => openExtendModal(item.unit_id, item.unit_name || item.title)}
                                                                         className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1"
                                                                     >
                                                                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -566,6 +593,118 @@ export default function NotificationsIndex({ notifications, unreadCount }) {
                                 {page}
                             </Link>
                         ))}
+                    </div>
+                )}
+
+                {/* === Extend Unit Modal === */}
+                {extendModalUnit && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+                        <div className="bg-white rounded-2xl shadow-2xl border border-secondary-100 max-w-md w-full p-6 space-y-5 animate-scale-up">
+                            {/* Modal Header */}
+                            <div className="flex items-start justify-between gap-3 border-b border-secondary-100 pb-4">
+                                <div>
+                                    <h3 className="text-lg font-bold text-secondary-900">
+                                        {isRtl ? 'تمديد مدة الوحدة' : 'Extend Unit Listing'}
+                                    </h3>
+                                    <p className="text-xs text-secondary-500 mt-1 line-clamp-1">
+                                        {extendModalUnit.name}
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => setExtendModalUnit(null)}
+                                    className="text-secondary-400 hover:text-secondary-600 p-1 rounded-lg hover:bg-secondary-50 transition-colors"
+                                >
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+
+                            {/* Options Form */}
+                            <div className="space-y-3">
+                                <label className="text-xs font-bold text-secondary-700 uppercase tracking-wider block">
+                                    {isRtl ? 'اختر مدة التمديد' : 'Select Extension Duration'}
+                                </label>
+
+                                <div className="space-y-2">
+                                    {[
+                                        { id: '7_days', label: isRtl ? '7 أيام' : '7 Days' },
+                                        { id: '15_days', label: isRtl ? '15 يوماً' : '15 Days' },
+                                        { id: '30_days', label: isRtl ? '30 يوماً' : '30 Days' },
+                                        { id: 'auto_delete_setting', label: isRtl ? `مدة الحذف التلقائي الإفتراضية: ${autoDeleteDays} يوم` : `Default Auto-Delete Period: ${autoDeleteDays} Days` },
+                                        { id: 'custom', label: isRtl ? 'مدة مخصصة (بالأيام)' : 'Custom Duration (in days)' },
+                                    ].map(option => (
+                                        <label
+                                            key={option.id}
+                                            className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                                                selectedDuration === option.id
+                                                    ? 'border-primary-900 bg-primary-50/50 text-primary-950 font-semibold shadow-sm'
+                                                    : 'border-secondary-200 hover:border-secondary-300 text-secondary-700'
+                                            }`}
+                                        >
+                                            <input
+                                                type="radio"
+                                                name="duration_type"
+                                                value={option.id}
+                                                checked={selectedDuration === option.id}
+                                                onChange={() => setSelectedDuration(option.id)}
+                                                className="w-4 h-4 text-primary-900 border-secondary-300 focus:ring-primary-900"
+                                            />
+                                            <span className="text-sm">{option.label}</span>
+                                        </label>
+                                    ))}
+                                </div>
+
+                                {/* Custom Input */}
+                                {selectedDuration === 'custom' && (
+                                    <div className="pt-2 animate-fade-in">
+                                        <label className="text-xs font-semibold text-secondary-600 block mb-1">
+                                            {isRtl ? 'عدد الأيام (1 - 365):' : 'Number of days (1 - 365):'}
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            max="365"
+                                            value={customDays}
+                                            onChange={e => setCustomDays(e.target.value)}
+                                            placeholder={isRtl ? 'مثال: 45' : 'e.g. 45'}
+                                            className="w-full px-3.5 py-2.5 bg-secondary-50 border border-secondary-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 transition-colors"
+                                            autoFocus
+                                        />
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Modal Actions */}
+                            <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-secondary-100">
+                                <button
+                                    type="button"
+                                    onClick={() => setExtendModalUnit(null)}
+                                    disabled={isExtending}
+                                    className="px-4 py-2 text-sm font-semibold text-secondary-600 hover:text-secondary-800 hover:bg-secondary-100 rounded-xl transition-colors"
+                                >
+                                    {isRtl ? 'إلغاء' : 'Cancel'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={submitExtendUnit}
+                                    disabled={isExtending || (selectedDuration === 'custom' && (!customDays || parseInt(customDays, 10) < 1))}
+                                    className="px-5 py-2 text-sm font-semibold text-white bg-primary-900 hover:bg-primary-800 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl shadow-sm transition-colors flex items-center gap-1.5"
+                                >
+                                    {isExtending ? (
+                                        <>
+                                            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                            </svg>
+                                            <span>{isRtl ? 'جاري التمديد...' : 'Extending...'}</span>
+                                        </>
+                                    ) : (
+                                        <span>{isRtl ? 'تأكيد التمديد' : 'Confirm Extension'}</span>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>

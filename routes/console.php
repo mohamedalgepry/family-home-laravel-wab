@@ -25,7 +25,7 @@ Artisan::command('units:check-expiry', function () {
     dispatch(new AutoDeleteReviewJob);
 })->purpose('Flag expired units as pending review for admin');
 
-Schedule::command('queue:work --stop-when-empty --max-time=50 --tries=3')
+Schedule::command('queue:work --stop-when-empty --max-time=50 --tries=3 --timeout=180')
     ->everyMinute()
     ->withoutOverlapping();
 
@@ -54,12 +54,8 @@ Schedule::command('notifications:cleanup')
     ->dailyAt('03:00')
     ->withoutOverlapping();
 
-Schedule::command('backup:run --only-db')
+Schedule::command('app:backup-db')
     ->dailyAt('03:00')
-    ->withoutOverlapping();
-
-Schedule::command('backup:run')
-    ->dailyAt('04:00')
     ->withoutOverlapping();
 
 Schedule::command('backup:clean')

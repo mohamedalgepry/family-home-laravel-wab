@@ -37,3 +37,17 @@ test('create article generates unique slugs without collision', function () {
     expect($article2->slug)->not->toBe($article1->slug);
     expect($article2->id)->not->toBe($article1->id);
 });
+
+test('non-duplicate query exception (like invalid foreign key) is thrown immediately and not retried', function () {
+    $action = app(CreateArticleAction::class);
+
+    $invalidData = CreateArticleData::from([
+        'category_id' => 99999999, // Non-existent category ID
+        'title_ar' => 'عنوان المقال',
+        'title_en' => 'Article Title',
+        'content_ar' => 'محتوى المقال',
+        'content_en' => 'Article content',
+    ]);
+
+    expect(fn () => $action->execute($invalidData))->toThrow(\Illuminate\Database\QueryException::class);
+});

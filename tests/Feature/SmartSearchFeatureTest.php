@@ -4,28 +4,35 @@ namespace Tests\Feature;
 
 use App\Domain\Listings\Models\Area;
 use App\Domain\Listings\Models\UnitType;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 class SmartSearchFeatureTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     protected function setUp(): void
     {
         parent::setUp();
-        // The SmartSearchService caches unit types and areas.
-        // Clear cache between tests so that RefreshDatabase-created records are picked up fresh.
+        // SmartSearchService caches unit types and areas.
+        // Clear cache between tests so freshly created records are picked up.
         Cache::flush();
     }
 
     public function test_smart_search_merges_filters_in_unit_controller()
     {
-        $type = UnitType::create(['name_ar' => 'شقة', 'name_en' => 'Apartment', 'slug' => 'apt']);
-        $area = Area::create(['name_ar' => 'التجمع الخامس', 'name_en' => '5th Settlement', 'slug' => '5th']);
+        // Unique names guarantee deterministic resolution regardless of
+        // seeded lookup data or test execution order (longest-name-first,
+        // word-boundary matching cannot collide with unrelated rows).
+        $type = UnitType::create(['name_ar' => 'شقة فاخرة زقزيقة', 'name_en' => 'Zaqzyqa Apartment', 'slug' => 'zaqzyqa-apt']);
+        $area = Area::create([
+            'name_ar' => 'حي زقزيقة التجريبي',
+            'name_en' => 'Zaqzyqa District',
+            'slug' => 'zaqzyqa-'.uniqid(),
+        ]);
 
-        $response = $this->get('/ar/units?search=' . urlencode('شقة للبيع في التجمع الخامس بـ 5 مليون'));
+        $response = $this->get('/ar/units?search='.urlencode('شقة فاخرة زقزيقة للبيع في حي زقزيقة التجريبي بـ 5 مليون'));
 
         $response->assertStatus(200);
         $response->assertInertia(function ($page) use ($type, $area) {
@@ -40,10 +47,10 @@ class SmartSearchFeatureTest extends TestCase
 
     public function test_smart_search_respects_explicit_filters()
     {
-        $type = UnitType::create(['name_ar' => 'شقة', 'name_en' => 'Apartment', 'slug' => 'apt']);
+        $type = UnitType::create(['name_ar' => 'شقة فاخرة زقزيقة', 'name_en' => 'Zaqzyqa Apartment', 'slug' => 'zaqzyqa-apt']);
 
         // User typed "للبيع" but selected "rent" in the dropdown — explicit must win
-        $response = $this->get('/ar/units?search=' . urlencode('شقة للبيع') . '&transaction=rent');
+        $response = $this->get('/ar/units?search='.urlencode('شقة فاخرة زقزيقة للبيع').'&transaction=rent');
 
         $response->assertStatus(200);
         $response->assertInertia(function ($page) use ($type) {

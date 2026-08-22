@@ -244,10 +244,10 @@ Route::prefix('admin')->middleware(['auth', 'role:admin,manager,agent'])->group(
         Route::delete('/all/clear', [NotificationController::class, 'clearAll'])->name('clear-all');
     });
 
-    Route::post('/projects/{project}/approve', [NotificationController::class, 'approveProject'])->name('admin.projects.approve');
+    Route::post('/projects/{project}/approve', [NotificationController::class, 'approveProject'])->middleware('role:admin')->name('admin.projects.approve');
     Route::post('/units/{unit}/approve', [NotificationController::class, 'approveUnit'])->name('admin.units.approve');
-    Route::post('/projects/{project}/extend', [NotificationController::class, 'extendProject'])->name('admin.projects.extend');
-    Route::post('/units/{unit}/extend-expiry', [NotificationController::class, 'extendUnit'])->name('admin.units.extend-expiry');
+    Route::post('/projects/{project}/extend', [NotificationController::class, 'extendProject'])->middleware('role:admin')->name('admin.projects.extend');
+    Route::post('/units/{unit}/extend-expiry', [NotificationController::class, 'extendUnit'])->middleware('role:admin')->name('admin.units.extend-expiry');
     Route::delete('/units/{unit}/force', [NotificationController::class, 'deleteUnit'])->middleware('role:admin')->name('admin.units.force-delete');
     Route::post('/notifications/{id}/dismiss', [NotificationController::class, 'dismissNotification'])->name('admin.notifications.dismiss');
 

@@ -32,6 +32,7 @@ class NotificationController extends Controller
         return Inertia::render('Admin/Notifications/Index', [
             'notifications' => $this->notificationService->paginated($user),
             'unreadCount' => $user->unreadNotifications()->count(),
+            'autoDeleteDays' => (int) Setting::getValue('auto_delete_days', '30'),
         ]);
     }
 
@@ -99,17 +100,57 @@ class NotificationController extends Controller
         ]));
     }
 
-    public function extendUnit(Request $request, Unit $unit): RedirectResponse
+    public function extendUnit(\App\Http\Requests\Admin\ExtendUnitRequest $request, Unit $unit): RedirectResponse
     {
-        abort_unless($request->user()->isAdmin(), 403);
+        $days = $request->getResolvedDays();
+        $oldAutoDeleteAt = $unit->auto_delete_at;
+        $newAutoDeleteAt = null;
 
-        $this->extendListing($request->user(), $unit, 'unit_id');
+        // Concurrency-safe atomic update
+        \Illuminate\Support\Facades\DB::transaction(function () use ($unit, $days, &$newAutoDeleteAt) {
+            $lockedUnit = Unit::where('id', $unit->id)->lockForUpdate()->firstOrFail();
+
+            // Case 1: Active and not yet expired -> extend from current auto_delete_at
+            if ($lockedUnit->is_active && $lockedUnit->auto_delete_at && $lockedUnit->auto_delete_at->isFuture()) {
+                $newAutoDeleteAt = $lockedUnit->auto_delete_at->copy()->addDays($days);
+            } else {
+                // Case 2: Expired or in grace period -> extend from now() and reactivate
+                $newAutoDeleteAt = now()->addDays($days);
+            }
+
+            $lockedUnit->is_active = true;
+            $lockedUnit->auto_delete_at = $newAutoDeleteAt;
+            $lockedUnit->save();
+        });
+
+        // Audit logging
+        \Illuminate\Support\Facades\Log::info('Unit extended by admin', [
+            'admin_id' => $request->user()->id,
+            'unit_id' => $unit->id,
+            'old_auto_delete_at' => $oldAutoDeleteAt?->toIso8601String(),
+            'new_auto_delete_at' => $newAutoDeleteAt?->toIso8601String(),
+            'extension_days' => $days,
+        ]);
+
+        dispatch(new RegenerateSitemapJob)->afterCommit();
+        $this->clearListingsCache();
+
+        $this->notificationService->markEntityNotificationsAsRead($request->user(), 'unit_id', $unit->id);
+
+        // Notify unit owner if exists and different from admin
+        if ($unit->user && $unit->user_id !== $request->user()->id && $newAutoDeleteAt) {
+            $unit->user->notify(new \App\Domain\Listings\Notifications\UnitExtendedNotification(
+                unit: $unit,
+                days: $days,
+                newExpiresAt: $newAutoDeleteAt,
+            ));
+        }
 
         $unitName = $unit->name_ar ?: $unit->name;
 
         return redirect()->back()->with('success', __('admin.unit_extended', [
             'name' => $unitName,
-            'days' => $this->extensionDays(),
+            'days' => $days,
         ]));
     }
 

@@ -14,7 +14,13 @@ beforeEach(function () {
     $this->service = app(ListingLookupService::class);
 });
 
-it('returns the lookup collections and caches them', function () {
+// Matches the areas SELECT on any driver: `areas`, "areas", or bare areas.
+function areasQueryPattern(): string
+{
+    return '/\bfrom\s+[`"]?areas[`"]?\b/i';
+}
+
+it('returns the lookup collections including newly created records and caches them', function () {
     $area = Area::create(['name_ar' => 'منطقة', 'name_en' => 'Area']);
     $type = UnitType::create(['name_ar' => 'نوع', 'name_en' => 'Type']);
     $feature = Feature::create(['name_ar' => 'ميزة', 'name_en' => 'Feature']);
@@ -25,10 +31,12 @@ it('returns the lookup collections and caches them', function () {
     $features = $this->service->features();
     $finishingTypes = $this->service->finishingTypes();
 
-    expect($areas)->toHaveCount(1)->first()->id->toBe($area->id)
-        ->and($unitTypes)->toHaveCount(1)->first()->id->toBe($type->id)
-        ->and($features)->toHaveCount(1)->first()->id->toBe($feature->id)
-        ->and($finishingTypes)->toHaveCount(1)->first()->id->toBe($finishing->id)
+    // Seed-agnostic: the lookup tables may already contain seeded rows.
+    // We assert OUR records are present and cached, not exact totals.
+    expect($areas->pluck('id'))->toContain($area->id)
+        ->and($unitTypes->pluck('id'))->toContain($type->id)
+        ->and($features->pluck('id'))->toContain($feature->id)
+        ->and($finishingTypes->pluck('id'))->toContain($finishing->id)
         ->and(Cache::has(ListingLookupService::CACHE_KEY_AREAS))->toBeTrue()
         ->and(Cache::has(ListingLookupService::CACHE_KEY_UNIT_TYPES))->toBeTrue()
         ->and(Cache::has(ListingLookupService::CACHE_KEY_FEATURES))->toBeTrue()
@@ -37,20 +45,38 @@ it('returns the lookup collections and caches them', function () {
 
 it('serves repeated calls from the cache without querying the database again', function () {
     Area::create(['name_ar' => 'منطقة', 'name_en' => 'Area']);
-    $this->service->areas();
 
+    // Positive control: prove our query matcher actually detects an
+    // areas SELECT. Without this, the zero-query assertion below would
+    // be vacuous (passing even if the cache were broken).
     DB::enableQueryLog();
     $this->service->areas();
-    $queries = collect(DB::getQueryLog());
 
-    expect($queries->where('query', 'like', 'select %from "areas"%')->count())->toBe(0);
+    // Flush only the areas cache key to force a real DB round-trip.
+    Cache::forget(ListingLookupService::CACHE_KEY_AREAS);
+    $this->service->areas();
+
+    $queries = collect(DB::getQueryLog());
+    expect($queries->filter(fn ($q) => preg_match(areasQueryPattern(), $q['query']))->count())->toBeGreaterThan(0);
+
+    // Now the real assertion: a second call must NOT touch the database.
+    DB::flushQueryLog();
+    $this->service->areas();
+    $queriesAfter = collect(DB::getQueryLog());
+
+    expect($queriesAfter->filter(fn ($q) => preg_match(areasQueryPattern(), $q['query']))->count())->toBe(0);
 });
 
 it('refreshes the cached lookups when a lookup model changes', function () {
     Area::create(['name_ar' => 'منطقة', 'name_en' => 'Area']);
-    $this->service->areas();
+    $cached = $this->service->areas();
 
-    Area::create(['name_ar' => 'منطقة ثانية', 'name_en' => 'Second Area']);
+    $second = Area::create(['name_ar' => 'منطقة ثانية', 'name_en' => 'Second Area']);
 
-    expect($this->service->areas())->toHaveCount(2);
+    $fresh = $this->service->areas();
+
+    // Seed-agnostic: the refreshed collection must contain BOTH the
+    // previously cached record and the one created after caching.
+    expect($fresh->count())->toBeGreaterThanOrEqual($cached->count() + 1)
+        ->and($fresh->pluck('id'))->toContain($second->id);
 });

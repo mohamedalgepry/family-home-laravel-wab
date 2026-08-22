@@ -167,6 +167,27 @@ export default function Home({ featuredUnits, latestUnits, latestProjects, popul
                     </section>
                 )}
 
+                {/* Featured Units Section */}
+                {hasFeatured && Array.isArray(featuredUnits?.data) && (
+                    <section className="bg-transparent py-8 max-w-container mx-auto px-4 mb-4">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-xl sm:text-2xl font-black text-secondary-950 tracking-tight">
+                                {trans('featured_units') || (isRtl ? 'وحدات مميزة' : 'Featured Properties')}
+                            </h2>
+                            <Link href={localizedPath('/units?is_featured=1', locale)} className="px-4 py-1.5 bg-white text-secondary-800 border border-border rounded-full text-xs font-bold hover:bg-surface-hover hover:text-primary-900 transition-colors shadow-sm">
+                                {trans('view_all') || 'عرض الكل'}
+                            </Link>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                            {featuredUnits.data.map(unit => (
+                                <UnitCard key={unit.id} unit={unit} />
+                            ))}
+                        </div>
+                        <Pagination meta={featuredUnits} links={featuredUnits?.links} pageParam="featured_page" />
+                    </section>
+                )}
+
                 {/* Latest Projects Section */}
                 <section className="bg-transparent py-8 max-w-container mx-auto px-4">
                     <div className="flex items-center justify-between mb-4">

@@ -92,9 +92,31 @@ class AutoDeleteReviewJob implements ShouldQueue
         if ($oldDeactivated->isNotEmpty()) {
             $ids = $oldDeactivated->pluck('id')->toArray();
 
-            // Load images before deletion to clean up files
-            $unitsWithImages = Unit::with('images')->whereIn('id', $ids)->get();
+            // Load units with images and owners before deletion
+            $unitsWithImages = Unit::with(['images', 'user'])->whereIn('id', $ids)->get();
             $allImagePaths = $unitsWithImages->flatMap(fn ($u) => $u->images->pluck('path'))->toArray();
+
+            // Prepare notification payloads before deletion
+            $notificationsToSend = [];
+            foreach ($unitsWithImages as $unit) {
+                $recipients = collect();
+                if ($unit->user) {
+                    $recipients->push($unit->user);
+                }
+                foreach ($admins as $admin) {
+                    $recipients->push($admin);
+                }
+                $recipients = $recipients->unique('id');
+
+                $notificationsToSend[] = [
+                    'recipients' => $recipients,
+                    'notification' => new \App\Domain\Listings\Notifications\UnitPermanentlyDeletedNotification(
+                        unitId: $unit->id,
+                        unitNameAr: $unit->name_ar ?: ($unit->name ?: ''),
+                        unitNameEn: $unit->name_en ?: ($unit->name ?: ''),
+                    ),
+                ];
+            }
 
             DB::transaction(function () use ($ids) {
                 // Delete image records first, then units
@@ -106,6 +128,13 @@ class AutoDeleteReviewJob implements ShouldQueue
             if (! empty($allImagePaths)) {
                 $imageService = app(\App\Domain\Listings\Services\ListingImageService::class);
                 $imageService->deleteImageFiles($allImagePaths);
+            }
+
+            // Send notifications ONLY after successful deletion and cleanup
+            foreach ($notificationsToSend as $entry) {
+                foreach ($entry['recipients'] as $recipient) {
+                    $recipient->notify($entry['notification']);
+                }
             }
 
             Log::info('AutoDeleteReviewJob: permanently deleted old deactivated units.', [
@@ -168,9 +197,31 @@ class AutoDeleteReviewJob implements ShouldQueue
         if ($oldDeactivated->isNotEmpty()) {
             $ids = $oldDeactivated->pluck('id')->toArray();
 
-            // Load images before deletion to clean up files
-            $projectsWithImages = Project::with('images')->whereIn('id', $ids)->get();
+            // Load images and owners before deletion
+            $projectsWithImages = Project::with(['images', 'user'])->whereIn('id', $ids)->get();
             $allImagePaths = $projectsWithImages->flatMap(fn ($p) => $p->images->pluck('path'))->toArray();
+
+            // Prepare notification payloads
+            $projectNotificationsToSend = [];
+            foreach ($projectsWithImages as $project) {
+                $recipients = collect();
+                if ($project->user) {
+                    $recipients->push($project->user);
+                }
+                foreach ($admins as $admin) {
+                    $recipients->push($admin);
+                }
+                $recipients = $recipients->unique('id');
+
+                $projectNotificationsToSend[] = [
+                    'recipients' => $recipients,
+                    'notification' => new \App\Domain\Listings\Notifications\ProjectPermanentlyDeletedNotification(
+                        projectId: $project->id,
+                        projectNameAr: $project->name_ar ?: ($project->name ?: ''),
+                        projectNameEn: $project->name_en ?: ($project->name ?: ''),
+                    ),
+                ];
+            }
 
             DB::transaction(function () use ($ids) {
                 \App\Domain\Listings\Models\ProjectImage::whereIn('project_id', $ids)->delete();
@@ -181,6 +232,13 @@ class AutoDeleteReviewJob implements ShouldQueue
             if (! empty($allImagePaths)) {
                 $imageService = app(\App\Domain\Listings\Services\ListingImageService::class);
                 $imageService->deleteImageFiles($allImagePaths);
+            }
+
+            // Send notifications ONLY after successful deletion and cleanup
+            foreach ($projectNotificationsToSend as $entry) {
+                foreach ($entry['recipients'] as $recipient) {
+                    $recipient->notify($entry['notification']);
+                }
             }
 
             Log::info('AutoDeleteReviewJob: permanently deleted old deactivated projects.', [
