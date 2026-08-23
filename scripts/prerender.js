@@ -33,8 +33,13 @@ async function main() {
         env: { ...process.env, PORT: SSR_PORT },
     })
 
-    // Give SSR server time to start listening
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    // Wait until SSR server is actively accepting connections
+    const serverReady = await waitForServer(SSR_PORT, 15000)
+    if (!serverReady) {
+        console.error(`[Prerender] Error: SSR server did not start on port ${SSR_PORT} within 15 seconds.`)
+        try { ssrProcess.kill('SIGTERM') } catch {}
+        process.exit(1)
+    }
 
     try {
         console.log('[Prerender] Fetching page targets and templates from Laravel...')
@@ -92,11 +97,22 @@ async function main() {
         console.log('[Prerender] Verifying all generated files for localhost leakage, stale hashes, and missing assets...')
         validateAllStagingFiles(STAGING_DIR)
 
-        swapDirectories()
+        // Atomic swap
+        if (fs.existsSync(BACKUP_DIR)) {
+            fs.rmSync(BACKUP_DIR, { recursive: true, force: true })
+        }
+        if (fs.existsSync(PRERENDER_DIR)) {
+            fs.renameSync(PRERENDER_DIR, BACKUP_DIR)
+        }
+        fs.renameSync(STAGING_DIR, PRERENDER_DIR)
+        fs.rmSync(BACKUP_DIR, { recursive: true, force: true })
+
         console.log('[Prerender] Done — all prerendered pages verified and live.')
     } catch (err) {
         console.error('[Prerender] Error during prerender process:', err.message ?? err)
-        fs.rmSync(STAGING_DIR, { recursive: true, force: true })
+        if (fs.existsSync(STAGING_DIR)) {
+            fs.rmSync(STAGING_DIR, { recursive: true, force: true })
+        }
         process.exitCode = 1
     } finally {
         console.log('[Prerender] Terminating SSR server...')
@@ -104,18 +120,36 @@ async function main() {
     }
 }
 
-function swapDirectories() {
-    fs.rmSync(BACKUP_DIR, { recursive: true, force: true })
-    if (fs.existsSync(PRERENDER_DIR)) {
-        fs.renameSync(PRERENDER_DIR, BACKUP_DIR)
+async function waitForServer(port, maxWaitMs = 15000) {
+    const start = Date.now()
+    while (Date.now() - start < maxWaitMs) {
+        const isUp = await new Promise((resolve) => {
+            const req = http.request(
+                {
+                    hostname: '127.0.0.1',
+                    port,
+                    path: '/render',
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Content-Length': '2' },
+                    timeout: 1000,
+                },
+                res => {
+                    res.resume()
+                    resolve(true)
+                }
+            )
+            req.on('error', () => resolve(false))
+            req.on('timeout', () => { req.destroy(); resolve(false) })
+            req.write('{}')
+            req.end()
+        })
+        if (isUp) return true
+        await new Promise((r) => setTimeout(r, 400))
     }
-    fs.renameSync(STAGING_DIR, PRERENDER_DIR)
-    fs.rmSync(BACKUP_DIR, { recursive: true, force: true })
+    return false
 }
 
-function renderPage(pageObject) {
-    const maxAttempts = 3
-
+function renderPage(pageObject, maxAttempts = 5) {
     return new Promise((resolve, reject) => {
         const attempt = (n) => {
             const payload = JSON.stringify(pageObject)
@@ -142,20 +176,29 @@ function renderPage(pageObject) {
                                 const rendered = `${result.body ?? ''}${(result.head ?? []).join('')}`
                                 if (rendered.includes('\uFFFD') && n < maxAttempts) {
                                     console.warn(`[Prerender] Corrupted UTF-8 in SSR output for ${pageObject.url}, retrying (${n}/${maxAttempts})...`)
-                                    return attempt(n + 1)
+                                    return setTimeout(() => attempt(n + 1), 300)
                                 }
                                 resolve(result)
                             } catch (e) {
                                 reject(e)
                             }
                         } else {
+                            if (n < maxAttempts) {
+                                return setTimeout(() => attempt(n + 1), 500)
+                            }
                             reject(new Error(`HTTP ${res.statusCode}: ${data}`))
                         }
                     })
                 }
             )
 
-            req.on('error', reject)
+            req.on('error', (err) => {
+                if (n < maxAttempts) {
+                    setTimeout(() => attempt(n + 1), 500)
+                } else {
+                    reject(err)
+                }
+            })
             req.write(payload)
             req.end()
         }

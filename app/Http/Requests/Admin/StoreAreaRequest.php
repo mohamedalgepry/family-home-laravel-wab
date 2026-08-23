@@ -38,6 +38,64 @@ class StoreAreaRequest extends FormRequest
             $merges['sort_order'] = 0;
         }
 
+        if ($this->has('features') && is_array($this->input('features'))) {
+            $filteredFeatures = [];
+            foreach ($this->input('features') as $f) {
+                if (! is_array($f)) {
+                    continue;
+                }
+                $titleAr = trim($f['title_ar'] ?? '');
+                $titleEn = trim($f['title_en'] ?? '');
+                $descAr = trim($f['description_ar'] ?? '');
+                $descEn = trim($f['description_en'] ?? '');
+                if ($titleAr === '' && $titleEn === '' && $descAr === '' && $descEn === '') {
+                    continue;
+                }
+                $f['title_ar'] = $titleAr !== '' ? $titleAr : ($titleEn !== '' ? $titleEn : 'ميزة');
+                $f['title_en'] = $titleEn !== '' ? $titleEn : $f['title_ar'];
+                $filteredFeatures[] = $f;
+            }
+            $merges['features'] = $filteredFeatures;
+        }
+
+        if ($this->has('nearby_places') && is_array($this->input('nearby_places'))) {
+            $filteredPlaces = [];
+            foreach ($this->input('nearby_places') as $p) {
+                if (! is_array($p)) {
+                    continue;
+                }
+                $nameAr = trim($p['name_ar'] ?? '');
+                $nameEn = trim($p['name_en'] ?? '');
+                $descAr = trim($p['description_ar'] ?? '');
+                if ($nameAr === '' && $nameEn === '' && $descAr === '') {
+                    continue;
+                }
+                $p['name_ar'] = $nameAr !== '' ? $nameAr : ($nameEn !== '' ? $nameEn : 'مكان قريب');
+                $p['name_en'] = $nameEn !== '' ? $nameEn : $p['name_ar'];
+                $filteredPlaces[] = $p;
+            }
+            $merges['nearby_places'] = $filteredPlaces;
+        }
+
+        if ($this->has('faqs') && is_array($this->input('faqs'))) {
+            $filteredFaqs = [];
+            foreach ($this->input('faqs') as $faq) {
+                if (! is_array($faq)) {
+                    continue;
+                }
+                $qAr = trim($faq['question_ar'] ?? '');
+                $qEn = trim($faq['question_en'] ?? '');
+                $aAr = trim($faq['answer_ar'] ?? '');
+                if ($qAr === '' && $qEn === '' && $aAr === '') {
+                    continue;
+                }
+                $faq['question_ar'] = $qAr !== '' ? $qAr : ($qEn !== '' ? $qEn : 'سؤال');
+                $faq['question_en'] = $qEn !== '' ? $qEn : $faq['question_ar'];
+                $filteredFaqs[] = $faq;
+            }
+            $merges['faqs'] = $filteredFaqs;
+        }
+
         if (! empty($merges)) {
             $this->merge($merges);
         }
@@ -70,10 +128,10 @@ class StoreAreaRequest extends FormRequest
             'hero_title_en' => 'nullable|string|max:255',
             'hero_description_ar' => 'nullable|string',
             'hero_description_en' => 'nullable|string',
-            'image_path' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:10240|dimensions:max_width=6000,max_height=6000',
-            'hero_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:10240|dimensions:max_width=6000,max_height=6000',
+            'image_path' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:20480|dimensions:max_width=6000,max_height=6000',
+            'hero_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:20480|dimensions:max_width=6000,max_height=6000',
             'gallery' => 'nullable|array',
-            'gallery.*' => 'image|mimes:jpeg,png,jpg,webp|max:10240|dimensions:max_width=6000,max_height=6000',
+            'gallery.*' => 'image|mimes:jpeg,png,jpg,webp|max:20480|dimensions:max_width=6000,max_height=6000',
 
             'about_ar' => 'nullable|string',
             'about_en' => 'nullable|string',
@@ -108,32 +166,35 @@ class StoreAreaRequest extends FormRequest
             'meta_keywords_en.*' => 'string|max:100',
 
             'features' => 'nullable|array',
-            'features.*.title_ar' => 'required_with:features|string|max:255',
+            'features.*.id' => 'nullable|exists:area_features,id',
+            'features.*.title_ar' => 'nullable|string|max:255',
             'features.*.title_en' => 'nullable|string|max:255',
             'features.*.description_ar' => 'nullable|string',
             'features.*.description_en' => 'nullable|string',
-            'features.*.icon' => ['nullable', 'string', 'max:50', new AllowedIconName],
+            'features.*.icon' => 'nullable|string|max:100',
             'features.*.sort_order' => 'nullable|integer',
-            'features.*.is_active' => 'boolean',
+            'features.*.is_active' => 'nullable|boolean',
 
             'nearby_places' => 'nullable|array',
-            'nearby_places.*.name_ar' => 'required_with:nearby_places|string|max:255',
+            'nearby_places.*.id' => 'nullable|exists:area_nearby_places,id',
+            'nearby_places.*.name_ar' => 'nullable|string|max:255',
             'nearby_places.*.name_en' => 'nullable|string|max:255',
             'nearby_places.*.description_ar' => 'nullable|string',
             'nearby_places.*.description_en' => 'nullable|string',
             'nearby_places.*.distance' => 'nullable|string|max:100',
             'nearby_places.*.distance_unit' => 'nullable|string|max:100',
-            'nearby_places.*.icon' => ['nullable', 'string', 'max:50', new AllowedIconName],
+            'nearby_places.*.icon' => 'nullable|string|max:100',
             'nearby_places.*.sort_order' => 'nullable|integer',
-            'nearby_places.*.is_active' => 'boolean',
+            'nearby_places.*.is_active' => 'nullable|boolean',
 
             'faqs' => 'nullable|array',
-            'faqs.*.question_ar' => 'required_with:faqs|string',
+            'faqs.*.id' => 'nullable|exists:area_faqs,id',
+            'faqs.*.question_ar' => 'nullable|string',
             'faqs.*.question_en' => 'nullable|string',
             'faqs.*.answer_ar' => 'nullable|string',
             'faqs.*.answer_en' => 'nullable|string',
             'faqs.*.sort_order' => 'nullable|integer',
-            'faqs.*.is_active' => 'boolean',
+            'faqs.*.is_active' => 'nullable|boolean',
         ];
     }
 

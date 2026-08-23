@@ -1670,9 +1670,21 @@ function AreaForm({ area, parents, mode = "create" }) {
 		if (payload.parent_id === "" || payload.parent_id === void 0) payload.parent_id = null;
 		if (imageDeleted) payload.image_path = null;
 		else if (payload.image_path !== null && !(payload.image_path instanceof File)) delete payload.image_path;
-		if (Array.isArray(payload.features)) payload.features = payload.features.filter((f) => f.title_ar && f.title_ar.trim() !== "");
-		if (Array.isArray(payload.nearby_places)) payload.nearby_places = payload.nearby_places.filter((p) => p.name_ar && p.name_ar.trim() !== "");
-		if (Array.isArray(payload.faqs)) payload.faqs = payload.faqs.filter((f) => f.question_ar && f.question_ar.trim() !== "");
+		if (Array.isArray(payload.features)) payload.features = payload.features.filter((f) => f.title_ar && f.title_ar.trim() !== "" || f.title_en && f.title_en.trim() !== "" || f.description_ar && f.description_ar.trim() !== "").map((f) => ({
+			...f,
+			title_ar: f.title_ar?.trim() || f.title_en?.trim() || "ميزة",
+			title_en: f.title_en?.trim() || f.title_ar?.trim() || "Feature"
+		}));
+		if (Array.isArray(payload.nearby_places)) payload.nearby_places = payload.nearby_places.filter((p) => p.name_ar && p.name_ar.trim() !== "" || p.name_en && p.name_en.trim() !== "" || p.description_ar && p.description_ar.trim() !== "").map((p) => ({
+			...p,
+			name_ar: p.name_ar?.trim() || p.name_en?.trim() || "مكان قريب",
+			name_en: p.name_en?.trim() || p.name_ar?.trim() || "Nearby Place"
+		}));
+		if (Array.isArray(payload.faqs)) payload.faqs = payload.faqs.filter((f) => f.question_ar && f.question_ar.trim() !== "" || f.question_en && f.question_en.trim() !== "" || f.answer_ar && f.answer_ar.trim() !== "").map((f) => ({
+			...f,
+			question_ar: f.question_ar?.trim() || f.question_en?.trim() || "سؤال",
+			question_en: f.question_en?.trim() || f.question_ar?.trim() || "Question"
+		}));
 		setIsSubmitting(true);
 		const options = {
 			forceFormData: true,
@@ -2205,12 +2217,11 @@ function AreaForm({ area, parents, mode = "create" }) {
 											className: "grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 pe-10",
 											children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
 												className: "text-xs font-bold text-secondary-700 mb-1 block",
-												children: "Title (AR) *"
+												children: "Title (AR)"
 											}), /* @__PURE__ */ jsx("input", {
 												type: "text",
 												value: feature.title_ar,
 												onChange: (e) => updateFeature(index, "title_ar", e.target.value),
-												required: true,
 												dir: "rtl",
 												className: inputClasses
 											})] }), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
@@ -2334,12 +2345,11 @@ function AreaForm({ area, parents, mode = "create" }) {
 										className: "grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 pe-10",
 										children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
 											className: "text-xs font-bold text-secondary-700 mb-1 block",
-											children: "Name (AR) *"
+											children: "Name (AR)"
 										}), /* @__PURE__ */ jsx("input", {
 											type: "text",
 											value: place.name_ar,
 											onChange: (e) => updateNearby(index, "name_ar", e.target.value),
-											required: true,
 											dir: "rtl",
 											className: inputClasses
 										})] }), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
@@ -2501,7 +2511,7 @@ function AreaForm({ area, parents, mode = "create" }) {
 										children: /* @__PURE__ */ jsx("svg", {
 											className: "w-5 h-5",
 											fill: "none",
-											viewBox: "0 0 24 24",
+											viewBox: "0 24 24",
 											stroke: "currentColor",
 											children: /* @__PURE__ */ jsx("path", {
 												strokeLinecap: "round",
@@ -2515,12 +2525,11 @@ function AreaForm({ area, parents, mode = "create" }) {
 										className: "grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 pe-10",
 										children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
 											className: "text-xs font-bold text-secondary-700 mb-1 block",
-											children: "Question (AR) *"
+											children: "Question (AR)"
 										}), /* @__PURE__ */ jsx("input", {
 											type: "text",
 											value: faq.question_ar,
 											onChange: (e) => updateFaq(index, "question_ar", e.target.value),
-											required: true,
 											dir: "rtl",
 											className: inputClasses
 										})] }), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
