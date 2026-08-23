@@ -9,9 +9,11 @@ import { getStorageUrl } from '../../../Utils/image'
 import { getAgentContacts } from '../../../Utils/contact'
 
 export default function Show({ agent, units, locale }) {
-    const { settings } = usePage().props
-    const trans = useTrans(locale)
-    const isRtl = locale === 'ar'
+    const pageProps = usePage().props
+    const currentLocale = locale || pageProps.locale || 'ar'
+    const settings = pageProps.settings
+    const trans = useTrans(currentLocale)
+    const isRtl = currentLocale === 'ar'
 
     const agentContacts = getAgentContacts(agent, settings)
     const avatarSrc = getStorageUrl(agent.avatar, null)
@@ -31,7 +33,7 @@ export default function Show({ agent, units, locale }) {
                 ogType="profile"
             />
 
-            <Header locale={locale} />
+            <Header locale={currentLocale} />
 
             <div dir={isRtl ? 'rtl' : 'ltr'} className="max-w-container mx-auto px-4 py-12 sm:py-16">
                 {/* Agent Header */}
@@ -49,7 +51,7 @@ export default function Show({ agent, units, locale }) {
                     <div className="flex-1 text-center sm:text-start space-y-4 relative z-10">
                         <div>
                             <h1 className="text-3xl sm:text-4xl font-black text-secondary-950 tracking-tight">{agent.name}</h1>
-                            <p className="text-secondary-500 font-medium mt-2 text-lg">{trans(agent.role)}</p>
+                            <p className="text-secondary-500 font-medium mt-2 text-lg">{trans(agent.role || 'agent')}</p>
                         </div>
                         
                         <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 pt-2">
@@ -129,7 +131,7 @@ export default function Show({ agent, units, locale }) {
                 )}
             </div>
 
-            <Footer locale={locale} />
+            <Footer locale={currentLocale} />
         </div>
     )
 }

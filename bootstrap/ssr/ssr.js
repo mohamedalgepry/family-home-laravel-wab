@@ -1417,6 +1417,70 @@ function getStorageUrl(path, fallback = PLACEHOLDER$2) {
 	if (clean.startsWith("storage/")) clean = clean.replace(/^storage\/+/, "");
 	return `/storage/${clean}`;
 }
+/**
+* Compresses and scales an image file on the client side using HTML5 Canvas
+* to dramatically reduce upload size (e.g. from 15MB to ~200KB) and speed up uploads.
+*
+* @param {File} file - The raw image File object from input / drop event
+* @param {Object} options
+* @param {number} [options.maxWidth=1920] - Max width in pixels
+* @param {number} [options.maxHeight=1920] - Max height in pixels
+* @param {number} [options.quality=0.85] - WebP / JPEG output quality (0 to 1)
+* @returns {Promise<File>} Compressed File or original file if compression is not needed / supported
+*/
+async function compressImage(file, { maxWidth = 1920, maxHeight = 1920, quality = .85 } = {}) {
+	if (!file || !(file instanceof File) || !file.type || !file.type.startsWith("image/")) return file;
+	if (file.type === "image/svg+xml" || file.type === "image/gif") return file;
+	return new Promise((resolve) => {
+		const img = new Image();
+		const objectUrl = URL.createObjectURL(file);
+		img.onload = () => {
+			URL.revokeObjectURL(objectUrl);
+			let { width, height } = img;
+			if (width <= maxWidth && height <= maxHeight && file.size <= 400 * 1024) {
+				resolve(file);
+				return;
+			}
+			if (width > maxWidth || height > maxHeight) if (width / height > maxWidth / maxHeight) {
+				height = Math.round(height * maxWidth / width);
+				width = maxWidth;
+			} else {
+				width = Math.round(width * maxHeight / height);
+				height = maxHeight;
+			}
+			const canvas = document.createElement("canvas");
+			canvas.width = width;
+			canvas.height = height;
+			const ctx = canvas.getContext("2d");
+			if (!ctx) {
+				resolve(file);
+				return;
+			}
+			ctx.drawImage(img, 0, 0, width, height);
+			const outputType = "image/webp";
+			const newName = `${file.name.replace(/\.[^/.]+$/, "")}.webp`;
+			canvas.toBlob((blob) => {
+				if (!blob) {
+					resolve(file);
+					return;
+				}
+				if (blob.size >= file.size) {
+					resolve(file);
+					return;
+				}
+				resolve(new File([blob], newName, {
+					type: outputType,
+					lastModified: Date.now()
+				}));
+			}, outputType, quality);
+		};
+		img.onerror = () => {
+			URL.revokeObjectURL(objectUrl);
+			resolve(file);
+		};
+		img.src = objectUrl;
+	});
+}
 //#endregion
 //#region resources/js/Pages/Admin/Areas/AreaForm.jsx
 var AreaForm_exports = /* @__PURE__ */ __exportAll({ default: () => AreaForm });
@@ -1523,13 +1587,13 @@ function AreaForm({ area, parents, mode = "create" }) {
 	const [isDragging, setIsDragging] = useState(false);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const fileInputRef = useRef(null);
-	const handleImageChange = useCallback((file) => {
-		if (!file || !file.type.startsWith("image/")) return;
-		setData("image_path", file);
+	const handleImageChange = useCallback(async (file) => {
+		if (!file || !file.type || !file.type.startsWith("image/")) return;
 		setImageDeleted(false);
-		const reader = new FileReader();
-		reader.onload = (e) => setImagePreview(e.target.result);
-		reader.readAsDataURL(file);
+		const previewUrl = URL.createObjectURL(file);
+		setImagePreview(previewUrl);
+		const optimized = await compressImage(file);
+		setData("image_path", optimized);
 	}, [setData]);
 	const handleDrop = useCallback((e) => {
 		e.preventDefault();
@@ -1544,6 +1608,7 @@ function AreaForm({ area, parents, mode = "create" }) {
 	const handleDragLeave = () => setIsDragging(false);
 	const clearImage = () => {
 		setData("image_path", null);
+		if (imagePreview && imagePreview.startsWith("blob:")) URL.revokeObjectURL(imagePreview);
 		setImagePreview(null);
 		setImageDeleted(true);
 		if (fileInputRef.current) fileInputRef.current.value = "";
@@ -14587,9 +14652,11 @@ function Pagination({ meta, links: routeLinks, pageParam = "page" }) {
 //#region resources/js/Pages/Public/Agents/Show.jsx
 var Show_exports$4 = /* @__PURE__ */ __exportAll({ default: () => Show });
 function Show({ agent, units, locale }) {
-	const { settings } = usePage().props;
-	const trans = useTrans(locale);
-	const isRtl = locale === "ar";
+	const pageProps = usePage().props;
+	const currentLocale = locale || pageProps.locale || "ar";
+	const settings = pageProps.settings;
+	const trans = useTrans(currentLocale);
+	const isRtl = currentLocale === "ar";
 	const agentContacts = getAgentContacts(agent, settings);
 	const avatarSrc = getStorageUrl(agent.avatar, null);
 	const channels = [
@@ -14623,7 +14690,7 @@ function Show({ agent, units, locale }) {
 				ogImage: avatarSrc,
 				ogType: "profile"
 			}),
-			/* @__PURE__ */ jsx(Header, { locale }),
+			/* @__PURE__ */ jsx(Header, { locale: currentLocale }),
 			/* @__PURE__ */ jsxs("div", {
 				dir: isRtl ? "rtl" : "ltr",
 				className: "max-w-container mx-auto px-4 py-12 sm:py-16",
@@ -14652,7 +14719,7 @@ function Show({ agent, units, locale }) {
 									children: agent.name
 								}), /* @__PURE__ */ jsx("p", {
 									className: "text-secondary-500 font-medium mt-2 text-lg",
-									children: trans(agent.role)
+									children: trans(agent.role || "agent")
 								})] }), /* @__PURE__ */ jsx("div", {
 									className: "flex flex-wrap items-center justify-center sm:justify-start gap-3 pt-2",
 									children: channels.map((ch) => /* @__PURE__ */ jsxs("a", {
@@ -14758,7 +14825,7 @@ function Show({ agent, units, locale }) {
 					})
 				]
 			}),
-			/* @__PURE__ */ jsx(Footer, { locale })
+			/* @__PURE__ */ jsx(Footer, { locale: currentLocale })
 		]
 	});
 }
@@ -18833,16 +18900,37 @@ function ProjectShow({ project }) {
 									className: "pt-4 border-t border-secondary-100",
 									children: /* @__PURE__ */ jsxs("div", {
 										className: "flex items-center justify-between gap-3",
-										children: [/* @__PURE__ */ jsxs("div", {
+										children: [project.user ? /* @__PURE__ */ jsxs(Link, {
+											href: localizedPath(`/agents/${project.user.slug || project.user.id}`, locale),
+											className: "flex items-center gap-3 group focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-lg transition-opacity hover:opacity-85",
+											title: project.user.name,
+											children: [project.user.avatar ? /* @__PURE__ */ jsx("img", {
+												src: getStorageUrl(project.user.avatar, null),
+												alt: project.user.name,
+												className: "w-10 h-10 rounded-full object-cover border border-secondary-200 shrink-0 group-hover:border-primary-500 transition-colors"
+											}) : /* @__PURE__ */ jsx("div", {
+												className: "w-10 h-10 rounded-full bg-primary-100 border border-primary-200 flex items-center justify-center text-primary-900 font-bold text-xs shrink-0 group-hover:bg-primary-200 transition-colors",
+												children: project.user.name ? project.user.name.charAt(0).toUpperCase() : isRtl ? "أ" : "A"
+											}), /* @__PURE__ */ jsxs("div", {
+												className: "min-w-0",
+												children: [/* @__PURE__ */ jsx("h4", {
+													className: "text-xs font-bold text-secondary-950 truncate group-hover:text-primary-900 transition-colors",
+													children: project.user.name
+												}), /* @__PURE__ */ jsx("p", {
+													className: "text-[11px] text-secondary-500 font-medium truncate",
+													children: isRtl ? "مستشار عقاري" : "Real Estate Advisor"
+												})]
+											})]
+										}) : /* @__PURE__ */ jsxs("div", {
 											className: "flex items-center gap-3",
 											children: [/* @__PURE__ */ jsx("div", {
 												className: "w-10 h-10 rounded-full bg-primary-100 border border-primary-200 flex items-center justify-center text-primary-900 font-bold text-xs shrink-0",
-												children: project.user?.name ? project.user.name.charAt(0) : isRtl ? "أ" : "A"
+												children: isRtl ? "ف" : "F"
 											}), /* @__PURE__ */ jsxs("div", {
 												className: "min-w-0",
 												children: [/* @__PURE__ */ jsx("h4", {
 													className: "text-xs font-bold text-secondary-950 truncate",
-													children: project.user?.name || (isRtl ? "أحمد محمود" : "Ahmed Mahmoud")
+													children: trans("company_name") || (isRtl ? "فاميلي هوم" : "Family Home")
 												}), /* @__PURE__ */ jsx("p", {
 													className: "text-[11px] text-secondary-500 font-medium truncate",
 													children: isRtl ? "مستشار عقاري" : "Real Estate Advisor"
@@ -20120,16 +20208,40 @@ function UnitShow({ unit, similarUnits }) {
 									className: "pt-4 border-t border-secondary-100",
 									children: /* @__PURE__ */ jsxs("div", {
 										className: "flex items-center justify-between gap-3",
-										children: [/* @__PURE__ */ jsxs("div", {
+										children: [unit.user || unit.project?.user ? (() => {
+											const agentUser = unit.user || unit.project?.user;
+											return /* @__PURE__ */ jsxs(Link, {
+												href: localizedPath(`/agents/${agentUser.slug || agentUser.id}`, locale),
+												className: "flex items-center gap-3 group focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-lg transition-opacity hover:opacity-85",
+												title: agentUser.name,
+												children: [agentUser.avatar ? /* @__PURE__ */ jsx("img", {
+													src: getStorageUrl(agentUser.avatar, null),
+													alt: agentUser.name,
+													className: "w-10 h-10 rounded-full object-cover border border-secondary-200 shrink-0 group-hover:border-primary-500 transition-colors"
+												}) : /* @__PURE__ */ jsx("div", {
+													className: "w-10 h-10 rounded-full bg-primary-100 border border-primary-200 flex items-center justify-center text-primary-900 font-bold text-xs shrink-0 group-hover:bg-primary-200 transition-colors",
+													children: agentUser.name ? agentUser.name.charAt(0).toUpperCase() : isRtl ? "أ" : "A"
+												}), /* @__PURE__ */ jsxs("div", {
+													className: "min-w-0",
+													children: [/* @__PURE__ */ jsx("h4", {
+														className: "text-xs font-bold text-secondary-950 truncate group-hover:text-primary-900 transition-colors",
+														children: agentUser.name
+													}), /* @__PURE__ */ jsx("p", {
+														className: "text-[11px] text-secondary-500 font-medium truncate",
+														children: isRtl ? "مستشار عقاري" : "Real Estate Advisor"
+													})]
+												})]
+											});
+										})() : /* @__PURE__ */ jsxs("div", {
 											className: "flex items-center gap-3",
 											children: [/* @__PURE__ */ jsx("div", {
 												className: "w-10 h-10 rounded-full bg-primary-100 border border-primary-200 flex items-center justify-center text-primary-900 font-bold text-xs shrink-0",
-												children: unit.user?.name ? unit.user.name.charAt(0) : isRtl ? "أ" : "A"
+												children: isRtl ? "ف" : "F"
 											}), /* @__PURE__ */ jsxs("div", {
 												className: "min-w-0",
 												children: [/* @__PURE__ */ jsx("h4", {
 													className: "text-xs font-bold text-secondary-950 truncate",
-													children: unit.user?.name || (isRtl ? "أحمد محمود" : "Ahmed Mahmoud")
+													children: trans("company_name") || (isRtl ? "فاميلي هوم" : "Family Home")
 												}), /* @__PURE__ */ jsx("p", {
 													className: "text-[11px] text-secondary-500 font-medium truncate",
 													children: isRtl ? "مستشار عقاري" : "Real Estate Advisor"

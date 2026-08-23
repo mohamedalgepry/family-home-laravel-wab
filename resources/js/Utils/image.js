@@ -26,3 +26,99 @@ export function getStorageUrl(path, fallback = PLACEHOLDER) {
 
     return `/storage/${clean}`
 }
+
+/**
+ * Compresses and scales an image file on the client side using HTML5 Canvas
+ * to dramatically reduce upload size (e.g. from 15MB to ~200KB) and speed up uploads.
+ *
+ * @param {File} file - The raw image File object from input / drop event
+ * @param {Object} options
+ * @param {number} [options.maxWidth=1920] - Max width in pixels
+ * @param {number} [options.maxHeight=1920] - Max height in pixels
+ * @param {number} [options.quality=0.85] - WebP / JPEG output quality (0 to 1)
+ * @returns {Promise<File>} Compressed File or original file if compression is not needed / supported
+ */
+export async function compressImage(file, { maxWidth = 1920, maxHeight = 1920, quality = 0.85 } = {}) {
+    if (!file || !(file instanceof File) || !file.type || !file.type.startsWith('image/')) {
+        return file;
+    }
+
+    // Skip SVGs and animated GIFs
+    if (file.type === 'image/svg+xml' || file.type === 'image/gif') {
+        return file;
+    }
+
+    return new Promise((resolve) => {
+        const img = new Image();
+        const objectUrl = URL.createObjectURL(file);
+
+        img.onload = () => {
+            URL.revokeObjectURL(objectUrl);
+
+            let { width, height } = img;
+
+            // If image is already smaller than maxWidth/maxHeight and smaller than 400KB, return original
+            if (width <= maxWidth && height <= maxHeight && file.size <= 400 * 1024) {
+                resolve(file);
+                return;
+            }
+
+            // Calculate proportional dimensions
+            if (width > maxWidth || height > maxHeight) {
+                if (width / height > maxWidth / maxHeight) {
+                    height = Math.round((height * maxWidth) / width);
+                    width = maxWidth;
+                } else {
+                    width = Math.round((width * maxHeight) / height);
+                    height = maxHeight;
+                }
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                resolve(file);
+                return;
+            }
+
+            ctx.drawImage(img, 0, 0, width, height);
+
+            const outputType = 'image/webp';
+            const originalName = file.name.replace(/\.[^/.]+$/, '');
+            const newName = `${originalName}.webp`;
+
+            canvas.toBlob(
+                (blob) => {
+                    if (!blob) {
+                        resolve(file);
+                        return;
+                    }
+
+                    if (blob.size >= file.size) {
+                        resolve(file);
+                        return;
+                    }
+
+                    const compressedFile = new File([blob], newName, {
+                        type: outputType,
+                        lastModified: Date.now(),
+                    });
+
+                    resolve(compressedFile);
+                },
+                outputType,
+                quality
+            );
+        };
+
+        img.onerror = () => {
+            URL.revokeObjectURL(objectUrl);
+            resolve(file);
+        };
+
+        img.src = objectUrl;
+    });
+}

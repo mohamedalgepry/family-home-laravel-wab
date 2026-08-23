@@ -14,7 +14,17 @@ class AgentController extends Controller
 {
     public function show(string $slug, Request $request): Response
     {
-        $agent = User::with('profile')->where('is_active', true)->where('slug', $slug)->firstOrFail();
+        $decodedSlug = urldecode($slug);
+        $agent = User::with('profile')
+            ->where('is_active', true)
+            ->where(function ($query) use ($slug, $decodedSlug) {
+                $query->where('slug', $slug)
+                    ->orWhere('slug', $decodedSlug);
+                if (is_numeric($slug)) {
+                    $query->orWhere('id', (int) $slug);
+                }
+            })
+            ->firstOrFail();
 
         $units = Unit::active()
             ->where('user_id', $agent->id)
@@ -23,13 +33,15 @@ class AgentController extends Controller
             ->paginate(12)
             ->withQueryString();
 
+        $agentIdentifier = $agent->slug ?: $agent->id;
+
         $meta = app(SeoService::class)->forPage('agents', [
             'title' => $agent->name.' - '.config('app.name'),
-            'canonical' => url('/'.app()->getLocale()."/agents/{$agent->slug}"),
+            'canonical' => url('/'.app()->getLocale()."/agents/{$agentIdentifier}"),
             'hreflang' => [
-                'ar' => url("/ar/agents/{$agent->slug}"),
-                'en' => url("/en/agents/{$agent->slug}"),
-                'x-default' => url("/ar/agents/{$agent->slug}"),
+                'ar' => url("/ar/agents/{$agentIdentifier}"),
+                'en' => url("/en/agents/{$agentIdentifier}"),
+                'x-default' => url("/ar/agents/{$agentIdentifier}"),
             ],
         ]);
 
@@ -43,6 +55,7 @@ class AgentController extends Controller
                 'whatsapp' => $agent->profile?->whatsapp,
                 'facebook' => $agent->profile?->facebook,
                 'linkedin' => $agent->profile?->linkedin,
+                'bio' => $agent->profile?->bio,
                 'role' => $agent->role,
             ],
             'units' => $units,

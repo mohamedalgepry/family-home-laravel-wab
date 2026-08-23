@@ -1,6 +1,6 @@
 import { usePage, useForm, Link, router } from '@inertiajs/react'
 import { useTrans } from '../../../Utils/trans'
-import { getStorageUrl } from '../../../Utils/image'
+import { getStorageUrl, compressImage } from '../../../Utils/image'
 import { useState, useRef, useCallback } from 'react'
 
 const MAX_KEYWORDS = 25
@@ -138,13 +138,15 @@ export default function AreaForm({ area, parents, mode = 'create' }) {
     const [isSubmitting, setIsSubmitting] = useState(false)
     const fileInputRef = useRef(null)
 
-    const handleImageChange = useCallback((file) => {
-        if (!file || !file.type.startsWith('image/')) return
-        setData('image_path', file)
+    const handleImageChange = useCallback(async (file) => {
+        if (!file || !file.type || !file.type.startsWith('image/')) return
         setImageDeleted(false)
-        const reader = new FileReader()
-        reader.onload = (e) => setImagePreview(e.target.result)
-        reader.readAsDataURL(file)
+        const previewUrl = URL.createObjectURL(file)
+        setImagePreview(previewUrl)
+
+        // Compress image client-side to ensure fast uploads
+        const optimized = await compressImage(file)
+        setData('image_path', optimized)
     }, [setData])
 
     const handleDrop = useCallback((e) => {
@@ -159,6 +161,9 @@ export default function AreaForm({ area, parents, mode = 'create' }) {
 
     const clearImage = () => {
         setData('image_path', null)
+        if (imagePreview && imagePreview.startsWith('blob:')) {
+            URL.revokeObjectURL(imagePreview)
+        }
         setImagePreview(null)
         setImageDeleted(true)
         if (fileInputRef.current) fileInputRef.current.value = ''

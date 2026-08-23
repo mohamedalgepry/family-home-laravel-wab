@@ -393,15 +393,52 @@ export default function UnitShow({ unit, similarUnits }) {
                                 {/* Agent Info Snippet inside Top Summary Card */}
                                 <div className="pt-4 border-t border-secondary-100">
                                     <div className="flex items-center justify-between gap-3">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full bg-primary-100 border border-primary-200 flex items-center justify-center text-primary-900 font-bold text-xs shrink-0">
-                                                {unit.user?.name ? unit.user.name.charAt(0) : (isRtl ? 'أ' : 'A')}
+                                        {(unit.user || unit.project?.user) ? (
+                                            (() => {
+                                                const agentUser = unit.user || unit.project?.user;
+                                                return (
+                                                    <Link
+                                                        href={localizedPath(`/agents/${agentUser.slug || agentUser.id}`, locale)}
+                                                        className="flex items-center gap-3 group focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-lg transition-opacity hover:opacity-85"
+                                                        title={agentUser.name}
+                                                    >
+                                                        {agentUser.avatar ? (
+                                                            <img
+                                                                src={getStorageUrl(agentUser.avatar, null)}
+                                                                alt={agentUser.name}
+                                                                className="w-10 h-10 rounded-full object-cover border border-secondary-200 shrink-0 group-hover:border-primary-500 transition-colors"
+                                                            />
+                                                        ) : (
+                                                            <div className="w-10 h-10 rounded-full bg-primary-100 border border-primary-200 flex items-center justify-center text-primary-900 font-bold text-xs shrink-0 group-hover:bg-primary-200 transition-colors">
+                                                                {agentUser.name ? agentUser.name.charAt(0).toUpperCase() : (isRtl ? 'أ' : 'A')}
+                                                            </div>
+                                                        )}
+                                                        <div className="min-w-0">
+                                                            <h4 className="text-xs font-bold text-secondary-950 truncate group-hover:text-primary-900 transition-colors">
+                                                                {agentUser.name}
+                                                            </h4>
+                                                            <p className="text-[11px] text-secondary-500 font-medium truncate">
+                                                                {isRtl ? 'مستشار عقاري' : 'Real Estate Advisor'}
+                                                            </p>
+                                                        </div>
+                                                    </Link>
+                                                );
+                                            })()
+                                        ) : (
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-full bg-primary-100 border border-primary-200 flex items-center justify-center text-primary-900 font-bold text-xs shrink-0">
+                                                    {isRtl ? 'ف' : 'F'}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <h4 className="text-xs font-bold text-secondary-950 truncate">
+                                                        {trans('company_name') || (isRtl ? 'فاميلي هوم' : 'Family Home')}
+                                                    </h4>
+                                                    <p className="text-[11px] text-secondary-500 font-medium truncate">
+                                                        {isRtl ? 'مستشار عقاري' : 'Real Estate Advisor'}
+                                                    </p>
+                                                </div>
                                             </div>
-                                            <div className="min-w-0">
-                                                <h4 className="text-xs font-bold text-secondary-950 truncate">{unit.user?.name || (isRtl ? 'أحمد محمود' : 'Ahmed Mahmoud')}</h4>
-                                                <p className="text-[11px] text-secondary-500 font-medium truncate">{isRtl ? 'مستشار عقاري' : 'Real Estate Advisor'}</p>
-                                            </div>
-                                        </div>
+                                        )}
 
                                         <div className="flex items-center gap-1.5 shrink-0">
                                             <a
