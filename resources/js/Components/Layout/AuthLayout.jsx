@@ -17,7 +17,7 @@ export default function AuthLayout({ children, title, subtitle }) {
             className="min-h-screen bg-slate-50 text-secondary-950 flex flex-col justify-between relative font-sans selection:bg-primary-900 selection:text-white"
         >
             <Head>
-                <meta name="author" content="mohamed algbry" />
+                <meta head-key="author" name="author" content="mohamed algebry" />
             </Head>
             {/* Header */}
             <header className="relative z-10 w-full max-w-5xl mx-auto px-6 pt-6 pb-2 flex items-center justify-between">

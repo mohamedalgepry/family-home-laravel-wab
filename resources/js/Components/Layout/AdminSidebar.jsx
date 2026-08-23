@@ -355,7 +355,7 @@ export default function AdminSidebar({ children }) {
     return (
         <div dir={isRtl ? 'rtl' : 'ltr'} className="min-h-screen bg-surface flex">
             <Head>
-                <meta name="author" content="mohamed algbry" />
+                <meta head-key="author" name="author" content="mohamed algebry" />
             </Head>
             {/* Desktop Sidebar */}
             <aside className="w-64 bg-secondary-950 text-white shrink-0 hidden md:flex flex-col border-e border-secondary-800/60">

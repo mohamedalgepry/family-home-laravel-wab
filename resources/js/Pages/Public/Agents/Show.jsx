@@ -1,4 +1,5 @@
-import { Head, usePage } from '@inertiajs/react'
+import { usePage } from '@inertiajs/react'
+import SeoHead from '../../../Components/UI/SeoHead'
 import Header from '../../../Components/Layout/Header'
 import Footer from '../../../Components/Layout/Footer'
 import UnitCard from '../../../Components/UI/UnitCard'
@@ -23,9 +24,12 @@ export default function Show({ agent, units, locale }) {
 
     return (
         <div className="min-h-screen bg-background flex flex-col font-sans text-secondary-900 selection:bg-primary-200 selection:text-primary-900">
-            <Head>
-                <title>{`${agent.name} - ${trans('app_name')}`}</title>
-            </Head>
+            <SeoHead
+                title={`${agent.name} - ${trans('app_name')}`}
+                description={agent.bio || `${agent.name} - ${trans('app_name')}`}
+                ogImage={avatarSrc}
+                ogType="profile"
+            />
 
             <Header locale={locale} />
 

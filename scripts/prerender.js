@@ -172,11 +172,13 @@ function mergeHtml(templateHtml, ssrResult, rawBaseUrl) {
         finalHtml = finalHtml.replace(/<div id="app"[^>]*>\s*<\/div>/, ssrResult.body)
 
         if (Array.isArray(ssrResult?.head) && ssrResult.head.length > 0) {
-            // Strip server-rendered placeholder tags (marked with the "inertia" attribute)
-            // so the SSR head becomes the single source of truth — avoids duplicate title/meta.
+            // Strip server-rendered placeholder tags (marked with the "inertia" attribute or JSON-LD scripts)
+            // so the SSR head becomes the single source of truth — avoids duplicate title/meta/schema.
             finalHtml = finalHtml
-                .replace(/<title\b[^>]*\binertia\b[^>]*>[\s\S]*?<\/title>/g, '')
-                .replace(/<(?:meta|link)\b[^>]*\binertia\b[^>]*\/?>/g, '')
+                .replace(/<title\b[^>]*\binertia\b[^>]*>[\s\S]*?<\/title>/gi, '')
+                .replace(/<(?:meta|link)\b[^>]*\binertia\b[^>]*\/?>/gi, '')
+                .replace(/<script\b[^>]*\binertia\b[^>]*>[\s\S]*?<\/script>/gi, '')
+                .replace(/<script\b[^>]*type=["']application\/ld\+json["'][^>]*>[\s\S]*?<\/script>/gi, '')
 
             const headTags = ssrResult.head.join('\n')
             finalHtml = finalHtml.replace('</head>', `${headTags}\n</head>`)

@@ -501,8 +501,9 @@ function AdminSidebar({ children }) {
 		className: "min-h-screen bg-surface flex",
 		children: [
 			/* @__PURE__ */ jsx(Head, { children: /* @__PURE__ */ jsx("meta", {
+				"head-key": "author",
 				name: "author",
-				content: "mohamed algbry"
+				content: "mohamed algebry"
 			}) }),
 			/* @__PURE__ */ jsxs("aside", {
 				className: "w-64 bg-secondary-950 text-white shrink-0 hidden md:flex flex-col border-e border-secondary-800/60",
@@ -14092,13 +14093,13 @@ function Footer() {
 //#endregion
 //#region resources/js/Components/UI/SeoHead.jsx
 function SeoHead({ title, description, keywords, ogImage, ogType = "website", canonical, jsonLd, hreflang, robots }) {
-	const { locale, seo_page, appUrl, seo_meta } = usePage().props;
+	const { locale, seo_page, appUrl, seo_meta, settings } = usePage().props;
 	const { url } = usePage();
 	const siteName = useTrans(locale)("site_title");
 	const isRtl = locale === "ar";
 	const cleanPath = (typeof url === "string" ? url : "/").split("?")[0];
 	const pathWithoutLocale = cleanPath.replace(/^\/(ar|en)(\/|$)/, "/");
-	const baseUrl = appUrl || (typeof window !== "undefined" ? window.location.origin : "");
+	const baseUrl = appUrl || (typeof window !== "undefined" ? window.location.origin : "https://familyhome-co.com");
 	const pageSeo = seo_page || null;
 	const cleanMetaDescription = (text) => {
 		if (!text) return "";
@@ -14114,13 +14115,20 @@ function SeoHead({ title, description, keywords, ogImage, ogType = "website", ca
 	const finalCanonical = (canonical || seo_meta?.canonical || (baseUrl ? `${baseUrl}${cleanPath}` : cleanPath)).split("?")[0];
 	const urlAr = hreflang?.ar || seo_meta?.hreflang?.ar || baseUrl + (pathWithoutLocale === "/" ? "/ar" : `/ar${pathWithoutLocale === "/" ? "" : pathWithoutLocale}`);
 	const urlEn = hreflang?.en || seo_meta?.hreflang?.en || baseUrl + (pathWithoutLocale === "/" ? "/en" : `/en${pathWithoutLocale === "/" ? "" : pathWithoutLocale}`);
-	let finalOgImage = ogImage;
+	let finalOgImage = ogImage || seo_meta?.image;
 	if (finalOgImage) {
 		if (!finalOgImage.startsWith("http://") && !finalOgImage.startsWith("https://")) {
 			const cleanImgPath = finalOgImage.startsWith("/") ? finalOgImage : `/${finalOgImage}`;
 			finalOgImage = baseUrl ? `${baseUrl}${cleanImgPath}` : cleanImgPath;
 		}
+	} else {
+		const siteLogo = settings?.site_logo;
+		if (siteLogo) {
+			const logoPath = siteLogo.startsWith("/") ? siteLogo : `/storage/${siteLogo}`;
+			finalOgImage = baseUrl ? `${baseUrl}${logoPath}` : logoPath;
+		} else finalOgImage = baseUrl ? `${baseUrl}/icon.webp` : "/icon.webp";
 	}
+	const jsonLdData = jsonLd || seo_meta?.schema || null;
 	return /* @__PURE__ */ jsxs(Head, { children: [
 		finalTitle && /* @__PURE__ */ jsx("title", { children: finalTitle }),
 		finalRobots && /* @__PURE__ */ jsx("meta", {
@@ -14137,6 +14145,11 @@ function SeoHead({ title, description, keywords, ogImage, ogType = "website", ca
 			"head-key": "keywords",
 			name: "keywords",
 			content: keywordsString
+		}),
+		/* @__PURE__ */ jsx("meta", {
+			"head-key": "author",
+			name: "author",
+			content: "mohamed algebry"
 		}),
 		finalTitle && /* @__PURE__ */ jsx("meta", {
 			"head-key": "og:title",
@@ -14211,10 +14224,10 @@ function SeoHead({ title, description, keywords, ogImage, ogType = "website", ca
 			hreflang: "x-default",
 			href: urlAr
 		}),
-		jsonLd && /* @__PURE__ */ jsx("script", {
+		jsonLdData && /* @__PURE__ */ jsx("script", {
 			"head-key": "jsonld",
 			type: "application/ld+json",
-			children: JSON.stringify(jsonLd)
+			children: JSON.stringify(jsonLdData)
 		})
 	] });
 }
@@ -14234,8 +14247,7 @@ function About({ page }) {
 			/* @__PURE__ */ jsx(SeoHead, {
 				title: `${trans("about")} - ${trans("site_title")}`,
 				description: trans("about_description"),
-				ogImage: page?.images?.[0],
-				canonical: usePage().url
+				ogImage: page?.images?.[0]
 			}),
 			/* @__PURE__ */ jsx(Header, {}),
 			/* @__PURE__ */ jsxs("main", {
@@ -14605,7 +14617,12 @@ function Show({ agent, units, locale }) {
 	return /* @__PURE__ */ jsxs("div", {
 		className: "min-h-screen bg-background flex flex-col font-sans text-secondary-900 selection:bg-primary-200 selection:text-primary-900",
 		children: [
-			/* @__PURE__ */ jsx(Head, { children: /* @__PURE__ */ jsx("title", { children: `${agent.name} - ${trans("app_name")}` }) }),
+			/* @__PURE__ */ jsx(SeoHead, {
+				title: `${agent.name} - ${trans("app_name")}`,
+				description: agent.bio || `${agent.name} - ${trans("app_name")}`,
+				ogImage: avatarSrc,
+				ogType: "profile"
+			}),
 			/* @__PURE__ */ jsx(Header, { locale }),
 			/* @__PURE__ */ jsxs("div", {
 				dir: isRtl ? "rtl" : "ltr",
@@ -15716,8 +15733,7 @@ function AreaShow({ area, relatedAreas, units, projects, seo, areas, unitTypes, 
 			/* @__PURE__ */ jsx(SeoHead, {
 				title: pageTitle,
 				description: pageDescription,
-				ogImage: seo?.ogImage || heroImage,
-				canonical: appUrl && currentUrl ? `${appUrl}${currentUrl.split("?")[0]}` : void 0
+				ogImage: seo?.ogImage || heroImage
 			}),
 			/* @__PURE__ */ jsx(Header, {}),
 			/* @__PURE__ */ jsxs("main", {
@@ -20940,8 +20956,9 @@ function AuthLayout({ children, title, subtitle }) {
 		className: "min-h-screen bg-slate-50 text-secondary-950 flex flex-col justify-between relative font-sans selection:bg-primary-900 selection:text-white",
 		children: [
 			/* @__PURE__ */ jsx(Head, { children: /* @__PURE__ */ jsx("meta", {
+				"head-key": "author",
 				name: "author",
-				content: "mohamed algbry"
+				content: "mohamed algebry"
 			}) }),
 			/* @__PURE__ */ jsxs("header", {
 				className: "relative z-10 w-full max-w-5xl mx-auto px-6 pt-6 pb-2 flex items-center justify-between",

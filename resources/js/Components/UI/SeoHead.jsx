@@ -12,7 +12,7 @@ export default function SeoHead({
     hreflang,
     robots,
 }) {
-    const { locale, seo_page, appUrl, seo_meta } = usePage().props
+    const { locale, seo_page, appUrl, seo_meta, settings } = usePage().props
     const { url } = usePage()
     const trans = useTrans(locale)
     const siteName = trans('site_title')
@@ -20,7 +20,7 @@ export default function SeoHead({
 
     const cleanPath = (typeof url === 'string' ? url : '/').split('?')[0];
     const pathWithoutLocale = cleanPath.replace(/^\/(ar|en)(\/|$)/, '/');
-    const baseUrl = appUrl || (typeof window !== 'undefined' ? window.location.origin : '');
+    const baseUrl = appUrl || (typeof window !== 'undefined' ? window.location.origin : 'https://familyhome-co.com');
 
     const pageSeo = seo_page || null;
 
@@ -58,13 +58,23 @@ export default function SeoHead({
     const urlEn = hreflang?.en || seo_meta?.hreflang?.en || (baseUrl + (pathWithoutLocale === '/' ? '/en' : `/en${pathWithoutLocale === '/' ? '' : pathWithoutLocale}`));
 
     // Resolve full absolute URL for social media image
-    let finalOgImage = ogImage;
+    let finalOgImage = ogImage || seo_meta?.image;
     if (finalOgImage) {
         if (!finalOgImage.startsWith('http://') && !finalOgImage.startsWith('https://')) {
             const cleanImgPath = finalOgImage.startsWith('/') ? finalOgImage : `/${finalOgImage}`;
             finalOgImage = baseUrl ? `${baseUrl}${cleanImgPath}` : cleanImgPath;
         }
+    } else {
+        const siteLogo = settings?.site_logo;
+        if (siteLogo) {
+            const logoPath = siteLogo.startsWith('/') ? siteLogo : `/storage/${siteLogo}`;
+            finalOgImage = baseUrl ? `${baseUrl}${logoPath}` : logoPath;
+        } else {
+            finalOgImage = baseUrl ? `${baseUrl}/icon.webp` : '/icon.webp';
+        }
     }
+
+    const jsonLdData = jsonLd || seo_meta?.schema || null;
 
     return (
         <Head>
@@ -72,6 +82,7 @@ export default function SeoHead({
             {finalRobots && <meta head-key="robots" name="robots" content={finalRobots} />}
             {finalDescription && <meta head-key="description" name="description" content={finalDescription} />}
             {keywordsString && <meta head-key="keywords" name="keywords" content={keywordsString} />}
+            <meta head-key="author" name="author" content="mohamed algebry" />
 
             {/* Open Graph */}
             {finalTitle && <meta head-key="og:title" property="og:title" content={finalTitle} />}
@@ -96,9 +107,9 @@ export default function SeoHead({
             <link head-key="hreflang-x-default" rel="alternate" hreflang="x-default" href={urlAr} />
 
             {/* Structured Data (Schema.org) */}
-            {jsonLd && (
+            {jsonLdData && (
                 <script head-key="jsonld" type="application/ld+json">
-                    {JSON.stringify(jsonLd)}
+                    {JSON.stringify(jsonLdData)}
                 </script>
             )}
         </Head>

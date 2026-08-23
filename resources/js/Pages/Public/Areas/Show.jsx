@@ -45,7 +45,6 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                 title={pageTitle}
                 description={pageDescription}
                 ogImage={seo?.ogImage || heroImage}
-                canonical={appUrl && currentUrl ? `${appUrl}${currentUrl.split('?')[0]}` : undefined}
             />
             <Header />
 
