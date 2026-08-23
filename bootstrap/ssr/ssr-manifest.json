@@ -10,6 +10,7 @@
   "resources/js/Components/OptimizedImage.jsx": [],
   "resources/js/Components/UI/ArticleCard.jsx": [],
   "resources/js/Components/UI/Button.jsx": [],
+  "resources/js/Components/UI/IconByName.jsx": [],
   "resources/js/Components/UI/InputField.jsx": [],
   "resources/js/Components/UI/Pagination.jsx": [],
   "resources/js/Components/UI/ProjectCard.jsx": [],
@@ -18,9 +19,14 @@
   "resources/js/Components/UI/SeoHead.jsx": [],
   "resources/js/Components/UI/SkeletonRow.jsx": [],
   "resources/js/Components/UI/UnitCard.jsx": [],
+  "resources/js/Components/UI/WhatsAppIcon.jsx": [],
   "resources/js/Components/UI/index.js": [],
+  "resources/js/Contexts/CompareContext.jsx": [],
   "resources/js/Hooks/useCompare.js": [],
   "resources/js/Pages/Admin/About/Edit.jsx": [],
+  "resources/js/Pages/Admin/Areas/AreaForm.jsx": [],
+  "resources/js/Pages/Admin/Areas/Create.jsx": [],
+  "resources/js/Pages/Admin/Areas/Edit.jsx": [],
   "resources/js/Pages/Admin/Areas/Index.jsx": [],
   "resources/js/Pages/Admin/Articles/Form.jsx": [],
   "resources/js/Pages/Admin/Articles/Index.jsx": [],
@@ -61,13 +67,16 @@
   "resources/js/Pages/Shared/ResetPassword.jsx": [],
   "resources/js/Pages/Shared/VerifyOtp.jsx": [],
   "resources/js/Pages/Shared/Welcome.jsx": [],
+  "resources/js/Utils/contact.js": [],
+  "resources/js/Utils/image.js": [],
   "resources/js/Utils/locales/ar.js": [
-    "/build/assets/ar-BBykqVvk.js"
+    "/build/assets/ar-DgMEkSmz.js"
   ],
   "resources/js/Utils/locales/en.js": [
-    "/build/assets/en-Ckag1V4G.js"
+    "/build/assets/en-w1_DcJbd.js"
   ],
   "resources/js/Utils/route.js": [],
+  "resources/js/Utils/storage.js": [],
   "resources/js/Utils/tiptapFontSize.js": [],
   "resources/js/Utils/trans.js": [],
   "resources/js/Utils/youtube.js": [],

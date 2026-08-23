@@ -1,5 +1,5 @@
 import { Head, Link, createInertiaApp, router, useForm, usePage } from "@inertiajs/react";
-import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import React, { createContext, memo, useCallback, useContext, useEffect, useId, useMemo, useRef, useState } from "react";
 import { Fragment, jsx, jsxs } from "react/jsx-runtime";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -28,22 +28,28 @@ var __exportAll = (all, no_symbols) => {
 //#endregion
 //#region resources/js/Utils/trans.js
 var dictionaries = {};
-var loaders = {
-	ar: () => import("./assets/ar-BBykqVvk.js"),
-	en: () => import("./assets/en-Ckag1V4G.js")
-};
 async function loadLocale(locale) {
-	const key = loaders[locale] ? locale : "en";
-	if (!dictionaries[key]) dictionaries[key] = (await loaders[key]()).default;
-	return dictionaries[key];
+	const lang = locale === "ar" ? "ar" : "en";
+	if (!dictionaries[lang]) try {
+		if (lang === "ar") {
+			const mod = await import("./assets/ar-DgMEkSmz.js");
+			dictionaries.ar = mod.default || mod;
+		} else {
+			const mod = await import("./assets/en-w1_DcJbd.js");
+			dictionaries.en = mod.default || mod;
+		}
+	} catch (e) {
+		console.warn(`Failed to load locale '${lang}', falling back.`, e);
+	}
+	return dictionaries[lang] || dictionaries.ar || dictionaries.en || {};
 }
 function useTrans(locale) {
-	const lang = dictionaries[locale] || dictionaries.en || {};
+	const lang = dictionaries[locale === "ar" ? "ar" : "en"] || dictionaries.ar || dictionaries.en || {};
 	return (key, replacements = {}) => {
 		let text = lang[key];
 		if (!text) {
 			const cleanKey = key.includes(".") ? key.split(".").pop() : key;
-			text = lang[cleanKey] || cleanKey.replace(/[_-]/g, " ");
+			text = lang[cleanKey] || dictionaries.ar && dictionaries.ar[cleanKey] || dictionaries.en && dictionaries.en[cleanKey] || cleanKey.replace(/[_-]/g, " ");
 		}
 		for (const [k, v] of Object.entries(replacements)) text = text.replace(`:${k}`, v);
 		return text;
@@ -64,6 +70,35 @@ function localizedPath(path, locale) {
 	if (normalizedPath === "/") return `/${locale}${queryString}`;
 	return `/${locale}${normalizedPath}${queryString}`;
 }
+//#endregion
+//#region resources/js/Utils/storage.js
+var memoryStorage = /* @__PURE__ */ new Map();
+var safeStorage = {
+	getItem(key) {
+		try {
+			if (typeof window !== "undefined" && window.localStorage) return window.localStorage.getItem(key);
+		} catch {}
+		return memoryStorage.get(key) ?? null;
+	},
+	setItem(key, value) {
+		try {
+			if (typeof window !== "undefined" && window.localStorage) {
+				window.localStorage.setItem(key, value);
+				return;
+			}
+		} catch {}
+		memoryStorage.set(key, String(value));
+	},
+	removeItem(key) {
+		try {
+			if (typeof window !== "undefined" && window.localStorage) {
+				window.localStorage.removeItem(key);
+				return;
+			}
+		} catch {}
+		memoryStorage.delete(key);
+	}
+};
 //#endregion
 //#region resources/js/Components/Layout/AdminSidebar.jsx
 var NAV_GROUPS = [
@@ -215,8 +250,7 @@ function AdminSidebar({ children }) {
 	const [liveMsgCount, setLiveMsgCount] = useState(0);
 	const [showFlash, setShowFlash] = useState(true);
 	const [soundEnabled, setSoundEnabled] = useState(() => {
-		if (typeof window !== "undefined" && typeof localStorage !== "undefined") return localStorage.getItem("notification_sound") !== "off";
-		return true;
+		return safeStorage.getItem("notification_sound") !== "off";
 	});
 	const [notifOpen, setNotifOpen] = useState(false);
 	const [recentNotifs, setRecentNotifs] = useState([]);
@@ -226,6 +260,16 @@ function AdminSidebar({ children }) {
 	const prevMsgRef = useRef(0);
 	const soundReadyRef = useRef(false);
 	const soundRef = useRef(soundEnabled);
+	useEffect(() => {
+		function handleKeyDown(e) {
+			if (e.key === "Escape") {
+				if (mobileOpen) setMobileOpen(false);
+				if (notifOpen) setNotifOpen(false);
+			}
+		}
+		window.addEventListener("keydown", handleKeyDown);
+		return () => window.removeEventListener("keydown", handleKeyDown);
+	}, [mobileOpen, notifOpen]);
 	useEffect(() => {
 		function handleClickOutside(e) {
 			if (notifRef.current && !notifRef.current.contains(e.target)) setNotifOpen(false);
@@ -301,6 +345,7 @@ function AdminSidebar({ children }) {
 		prevNotifRef.current = initialCount || 0;
 	}, [initialCount]);
 	async function pollCounts() {
+		if (typeof document !== "undefined" && document.visibilityState === "hidden") return null;
 		try {
 			const [notifRes, msgRes] = await Promise.all([fetch("/admin/notifications/unread-count", {
 				credentials: "same-origin",
@@ -331,6 +376,8 @@ function AdminSidebar({ children }) {
 		if (count > prevNotifRef.current) {
 			if (soundRef.current) playNotificationSound();
 			const el = document.createElement("div");
+			el.setAttribute("role", "alert");
+			el.setAttribute("aria-live", "polite");
 			el.className = "fixed top-4 end-4 z-50 bg-amber-500 text-white px-4 py-3 rounded-xl shadow-lg text-sm font-bold animate-fade-in";
 			el.textContent = isRtl ? `🔔 لديك ${count} إشعار جديد` : `🔔 You have ${count} new notifications`;
 			document.body.appendChild(el);
@@ -346,6 +393,8 @@ function AdminSidebar({ children }) {
 		if (count > prevMsgRef.current) {
 			if (soundRef.current) playNotificationSound();
 			const el = document.createElement("div");
+			el.setAttribute("role", "alert");
+			el.setAttribute("aria-live", "polite");
 			el.className = "fixed top-4 end-4 z-50 bg-blue-500 text-white px-4 py-3 rounded-xl shadow-lg text-sm font-bold animate-fade-in";
 			el.textContent = isRtl ? `💬 لديك ${count} رسالة جديدة` : `💬 You have ${count} new messages`;
 			document.body.appendChild(el);
@@ -367,10 +416,15 @@ function AdminSidebar({ children }) {
 		};
 		tick();
 		const interval = setInterval(tick, 3e4);
+		const handleVisibilityChange = () => {
+			if (document.visibilityState === "visible") tick();
+		};
 		window.addEventListener("focus", tick);
+		document.addEventListener("visibilitychange", handleVisibilityChange);
 		return () => {
 			clearInterval(interval);
 			window.removeEventListener("focus", tick);
+			document.removeEventListener("visibilitychange", handleVisibilityChange);
 		};
 	}, [auth?.user]);
 	useEffect(() => {
@@ -379,7 +433,7 @@ function AdminSidebar({ children }) {
 	function toggleSound() {
 		const next = !soundEnabled;
 		setSoundEnabled(next);
-		if (typeof window !== "undefined" && typeof localStorage !== "undefined") localStorage.setItem("notification_sound", next ? "on" : "off");
+		safeStorage.setItem("notification_sound", next ? "on" : "off");
 	}
 	const isActive = (href) => {
 		if (!url) return false;
@@ -393,30 +447,30 @@ function AdminSidebar({ children }) {
 		return true;
 	});
 	const renderNavContent = () => /* @__PURE__ */ jsx("div", {
-		className: "flex-1 overflow-y-auto py-3 px-2 space-y-5",
+		className: "flex-1 overflow-y-auto py-4 px-3 space-y-6",
 		children: NAV_GROUPS.map((group) => {
 			const visibleItems = filterItems(group.items);
 			if (visibleItems.length === 0) return null;
 			return /* @__PURE__ */ jsxs("div", {
-				className: "space-y-1",
+				className: "space-y-1.5",
 				children: [/* @__PURE__ */ jsx("div", {
-					className: "px-3 pb-1 text-[11px] font-bold tracking-wider text-secondary-500 uppercase",
+					className: "px-3 pb-1 text-xs font-bold tracking-wider text-secondary-400 uppercase",
 					children: trans(group.key)
 				}), /* @__PURE__ */ jsx("div", {
-					className: "space-y-0.5",
+					className: "space-y-1",
 					children: visibleItems.map((item) => {
 						const active = isActive(item.href);
 						return /* @__PURE__ */ jsxs(Link, {
 							href: item.href,
 							onClick: () => setMobileOpen(false),
-							className: `flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm transition-all duration-200 ${active ? "bg-primary-900/20 text-white font-semibold border-s-4 border-primary-900 ps-3.5" : "text-secondary-300 hover:bg-secondary-900 hover:text-white ps-4"}`,
+							className: `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-colors duration-200 ${active ? "bg-primary-900 text-white shadow-md" : "text-secondary-300 hover:bg-secondary-900/80 hover:text-white"}`,
 							children: [
 								/* @__PURE__ */ jsx("svg", {
-									className: `w-5 h-5 shrink-0 ${active ? "text-primary-500" : "text-secondary-400"}`,
+									className: `w-4 h-4 shrink-0 ${active ? "text-white" : "text-secondary-400"}`,
 									fill: "none",
 									viewBox: "0 0 24 24",
 									stroke: "currentColor",
-									strokeWidth: 1.5,
+									strokeWidth: 1.75,
 									children: /* @__PURE__ */ jsx("path", {
 										strokeLinecap: "round",
 										strokeLinejoin: "round",
@@ -428,11 +482,11 @@ function AdminSidebar({ children }) {
 									children: trans(item.key)
 								}),
 								item.key === "sidebar_notifications" && liveNotifCount > 0 && /* @__PURE__ */ jsx("span", {
-									className: "bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full min-w-[18px] text-center leading-tight animate-pulse",
+									className: "bg-amber-500 text-white text-xs font-extrabold px-2 py-0.5 rounded-full min-w-[18px] text-center leading-tight animate-pulse",
 									children: liveNotifCount > 99 ? "99+" : liveNotifCount
 								}),
 								item.key === "sidebar_messages" && liveMsgCount > 0 && /* @__PURE__ */ jsx("span", {
-									className: "bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full min-w-[18px] text-center leading-tight",
+									className: "bg-blue-500 text-white text-xs font-extrabold px-2 py-0.5 rounded-full min-w-[18px] text-center leading-tight",
 									children: liveMsgCount > 99 ? "99+" : liveMsgCount
 								})
 							]
@@ -457,7 +511,7 @@ function AdminSidebar({ children }) {
 						className: "p-4 border-b border-secondary-800/80 flex items-center justify-between",
 						children: /* @__PURE__ */ jsxs(Link, {
 							href: "/admin",
-							className: "flex items-center gap-2",
+							className: "flex items-center gap-2.5",
 							children: [/* @__PURE__ */ jsx("img", {
 								src: settings?.site_logo ? settings.site_logo.startsWith("http") || settings.site_logo.startsWith("/storage") ? settings.site_logo : `/storage/${settings.site_logo}` : "/icon.png",
 								alt: trans("app_name"),
@@ -466,10 +520,10 @@ function AdminSidebar({ children }) {
 									e.currentTarget.src = "/icon.png";
 								}
 							}), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("span", {
-								className: "text-base font-bold text-primary-900 block leading-tight",
+								className: "text-sm font-bold text-white block leading-tight",
 								children: trans("app_name")
 							}), /* @__PURE__ */ jsx("span", {
-								className: "text-[11px] text-secondary-400 block leading-tight",
+								className: "text-xs text-secondary-400 block leading-tight",
 								children: trans("admin_panel")
 							})] })]
 						})
@@ -480,18 +534,22 @@ function AdminSidebar({ children }) {
 						children: /* @__PURE__ */ jsxs(Link, {
 							href: localizedPath("/", locale),
 							className: "flex items-center gap-2 px-3 py-2 text-xs text-secondary-400 hover:text-white hover:bg-secondary-900 rounded-lg transition-colors",
-							children: [/* @__PURE__ */ jsx("span", { children: "←" }), /* @__PURE__ */ jsx("span", { children: trans("home") })]
+							children: [/* @__PURE__ */ jsx("span", {
+								className: "rtl:rotate-180",
+								children: "←"
+							}), /* @__PURE__ */ jsx("span", { children: trans("home") })]
 						})
 					})
 				]
 			}),
 			mobileOpen && /* @__PURE__ */ jsxs("div", {
-				className: "fixed inset-0 z-50 md:hidden flex",
+				dir: isRtl ? "rtl" : "ltr",
+				className: "fixed inset-0 z-50 md:hidden flex justify-start",
 				children: [/* @__PURE__ */ jsx("div", {
-					className: "fixed inset-0 bg-black/60 backdrop-blur-sm",
+					className: "fixed inset-0 bg-black/60 backdrop-blur-xs sm:backdrop-blur-sm",
 					onClick: () => setMobileOpen(false)
 				}), /* @__PURE__ */ jsxs("aside", {
-					className: "relative w-64 bg-secondary-950 text-white flex flex-col z-10 shadow-2xl h-full",
+					className: "relative w-64 bg-secondary-950 text-white flex flex-col z-10 shadow-2xl h-full animate-fade-in",
 					children: [
 						/* @__PURE__ */ jsxs("div", {
 							className: "p-4 border-b border-secondary-800 flex items-center justify-between",
@@ -508,8 +566,12 @@ function AdminSidebar({ children }) {
 								})]
 							}), /* @__PURE__ */ jsx("button", {
 								onClick: () => setMobileOpen(false),
-								className: "text-secondary-400 hover:text-white p-1",
-								children: "×"
+								"aria-label": trans("close") || "Close",
+								className: "text-secondary-400 hover:text-white p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg transition-colors",
+								children: /* @__PURE__ */ jsx("span", {
+									className: "text-xl leading-none",
+									children: "×"
+								})
 							})]
 						}),
 						renderNavContent(),
@@ -517,8 +579,15 @@ function AdminSidebar({ children }) {
 							className: "p-3 border-t border-secondary-800",
 							children: /* @__PURE__ */ jsxs(Link, {
 								href: localizedPath("/", locale),
-								className: "block px-3 py-2 text-xs text-secondary-400 hover:text-white rounded-lg",
-								children: ["← ", trans("home")]
+								className: "block px-3 py-2 text-xs text-secondary-400 hover:text-white rounded-lg transition-colors",
+								children: [
+									/* @__PURE__ */ jsx("span", {
+										className: "rtl:rotate-180 inline-block",
+										children: "←"
+									}),
+									" ",
+									trans("home")
+								]
 							})
 						})
 					]
@@ -533,8 +602,8 @@ function AdminSidebar({ children }) {
 							className: "flex items-center gap-3",
 							children: [/* @__PURE__ */ jsx("button", {
 								onClick: () => setMobileOpen(true),
-								className: "md:hidden text-secondary-700 hover:text-primary-900 p-1.5 rounded-lg border border-secondary-200",
-								"aria-label": "Toggle menu",
+								className: "md:hidden text-secondary-700 hover:text-primary-900 p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg border border-secondary-200 transition-colors",
+								"aria-label": trans("toggle_menu") || "Toggle menu",
 								children: /* @__PURE__ */ jsx("svg", {
 									className: "w-5 h-5",
 									fill: "none",
@@ -557,14 +626,14 @@ function AdminSidebar({ children }) {
 								href: `/locale/${isRtl ? "en" : "ar"}`,
 								method: "get",
 								as: "button",
-								className: "text-xs font-medium text-secondary-700 hover:text-primary-900 border border-secondary-200 rounded px-2.5 py-1 transition-colors focus-visible:ring-2 focus-visible:ring-primary-900 focus-visible:outline-none",
+								className: "text-xs font-medium text-secondary-700 hover:text-primary-900 border border-secondary-200 rounded px-2.5 py-1 transition-colors focus-visible:ring-2 focus-visible:ring-primary-900 focus-visible:outline-none min-h-[36px] flex items-center",
 								children: isRtl ? trans("lang_en") : trans("lang_ar")
 							}), /* @__PURE__ */ jsxs("div", {
 								className: "flex items-center gap-3 border-s border-secondary-200 ps-4 rtl:border-s-0 rtl:border-r rtl:pr-4 rtl:ps-0",
 								children: [
 									/* @__PURE__ */ jsx("button", {
 										onClick: toggleSound,
-										className: "w-8 h-8 rounded-full flex items-center justify-center text-secondary-500 hover:bg-secondary-100 hover:text-secondary-950 transition-colors",
+										className: "w-9 h-9 rounded-full flex items-center justify-center text-secondary-500 hover:bg-secondary-100 hover:text-secondary-950 transition-colors",
 										title: soundEnabled ? trans("disable_sound") : trans("enable_sound"),
 										children: soundEnabled ? /* @__PURE__ */ jsx("svg", {
 											className: "w-4 h-4",
@@ -595,8 +664,10 @@ function AdminSidebar({ children }) {
 										className: "relative",
 										children: [/* @__PURE__ */ jsxs("button", {
 											onClick: openNotifDropdown,
-											className: "relative w-8 h-8 rounded-full flex items-center justify-center text-secondary-500 hover:bg-secondary-100 hover:text-secondary-950 transition-colors",
+											className: "relative w-9 h-9 rounded-full flex items-center justify-center text-secondary-500 hover:bg-secondary-100 hover:text-secondary-950 transition-colors",
 											title: trans("sidebar_notifications"),
+											"aria-expanded": notifOpen,
+											"aria-haspopup": "true",
 											children: [/* @__PURE__ */ jsx("svg", {
 												className: "w-4 h-4",
 												fill: "none",
@@ -609,7 +680,7 @@ function AdminSidebar({ children }) {
 													d: "M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"
 												})
 											}), liveNotifCount > 0 && /* @__PURE__ */ jsx("span", {
-												className: "absolute -top-0.5 -end-0.5 bg-amber-500 text-white text-[9px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1 leading-none",
+												className: "absolute -top-0.5 -end-0.5 bg-amber-500 text-white text-xs font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1 leading-none",
 												children: liveNotifCount > 99 ? "99+" : liveNotifCount
 											})]
 										}), notifOpen && /* @__PURE__ */ jsxs("div", {
@@ -623,7 +694,7 @@ function AdminSidebar({ children }) {
 															className: "text-sm font-bold text-secondary-950",
 															children: trans("sidebar_notifications")
 														}), liveNotifCount > 0 && /* @__PURE__ */ jsxs("span", {
-															className: "text-[11px] text-amber-600 font-semibold",
+															className: "text-xs text-amber-600 font-semibold",
 															children: [
 																liveNotifCount,
 																" ",
@@ -635,13 +706,13 @@ function AdminSidebar({ children }) {
 														children: [liveNotifCount > 0 && /* @__PURE__ */ jsx("button", {
 															type: "button",
 															onClick: markAllNotifsRead,
-															className: "text-[11px] text-primary-600 hover:text-primary-800 font-semibold transition-colors",
+															className: "text-xs text-primary-600 hover:text-primary-800 font-semibold transition-colors",
 															title: isRtl ? "قراءة الكل" : "Mark all read",
 															children: isRtl ? "قراءة الكل" : "Mark read"
 														}), /* @__PURE__ */ jsx("button", {
 															type: "button",
 															onClick: clearAllNotifs,
-															className: "text-[11px] text-red-600 hover:text-red-800 font-semibold transition-colors",
+															className: "text-xs text-red-600 hover:text-red-800 font-semibold transition-colors",
 															title: isRtl ? "حذف الكل" : "Clear all",
 															children: isRtl ? "حذف الكل" : "Clear all"
 														})]
@@ -687,7 +758,7 @@ function AdminSidebar({ children }) {
 																		className: `text-xs leading-relaxed ${isUnread ? "font-semibold text-secondary-950" : "text-secondary-700"}`,
 																		children: n.title || n.message
 																	}), /* @__PURE__ */ jsx("span", {
-																		className: "text-[10px] text-muted mt-0.5 block",
+																		className: "text-xs text-secondary-400 mt-0.5 block",
 																		children: n.created_at_human
 																	})]
 																}),
@@ -725,7 +796,7 @@ function AdminSidebar({ children }) {
 										as: "button",
 										className: "w-8 h-8 rounded-full flex items-center justify-center text-secondary-500 hover:bg-red-50 hover:text-error transition-colors focus-visible:ring-2 focus-visible:ring-error focus-visible:outline-none",
 										title: trans("logout"),
-										"aria-label": "Logout",
+										"aria-label": trans("logout") || "Logout",
 										children: /* @__PURE__ */ jsx("svg", {
 											className: "w-4 h-4",
 											fill: "none",
@@ -745,18 +816,24 @@ function AdminSidebar({ children }) {
 						})]
 					}),
 					flash?.error && showFlash && /* @__PURE__ */ jsxs("div", {
+						role: "alert",
+						"aria-live": "polite",
 						className: "mx-4 md:mx-6 mt-4 px-4 py-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm flex items-center justify-between",
 						children: [/* @__PURE__ */ jsx("span", { children: flash.error }), /* @__PURE__ */ jsx("button", {
 							onClick: () => setShowFlash(false),
-							className: "text-red-400 hover:text-red-600 me-2",
+							"aria-label": trans("close") || "Close",
+							className: "text-red-400 hover:text-red-600 me-2 min-w-[32px] min-h-[32px] flex items-center justify-center",
 							children: "×"
 						})]
 					}),
 					flash?.success && showFlash && /* @__PURE__ */ jsxs("div", {
+						role: "alert",
+						"aria-live": "polite",
 						className: "mx-4 md:mx-6 mt-4 px-4 py-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm flex items-center justify-between",
 						children: [/* @__PURE__ */ jsx("span", { children: flash.success }), /* @__PURE__ */ jsx("button", {
 							onClick: () => setShowFlash(false),
-							className: "text-green-400 hover:text-green-600 me-2",
+							"aria-label": trans("close") || "Close",
+							className: "text-green-400 hover:text-green-600 me-2 min-w-[32px] min-h-[32px] flex items-center justify-center",
 							children: "×"
 						})]
 					}),
@@ -771,7 +848,7 @@ function AdminSidebar({ children }) {
 }
 //#endregion
 //#region resources/js/Pages/Admin/About/Edit.jsx
-var Edit_exports$1 = /* @__PURE__ */ __exportAll({ default: () => AdminAboutEdit });
+var Edit_exports$2 = /* @__PURE__ */ __exportAll({ default: () => AdminAboutEdit });
 var CustomImage = Image$1.extend({ addAttributes() {
 	return {
 		...this.parent?.(),
@@ -1325,337 +1402,1711 @@ function AdminAboutEdit({ about }) {
 	})] });
 }
 //#endregion
-//#region resources/js/Pages/Admin/Areas/Index.jsx
-var Index_exports$16 = /* @__PURE__ */ __exportAll({ default: () => AdminAreasIndex });
-function AdminAreasIndex({ areas }) {
-	const { locale, flash, errors } = usePage().props;
+//#region resources/js/Utils/image.js
+var PLACEHOLDER$2 = "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 600\"%3E%3Crect fill=\"%23F0F0F0\" width=\"800\" height=\"600\"/%3E%3C/svg%3E";
+/**
+* Normalizes an image path to ensure proper /storage/ URL format without duplicate storage/storage prefixes.
+*/
+function getStorageUrl(path, fallback = PLACEHOLDER$2) {
+	if (!path || typeof path !== "string") return fallback;
+	const trimmed = path.trim();
+	if (!trimmed) return fallback;
+	if (trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("data:")) return trimmed;
+	let clean = trimmed.replace(/^\/+/, "");
+	if (clean.startsWith("storage/")) clean = clean.replace(/^storage\/+/, "");
+	return `/storage/${clean}`;
+}
+//#endregion
+//#region resources/js/Pages/Admin/Areas/AreaForm.jsx
+var AreaForm_exports = /* @__PURE__ */ __exportAll({ default: () => AreaForm });
+var MAX_KEYWORDS = 25;
+function AreaForm({ area, parents, mode = "create" }) {
+	const { locale, errors, flash } = usePage().props;
 	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
-	const [editing, setEditing] = useState(null);
-	const [showSeo, setShowSeo] = useState(false);
-	const { data, setData, post, put, delete: destroy, processing, reset } = useForm({
-		name_ar: "",
-		name_en: "",
-		is_active: true,
-		sort_order: 0,
-		meta_title_ar: "",
-		meta_title_en: "",
-		meta_description_ar: "",
-		meta_description_en: "",
-		meta_keywords_ar: "",
-		meta_keywords_en: "",
-		image_path: ""
+	const [activeTab, setActiveTab] = useState("basic");
+	const { data, setData, post, processing } = useForm({
+		_method: mode === "edit" ? "put" : "post",
+		name_ar: area?.name_ar || "",
+		name_en: area?.name_en || "",
+		is_active: area?.is_active ?? true,
+		sort_order: area?.sort_order || 0,
+		parent_id: area?.parent_id || "",
+		short_description_ar: area?.short_description_ar || "",
+		short_description_en: area?.short_description_en || "",
+		hero_title_ar: area?.hero_title_ar || "",
+		hero_title_en: area?.hero_title_en || "",
+		hero_description_ar: area?.hero_description_ar || "",
+		hero_description_en: area?.hero_description_en || "",
+		image_path: null,
+		gallery: [],
+		about_ar: area?.about_ar || "",
+		about_en: area?.about_en || "",
+		address_ar: area?.address_ar || "",
+		address_en: area?.address_en || "",
+		latitude: area?.latitude || "",
+		longitude: area?.longitude || "",
+		map_url: area?.map_url || "",
+		meta_title_ar: area?.meta_title_ar || "",
+		meta_title_en: area?.meta_title_en || "",
+		meta_description_ar: area?.meta_description_ar || "",
+		meta_description_en: area?.meta_description_en || "",
+		meta_keywords_ar: Array.isArray(area?.meta_keywords_ar) ? area.meta_keywords_ar : area?.meta_keywords_ar ? area.meta_keywords_ar.split(",").map((k) => k.trim()).filter(Boolean) : [],
+		meta_keywords_en: Array.isArray(area?.meta_keywords_en) ? area.meta_keywords_en : area?.meta_keywords_en ? area.meta_keywords_en.split(",").map((k) => k.trim()).filter(Boolean) : [],
+		features: area?.features || [],
+		nearby_places: area?.nearbyPlaces || [],
+		faqs: area?.faqs || []
 	});
-	function startCreate() {
-		setEditing("new");
-		setShowSeo(false);
-		reset();
+	const [keywordInputAr, setKeywordInputAr] = useState("");
+	const [keywordInputEn, setKeywordInputEn] = useState("");
+	const [kwWarningAr, setKwWarningAr] = useState(false);
+	const [kwWarningEn, setKwWarningEn] = useState(false);
+	function parseKeywords(text) {
+		if (!text) return [];
+		return text.split(/[,،;.\n]+/).map((s) => s.trim()).filter((s) => s.length > 0);
 	}
-	function startEdit(area) {
-		setEditing(area.id);
-		setShowSeo(false);
-		setData({
-			name_ar: area.name_ar || "",
-			name_en: area.name_en || "",
-			is_active: area.is_active ?? true,
-			sort_order: area.sort_order || 0,
-			meta_title_ar: area.meta_title_ar || "",
-			meta_title_en: area.meta_title_en || "",
-			meta_description_ar: area.meta_description_ar || "",
-			meta_description_en: area.meta_description_en || "",
-			meta_keywords_ar: Array.isArray(area.meta_keywords_ar) ? area.meta_keywords_ar.join(", ") : area.meta_keywords_ar || "",
-			meta_keywords_en: Array.isArray(area.meta_keywords_en) ? area.meta_keywords_en.join(", ") : area.meta_keywords_en || "",
-			image_path: area.image_path || ""
-		});
+	function addKeywordAr() {
+		if (!keywordInputAr.trim()) return;
+		const parsed = parseKeywords(keywordInputAr);
+		if (parsed.length > 0) {
+			const existing = new Set(data.meta_keywords_ar);
+			const toAdd = parsed.filter((k) => !existing.has(k));
+			const available = MAX_KEYWORDS - data.meta_keywords_ar.length;
+			if (available <= 0) {
+				setKwWarningAr(true);
+				setKeywordInputAr("");
+				return;
+			}
+			const limited = toAdd.slice(0, available);
+			setKwWarningAr(toAdd.length > available);
+			if (limited.length > 0) setData("meta_keywords_ar", [...data.meta_keywords_ar, ...limited]);
+		}
+		setKeywordInputAr("");
 	}
-	function cancelEdit() {
-		setEditing(null);
-		setShowSeo(false);
-		reset();
+	function removeKeywordAr(kw) {
+		setData("meta_keywords_ar", data.meta_keywords_ar.filter((k) => k !== kw));
+		setKwWarningAr(false);
 	}
+	function clearKeywordsAr() {
+		setData("meta_keywords_ar", []);
+		setKwWarningAr(false);
+	}
+	function addKeywordEn() {
+		if (!keywordInputEn.trim()) return;
+		const parsed = parseKeywords(keywordInputEn);
+		if (parsed.length > 0) {
+			const existing = new Set(data.meta_keywords_en);
+			const toAdd = parsed.filter((k) => !existing.has(k));
+			const available = MAX_KEYWORDS - data.meta_keywords_en.length;
+			if (available <= 0) {
+				setKwWarningEn(true);
+				setKeywordInputEn("");
+				return;
+			}
+			const limited = toAdd.slice(0, available);
+			setKwWarningEn(toAdd.length > available);
+			if (limited.length > 0) setData("meta_keywords_en", [...data.meta_keywords_en, ...limited]);
+		}
+		setKeywordInputEn("");
+	}
+	function removeKeywordEn(kw) {
+		setData("meta_keywords_en", data.meta_keywords_en.filter((k) => k !== kw));
+		setKwWarningEn(false);
+	}
+	function clearKeywordsEn() {
+		setData("meta_keywords_en", []);
+		setKwWarningEn(false);
+	}
+	const [imagePreview, setImagePreview] = useState(null);
+	const [imageDeleted, setImageDeleted] = useState(false);
+	const [isDragging, setIsDragging] = useState(false);
+	const [isSubmitting, setIsSubmitting] = useState(false);
+	const fileInputRef = useRef(null);
+	const handleImageChange = useCallback((file) => {
+		if (!file || !file.type.startsWith("image/")) return;
+		setData("image_path", file);
+		setImageDeleted(false);
+		const reader = new FileReader();
+		reader.onload = (e) => setImagePreview(e.target.result);
+		reader.readAsDataURL(file);
+	}, [setData]);
+	const handleDrop = useCallback((e) => {
+		e.preventDefault();
+		setIsDragging(false);
+		const file = e.dataTransfer.files[0];
+		if (file) handleImageChange(file);
+	}, [handleImageChange]);
+	const handleDragOver = (e) => {
+		e.preventDefault();
+		setIsDragging(true);
+	};
+	const handleDragLeave = () => setIsDragging(false);
+	const clearImage = () => {
+		setData("image_path", null);
+		setImagePreview(null);
+		setImageDeleted(true);
+		if (fileInputRef.current) fileInputRef.current.value = "";
+	};
+	const tabs = [
+		{
+			id: "basic",
+			label: trans("basic_information"),
+			icon: "M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+		},
+		{
+			id: "hero",
+			label: trans("hero_and_images"),
+			icon: "M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+		},
+		{
+			id: "content",
+			label: trans("content_and_features"),
+			icon: "M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+		},
+		{
+			id: "nearby",
+			label: trans("nearby_places"),
+			icon: "M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+		},
+		{
+			id: "location",
+			label: trans("location_and_map"),
+			icon: "M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"
+		},
+		{
+			id: "faq",
+			label: trans("faq"),
+			icon: "M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+		},
+		{
+			id: "seo",
+			label: trans("seo"),
+			icon: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+		}
+	];
+	const tabHasErrors = (tabId) => {
+		if (!errors || Object.keys(errors).length === 0) return false;
+		if (tabId === "basic") return !!(errors.name_ar || errors.name_en || errors.parent_id || errors.sort_order || errors.short_description_ar || errors.short_description_en);
+		if (tabId === "hero") return !!(errors.image_path || errors.hero_title_ar || errors.hero_title_en || errors.hero_description_ar || errors.hero_description_en);
+		if (tabId === "content") return !!(errors.about_ar || errors.about_en || Object.keys(errors).some((k) => k.startsWith("features")));
+		if (tabId === "nearby") return Object.keys(errors).some((k) => k.startsWith("nearby_places"));
+		if (tabId === "location") return !!(errors.address_ar || errors.address_en || errors.latitude || errors.longitude || errors.map_url);
+		if (tabId === "faq") return Object.keys(errors).some((k) => k.startsWith("faqs"));
+		if (tabId === "seo") return !!(errors.meta_title_ar || errors.meta_title_en || errors.meta_description_ar || errors.meta_description_en || errors.meta_keywords_ar || errors.meta_keywords_en);
+		return false;
+	};
 	function handleSubmit(e) {
 		e.preventDefault();
-		const payload = {
-			...data,
-			meta_keywords_ar: typeof data.meta_keywords_ar === "string" ? data.meta_keywords_ar.split(",").map((k) => k.trim()).filter(Boolean) : data.meta_keywords_ar,
-			meta_keywords_en: typeof data.meta_keywords_en === "string" ? data.meta_keywords_en.split(",").map((k) => k.trim()).filter(Boolean) : data.meta_keywords_en
+		if (isSubmitting) return;
+		const payload = { ...data };
+		if (!Array.isArray(payload.meta_keywords_ar)) payload.meta_keywords_ar = [];
+		if (!Array.isArray(payload.meta_keywords_en)) payload.meta_keywords_en = [];
+		if (payload.parent_id === "" || payload.parent_id === void 0) payload.parent_id = null;
+		if (imageDeleted) payload.image_path = null;
+		else if (payload.image_path !== null && !(payload.image_path instanceof File)) delete payload.image_path;
+		if (Array.isArray(payload.features)) payload.features = payload.features.filter((f) => f.title_ar && f.title_ar.trim() !== "");
+		if (Array.isArray(payload.nearby_places)) payload.nearby_places = payload.nearby_places.filter((p) => p.name_ar && p.name_ar.trim() !== "");
+		if (Array.isArray(payload.faqs)) payload.faqs = payload.faqs.filter((f) => f.question_ar && f.question_ar.trim() !== "");
+		setIsSubmitting(true);
+		const options = {
+			forceFormData: true,
+			preserveScroll: true,
+			onFinish: () => setIsSubmitting(false),
+			onError: (errs) => {
+				setIsSubmitting(false);
+				if (errs) {
+					if (errs.name_ar || errs.name_en || errs.parent_id || errs.sort_order || errs.short_description_ar || errs.short_description_en) setActiveTab("basic");
+					else if (errs.image_path || errs.hero_title_ar || errs.hero_title_en || errs.hero_description_ar || errs.hero_description_en) setActiveTab("hero");
+					else if (errs.about_ar || errs.about_en || Object.keys(errs).some((k) => k.startsWith("features"))) setActiveTab("content");
+					else if (Object.keys(errs).some((k) => k.startsWith("nearby_places"))) setActiveTab("nearby");
+					else if (errs.address_ar || errs.address_en || errs.latitude || errs.longitude || errs.map_url) setActiveTab("location");
+					else if (Object.keys(errs).some((k) => k.startsWith("faqs"))) setActiveTab("faq");
+					else if (errs.meta_title_ar || errs.meta_title_en || errs.meta_description_ar || errs.meta_description_en || errs.meta_keywords_ar || errs.meta_keywords_en) setActiveTab("seo");
+				}
+			}
 		};
-		if (editing === "new") post("/admin/areas", {
-			data: payload,
-			preserveScroll: true,
-			onSuccess: () => {
-				setEditing(null);
-				reset();
-			}
-		});
-		else put(`/admin/areas/${editing}`, {
-			data: payload,
-			preserveScroll: true,
-			onSuccess: () => {
-				setEditing(null);
-				reset();
-			}
-		});
+		if (mode === "create") router.post("/admin/areas", payload, options);
+		else router.post(`/admin/areas/${area.id}`, payload, options);
 	}
-	function handleDelete(area) {
-		if (confirm(trans("confirm_delete"))) destroy(`/admin/areas/${area.id}`, { preserveScroll: true });
-	}
-	return /* @__PURE__ */ jsxs(AdminSidebar, { children: [/* @__PURE__ */ jsx(Head, { title: trans("sidebar_areas") + " — " + trans("app_name") }), /* @__PURE__ */ jsxs("div", {
-		dir: isRtl ? "rtl" : "ltr",
-		className: "p-6 max-w-4xl mx-auto",
-		children: [
-			/* @__PURE__ */ jsxs("div", {
-				className: "flex items-center justify-between mb-6",
-				children: [/* @__PURE__ */ jsx("h1", {
-					className: "text-2xl font-bold text-secondary-950",
-					children: trans("sidebar_areas")
-				}), editing !== "new" && /* @__PURE__ */ jsx("button", {
-					onClick: startCreate,
-					className: "px-4 py-2 bg-primary-900 text-white rounded-lg text-sm font-medium hover:bg-primary-950",
-					children: trans("add")
+	const addFeature = () => setData("features", [...data.features, {
+		title_ar: "",
+		title_en: "",
+		description_ar: "",
+		description_en: "",
+		icon: "",
+		sort_order: 0,
+		is_active: true
+	}]);
+	const updateFeature = (index, field, value) => {
+		const newFeatures = [...data.features];
+		newFeatures[index][field] = value;
+		setData("features", newFeatures);
+	};
+	const removeFeature = (index) => setData("features", data.features.filter((_, i) => i !== index));
+	const addNearby = () => setData("nearby_places", [...data.nearby_places, {
+		name_ar: "",
+		name_en: "",
+		description_ar: "",
+		description_en: "",
+		distance: "",
+		distance_unit: "minutes",
+		icon: "",
+		sort_order: 0,
+		is_active: true
+	}]);
+	const updateNearby = (index, field, value) => {
+		const newPlaces = [...data.nearby_places];
+		newPlaces[index][field] = value;
+		setData("nearby_places", newPlaces);
+	};
+	const removeNearby = (index) => setData("nearby_places", data.nearby_places.filter((_, i) => i !== index));
+	const addFaq = () => setData("faqs", [...data.faqs, {
+		question_ar: "",
+		question_en: "",
+		answer_ar: "",
+		answer_en: "",
+		sort_order: 0,
+		is_active: true
+	}]);
+	const updateFaq = (index, field, value) => {
+		const newFaqs = [...data.faqs];
+		newFaqs[index][field] = value;
+		setData("faqs", newFaqs);
+	};
+	const removeFaq = (index) => setData("faqs", data.faqs.filter((_, i) => i !== index));
+	const inputClasses = "w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none";
+	const labelClasses = "block text-sm font-bold text-secondary-900 mb-2";
+	const errorClasses = "text-red-500 text-xs mt-1";
+	return /* @__PURE__ */ jsxs("form", {
+		onSubmit: handleSubmit,
+		className: "flex flex-col lg:flex-row gap-6",
+		children: [/* @__PURE__ */ jsx("div", {
+			className: "w-full lg:w-1/4",
+			children: /* @__PURE__ */ jsxs("div", {
+				className: "bg-white rounded-3xl p-4 shadow-sm border border-secondary-100 sticky top-24",
+				children: [/* @__PURE__ */ jsx("nav", {
+					className: "flex flex-col gap-2",
+					children: tabs.map((tab) => /* @__PURE__ */ jsxs("button", {
+						type: "button",
+						onClick: () => setActiveTab(tab.id),
+						className: `flex items-center justify-between px-4 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === tab.id ? "bg-[#CC0000] text-white shadow-md" : "text-secondary-600 hover:bg-secondary-50 hover:text-secondary-900"}`,
+						children: [/* @__PURE__ */ jsxs("div", {
+							className: "flex items-center gap-3",
+							children: [/* @__PURE__ */ jsx("svg", {
+								className: `w-5 h-5 ${activeTab === tab.id ? "text-white" : "text-secondary-400"}`,
+								fill: "none",
+								viewBox: "0 0 24 24",
+								stroke: "currentColor",
+								children: /* @__PURE__ */ jsx("path", {
+									strokeLinecap: "round",
+									strokeLinejoin: "round",
+									strokeWidth: 2,
+									d: tab.icon
+								})
+							}), tab.label]
+						}), tabHasErrors(tab.id) && /* @__PURE__ */ jsx("span", { className: "w-2.5 h-2.5 rounded-full bg-yellow-400 ring-2 ring-white" })]
+					}, tab.id))
+				}), /* @__PURE__ */ jsxs("div", {
+					className: "mt-8 pt-6 border-t border-secondary-100",
+					children: [/* @__PURE__ */ jsxs("button", {
+						type: "submit",
+						disabled: isSubmitting || processing,
+						className: "w-full mb-3 px-6 py-3.5 bg-[#CC0000] text-white rounded-xl text-sm font-bold transition-all duration-200 hover:bg-[#B00000] hover:shadow-lg active:scale-[0.97] focus:outline-none focus:ring-4 focus:ring-[#FFE3E3] disabled:opacity-70 flex items-center justify-center gap-2",
+						children: [(isSubmitting || processing) && /* @__PURE__ */ jsxs("svg", {
+							className: "animate-spin h-4 w-4 text-white",
+							fill: "none",
+							viewBox: "0 0 24 24",
+							children: [/* @__PURE__ */ jsx("circle", {
+								className: "opacity-25",
+								cx: "12",
+								cy: "12",
+								r: "10",
+								stroke: "currentColor",
+								strokeWidth: "4"
+							}), /* @__PURE__ */ jsx("path", {
+								className: "opacity-75",
+								fill: "currentColor",
+								d: "M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+							})]
+						}), trans("save")]
+					}), /* @__PURE__ */ jsx(Link, {
+						href: "/admin/areas",
+						className: "w-full px-6 py-3.5 bg-[#F5F5F5] text-secondary-900 rounded-xl text-sm font-bold transition-all duration-200 hover:bg-[#E4E4E4] flex items-center justify-center",
+						children: trans("cancel")
+					})]
 				})]
-			}),
-			flash?.success && /* @__PURE__ */ jsx("div", {
-				className: "mb-4 px-4 py-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm",
-				children: flash.success
-			}),
-			(editing === "new" || typeof editing === "number") && /* @__PURE__ */ jsxs("form", {
-				onSubmit: handleSubmit,
-				className: "bg-white rounded-xl shadow-card p-6 mb-6",
+			})
+		}), /* @__PURE__ */ jsx("div", {
+			className: "w-full lg:w-3/4",
+			children: /* @__PURE__ */ jsxs("div", {
+				className: "bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-secondary-100 min-h-[600px]",
 				children: [
-					/* @__PURE__ */ jsx("h2", {
-						className: "text-lg font-bold text-secondary-950 mb-4",
-						children: editing === "new" ? isRtl ? "إضافة منطقة جديدة" : "Add New Area" : isRtl ? "تعديل المنطقة" : "Edit Area"
-					}),
-					/* @__PURE__ */ jsxs("div", {
-						className: "grid grid-cols-2 gap-4 mb-4",
-						children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
-							className: "block text-sm font-medium text-secondary-950 mb-1",
-							children: trans("name_ar")
-						}), /* @__PURE__ */ jsx("input", {
-							type: "text",
-							value: data.name_ar,
-							onChange: (e) => setData("name_ar", e.target.value),
-							required: true,
-							dir: "rtl",
-							className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
-						})] }), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
-							className: "block text-sm font-medium text-secondary-950 mb-1",
-							children: trans("name_en")
-						}), /* @__PURE__ */ jsx("input", {
-							type: "text",
-							value: data.name_en,
-							onChange: (e) => setData("name_en", e.target.value),
-							required: true,
-							className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
-						})] })]
-					}),
-					/* @__PURE__ */ jsxs("div", {
-						className: "grid grid-cols-2 gap-4 mb-4",
-						children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
-							className: "block text-sm font-medium text-secondary-950 mb-1",
-							children: trans("sort_order")
-						}), /* @__PURE__ */ jsx("input", {
-							type: "number",
-							min: "0",
-							value: data.sort_order,
-							onChange: (e) => setData("sort_order", parseInt(e.target.value) || 0),
-							className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white"
-						})] }), /* @__PURE__ */ jsx("div", {
-							className: "flex items-end pb-2",
-							children: /* @__PURE__ */ jsxs("label", {
-								className: "flex items-center gap-2 cursor-pointer",
-								children: [/* @__PURE__ */ jsx("input", {
-									type: "checkbox",
-									checked: data.is_active,
-									onChange: (e) => setData("is_active", e.target.checked),
-									className: "w-5 h-5 rounded border-secondary-300 text-primary-900 focus:ring-primary-900/20 cursor-pointer"
-								}), /* @__PURE__ */ jsx("span", {
-									className: "text-sm font-medium text-secondary-950",
-									children: data.is_active ? trans("active") : trans("inactive")
-								})]
+					activeTab === "basic" && /* @__PURE__ */ jsxs("div", {
+						className: "space-y-6 animate-fade-in",
+						children: [
+							/* @__PURE__ */ jsx("h2", {
+								className: "text-xl font-black text-secondary-950 mb-6 border-b border-secondary-100 pb-4",
+								children: trans("basic_information")
+							}),
+							/* @__PURE__ */ jsxs("div", {
+								className: "grid grid-cols-1 md:grid-cols-2 gap-6",
+								children: [/* @__PURE__ */ jsxs("div", { children: [
+									/* @__PURE__ */ jsxs("label", {
+										className: labelClasses,
+										children: [
+											trans("name_ar"),
+											" ",
+											/* @__PURE__ */ jsx("span", {
+												className: "text-[#CC0000]",
+												children: "*"
+											})
+										]
+									}),
+									/* @__PURE__ */ jsx("input", {
+										type: "text",
+										value: data.name_ar,
+										onChange: (e) => setData("name_ar", e.target.value),
+										required: true,
+										dir: "rtl",
+										className: inputClasses
+									}),
+									errors.name_ar && /* @__PURE__ */ jsx("p", {
+										className: errorClasses,
+										children: errors.name_ar
+									})
+								] }), /* @__PURE__ */ jsxs("div", { children: [
+									/* @__PURE__ */ jsxs("label", {
+										className: labelClasses,
+										children: [
+											trans("name_en"),
+											" ",
+											/* @__PURE__ */ jsx("span", {
+												className: "text-[#CC0000]",
+												children: "*"
+											})
+										]
+									}),
+									/* @__PURE__ */ jsx("input", {
+										type: "text",
+										value: data.name_en,
+										onChange: (e) => setData("name_en", e.target.value),
+										required: true,
+										dir: "ltr",
+										className: inputClasses
+									}),
+									errors.name_en && /* @__PURE__ */ jsx("p", {
+										className: errorClasses,
+										children: errors.name_en
+									})
+								] })]
+							}),
+							/* @__PURE__ */ jsxs("div", {
+								className: "grid grid-cols-1 md:grid-cols-2 gap-6",
+								children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+									className: labelClasses,
+									children: trans("short_description_ar")
+								}), /* @__PURE__ */ jsx("textarea", {
+									rows: 3,
+									value: data.short_description_ar,
+									onChange: (e) => setData("short_description_ar", e.target.value),
+									dir: "rtl",
+									className: inputClasses
+								})] }), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+									className: labelClasses,
+									children: trans("short_description_en")
+								}), /* @__PURE__ */ jsx("textarea", {
+									rows: 3,
+									value: data.short_description_en,
+									onChange: (e) => setData("short_description_en", e.target.value),
+									dir: "ltr",
+									className: inputClasses
+								})] })]
+							}),
+							/* @__PURE__ */ jsxs("div", {
+								className: "grid grid-cols-1 md:grid-cols-3 gap-6",
+								children: [
+									/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+										className: labelClasses,
+										children: trans("parent_area")
+									}), /* @__PURE__ */ jsxs("select", {
+										value: data.parent_id,
+										onChange: (e) => setData("parent_id", e.target.value),
+										className: inputClasses,
+										children: [/* @__PURE__ */ jsx("option", {
+											value: "",
+											children: trans("none_root_area")
+										}), parents?.map((p) => /* @__PURE__ */ jsx("option", {
+											value: p.id,
+											children: isRtl ? p.name_ar : p.name_en
+										}, p.id))]
+									})] }),
+									/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+										className: labelClasses,
+										children: trans("sort_order")
+									}), /* @__PURE__ */ jsx("input", {
+										type: "number",
+										min: "0",
+										value: data.sort_order,
+										onChange: (e) => setData("sort_order", parseInt(e.target.value) || 0),
+										className: inputClasses
+									})] }),
+									/* @__PURE__ */ jsx("div", {
+										className: "flex flex-col justify-center pt-2 md:pt-8",
+										children: /* @__PURE__ */ jsxs("label", {
+											className: "flex items-center gap-3 cursor-pointer group w-fit",
+											children: [/* @__PURE__ */ jsxs("div", {
+												className: "relative",
+												children: [
+													/* @__PURE__ */ jsx("input", {
+														type: "checkbox",
+														className: "sr-only",
+														checked: data.is_active,
+														onChange: (e) => setData("is_active", e.target.checked)
+													}),
+													/* @__PURE__ */ jsx("div", { className: `block w-14 h-8 rounded-full transition-colors duration-300 ${data.is_active ? "bg-[#16a34a]" : "bg-secondary-300"}` }),
+													/* @__PURE__ */ jsx("div", {
+														className: `dot absolute start-1 top-1 bg-white w-6 h-6 rounded-full transition-transform duration-300 flex items-center justify-center ${data.is_active ? isRtl ? "-translate-x-6" : "translate-x-6" : ""}`,
+														children: data.is_active && /* @__PURE__ */ jsx("svg", {
+															className: "w-4 h-4 text-[#16a34a]",
+															fill: "none",
+															viewBox: "0 0 24 24",
+															stroke: "currentColor",
+															children: /* @__PURE__ */ jsx("path", {
+																strokeLinecap: "round",
+																strokeLinejoin: "round",
+																strokeWidth: 3,
+																d: "M5 13l4 4L19 7"
+															})
+														})
+													})
+												]
+											}), /* @__PURE__ */ jsx("span", {
+												className: "text-sm font-bold text-secondary-900 group-hover:text-[#CC0000] transition-colors",
+												children: data.is_active ? trans("active") : trans("inactive")
+											})]
+										})
+									})
+								]
 							})
-						})]
+						]
 					}),
-					/* @__PURE__ */ jsxs("div", {
-						className: "border-t border-secondary-200 pt-4 mb-4",
-						children: [/* @__PURE__ */ jsxs("button", {
-							type: "button",
-							onClick: () => setShowSeo(!showSeo),
-							className: "flex items-center justify-between w-full text-sm font-bold text-primary-900 hover:text-primary-950 focus:outline-none mb-3",
-							children: [/* @__PURE__ */ jsxs("span", { children: ["🔍 ", isRtl ? "إعدادات الـ SEO ومعاينة رابط المشاركة (Open Graph)" : "SEO & Social Share Preview Settings"] }), /* @__PURE__ */ jsx("span", { children: showSeo ? "▲" : "▼" })]
-						}), showSeo && /* @__PURE__ */ jsxs("div", {
-							className: "space-y-4 bg-surface p-4 rounded-xl border border-secondary-200",
-							children: [
-								/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
-									className: "block text-xs font-semibold text-secondary-700 mb-1",
-									children: isRtl ? "صورة المعاينة عند المشاركة (رابط الصورة / Image URL)" : "Social Share Cover Image URL"
+					activeTab === "hero" && /* @__PURE__ */ jsxs("div", {
+						className: "space-y-6 animate-fade-in",
+						children: [
+							/* @__PURE__ */ jsx("h2", {
+								className: "text-xl font-black text-secondary-950 mb-6 border-b border-secondary-100 pb-4",
+								children: trans("hero_section")
+							}),
+							/* @__PURE__ */ jsxs("div", {
+								className: "mb-6",
+								children: [
+									/* @__PURE__ */ jsx("label", {
+										className: labelClasses,
+										children: isRtl ? "صورة المنطقة" : "Area Image"
+									}),
+									/* @__PURE__ */ jsxs("div", {
+										onDrop: handleDrop,
+										onDragOver: handleDragOver,
+										onDragLeave: handleDragLeave,
+										onClick: () => fileInputRef.current?.click(),
+										className: `relative flex flex-col items-center justify-center w-full min-h-[200px] rounded-2xl border-2 border-dashed cursor-pointer transition-all duration-200 overflow-hidden ${isDragging ? "border-[#CC0000] bg-[#FFF5F5] scale-[1.01]" : "border-secondary-200 bg-[#F5F5F5] hover:border-[#CC0000] hover:bg-[#FFF5F5]"}`,
+										children: [imagePreview ? /* @__PURE__ */ jsxs("div", {
+											className: "relative w-full h-56 group",
+											children: [/* @__PURE__ */ jsx("img", {
+												src: imagePreview,
+												alt: "preview",
+												className: "w-full h-full object-cover"
+											}), /* @__PURE__ */ jsx("div", {
+												className: "absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity",
+												children: /* @__PURE__ */ jsx("span", {
+													className: "text-white text-sm font-bold bg-black/60 px-4 py-2 rounded-xl",
+													children: isRtl ? "انقر لتغيير الصورة" : "Click to change"
+												})
+											})]
+										}) : !imageDeleted && (area?.image_path || area?.hero_image) ? /* @__PURE__ */ jsxs("div", {
+											className: "relative w-full h-56 group",
+											children: [/* @__PURE__ */ jsx("img", {
+												src: getStorageUrl(area.image_path || area.hero_image),
+												alt: area.name_ar,
+												className: "w-full h-full object-cover"
+											}), /* @__PURE__ */ jsx("div", {
+												className: "absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity",
+												children: /* @__PURE__ */ jsx("span", {
+													className: "text-white text-sm font-bold bg-black/60 px-4 py-2 rounded-xl",
+													children: isRtl ? "انقر لتغيير الصورة" : "Click to change"
+												})
+											})]
+										}) : /* @__PURE__ */ jsxs("div", {
+											className: "flex flex-col items-center justify-center py-10 px-6 text-center",
+											children: [
+												/* @__PURE__ */ jsx("div", {
+													className: "w-14 h-14 rounded-2xl bg-white border border-secondary-200 flex items-center justify-center mb-4 shadow-sm",
+													children: /* @__PURE__ */ jsx("svg", {
+														className: "w-7 h-7 text-[#CC0000]",
+														fill: "none",
+														viewBox: "0 0 24 24",
+														stroke: "currentColor",
+														children: /* @__PURE__ */ jsx("path", {
+															strokeLinecap: "round",
+															strokeLinejoin: "round",
+															strokeWidth: 1.5,
+															d: "M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+														})
+													})
+												}),
+												/* @__PURE__ */ jsx("p", {
+													className: "text-sm font-bold text-secondary-700 mb-1",
+													children: isRtl ? "اسحب الصورة هنا أو انقر للاختيار" : "Drag image here or click to select"
+												}),
+												/* @__PURE__ */ jsx("p", {
+													className: "text-xs text-secondary-400",
+													children: isRtl ? "JPG، PNG، WebP — حتى 20 ميجا" : "JPG, PNG, WebP — up to 20MB"
+												})
+											]
+										}), /* @__PURE__ */ jsx("input", {
+											ref: fileInputRef,
+											type: "file",
+											accept: "image/jpeg,image/png,image/webp,image/jpg",
+											className: "hidden",
+											onChange: (e) => handleImageChange(e.target.files[0])
+										})]
+									}),
+									errors.image_path && /* @__PURE__ */ jsx("p", {
+										className: errorClasses,
+										children: errors.image_path
+									}),
+									(data.image_path || !imageDeleted && (area?.image_path || area?.hero_image)) && /* @__PURE__ */ jsxs("div", {
+										className: "mt-3 flex items-center justify-between gap-3 px-4 py-2.5 bg-[#FFF5F5] border border-[#FFD5D5] rounded-xl",
+										children: [/* @__PURE__ */ jsxs("div", {
+											className: "flex items-center gap-2 min-w-0",
+											children: [/* @__PURE__ */ jsx("svg", {
+												className: "w-4 h-4 text-[#CC0000] shrink-0",
+												fill: "none",
+												viewBox: "0 0 24 24",
+												stroke: "currentColor",
+												children: /* @__PURE__ */ jsx("path", {
+													strokeLinecap: "round",
+													strokeLinejoin: "round",
+													strokeWidth: 2,
+													d: "M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+												})
+											}), /* @__PURE__ */ jsx("span", {
+												className: "text-xs font-bold text-[#CC0000] truncate",
+												children: data.image_path?.name || (isRtl ? "الصورة الحالية" : "Current image")
+											})]
+										}), /* @__PURE__ */ jsxs("button", {
+											type: "button",
+											onClick: (e) => {
+												e.stopPropagation();
+												clearImage();
+											},
+											className: "text-red-500 hover:text-red-700 text-xs font-bold transition-colors flex items-center gap-1 shrink-0 p-1",
+											title: isRtl ? "حذف الصورة" : "Remove image",
+											children: [/* @__PURE__ */ jsx("svg", {
+												className: "w-4 h-4",
+												fill: "none",
+												viewBox: "0 0 24 24",
+												stroke: "currentColor",
+												children: /* @__PURE__ */ jsx("path", {
+													strokeLinecap: "round",
+													strokeLinejoin: "round",
+													strokeWidth: 2,
+													d: "M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+												})
+											}), /* @__PURE__ */ jsx("span", { children: isRtl ? "حذف" : "Remove" })]
+										})]
+									})
+								]
+							}),
+							/* @__PURE__ */ jsxs("div", {
+								className: "grid grid-cols-1 md:grid-cols-2 gap-6",
+								children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+									className: labelClasses,
+									children: trans("hero_title_ar")
 								}), /* @__PURE__ */ jsx("input", {
 									type: "text",
-									value: data.image_path,
-									onChange: (e) => setData("image_path", e.target.value),
-									placeholder: "https://...",
-									className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-xs bg-white"
-								})] }),
-								/* @__PURE__ */ jsxs("div", {
-									className: "grid grid-cols-2 gap-4",
-									children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
-										className: "block text-xs font-semibold text-secondary-700 mb-1",
-										children: isRtl ? "عنوان الـ Meta (عربي)" : "Meta Title (AR)"
-									}), /* @__PURE__ */ jsx("input", {
-										type: "text",
-										value: data.meta_title_ar,
-										onChange: (e) => setData("meta_title_ar", e.target.value),
-										dir: "rtl",
-										className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-xs bg-white"
-									})] }), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
-										className: "block text-xs font-semibold text-secondary-700 mb-1",
-										children: isRtl ? "عنوان الـ Meta (إنجليزي)" : "Meta Title (EN)"
-									}), /* @__PURE__ */ jsx("input", {
-										type: "text",
-										value: data.meta_title_en,
-										onChange: (e) => setData("meta_title_en", e.target.value),
-										className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-xs bg-white"
-									})] })]
+									value: data.hero_title_ar,
+									onChange: (e) => setData("hero_title_ar", e.target.value),
+									dir: "rtl",
+									className: inputClasses
+								})] }), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+									className: labelClasses,
+									children: trans("hero_title_en")
+								}), /* @__PURE__ */ jsx("input", {
+									type: "text",
+									value: data.hero_title_en,
+									onChange: (e) => setData("hero_title_en", e.target.value),
+									dir: "ltr",
+									className: inputClasses
+								})] })]
+							}),
+							/* @__PURE__ */ jsxs("div", {
+								className: "grid grid-cols-1 md:grid-cols-2 gap-6",
+								children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+									className: labelClasses,
+									children: trans("hero_description_ar")
+								}), /* @__PURE__ */ jsx("textarea", {
+									rows: 3,
+									value: data.hero_description_ar,
+									onChange: (e) => setData("hero_description_ar", e.target.value),
+									dir: "rtl",
+									className: inputClasses
+								})] }), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+									className: labelClasses,
+									children: trans("hero_description_en")
+								}), /* @__PURE__ */ jsx("textarea", {
+									rows: 3,
+									value: data.hero_description_en,
+									onChange: (e) => setData("hero_description_en", e.target.value),
+									dir: "ltr",
+									className: inputClasses
+								})] })]
+							})
+						]
+					}),
+					activeTab === "content" && /* @__PURE__ */ jsxs("div", {
+						className: "space-y-8 animate-fade-in",
+						children: [
+							/* @__PURE__ */ jsx("h2", {
+								className: "text-xl font-black text-secondary-950 border-b border-secondary-100 pb-4",
+								children: trans("about_area")
+							}),
+							/* @__PURE__ */ jsxs("div", {
+								className: "grid grid-cols-1 lg:grid-cols-2 gap-6",
+								children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+									className: labelClasses,
+									children: trans("about_area_text_ar")
+								}), /* @__PURE__ */ jsx("textarea", {
+									rows: 6,
+									value: data.about_ar,
+									onChange: (e) => setData("about_ar", e.target.value),
+									dir: "rtl",
+									className: inputClasses
+								})] }), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+									className: labelClasses,
+									children: trans("about_area_text_en")
+								}), /* @__PURE__ */ jsx("textarea", {
+									rows: 6,
+									value: data.about_en,
+									onChange: (e) => setData("about_en", e.target.value),
+									dir: "ltr",
+									className: inputClasses
+								})] })]
+							}),
+							/* @__PURE__ */ jsxs("h2", {
+								className: "text-xl font-black text-secondary-950 mt-8 border-b border-secondary-100 pb-4 flex items-center justify-between",
+								children: [trans("area_features"), /* @__PURE__ */ jsxs("button", {
+									type: "button",
+									onClick: addFeature,
+									className: "px-4 py-2 bg-primary-50 text-primary-900 rounded-lg text-xs font-bold hover:bg-primary-100 flex items-center gap-1",
+									children: [/* @__PURE__ */ jsx("svg", {
+										className: "w-4 h-4",
+										fill: "none",
+										viewBox: "0 0 24 24",
+										stroke: "currentColor",
+										children: /* @__PURE__ */ jsx("path", {
+											strokeLinecap: "round",
+											strokeLinejoin: "round",
+											strokeWidth: 2,
+											d: "M12 4v16m8-8H4"
+										})
+									}), trans("add_feature")]
+								})]
+							}),
+							/* @__PURE__ */ jsxs("div", {
+								className: "space-y-4",
+								children: [data.features.map((feature, index) => /* @__PURE__ */ jsxs("div", {
+									className: "bg-surface/50 border border-secondary-200 p-4 rounded-2xl relative",
+									children: [
+										/* @__PURE__ */ jsx("button", {
+											type: "button",
+											onClick: () => removeFeature(index),
+											className: "absolute top-4 rtl:left-4 ltr:right-4 text-red-500 hover:bg-red-50 p-2 rounded-lg",
+											children: /* @__PURE__ */ jsx("svg", {
+												className: "w-5 h-5",
+												fill: "none",
+												viewBox: "0 0 24 24",
+												stroke: "currentColor",
+												children: /* @__PURE__ */ jsx("path", {
+													strokeLinecap: "round",
+													strokeLinejoin: "round",
+													strokeWidth: 2,
+													d: "M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+												})
+											})
+										}),
+										/* @__PURE__ */ jsxs("div", {
+											className: "grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 pe-10",
+											children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+												className: "text-xs font-bold text-secondary-700 mb-1 block",
+												children: "Title (AR) *"
+											}), /* @__PURE__ */ jsx("input", {
+												type: "text",
+												value: feature.title_ar,
+												onChange: (e) => updateFeature(index, "title_ar", e.target.value),
+												required: true,
+												dir: "rtl",
+												className: inputClasses
+											})] }), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+												className: "text-xs font-bold text-secondary-700 mb-1 block",
+												children: "Title (EN)"
+											}), /* @__PURE__ */ jsx("input", {
+												type: "text",
+												value: feature.title_en,
+												onChange: (e) => updateFeature(index, "title_en", e.target.value),
+												dir: "ltr",
+												className: inputClasses
+											})] })]
+										}),
+										/* @__PURE__ */ jsxs("div", {
+											className: "grid grid-cols-1 md:grid-cols-2 gap-4 mb-4",
+											children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+												className: "text-xs font-bold text-secondary-700 mb-1 block",
+												children: "Desc (AR)"
+											}), /* @__PURE__ */ jsx("input", {
+												type: "text",
+												value: feature.description_ar,
+												onChange: (e) => updateFeature(index, "description_ar", e.target.value),
+												dir: "rtl",
+												className: inputClasses
+											})] }), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+												className: "text-xs font-bold text-secondary-700 mb-1 block",
+												children: "Desc (EN)"
+											}), /* @__PURE__ */ jsx("input", {
+												type: "text",
+												value: feature.description_en,
+												onChange: (e) => updateFeature(index, "description_en", e.target.value),
+												dir: "ltr",
+												className: inputClasses
+											})] })]
+										}),
+										/* @__PURE__ */ jsxs("div", {
+											className: "grid grid-cols-1 md:grid-cols-2 gap-4",
+											children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+												className: "text-xs font-bold text-secondary-700 mb-1 block",
+												children: "Icon (SVG or Class)"
+											}), /* @__PURE__ */ jsx("input", {
+												type: "text",
+												value: feature.icon,
+												onChange: (e) => updateFeature(index, "icon", e.target.value),
+												dir: "ltr",
+												className: inputClasses,
+												placeholder: "<svg>...</svg>"
+											})] }), /* @__PURE__ */ jsxs("div", {
+												className: "flex gap-4 items-center pt-6",
+												children: [/* @__PURE__ */ jsxs("label", {
+													className: "flex items-center gap-2 text-sm cursor-pointer",
+													children: [/* @__PURE__ */ jsx("input", {
+														type: "checkbox",
+														checked: feature.is_active,
+														onChange: (e) => updateFeature(index, "is_active", e.target.checked),
+														className: "rounded border-secondary-300 text-[#CC0000] focus:ring-[#CC0000]"
+													}), trans("active")]
+												}), /* @__PURE__ */ jsxs("label", {
+													className: "flex items-center gap-2 text-sm",
+													children: ["Order: ", /* @__PURE__ */ jsx("input", {
+														type: "number",
+														className: "w-20 px-2 py-1 border rounded",
+														value: feature.sort_order,
+														onChange: (e) => updateFeature(index, "sort_order", parseInt(e.target.value) || 0)
+													})]
+												})]
+											})]
+										})
+									]
+								}, index)), data.features.length === 0 && /* @__PURE__ */ jsx("p", {
+									className: "text-sm text-secondary-500 text-center py-4",
+									children: trans("no_features_added")
+								})]
+							})
+						]
+					}),
+					activeTab === "nearby" && /* @__PURE__ */ jsxs("div", {
+						className: "space-y-6 animate-fade-in",
+						children: [/* @__PURE__ */ jsxs("h2", {
+							className: "text-xl font-black text-secondary-950 mb-6 border-b border-secondary-100 pb-4 flex items-center justify-between",
+							children: [trans("nearby_and_important_places"), /* @__PURE__ */ jsxs("button", {
+								type: "button",
+								onClick: addNearby,
+								className: "px-4 py-2 bg-primary-50 text-primary-900 rounded-lg text-xs font-bold hover:bg-primary-100 flex items-center gap-1",
+								children: [/* @__PURE__ */ jsx("svg", {
+									className: "w-4 h-4",
+									fill: "none",
+									viewBox: "0 0 24 24",
+									stroke: "currentColor",
+									children: /* @__PURE__ */ jsx("path", {
+										strokeLinecap: "round",
+										strokeLinejoin: "round",
+										strokeWidth: 2,
+										d: "M12 4v16m8-8H4"
+									})
+								}), trans("add_place")]
+							})]
+						}), /* @__PURE__ */ jsxs("div", {
+							className: "space-y-4",
+							children: [data.nearby_places.map((place, index) => /* @__PURE__ */ jsxs("div", {
+								className: "bg-surface/50 border border-secondary-200 p-4 rounded-2xl relative",
+								children: [
+									/* @__PURE__ */ jsx("button", {
+										type: "button",
+										onClick: () => removeNearby(index),
+										className: "absolute top-4 rtl:left-4 ltr:right-4 text-red-500 hover:bg-red-50 p-2 rounded-lg",
+										children: /* @__PURE__ */ jsx("svg", {
+											className: "w-5 h-5",
+											fill: "none",
+											viewBox: "0 24 24",
+											stroke: "currentColor",
+											children: /* @__PURE__ */ jsx("path", {
+												strokeLinecap: "round",
+												strokeLinejoin: "round",
+												strokeWidth: 2,
+												d: "M6 18L18 6M6 6l12 12"
+											})
+										})
+									}),
+									/* @__PURE__ */ jsxs("div", {
+										className: "grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 pe-10",
+										children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+											className: "text-xs font-bold text-secondary-700 mb-1 block",
+											children: "Name (AR) *"
+										}), /* @__PURE__ */ jsx("input", {
+											type: "text",
+											value: place.name_ar,
+											onChange: (e) => updateNearby(index, "name_ar", e.target.value),
+											required: true,
+											dir: "rtl",
+											className: inputClasses
+										})] }), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+											className: "text-xs font-bold text-secondary-700 mb-1 block",
+											children: "Name (EN)"
+										}), /* @__PURE__ */ jsx("input", {
+											type: "text",
+											value: place.name_en,
+											onChange: (e) => updateNearby(index, "name_en", e.target.value),
+											dir: "ltr",
+											className: inputClasses
+										})] })]
+									}),
+									/* @__PURE__ */ jsxs("div", {
+										className: "grid grid-cols-1 md:grid-cols-3 gap-4 mb-4",
+										children: [
+											/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+												className: "text-xs font-bold text-secondary-700 mb-1 block",
+												children: "Distance Value (e.g. 10)"
+											}), /* @__PURE__ */ jsx("input", {
+												type: "text",
+												value: place.distance,
+												onChange: (e) => updateNearby(index, "distance", e.target.value),
+												className: inputClasses
+											})] }),
+											/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+												className: "text-xs font-bold text-secondary-700 mb-1 block",
+												children: "Unit (e.g. دقائق / minutes)"
+											}), /* @__PURE__ */ jsx("input", {
+												type: "text",
+												value: place.distance_unit,
+												onChange: (e) => updateNearby(index, "distance_unit", e.target.value),
+												className: inputClasses
+											})] }),
+											/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+												className: "text-xs font-bold text-secondary-700 mb-1 block",
+												children: "Icon (SVG or Class)"
+											}), /* @__PURE__ */ jsx("input", {
+												type: "text",
+												value: place.icon,
+												onChange: (e) => updateNearby(index, "icon", e.target.value),
+												dir: "ltr",
+												className: inputClasses
+											})] })
+										]
+									})
+								]
+							}, index)), data.nearby_places.length === 0 && /* @__PURE__ */ jsx("p", {
+								className: "text-sm text-secondary-500 text-center py-4",
+								children: trans("no_places")
+							})]
+						})]
+					}),
+					activeTab === "location" && /* @__PURE__ */ jsxs("div", {
+						className: "space-y-6 animate-fade-in",
+						children: [
+							/* @__PURE__ */ jsx("h2", {
+								className: "text-xl font-black text-secondary-950 mb-6 border-b border-secondary-100 pb-4",
+								children: trans("location_and_map")
+							}),
+							/* @__PURE__ */ jsxs("div", {
+								className: "grid grid-cols-1 md:grid-cols-2 gap-6",
+								children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+									className: labelClasses,
+									children: trans("address_ar")
+								}), /* @__PURE__ */ jsx("input", {
+									type: "text",
+									value: data.address_ar,
+									onChange: (e) => setData("address_ar", e.target.value),
+									dir: "rtl",
+									className: inputClasses
+								})] }), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+									className: labelClasses,
+									children: trans("address_en")
+								}), /* @__PURE__ */ jsx("input", {
+									type: "text",
+									value: data.address_en,
+									onChange: (e) => setData("address_en", e.target.value),
+									dir: "ltr",
+									className: inputClasses
+								})] })]
+							}),
+							/* @__PURE__ */ jsxs("div", { children: [
+								/* @__PURE__ */ jsx("label", {
+									className: labelClasses,
+									children: isRtl ? "رابط الموقع على خرائط جوجل (Google Maps Location URL)" : "Google Maps Location URL"
 								}),
-								/* @__PURE__ */ jsxs("div", {
-									className: "grid grid-cols-2 gap-4",
-									children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
-										className: "block text-xs font-semibold text-secondary-700 mb-1",
+								/* @__PURE__ */ jsx("input", {
+									type: "text",
+									value: data.map_url,
+									onChange: (e) => setData("map_url", e.target.value),
+									dir: "ltr",
+									className: inputClasses,
+									placeholder: "https://www.google.com/maps/place/..."
+								}),
+								/* @__PURE__ */ jsx("p", {
+									className: "text-xs text-secondary-500 mt-1",
+									children: isRtl ? "قم بلصق الرابط العادي لخريطة جوجل (بما في ذلك الروابط المختصرة). سيتم استخراج الإحداثيات تلقائياً عند الحفظ." : "Paste a normal Google Maps location link. The system will automatically extract the latitude and longitude."
+								}),
+								errors?.map_url && /* @__PURE__ */ jsx("p", {
+									className: "text-xs text-red-500 mt-1",
+									children: errors.map_url
+								})
+							] }),
+							(data.latitude || data.longitude) && /* @__PURE__ */ jsxs("div", {
+								className: "grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50 p-4 rounded-xl mt-4",
+								children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+									className: labelClasses,
+									children: trans("latitude")
+								}), /* @__PURE__ */ jsx("input", {
+									type: "text",
+									value: data.latitude,
+									dir: "ltr",
+									className: `${inputClasses} bg-gray-100 text-gray-500 cursor-not-allowed border-transparent`,
+									readOnly: true
+								})] }), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+									className: labelClasses,
+									children: trans("longitude")
+								}), /* @__PURE__ */ jsx("input", {
+									type: "text",
+									value: data.longitude,
+									dir: "ltr",
+									className: `${inputClasses} bg-gray-100 text-gray-500 cursor-not-allowed border-transparent`,
+									readOnly: true
+								})] })]
+							})
+						]
+					}),
+					activeTab === "faq" && /* @__PURE__ */ jsxs("div", {
+						className: "space-y-6 animate-fade-in",
+						children: [/* @__PURE__ */ jsxs("h2", {
+							className: "text-xl font-black text-secondary-950 mb-6 border-b border-secondary-100 pb-4 flex items-center justify-between",
+							children: [isRtl ? "الأسئلة الشائعة" : "FAQs", /* @__PURE__ */ jsxs("button", {
+								type: "button",
+								onClick: addFaq,
+								className: "px-4 py-2 bg-primary-50 text-primary-900 rounded-lg text-xs font-bold hover:bg-primary-100 flex items-center gap-1",
+								children: [/* @__PURE__ */ jsx("svg", {
+									className: "w-4 h-4",
+									fill: "none",
+									viewBox: "0 0 24 24",
+									stroke: "currentColor",
+									children: /* @__PURE__ */ jsx("path", {
+										strokeLinecap: "round",
+										strokeLinejoin: "round",
+										strokeWidth: 2,
+										d: "M12 4v16m8-8H4"
+									})
+								}), isRtl ? "إضافة سؤال" : "Add FAQ"]
+							})]
+						}), /* @__PURE__ */ jsxs("div", {
+							className: "space-y-4",
+							children: [data.faqs.map((faq, index) => /* @__PURE__ */ jsxs("div", {
+								className: "bg-surface/50 border border-secondary-200 p-4 rounded-2xl relative",
+								children: [
+									/* @__PURE__ */ jsx("button", {
+										type: "button",
+										onClick: () => removeFaq(index),
+										className: "absolute top-4 rtl:left-4 ltr:right-4 text-red-500 hover:bg-red-50 p-2 rounded-lg",
+										children: /* @__PURE__ */ jsx("svg", {
+											className: "w-5 h-5",
+											fill: "none",
+											viewBox: "0 0 24 24",
+											stroke: "currentColor",
+											children: /* @__PURE__ */ jsx("path", {
+												strokeLinecap: "round",
+												strokeLinejoin: "round",
+												strokeWidth: 2,
+												d: "M6 18L18 6M6 6l12 12"
+											})
+										})
+									}),
+									/* @__PURE__ */ jsxs("div", {
+										className: "grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 pe-10",
+										children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+											className: "text-xs font-bold text-secondary-700 mb-1 block",
+											children: "Question (AR) *"
+										}), /* @__PURE__ */ jsx("input", {
+											type: "text",
+											value: faq.question_ar,
+											onChange: (e) => updateFaq(index, "question_ar", e.target.value),
+											required: true,
+											dir: "rtl",
+											className: inputClasses
+										})] }), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+											className: "text-xs font-bold text-secondary-700 mb-1 block",
+											children: "Question (EN)"
+										}), /* @__PURE__ */ jsx("input", {
+											type: "text",
+											value: faq.question_en,
+											onChange: (e) => updateFaq(index, "question_en", e.target.value),
+											dir: "ltr",
+											className: inputClasses
+										})] })]
+									}),
+									/* @__PURE__ */ jsxs("div", {
+										className: "grid grid-cols-1 md:grid-cols-2 gap-4 mb-4",
+										children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+											className: "text-xs font-bold text-secondary-700 mb-1 block",
+											children: "Answer (AR)"
+										}), /* @__PURE__ */ jsx("textarea", {
+											rows: 3,
+											value: faq.answer_ar,
+											onChange: (e) => updateFaq(index, "answer_ar", e.target.value),
+											dir: "rtl",
+											className: inputClasses
+										})] }), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+											className: "text-xs font-bold text-secondary-700 mb-1 block",
+											children: "Answer (EN)"
+										}), /* @__PURE__ */ jsx("textarea", {
+											rows: 3,
+											value: faq.answer_en,
+											onChange: (e) => updateFaq(index, "answer_en", e.target.value),
+											dir: "ltr",
+											className: inputClasses
+										})] })]
+									})
+								]
+							}, index)), data.faqs.length === 0 && /* @__PURE__ */ jsx("p", {
+								className: "text-sm text-secondary-500 text-center py-4",
+								children: trans("no_faqs")
+							})]
+						})]
+					}),
+					activeTab === "seo" && /* @__PURE__ */ jsxs("div", {
+						className: "space-y-6 animate-fade-in",
+						children: [
+							/* @__PURE__ */ jsx("h2", {
+								className: "text-xl font-black text-secondary-950 mb-6 border-b border-secondary-100 pb-4",
+								children: isRtl ? "إعدادات الـ SEO" : "SEO Settings"
+							}),
+							/* @__PURE__ */ jsxs("div", {
+								className: "grid grid-cols-1 md:grid-cols-2 gap-6",
+								children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+									className: labelClasses,
+									children: isRtl ? "عنوان الـ Meta (عربي)" : "Meta Title (AR)"
+								}), /* @__PURE__ */ jsx("input", {
+									type: "text",
+									value: data.meta_title_ar,
+									onChange: (e) => setData("meta_title_ar", e.target.value),
+									dir: "rtl",
+									className: inputClasses
+								})] }), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+									className: labelClasses,
+									children: isRtl ? "عنوان الـ Meta (إنجليزي)" : "Meta Title (EN)"
+								}), /* @__PURE__ */ jsx("input", {
+									type: "text",
+									value: data.meta_title_en,
+									onChange: (e) => setData("meta_title_en", e.target.value),
+									dir: "ltr",
+									className: inputClasses
+								})] })]
+							}),
+							/* @__PURE__ */ jsxs("div", {
+								className: "grid grid-cols-1 md:grid-cols-2 gap-6",
+								children: [/* @__PURE__ */ jsxs("div", { children: [
+									/* @__PURE__ */ jsx("label", {
+										className: labelClasses,
 										children: isRtl ? "وصف الـ Meta (عربي)" : "Meta Description (AR)"
-									}), /* @__PURE__ */ jsx("textarea", {
-										rows: 2,
+									}),
+									/* @__PURE__ */ jsx("textarea", {
+										rows: 3,
 										value: data.meta_description_ar,
 										onChange: (e) => setData("meta_description_ar", e.target.value),
 										dir: "rtl",
-										className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-xs bg-white"
-									})] }), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
-										className: "block text-xs font-semibold text-secondary-700 mb-1",
+										maxLength: 500,
+										className: inputClasses
+									}),
+									/* @__PURE__ */ jsxs("p", {
+										className: `text-xs mt-1 text-end ${data.meta_description_ar.length >= 480 ? "text-red-500 font-semibold" : "text-secondary-400"}`,
+										children: [data.meta_description_ar.length, " / 500"]
+									})
+								] }), /* @__PURE__ */ jsxs("div", { children: [
+									/* @__PURE__ */ jsx("label", {
+										className: labelClasses,
 										children: isRtl ? "وصف الـ Meta (إنجليزي)" : "Meta Description (EN)"
-									}), /* @__PURE__ */ jsx("textarea", {
-										rows: 2,
+									}),
+									/* @__PURE__ */ jsx("textarea", {
+										rows: 3,
 										value: data.meta_description_en,
 										onChange: (e) => setData("meta_description_en", e.target.value),
-										className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-xs bg-white"
-									})] })]
-								}),
-								/* @__PURE__ */ jsxs("div", {
-									className: "grid grid-cols-2 gap-4",
-									children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
-										className: "block text-xs font-semibold text-secondary-700 mb-1",
-										children: isRtl ? "الكلمات المفتاحية (عربي - مفصولة بفاصلة)" : "Meta Keywords (AR - comma separated)"
-									}), /* @__PURE__ */ jsx("input", {
-										type: "text",
-										value: data.meta_keywords_ar,
-										onChange: (e) => setData("meta_keywords_ar", e.target.value),
-										dir: "rtl",
-										placeholder: "عقارات, شقق, مشاريع",
-										className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-xs bg-white"
-									})] }), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
-										className: "block text-xs font-semibold text-secondary-700 mb-1",
-										children: isRtl ? "الكلمات المفتاحية (إنجليزي - مفصولة بفاصلة)" : "Meta Keywords (EN - comma separated)"
-									}), /* @__PURE__ */ jsx("input", {
-										type: "text",
-										value: data.meta_keywords_en,
-										onChange: (e) => setData("meta_keywords_en", e.target.value),
-										placeholder: "real estate, apartments, projects",
-										className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-xs bg-white"
-									})] })]
-								})
-							]
-						})]
-					}),
-					/* @__PURE__ */ jsxs("div", {
-						className: "flex gap-2",
-						children: [/* @__PURE__ */ jsx("button", {
-							type: "submit",
-							disabled: processing,
-							className: "px-4 py-2 bg-primary-900 text-white rounded-lg text-sm font-medium hover:bg-primary-950 disabled:opacity-50",
-							children: processing ? trans("loading") : trans("save")
-						}), /* @__PURE__ */ jsx("button", {
-							type: "button",
-							onClick: cancelEdit,
-							className: "px-4 py-2 bg-surface text-secondary-700 rounded-lg text-sm font-medium hover:bg-secondary-200",
-							children: trans("cancel")
-						})]
-					})
-				]
-			}),
-			/* @__PURE__ */ jsx("div", {
-				className: "bg-white rounded-xl shadow-card overflow-hidden",
-				children: /* @__PURE__ */ jsxs("table", {
-					className: "w-full text-sm",
-					children: [/* @__PURE__ */ jsx("thead", { children: /* @__PURE__ */ jsxs("tr", {
-						className: "bg-surface text-secondary-700 text-left",
-						children: [
-							/* @__PURE__ */ jsx("th", {
-								className: "px-4 py-3 font-medium",
-								children: trans("name_ar")
+										dir: "ltr",
+										maxLength: 500,
+										className: inputClasses
+									}),
+									/* @__PURE__ */ jsxs("p", {
+										className: `text-xs mt-1 text-end ${data.meta_description_en.length >= 480 ? "text-red-500 font-semibold" : "text-secondary-400"}`,
+										children: [data.meta_description_en.length, " / 500"]
+									})
+								] })]
 							}),
-							/* @__PURE__ */ jsx("th", {
-								className: "px-4 py-3 font-medium",
-								children: trans("name_en")
-							}),
-							/* @__PURE__ */ jsx("th", {
-								className: "px-4 py-3 font-medium",
-								children: trans("status")
-							}),
-							/* @__PURE__ */ jsx("th", {
-								className: "px-4 py-3 font-medium",
-								children: trans("sort_order")
-							}),
-							/* @__PURE__ */ jsx("th", {
-								className: "px-4 py-3 font-medium",
-								children: trans("actions")
+							/* @__PURE__ */ jsxs("div", {
+								className: "grid grid-cols-1 md:grid-cols-2 gap-6",
+								children: [/* @__PURE__ */ jsxs("div", { children: [
+									/* @__PURE__ */ jsxs("div", {
+										className: "flex items-center justify-between mb-2",
+										children: [/* @__PURE__ */ jsxs("label", {
+											className: labelClasses,
+											children: [isRtl ? "الكلمات المفتاحية (عربي)" : "Meta Keywords (AR)", /* @__PURE__ */ jsxs("span", {
+												className: `text-xs font-normal ms-2 ${data.meta_keywords_ar.length >= MAX_KEYWORDS ? "text-red-500" : "text-secondary-400"}`,
+												children: [
+													data.meta_keywords_ar.length,
+													" / ",
+													MAX_KEYWORDS
+												]
+											})]
+										}), data.meta_keywords_ar.length > 0 && /* @__PURE__ */ jsx("button", {
+											type: "button",
+											onClick: clearKeywordsAr,
+											className: "text-xs text-red-600 hover:text-red-700 font-medium transition-colors",
+											children: isRtl ? "تفريغ الكل" : "Clear All"
+										})]
+									}),
+									/* @__PURE__ */ jsxs("div", {
+										className: "flex gap-2 mb-2",
+										children: [/* @__PURE__ */ jsx("textarea", {
+											value: keywordInputAr,
+											onChange: (e) => {
+												setKeywordInputAr(e.target.value);
+												setKwWarningAr(false);
+											},
+											onKeyDown: (e) => {
+												if (e.key === "Enter" && !e.shiftKey) {
+													e.preventDefault();
+													addKeywordAr();
+												}
+											},
+											rows: 2,
+											dir: "rtl",
+											disabled: data.meta_keywords_ar.length >= MAX_KEYWORDS,
+											placeholder: data.meta_keywords_ar.length >= MAX_KEYWORDS ? isRtl ? "وصلت للحد الأقصى 25 كلمة" : "Max 25 keywords reached" : isRtl ? "الصق الكلمات مفصولة بفاصلة أو سطر جديد..." : "Paste keywords separated by commas or newlines...",
+											className: "flex-1 px-3 py-2 border border-secondary-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 resize-y disabled:opacity-50 disabled:cursor-not-allowed"
+										}), /* @__PURE__ */ jsx("button", {
+											type: "button",
+											onClick: addKeywordAr,
+											disabled: data.meta_keywords_ar.length >= MAX_KEYWORDS,
+											className: "px-4 py-2 bg-[#CC0000] text-white rounded-xl text-sm font-medium hover:bg-[#B00000] transition-colors self-end h-10 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed",
+											children: isRtl ? "إضافة" : "Add"
+										})]
+									}),
+									kwWarningAr && /* @__PURE__ */ jsx("p", {
+										className: "text-xs text-red-500 mb-2",
+										children: isRtl ? "وصلت للحد الأقصى ٢٥ كلمة مفتاحية" : "Max 25 keywords reached"
+									}),
+									data.meta_keywords_ar.length > 0 && /* @__PURE__ */ jsx("div", {
+										className: "flex flex-wrap gap-1.5 max-h-40 overflow-y-auto p-2.5 border border-secondary-200 rounded-xl bg-[#F5F5F5]",
+										children: data.meta_keywords_ar.map((kw) => /* @__PURE__ */ jsxs("span", {
+											className: "inline-flex items-center gap-1.5 px-2.5 py-1 bg-white text-xs font-medium text-secondary-800 rounded-lg border border-secondary-200 shadow-sm group hover:border-red-300 transition-colors",
+											children: [kw, /* @__PURE__ */ jsx("button", {
+												type: "button",
+												onClick: () => removeKeywordAr(kw),
+												className: "text-secondary-400 group-hover:text-red-600 text-sm font-bold leading-none",
+												children: "×"
+											})]
+										}, kw))
+									}),
+									errors.meta_keywords_ar && /* @__PURE__ */ jsx("p", {
+										className: errorClasses,
+										children: errors.meta_keywords_ar
+									})
+								] }), /* @__PURE__ */ jsxs("div", { children: [
+									/* @__PURE__ */ jsxs("div", {
+										className: "flex items-center justify-between mb-2",
+										children: [/* @__PURE__ */ jsxs("label", {
+											className: labelClasses,
+											children: [isRtl ? "الكلمات المفتاحية (إنجليزي)" : "Meta Keywords (EN)", /* @__PURE__ */ jsxs("span", {
+												className: `text-xs font-normal ms-2 ${data.meta_keywords_en.length >= MAX_KEYWORDS ? "text-red-500" : "text-secondary-400"}`,
+												children: [
+													data.meta_keywords_en.length,
+													" / ",
+													MAX_KEYWORDS
+												]
+											})]
+										}), data.meta_keywords_en.length > 0 && /* @__PURE__ */ jsx("button", {
+											type: "button",
+											onClick: clearKeywordsEn,
+											className: "text-xs text-red-600 hover:text-red-700 font-medium transition-colors",
+											children: isRtl ? "تفريغ الكل" : "Clear All"
+										})]
+									}),
+									/* @__PURE__ */ jsxs("div", {
+										className: "flex gap-2 mb-2",
+										children: [/* @__PURE__ */ jsx("textarea", {
+											value: keywordInputEn,
+											onChange: (e) => {
+												setKeywordInputEn(e.target.value);
+												setKwWarningEn(false);
+											},
+											onKeyDown: (e) => {
+												if (e.key === "Enter" && !e.shiftKey) {
+													e.preventDefault();
+													addKeywordEn();
+												}
+											},
+											rows: 2,
+											dir: "ltr",
+											disabled: data.meta_keywords_en.length >= MAX_KEYWORDS,
+											placeholder: data.meta_keywords_en.length >= MAX_KEYWORDS ? "Max 25 keywords reached" : "Paste keywords separated by commas or newlines...",
+											className: "flex-1 px-3 py-2 border border-secondary-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 resize-y disabled:opacity-50 disabled:cursor-not-allowed"
+										}), /* @__PURE__ */ jsx("button", {
+											type: "button",
+											onClick: addKeywordEn,
+											disabled: data.meta_keywords_en.length >= MAX_KEYWORDS,
+											className: "px-4 py-2 bg-[#CC0000] text-white rounded-xl text-sm font-medium hover:bg-[#B00000] transition-colors self-end h-10 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed",
+											children: "Add"
+										})]
+									}),
+									kwWarningEn && /* @__PURE__ */ jsx("p", {
+										className: "text-xs text-red-500 mb-2",
+										children: "Max 25 keywords reached"
+									}),
+									data.meta_keywords_en.length > 0 && /* @__PURE__ */ jsx("div", {
+										className: "flex flex-wrap gap-1.5 max-h-40 overflow-y-auto p-2.5 border border-secondary-200 rounded-xl bg-[#F5F5F5]",
+										children: data.meta_keywords_en.map((kw) => /* @__PURE__ */ jsxs("span", {
+											className: "inline-flex items-center gap-1.5 px-2.5 py-1 bg-white text-xs font-medium text-secondary-800 rounded-lg border border-secondary-200 shadow-sm group hover:border-red-300 transition-colors",
+											children: [kw, /* @__PURE__ */ jsx("button", {
+												type: "button",
+												onClick: () => removeKeywordEn(kw),
+												className: "text-secondary-400 group-hover:text-red-600 text-sm font-bold leading-none",
+												children: "×"
+											})]
+										}, kw))
+									}),
+									errors.meta_keywords_en && /* @__PURE__ */ jsx("p", {
+										className: errorClasses,
+										children: errors.meta_keywords_en
+									})
+								] })]
 							})
 						]
-					}) }), /* @__PURE__ */ jsxs("tbody", {
-						className: "divide-y divide-secondary-100",
-						children: [areas?.length === 0 && /* @__PURE__ */ jsx("tr", { children: /* @__PURE__ */ jsx("td", {
-							colSpan: 5,
-							className: "px-4 py-8 text-center text-muted",
-							children: trans("no_data")
-						}) }), areas?.map((area) => /* @__PURE__ */ jsxs("tr", {
-							className: "hover:bg-surface/50",
+					})
+				]
+			})
+		})]
+	});
+}
+//#endregion
+//#region resources/js/Pages/Admin/Areas/Create.jsx
+var Create_exports$1 = /* @__PURE__ */ __exportAll({ default: () => AdminAreasCreate });
+function AdminAreasCreate({ parents }) {
+	const { locale } = usePage().props;
+	const trans = useTrans(locale);
+	const isRtl = locale === "ar";
+	return /* @__PURE__ */ jsxs(AdminSidebar, { children: [/* @__PURE__ */ jsx(Head, { title: trans("add_new_area") + " — " + trans("app_name") }), /* @__PURE__ */ jsxs("div", {
+		dir: isRtl ? "rtl" : "ltr",
+		className: "p-4 md:p-8 max-w-7xl mx-auto min-h-screen",
+		children: [/* @__PURE__ */ jsxs("div", {
+			className: "mb-8",
+			children: [/* @__PURE__ */ jsxs(Link, {
+				href: "/admin/areas",
+				className: "text-secondary-500 hover:text-[#CC0000] text-sm font-bold flex items-center gap-2 mb-4 w-fit transition-colors",
+				children: [/* @__PURE__ */ jsx("svg", {
+					className: `w-4 h-4 ${isRtl ? "rotate-180" : ""}`,
+					fill: "none",
+					viewBox: "0 0 24 24",
+					stroke: "currentColor",
+					children: /* @__PURE__ */ jsx("path", {
+						strokeLinecap: "round",
+						strokeLinejoin: "round",
+						strokeWidth: 2,
+						d: "M10 19l-7-7m0 0l7-7m-7 7h18"
+					})
+				}), trans("back_to_areas")]
+			}), /* @__PURE__ */ jsx("h1", {
+				className: "text-3xl font-black text-secondary-950 mb-1",
+				children: trans("add_new_area")
+			})]
+		}), /* @__PURE__ */ jsx(AreaForm, {
+			parents,
+			mode: "create"
+		})]
+	})] });
+}
+//#endregion
+//#region resources/js/Pages/Admin/Areas/Edit.jsx
+var Edit_exports$1 = /* @__PURE__ */ __exportAll({ default: () => AdminAreasEdit });
+function AdminAreasEdit({ area, parents }) {
+	const { locale } = usePage().props;
+	const trans = useTrans(locale);
+	const isRtl = locale === "ar";
+	return /* @__PURE__ */ jsxs(AdminSidebar, { children: [/* @__PURE__ */ jsx(Head, { title: trans("edit_area") + " — " + trans("app_name") }), /* @__PURE__ */ jsxs("div", {
+		dir: isRtl ? "rtl" : "ltr",
+		className: "p-4 md:p-8 max-w-7xl mx-auto min-h-screen",
+		children: [/* @__PURE__ */ jsxs("div", {
+			className: "mb-8",
+			children: [/* @__PURE__ */ jsxs(Link, {
+				href: "/admin/areas",
+				className: "text-secondary-500 hover:text-[#CC0000] text-sm font-bold flex items-center gap-2 mb-4 w-fit transition-colors",
+				children: [/* @__PURE__ */ jsx("svg", {
+					className: `w-4 h-4 ${isRtl ? "rotate-180" : ""}`,
+					fill: "none",
+					viewBox: "0 0 24 24",
+					stroke: "currentColor",
+					children: /* @__PURE__ */ jsx("path", {
+						strokeLinecap: "round",
+						strokeLinejoin: "round",
+						strokeWidth: 2,
+						d: "M10 19l-7-7m0 0l7-7m-7 7h18"
+					})
+				}), trans("back_to_areas")]
+			}), /* @__PURE__ */ jsxs("h1", {
+				className: "text-3xl font-black text-secondary-950 mb-1",
+				children: [
+					trans("edit_area"),
+					": ",
+					isRtl ? area.name_ar : area.name_en
+				]
+			})]
+		}), /* @__PURE__ */ jsx(AreaForm, {
+			area,
+			parents,
+			mode: "edit"
+		})]
+	})] });
+}
+//#endregion
+//#region resources/js/Pages/Admin/Areas/Index.jsx
+var Index_exports$16 = /* @__PURE__ */ __exportAll({ default: () => AdminAreasIndex });
+function AdminAreasIndex({ areas, filters }) {
+	const { locale, flash } = usePage().props;
+	const trans = useTrans(locale);
+	const isRtl = locale === "ar";
+	const [search, setSearch] = useState(filters.search || "");
+	const [status, setStatus] = useState(filters.status || "");
+	const searchTimeout = useRef(null);
+	useEffect(() => {
+		if (searchTimeout.current) clearTimeout(searchTimeout.current);
+		searchTimeout.current = setTimeout(() => {
+			const params = {};
+			if (search) params.search = search;
+			if (status) params.status = status;
+			router.get("/admin/areas", params, {
+				preserveState: true,
+				preserveScroll: true,
+				replace: true
+			});
+		}, 500);
+		return () => clearTimeout(searchTimeout.current);
+	}, [search, status]);
+	function handleDelete(area) {
+		if (confirm(trans("confirm_delete"))) router.delete(`/admin/areas/${area.id}`, { preserveScroll: true });
+	}
+	return /* @__PURE__ */ jsxs(AdminSidebar, { children: [/* @__PURE__ */ jsx(Head, { title: trans("sidebar_areas") + " — " + trans("app_name") }), /* @__PURE__ */ jsxs("div", {
+		dir: isRtl ? "rtl" : "ltr",
+		className: "p-4 md:p-8 max-w-7xl mx-auto min-h-screen",
+		children: [
+			/* @__PURE__ */ jsxs("div", {
+				className: "flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4",
+				children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("h1", {
+					className: "text-3xl font-black text-secondary-950 mb-1",
+					children: trans("sidebar_areas")
+				}), /* @__PURE__ */ jsx("p", {
+					className: "text-secondary-500 text-sm",
+					children: trans("manage_areas")
+				})] }), /* @__PURE__ */ jsxs(Link, {
+					href: "/admin/areas/create",
+					className: "inline-flex items-center justify-center px-6 py-3 bg-[#CC0000] text-white rounded-xl text-sm font-bold transition-all duration-200 hover:bg-[#B00000] hover:shadow-lg active:scale-[0.97] focus:outline-none focus:ring-4 focus:ring-[#FFE3E3]",
+					children: [/* @__PURE__ */ jsx("svg", {
+						className: "w-5 h-5 me-2",
+						fill: "none",
+						viewBox: "0 0 24 24",
+						stroke: "currentColor",
+						children: /* @__PURE__ */ jsx("path", {
+							strokeLinecap: "round",
+							strokeLinejoin: "round",
+							strokeWidth: 2,
+							d: "M12 4v16m8-8H4"
+						})
+					}), trans("add")]
+				})]
+			}),
+			flash?.success && /* @__PURE__ */ jsxs("div", {
+				className: "mb-8 px-6 py-4 bg-green-50 border border-green-100 text-green-800 rounded-2xl flex items-center shadow-sm",
+				children: [/* @__PURE__ */ jsx("svg", {
+					className: "w-6 h-6 text-green-500 me-3",
+					fill: "none",
+					viewBox: "0 0 24 24",
+					stroke: "currentColor",
+					children: /* @__PURE__ */ jsx("path", {
+						strokeLinecap: "round",
+						strokeLinejoin: "round",
+						strokeWidth: 2,
+						d: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+					})
+				}), /* @__PURE__ */ jsx("span", {
+					className: "font-medium",
+					children: flash.success
+				})]
+			}),
+			/* @__PURE__ */ jsxs("div", {
+				className: "bg-white p-4 rounded-3xl shadow-sm border border-secondary-100 mb-6 flex flex-col sm:flex-row gap-4",
+				children: [/* @__PURE__ */ jsx("div", {
+					className: "flex-1",
+					children: /* @__PURE__ */ jsx("input", {
+						type: "text",
+						placeholder: trans("search_area"),
+						value: search,
+						onChange: (e) => setSearch(e.target.value),
+						className: "w-full px-4 py-2.5 bg-surface border-2 border-transparent rounded-xl text-sm focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] transition-all"
+					})
+				}), /* @__PURE__ */ jsx("div", {
+					className: "sm:w-48",
+					children: /* @__PURE__ */ jsxs("select", {
+						value: status,
+						onChange: (e) => setStatus(e.target.value),
+						className: "w-full px-4 py-2.5 bg-surface border-2 border-transparent rounded-xl text-sm focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] transition-all",
+						children: [
+							/* @__PURE__ */ jsx("option", {
+								value: "",
+								children: trans("all_status")
+							}),
+							/* @__PURE__ */ jsx("option", {
+								value: "active",
+								children: trans("active")
+							}),
+							/* @__PURE__ */ jsx("option", {
+								value: "inactive",
+								children: trans("inactive")
+							})
+						]
+					})
+				})]
+			}),
+			/* @__PURE__ */ jsx("div", {
+				className: "bg-white rounded-3xl shadow-sm border border-secondary-100 overflow-hidden mb-6",
+				children: /* @__PURE__ */ jsx("div", {
+					className: "overflow-x-auto",
+					children: /* @__PURE__ */ jsxs("table", {
+						className: "w-full text-sm text-start rtl:text-right border-collapse",
+						children: [/* @__PURE__ */ jsx("thead", { children: /* @__PURE__ */ jsxs("tr", {
+							className: "bg-surface border-b border-secondary-100 text-secondary-600 text-xs uppercase tracking-wider font-bold",
 							children: [
-								/* @__PURE__ */ jsx("td", {
-									className: "px-4 py-3 text-secondary-950 font-medium",
-									children: area.name_ar
+								/* @__PURE__ */ jsx("th", {
+									className: "px-6 py-4 text-start w-24",
+									children: trans("image")
 								}),
-								/* @__PURE__ */ jsx("td", {
-									className: "px-4 py-3 text-secondary-950",
-									children: area.name_en
+								/* @__PURE__ */ jsx("th", {
+									className: "px-6 py-4 text-start",
+									children: trans("area")
 								}),
-								/* @__PURE__ */ jsx("td", {
-									className: "px-4 py-3",
-									children: /* @__PURE__ */ jsx("span", {
-										className: `inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${area.is_active ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`,
-										children: area.is_active ? trans("active") : trans("inactive")
-									})
+								/* @__PURE__ */ jsx("th", {
+									className: "px-4 py-4 text-center whitespace-nowrap",
+									children: trans("projects")
 								}),
-								/* @__PURE__ */ jsx("td", {
-									className: "px-4 py-3 text-secondary-700",
-									children: area.sort_order
+								/* @__PURE__ */ jsx("th", {
+									className: "px-4 py-4 text-center whitespace-nowrap",
+									children: trans("units")
 								}),
-								/* @__PURE__ */ jsx("td", {
-									className: "px-4 py-3",
-									children: /* @__PURE__ */ jsxs("div", {
-										className: "flex gap-2",
-										children: [/* @__PURE__ */ jsx("button", {
-											onClick: () => startEdit(area),
-											className: "text-xs text-primary-900 hover:text-primary-950 font-medium",
-											children: trans("edit")
-										}), /* @__PURE__ */ jsx("button", {
-											onClick: () => handleDelete(area),
-											className: "text-xs text-red-600 hover:text-red-700 font-medium",
-											children: trans("delete")
-										})]
-									})
+								/* @__PURE__ */ jsx("th", {
+									className: "px-4 py-4 text-center whitespace-nowrap",
+									children: trans("status")
+								}),
+								/* @__PURE__ */ jsx("th", {
+									className: "px-6 py-4 text-center whitespace-nowrap",
+									children: trans("actions")
 								})
 							]
-						}, area.id))]
-					})]
+						}) }), /* @__PURE__ */ jsxs("tbody", {
+							className: "divide-y divide-secondary-50 font-medium",
+							children: [areas?.data?.length === 0 && /* @__PURE__ */ jsx("tr", { children: /* @__PURE__ */ jsx("td", {
+								colSpan: 6,
+								className: "px-6 py-16 text-center",
+								children: /* @__PURE__ */ jsxs("div", {
+									className: "flex flex-col items-center justify-center text-secondary-400",
+									children: [
+										/* @__PURE__ */ jsx("svg", {
+											className: "w-16 h-16 mb-4 text-secondary-300",
+											fill: "none",
+											viewBox: "0 0 24 24",
+											stroke: "currentColor",
+											children: /* @__PURE__ */ jsx("path", {
+												strokeLinecap: "round",
+												strokeLinejoin: "round",
+												strokeWidth: 1,
+												d: "M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+											})
+										}),
+										/* @__PURE__ */ jsx("p", {
+											className: "text-base font-bold text-secondary-700",
+											children: trans("no_data")
+										}),
+										/* @__PURE__ */ jsx("p", {
+											className: "text-sm mt-1",
+											children: trans("no_areas_found")
+										})
+									]
+								})
+							}) }), areas?.data?.map((area) => /* @__PURE__ */ jsxs("tr", {
+								className: "hover:bg-surface/60 transition-colors",
+								children: [
+									/* @__PURE__ */ jsx("td", {
+										className: "px-6 py-4 whitespace-nowrap w-24",
+										children: area.image_path || area.hero_image ? /* @__PURE__ */ jsx("img", {
+											src: getStorageUrl(area.image_path || area.hero_image),
+											alt: area.name_ar,
+											onError: (e) => {
+												e.currentTarget.style.display = "none";
+											},
+											className: "w-16 h-12 rounded-xl object-cover border border-secondary-200 shadow-xs"
+										}) : /* @__PURE__ */ jsx("div", {
+											className: "w-16 h-12 rounded-xl bg-primary-50 flex items-center justify-center border border-primary-100 text-primary-700",
+											children: /* @__PURE__ */ jsxs("svg", {
+												className: "w-5 h-5",
+												fill: "none",
+												viewBox: "0 0 24 24",
+												stroke: "currentColor",
+												strokeWidth: 1.75,
+												children: [/* @__PURE__ */ jsx("path", {
+													strokeLinecap: "round",
+													strokeLinejoin: "round",
+													d: "M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"
+												}), /* @__PURE__ */ jsx("path", {
+													strokeLinecap: "round",
+													strokeLinejoin: "round",
+													d: "M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
+												})]
+											})
+										})
+									}),
+									/* @__PURE__ */ jsxs("td", {
+										className: "px-6 py-4 min-w-[200px]",
+										children: [/* @__PURE__ */ jsx(Link, {
+											href: `/admin/areas/${area.id}/edit`,
+											className: "font-bold text-secondary-950 text-base hover:text-primary-900 transition-colors block",
+											children: area.name_ar
+										}), /* @__PURE__ */ jsx("div", {
+											className: "text-xs text-secondary-500 mt-0.5",
+											children: area.name_en
+										})]
+									}),
+									/* @__PURE__ */ jsx("td", {
+										className: "px-4 py-4 text-center whitespace-nowrap",
+										children: /* @__PURE__ */ jsxs("span", {
+											className: "inline-flex items-center px-2.5 py-1 bg-surface text-secondary-900 rounded-lg border border-secondary-200 text-xs font-bold",
+											children: [
+												area.projects_count ?? 0,
+												" ",
+												isRtl ? "مشروع" : "projects"
+											]
+										})
+									}),
+									/* @__PURE__ */ jsx("td", {
+										className: "px-4 py-4 text-center whitespace-nowrap",
+										children: /* @__PURE__ */ jsxs("span", {
+											className: "inline-flex items-center px-2.5 py-1 bg-surface text-secondary-900 rounded-lg border border-secondary-200 text-xs font-bold",
+											children: [
+												area.units_count ?? 0,
+												" ",
+												isRtl ? "وحدة" : "units"
+											]
+										})
+									}),
+									/* @__PURE__ */ jsx("td", {
+										className: "px-4 py-4 text-center whitespace-nowrap",
+										children: /* @__PURE__ */ jsx("span", {
+											className: `inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${area.is_active ? "bg-green-100 text-green-800 border border-green-200" : "bg-red-100 text-red-800 border border-red-200"}`,
+											children: area.is_active ? trans("active") : trans("inactive")
+										})
+									}),
+									/* @__PURE__ */ jsx("td", {
+										className: "px-6 py-4 text-center whitespace-nowrap",
+										children: /* @__PURE__ */ jsxs("div", {
+											className: "flex items-center justify-center gap-1.5",
+											children: [
+												/* @__PURE__ */ jsxs("a", {
+													href: `/${locale}/areas/${area.slug || area.id}`,
+													target: "_blank",
+													rel: "noreferrer",
+													className: "px-2.5 py-1.5 text-xs font-bold text-primary-900 bg-primary-50 hover:bg-primary-100 rounded-xl transition-all border border-primary-200/70 flex items-center gap-1 active:scale-95 shadow-xs",
+													title: isRtl ? "معاينة على الموقع" : "Preview",
+													children: [/* @__PURE__ */ jsx("svg", {
+														className: "w-3.5 h-3.5",
+														fill: "none",
+														viewBox: "0 0 24 24",
+														stroke: "currentColor",
+														strokeWidth: 2,
+														children: /* @__PURE__ */ jsx("path", {
+															strokeLinecap: "round",
+															strokeLinejoin: "round",
+															d: "M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.573 16.49 16.638 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+														})
+													}), /* @__PURE__ */ jsx("span", { children: isRtl ? "معاينة" : "Preview" })]
+												}),
+												/* @__PURE__ */ jsxs(Link, {
+													href: `/admin/areas/${area.id}/edit`,
+													className: "px-2.5 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl transition-all border border-blue-200/70 flex items-center gap-1 active:scale-95 shadow-xs",
+													title: trans("edit"),
+													children: [/* @__PURE__ */ jsx("svg", {
+														className: "w-3.5 h-3.5",
+														fill: "none",
+														viewBox: "0 0 24 24",
+														stroke: "currentColor",
+														strokeWidth: 2,
+														children: /* @__PURE__ */ jsx("path", {
+															strokeLinecap: "round",
+															strokeLinejoin: "round",
+															d: "M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"
+														})
+													}), /* @__PURE__ */ jsx("span", { children: trans("edit") })]
+												}),
+												/* @__PURE__ */ jsxs("button", {
+													type: "button",
+													onClick: () => handleDelete(area),
+													className: "px-2.5 py-1.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 rounded-xl transition-all border border-red-200/70 flex items-center gap-1 active:scale-95 shadow-xs",
+													title: trans("delete"),
+													children: [/* @__PURE__ */ jsx("svg", {
+														className: "w-3.5 h-3.5",
+														fill: "none",
+														viewBox: "0 0 24 24",
+														stroke: "currentColor",
+														strokeWidth: 2,
+														children: /* @__PURE__ */ jsx("path", {
+															strokeLinecap: "round",
+															strokeLinejoin: "round",
+															d: "M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
+														})
+													}), /* @__PURE__ */ jsx("span", { children: trans("delete") })]
+												})
+											]
+										})
+									})
+								]
+							}, area.id))]
+						})]
+					})
 				})
+			}),
+			areas?.links && areas.data.length > 0 && /* @__PURE__ */ jsx("div", {
+				className: "flex flex-wrap items-center justify-center gap-2",
+				children: areas.links.map((link, i) => /* @__PURE__ */ jsx(Link, {
+					href: link.url || "#",
+					className: `px-4 py-2 rounded-xl text-sm font-bold transition-all ${link.active ? "bg-[#CC0000] text-white" : !link.url ? "bg-transparent text-secondary-300 cursor-not-allowed" : "bg-white text-secondary-700 hover:bg-secondary-50 border border-secondary-200"}`,
+					dangerouslySetInnerHTML: { __html: link.label }
+				}, i))
 			})
 		]
 	})] });
@@ -1687,7 +3138,7 @@ function InputField({ id, name, label, type = "text", value, onChange, placehold
 				placeholder,
 				autoComplete,
 				dir: inputDir,
-				className: `w-full px-4 py-2.5 border rounded-lg text-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 ${error ? "border-error bg-error/5" : "border-secondary-200 bg-white hover:border-secondary-300"}`
+				className: `w-full px-4 py-3 border rounded-xl text-sm transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-primary-900/10 focus:border-primary-900 shadow-sm ${error ? "border-error bg-error/5 text-error" : "border-border bg-white hover:border-secondary-300 hover:bg-surface-hover/50 text-secondary-950"}`
 			}),
 			error && /* @__PURE__ */ jsx("p", {
 				className: "mt-1 text-xs text-error rtl:text-right",
@@ -1704,9 +3155,9 @@ function Button({ children, type = "submit", variant = "primary", disabled = fal
 		disabled,
 		onClick,
 		className: `w-full inline-flex justify-center items-center px-5 py-3 rounded-xl text-sm font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none ${{
-			primary: "bg-primary-900 text-white hover:bg-primary-950 hover:shadow-md focus:ring-primary-900",
-			secondary: "bg-surface text-secondary-950 hover:bg-secondary-200 hover:shadow-sm focus:ring-secondary-300",
-			ghost: "bg-transparent text-secondary-700 hover:bg-surface hover:text-secondary-950 focus:ring-secondary-200"
+			primary: "bg-primary-900 text-white hover:bg-primary-950 hover:shadow-lg hover:-translate-y-0.5 focus:ring-primary-900",
+			secondary: "bg-white text-secondary-950 border border-border hover:bg-surface-hover hover:shadow-sm focus:ring-secondary-300",
+			ghost: "bg-transparent text-secondary-700 hover:bg-surface-hover hover:text-secondary-950 focus:ring-secondary-200"
 		}[variant]} ${className}`,
 		children
 	});
@@ -1727,7 +3178,9 @@ function SkeletonRow({ cols }) {
 }
 //#endregion
 //#region resources/js/Components/UI/Select.jsx
-function Select({ value, onChange, children, className = "", disabled = false, required = false, id, name, defaultValue, "aria-label": ariaLabel }) {
+function Select({ value, onChange, children, className = "", disabled = false, required = false, id, name, defaultValue, "aria-label": ariaLabel, variant = "default" }) {
+	const { locale } = usePage().props || {};
+	const trans = useTrans(locale);
 	const [isOpen, setIsOpen] = useState(false);
 	const [search, setSearch] = useState("");
 	const [focusedIndex, setFocusedIndex] = useState(-1);
@@ -1828,6 +3281,7 @@ function Select({ value, onChange, children, className = "", disabled = false, r
 			default: break;
 		}
 	};
+	const activeDescendantId = isOpen && focusedIndex >= 0 && focusedIndex < filteredOptions.length ? `${listboxId}-opt-${focusedIndex}` : void 0;
 	return /* @__PURE__ */ jsxs("div", {
 		ref: wrapperRef,
 		className: `relative w-full ${isOpen ? "z-[100]" : "z-10"} ${className}`,
@@ -1857,12 +3311,13 @@ function Select({ value, onChange, children, className = "", disabled = false, r
 				"aria-haspopup": "listbox",
 				"aria-expanded": isOpen,
 				"aria-controls": listboxId,
+				"aria-activedescendant": activeDescendantId,
 				"aria-label": ariaLabel || (typeof selectedOption?.label === "string" ? selectedOption.label : "Select option"),
-				className: `w-full h-full min-h-[40px] px-3 py-1.5 bg-surface border border-transparent rounded-xl text-sm transition-all duration-200 outline-none flex items-center justify-between focus:ring-2 focus:ring-primary-500 focus:border-primary-900 focus:bg-white hover:bg-secondary-200 disabled:opacity-50 disabled:cursor-not-allowed ${isOpen ? "bg-white border-primary-900 ring-2 ring-primary-500" : ""}`,
+				className: `w-full h-full min-h-[44px] px-4 py-2.5 text-sm transition-colors duration-200 outline-none flex items-center justify-between disabled:opacity-50 disabled:cursor-not-allowed shadow-sm ${variant === "ghost" ? "bg-transparent border border-transparent rounded-xl hover:bg-surface-hover " + (isOpen ? "bg-surface-hover text-primary-900" : "") : "bg-white border border-border rounded-xl focus:ring-4 focus:ring-primary-900/10 focus:border-primary-900 hover:bg-surface-hover/50 hover:border-secondary-300 " + (isOpen ? "bg-white border-primary-900 ring-4 ring-primary-900/10" : "")} ${className}`,
 				style: { textAlign: "start" },
 				children: [/* @__PURE__ */ jsx("span", {
 					className: `truncate text-[14px] ${!selectedOption?.value && selectedOption?.value !== 0 ? "text-secondary-500" : "text-secondary-900 font-medium"}`,
-					children: selectedOption ? selectedOption.label : "Select..."
+					children: selectedOption ? selectedOption.label : trans("select") || "Select..."
 				}), /* @__PURE__ */ jsx("svg", {
 					className: `w-4 h-4 text-secondary-500 transition-transform duration-200 shrink-0 ms-3 ${isOpen ? "rotate-180 text-primary-900" : ""}`,
 					fill: "none",
@@ -1878,7 +3333,7 @@ function Select({ value, onChange, children, className = "", disabled = false, r
 				})]
 			}),
 			/* @__PURE__ */ jsxs("div", {
-				className: `absolute z-[100] top-full left-0 right-0 w-full mt-2 bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-secondary-200 flex flex-col origin-top transition-all duration-200 ease-out min-w-[160px] ${isOpen ? "opacity-100 scale-100 translate-y-0 pointer-events-auto" : "opacity-0 scale-95 -translate-y-1 pointer-events-none"}`,
+				className: `absolute z-[100] top-full left-0 right-0 w-full mt-2 bg-white rounded-2xl shadow-xl border border-border flex flex-col origin-top transition-[opacity,transform] duration-200 ease-out min-w-[160px] ${isOpen ? "opacity-100 scale-100 translate-y-0 pointer-events-auto" : "opacity-0 scale-95 -translate-y-1 pointer-events-none"}`,
 				style: { maxHeight: "300px" },
 				children: [showSearch && /* @__PURE__ */ jsx("div", {
 					className: "p-3 border-b border-secondary-100 shrink-0 bg-white rounded-t-2xl",
@@ -1901,9 +3356,9 @@ function Select({ value, onChange, children, className = "", disabled = false, r
 							type: "text",
 							value: search,
 							onChange: (e) => setSearch(e.target.value),
-							placeholder: "Search...",
-							"aria-label": "Filter options",
-							className: "w-full pl-9 rtl:pr-9 rtl:pl-3 py-2.5 bg-secondary-50 border border-transparent rounded-xl text-sm text-secondary-900 focus:ring-2 focus:ring-primary-500 focus:bg-white focus:border-primary-900 transition-all outline-none",
+							placeholder: trans("search") || "Search...",
+							"aria-label": trans("filter_options") || "Filter options",
+							className: "w-full pl-9 rtl:pr-9 rtl:pl-3 py-2.5 bg-surface border border-border rounded-xl text-sm text-secondary-900 focus:ring-2 focus:ring-primary-900/10 focus:bg-white focus:border-primary-900 transition-colors outline-none",
 							onClick: (e) => e.stopPropagation()
 						})]
 					})
@@ -1911,16 +3366,18 @@ function Select({ value, onChange, children, className = "", disabled = false, r
 					id: listboxId,
 					role: "listbox",
 					tabIndex: -1,
-					"aria-label": ariaLabel || "Options",
+					"aria-label": ariaLabel || trans("options") || "Options",
 					className: "overflow-y-auto p-2 custom-scrollbar",
 					children: filteredOptions.length === 0 ? /* @__PURE__ */ jsx("div", {
 						className: "px-4 py-6 text-sm text-secondary-500 text-center font-medium",
 						role: "option",
 						"aria-selected": "false",
-						children: "No results found"
+						children: trans("no_results") || "No results found"
 					}) : filteredOptions.map((opt, idx) => {
 						const isSelected = String(opt.value) === String(currentValue);
+						const isKeyboardFocused = idx === focusedIndex;
 						return /* @__PURE__ */ jsxs("button", {
+							id: `${listboxId}-opt-${idx}`,
 							type: "button",
 							role: "option",
 							"aria-selected": isSelected,
@@ -1928,7 +3385,7 @@ function Select({ value, onChange, children, className = "", disabled = false, r
 								e.preventDefault();
 								handleSelect(opt.value);
 							},
-							className: `w-full text-start px-4 py-3 rounded-xl text-[15px] transition-colors duration-150 flex items-center justify-between mb-1 last:mb-0 outline-none focus:ring-2 focus:ring-primary-500 ${isSelected ? "bg-primary-900/10 text-primary-900 font-semibold" : idx === focusedIndex ? "bg-secondary-100 text-secondary-900 font-medium" : "text-secondary-800 hover:bg-secondary-50"}`,
+							className: `w-full text-start px-4 py-3 rounded-xl text-[15px] transition-colors duration-150 flex items-center justify-between mb-1 last:mb-0 outline-none focus:ring-2 focus:ring-primary-900/20 ${isSelected ? "bg-primary-50 text-primary-900 font-semibold" : isKeyboardFocused ? "bg-surface text-secondary-950 font-medium" : "text-secondary-800 hover:bg-surface-hover hover:text-secondary-950"}`,
 							children: [/* @__PURE__ */ jsx("span", {
 								className: "truncate",
 								children: opt.label
@@ -1950,6 +3407,18 @@ function Select({ value, onChange, children, className = "", disabled = false, r
 				})]
 			})
 		]
+	});
+}
+//#endregion
+//#region resources/js/Components/UI/WhatsAppIcon.jsx
+function WhatsAppIcon$1({ className = "w-5 h-5", "aria-hidden": ariaHidden = true, ...props }) {
+	return /* @__PURE__ */ jsx("svg", {
+		className,
+		fill: "currentColor",
+		viewBox: "0 0 24 24",
+		"aria-hidden": ariaHidden,
+		...props,
+		children: /* @__PURE__ */ jsx("path", { d: "M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0012.04 2zm.01 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 012.41 5.83c0 4.54-3.7 8.24-8.24 8.24-1.42 0-2.82-.37-4.06-1.07l-.29-.17-3.12.82.83-3.04-.19-.3a8.216 8.216 0 01-1.26-4.48c0-4.54 3.7-8.24 8.24-8.24zm4.52 11.66c-.25-.13-1.47-.72-1.7-.81-.23-.08-.39-.13-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.13-1.06-.39-2.03-1.25-.75-.67-1.26-1.5-1.41-1.75-.14-.25-.02-.39.11-.51.11-.11.25-.29.37-.44.13-.14.17-.25.25-.42.08-.17.04-.31-.02-.44s-.56-1.35-.77-1.85c-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1 0 1.24.9 2.44 1.03 2.61.13.17 1.77 2.7 4.29 3.79.6.26 1.07.41 1.44.53.6.19 1.15.16 1.59.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.14-1.18-.06-.1-.22-.16-.47-.29z" })
 	});
 }
 //#endregion
@@ -2000,18 +3469,38 @@ function MenuBar({ editor, trans, isRtl = false }) {
 	if (!editor) return null;
 	const setLink = useCallback(() => {
 		const previousUrl = editor.getAttributes("link").href;
-		const url = window.prompt(trans("enter_url") || "أدخل الرابط (URL):", previousUrl || "https://");
+		let url = window.prompt(trans("enter_url") || "أدخل الرابط (URL):", previousUrl || "");
 		if (url === null) return;
+		url = url.trim();
 		if (url === "") {
 			editor.chain().focus().extendMarkRange("link").unsetLink().run();
 			return;
 		}
+		if (!/^(https?:|\/|#|mailto:|tel:)/i.test(url)) url = "https://" + url;
+		const isInternal = url.startsWith("/") || url.startsWith("#");
 		editor.chain().focus().extendMarkRange("link").setLink({
 			href: url,
-			target: "_blank",
-			rel: "noopener noreferrer"
+			target: isInternal ? null : "_blank",
+			rel: isInternal ? null : "noopener noreferrer"
 		}).run();
 	}, [editor, trans]);
+	const addImageByUrl = useCallback(() => {
+		const url = window.prompt(trans("enter_image_url") || "أدخل رابط الصورة (URL):", "https://");
+		if (url && url.trim()) editor.chain().focus().setImage({ src: url.trim() }).run();
+	}, [editor, trans]);
+	const handleImageUpload = useCallback((e) => {
+		const file = e.target.files?.[0];
+		if (!file) return;
+		const formData = new FormData();
+		formData.append("image", file);
+		axios.post("/admin/media/upload", formData, { headers: { "Content-Type": "multipart/form-data" } }).then((res) => {
+			if (res.data?.url) editor.chain().focus().setImage({ src: res.data.url }).run();
+		}).catch((err) => {
+			alert(err.response?.data?.message || "فشل رفع الصورة");
+		}).finally(() => {
+			e.target.value = "";
+		});
+	}, [editor]);
 	return /* @__PURE__ */ jsxs("div", {
 		className: "flex flex-wrap gap-1 p-2 border-b border-secondary-200 bg-surface/50 items-center",
 		children: [
@@ -2057,6 +3546,39 @@ function MenuBar({ editor, trans, isRtl = false }) {
 				className: "px-2 py-1 text-xs rounded bg-red-50 text-red-600 hover:bg-red-100",
 				title: "إزالة الرابط",
 				children: "✕"
+			}),
+			/* @__PURE__ */ jsx("span", { className: "w-px bg-secondary-200 mx-1 h-4" }),
+			/* @__PURE__ */ jsxs("label", {
+				className: "px-2 py-1 text-xs rounded bg-white text-secondary-700 hover:bg-secondary-100 cursor-pointer flex items-center gap-1",
+				title: trans("upload_image") || "رفع صورة وإدراجها",
+				children: [
+					/* @__PURE__ */ jsx("svg", {
+						className: "w-3.5 h-3.5",
+						fill: "none",
+						viewBox: "0 0 24 24",
+						stroke: "currentColor",
+						strokeWidth: 2,
+						children: /* @__PURE__ */ jsx("path", {
+							strokeLinecap: "round",
+							strokeLinejoin: "round",
+							d: "M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+						})
+					}),
+					/* @__PURE__ */ jsx("span", { children: trans("image") || "صورة" }),
+					/* @__PURE__ */ jsx("input", {
+						type: "file",
+						accept: "image/*",
+						onChange: handleImageUpload,
+						className: "hidden"
+					})
+				]
+			}),
+			/* @__PURE__ */ jsx("button", {
+				type: "button",
+				onClick: addImageByUrl,
+				className: "px-2 py-1 text-xs rounded bg-white text-secondary-700 hover:bg-secondary-100 flex items-center gap-1",
+				title: trans("insert_image_url") || "إدراج صورة برابط",
+				children: /* @__PURE__ */ jsxs("span", { children: ["🔗 ", trans("image_url") || "رابط صورة"] })
 			}),
 			/* @__PURE__ */ jsx("span", { className: "w-px bg-secondary-200 mx-1 h-4" }),
 			/* @__PURE__ */ jsx("button", {
@@ -2180,8 +3702,12 @@ function AdminArticlesForm({ article, categories }) {
 		excerpt_ar: article?.excerpt_ar || "",
 		excerpt_en: article?.excerpt_en || article?.excerpt || "",
 		alt_text: article?.alt_text || "",
-		keywords: article?.keywords || [],
-		meta_description: article?.meta_description || "",
+		alt_text_ar: article?.alt_text_ar || article?.alt_text || "",
+		alt_text_en: article?.alt_text_en || "",
+		keywords_ar: article?.keywords_ar || (Array.isArray(article?.keywords) ? article.keywords : []),
+		keywords_en: article?.keywords_en || [],
+		meta_description_ar: article?.meta_description_ar || article?.meta_description || "",
+		meta_description_en: article?.meta_description_en || "",
 		is_published: article?.is_published || false,
 		cover_image: null,
 		images: [],
@@ -2215,6 +3741,10 @@ function AdminArticlesForm({ article, categories }) {
 					rel: "noopener noreferrer"
 				}
 			}),
+			Image$1.configure({
+				allowBase64: true,
+				HTMLAttributes: { class: "w-full h-auto rounded-2xl my-6 border border-secondary-200/60 object-cover shadow-sm" }
+			}),
 			TextAlign.configure({ types: ["heading", "paragraph"] }),
 			TextStyle,
 			Color,
@@ -2238,6 +3768,10 @@ function AdminArticlesForm({ article, categories }) {
 					rel: "noopener noreferrer"
 				}
 			}),
+			Image$1.configure({
+				allowBase64: true,
+				HTMLAttributes: { class: "w-full h-auto rounded-2xl my-6 border border-secondary-200/60 object-cover shadow-sm" }
+			}),
 			TextAlign.configure({ types: ["heading", "paragraph"] }),
 			TextStyle,
 			Color,
@@ -2247,26 +3781,78 @@ function AdminArticlesForm({ article, categories }) {
 		editorProps: { attributes: { class: "prose prose-sm max-w-none focus:outline-none min-h-[500px] px-4 py-3" } },
 		onUpdate: ({ editor }) => setData("content_en", editor.getHTML())
 	});
-	const [keywordInput, setKeywordInput] = useState("");
+	const [keywordInputAr, setKeywordInputAr] = useState("");
+	const [kwWarningAr, setKwWarningAr] = useState(false);
+	const [keywordInputEn, setKeywordInputEn] = useState("");
+	const [kwWarningEn, setKwWarningEn] = useState(false);
+	const [copiedCode, setCopiedCode] = useState(null);
+	const MAX_KEYWORDS = 25;
+	function copyShortcode(code) {
+		if (typeof navigator !== "undefined" && navigator.clipboard) {
+			navigator.clipboard.writeText(code);
+			setCopiedCode(code);
+			setTimeout(() => setCopiedCode(null), 2e3);
+		}
+	}
+	function insertShortcodeToEditor(code) {
+		if (editorAr && !editorAr.isDestroyed) editorAr.chain().focus().insertContent(` ${code} `).run();
+		else if (editorEn && !editorEn.isDestroyed) editorEn.chain().focus().insertContent(` ${code} `).run();
+	}
 	function parseKeywords(text) {
 		if (!text) return [];
 		return text.split(/[,،;.\n]+/).map((s) => s.trim()).filter((s) => s.length > 0);
 	}
-	function addKeyword() {
-		if (!keywordInput) return;
-		const parsed = parseKeywords(keywordInput);
+	function addKeywordAr() {
+		if (!keywordInputAr) return;
+		const parsed = parseKeywords(keywordInputAr);
 		if (parsed.length > 0) {
-			const existing = new Set(data.keywords || []);
+			const existing = new Set(data.keywords_ar || []);
 			const toAdd = parsed.filter((k) => !existing.has(k));
-			if (toAdd.length > 0) setData("keywords", [...data.keywords || [], ...toAdd]);
+			const available = MAX_KEYWORDS - (data.keywords_ar || []).length;
+			if (available <= 0) {
+				setKwWarningAr(true);
+				setKeywordInputAr("");
+				return;
+			}
+			const limited = toAdd.slice(0, available);
+			setKwWarningAr(toAdd.length > available);
+			if (limited.length > 0) setData("keywords_ar", [...data.keywords_ar || [], ...limited]);
 		}
-		setKeywordInput("");
+		setKeywordInputAr("");
 	}
-	function removeKeyword(kw) {
-		setData("keywords", (data.keywords || []).filter((k) => k !== kw));
+	function removeKeywordAr(kw) {
+		setData("keywords_ar", (data.keywords_ar || []).filter((k) => k !== kw));
+		setKwWarningAr(false);
 	}
-	function clearKeywords() {
-		setData("keywords", []);
+	function clearKeywordsAr() {
+		setData("keywords_ar", []);
+		setKwWarningAr(false);
+	}
+	function addKeywordEn() {
+		if (!keywordInputEn) return;
+		const parsed = parseKeywords(keywordInputEn);
+		if (parsed.length > 0) {
+			const existing = new Set(data.keywords_en || []);
+			const toAdd = parsed.filter((k) => !existing.has(k));
+			const available = MAX_KEYWORDS - (data.keywords_en || []).length;
+			if (available <= 0) {
+				setKwWarningEn(true);
+				setKeywordInputEn("");
+				return;
+			}
+			const limited = toAdd.slice(0, available);
+			setKwWarningEn(toAdd.length > available);
+			if (limited.length > 0) setData("keywords_en", [...data.keywords_en || [], ...limited]);
+		}
+		setKeywordInputEn("");
+	}
+	function removeKeywordEn(kw) {
+		setData("keywords_en", (data.keywords_en || []).filter((k) => k !== kw));
+		setKwWarningEn(false);
+	}
+	function clearKeywordsEn() {
+		setData("keywords_en", []);
+		setKwWarningEn(false);
 	}
 	function handleImageDelete(imageId) {
 		setData("deleted_image_ids", [...data.deleted_image_ids, imageId]);
@@ -2276,18 +3862,30 @@ function AdminArticlesForm({ article, categories }) {
 	}
 	function handleSubmit(e) {
 		e.preventDefault();
-		let currentKeywords = data.keywords || [];
-		if (keywordInput.trim()) {
-			const parsed = parseKeywords(keywordInput);
+		let currentKeywordsAr = data.keywords_ar || [];
+		if (keywordInputAr.trim()) {
+			const parsed = parseKeywords(keywordInputAr);
 			if (parsed.length > 0) {
-				const existing = new Set(currentKeywords);
+				const existing = new Set(currentKeywordsAr);
 				const toAdd = parsed.filter((k) => !existing.has(k));
-				currentKeywords = [...currentKeywords, ...toAdd];
+				currentKeywordsAr = [...currentKeywordsAr, ...toAdd];
+			}
+		}
+		let currentKeywordsEn = data.keywords_en || [];
+		if (keywordInputEn.trim()) {
+			const parsed = parseKeywords(keywordInputEn);
+			if (parsed.length > 0) {
+				const existing = new Set(currentKeywordsEn);
+				const toAdd = parsed.filter((k) => !existing.has(k));
+				currentKeywordsEn = [...currentKeywordsEn, ...toAdd];
 			}
 		}
 		const payload = {
 			...data,
-			keywords: currentKeywords
+			keywords_ar: currentKeywordsAr,
+			keywords_en: currentKeywordsEn,
+			keywords: currentKeywordsAr.length > 0 ? currentKeywordsAr : currentKeywordsEn,
+			meta_description: data.meta_description_ar || data.meta_description_en || ""
 		};
 		if (isEditing) {
 			transform(() => ({
@@ -2333,6 +3931,7 @@ function AdminArticlesForm({ article, categories }) {
 								}),
 								/* @__PURE__ */ jsx("input", {
 									type: "text",
+									maxLength: 100,
 									value: data.title_ar,
 									onChange: (e) => setData("title_ar", e.target.value),
 									dir: "rtl",
@@ -2350,6 +3949,7 @@ function AdminArticlesForm({ article, categories }) {
 								}),
 								/* @__PURE__ */ jsx("input", {
 									type: "text",
+									maxLength: 100,
 									value: data.title_en,
 									onChange: (e) => setData("title_en", e.target.value),
 									required: true,
@@ -2583,19 +4183,36 @@ function AdminArticlesForm({ article, categories }) {
 											})
 										]
 									}),
-									(data.image_updates[img.id]?.position ?? (img.position || "middle")) === "middle" && /* @__PURE__ */ jsxs("p", {
-										className: "text-xs text-secondary-600 bg-secondary-100 p-1 rounded text-center",
-										dir: "rtl",
-										children: ["كود الإضافة: ", /* @__PURE__ */ jsxs("code", {
-											className: "font-bold text-primary-900 bg-white px-1 rounded inline-block",
-											dir: "ltr",
-											children: [
-												"[صورة:",
-												getShortcodeIndex("existing", img.id),
-												"]"
-											]
-										})]
-									})
+									(data.image_updates[img.id]?.position ?? (img.position || "middle")) === "middle" && (() => {
+										const codeStr = `[صورة:${getShortcodeIndex("existing", img.id)}]`;
+										return /* @__PURE__ */ jsxs("div", {
+											className: "flex items-center justify-between gap-1 bg-secondary-50 p-1.5 rounded-lg border border-secondary-200",
+											dir: "rtl",
+											children: [/* @__PURE__ */ jsxs("div", {
+												className: "text-[11px] text-secondary-700 font-semibold flex items-center gap-1",
+												children: [/* @__PURE__ */ jsx("span", { children: "الكود:" }), /* @__PURE__ */ jsx("span", {
+													className: "font-mono font-bold text-primary-900 bg-white px-1.5 py-0.5 rounded border border-secondary-200",
+													dir: "ltr",
+													children: codeStr
+												})]
+											}), /* @__PURE__ */ jsxs("div", {
+												className: "flex items-center gap-1",
+												children: [/* @__PURE__ */ jsx("button", {
+													type: "button",
+													onClick: () => copyShortcode(codeStr),
+													className: "px-2 py-0.5 text-[11px] font-semibold bg-white border border-secondary-200 hover:bg-primary-50 text-secondary-800 hover:text-primary-900 rounded transition-colors",
+													title: "نسخ الكود كنص نقي",
+													children: copiedCode === codeStr ? "✓ تم" : "نسخ"
+												}), /* @__PURE__ */ jsx("button", {
+													type: "button",
+													onClick: () => insertShortcodeToEditor(codeStr),
+													className: "px-2 py-0.5 text-[11px] font-semibold bg-primary-900 hover:bg-primary-950 text-white rounded transition-colors",
+													title: "إدراج الكود في مكان المؤشر داخل محرر المقال",
+													children: "إدراج"
+												})]
+											})]
+										});
+									})()
 								]
 							}, img.id))
 						}),
@@ -2685,19 +4302,36 @@ function AdminArticlesForm({ article, categories }) {
 												})
 											]
 										}),
-										((data.new_image_positions || {})[fileIndex] || "middle") === "middle" && /* @__PURE__ */ jsxs("p", {
-											className: "text-xs text-secondary-600 bg-secondary-100 p-1 rounded text-center",
-											dir: "rtl",
-											children: ["كود الإضافة: ", /* @__PURE__ */ jsxs("code", {
-												className: "font-bold text-primary-900 bg-white px-1 rounded inline-block",
-												dir: "ltr",
-												children: [
-													"[صورة:",
-													getShortcodeIndex("new", fileIndex),
-													"]"
-												]
-											})]
-										})
+										((data.new_image_positions || {})[fileIndex] || "middle") === "middle" && (() => {
+											const codeStr = `[صورة:${getShortcodeIndex("new", fileIndex)}]`;
+											return /* @__PURE__ */ jsxs("div", {
+												className: "flex items-center justify-between gap-1 bg-secondary-50 p-1.5 rounded-lg border border-secondary-200",
+												dir: "rtl",
+												children: [/* @__PURE__ */ jsxs("div", {
+													className: "text-[11px] text-secondary-700 font-semibold flex items-center gap-1",
+													children: [/* @__PURE__ */ jsx("span", { children: "الكود:" }), /* @__PURE__ */ jsx("span", {
+														className: "font-mono font-bold text-primary-900 bg-white px-1.5 py-0.5 rounded border border-secondary-200",
+														dir: "ltr",
+														children: codeStr
+													})]
+												}), /* @__PURE__ */ jsxs("div", {
+													className: "flex items-center gap-1",
+													children: [/* @__PURE__ */ jsx("button", {
+														type: "button",
+														onClick: () => copyShortcode(codeStr),
+														className: "px-2 py-0.5 text-[11px] font-semibold bg-white border border-secondary-200 hover:bg-primary-50 text-secondary-800 hover:text-primary-900 rounded transition-colors",
+														title: "نسخ الكود كنص نقي",
+														children: copiedCode === codeStr ? "✓ تم" : "نسخ"
+													}), /* @__PURE__ */ jsx("button", {
+														type: "button",
+														onClick: () => insertShortcodeToEditor(codeStr),
+														className: "px-2 py-0.5 text-[11px] font-semibold bg-primary-900 hover:bg-primary-950 text-white rounded transition-colors",
+														title: "إدراج الكود في مكان المؤشر داخل محرر المقال",
+														children: "إدراج"
+													})]
+												})]
+											});
+										})()
 									]
 								}, fileIndex))
 							}),
@@ -2709,87 +4343,216 @@ function AdminArticlesForm({ article, categories }) {
 					]
 				}),
 				/* @__PURE__ */ jsxs("div", {
-					className: "bg-white rounded-xl shadow-card p-6 space-y-4",
+					className: "bg-white rounded-xl shadow-card p-6 space-y-6",
 					children: [
 						/* @__PURE__ */ jsx("h2", {
 							className: "text-lg font-semibold text-secondary-950",
 							children: trans("seo")
 						}),
-						/* @__PURE__ */ jsxs("div", { children: [
-							/* @__PURE__ */ jsx("label", {
-								className: "block text-sm font-medium text-secondary-950 mb-1",
-								children: trans("meta_description")
-							}),
-							/* @__PURE__ */ jsx("textarea", {
-								value: data.meta_description,
-								onChange: (e) => setData("meta_description", e.target.value),
-								rows: 2,
-								className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
-							}),
-							errors.meta_description && /* @__PURE__ */ jsx("p", {
-								className: "text-xs text-error mt-1",
-								children: errors.meta_description
-							})
-						] }),
-						/* @__PURE__ */ jsxs("div", { children: [
-							/* @__PURE__ */ jsxs("div", {
-								className: "flex items-center justify-between mb-2",
-								children: [/* @__PURE__ */ jsxs("label", {
-									className: "block text-sm font-semibold text-secondary-950",
-									children: [trans("keywords"), /* @__PURE__ */ jsxs("span", {
-										className: "text-xs text-muted font-normal ms-1",
+						/* @__PURE__ */ jsxs("div", {
+							className: "grid grid-cols-1 md:grid-cols-2 gap-4",
+							children: [/* @__PURE__ */ jsxs("div", { children: [
+								/* @__PURE__ */ jsxs("label", {
+									className: "block text-sm font-medium text-secondary-950 mb-1",
+									children: [
+										trans("meta_description"),
+										" (",
+										trans("lang_ar") || "العربية",
+										")"
+									]
+								}),
+								/* @__PURE__ */ jsx("textarea", {
+									value: data.meta_description_ar,
+									onChange: (e) => setData("meta_description_ar", e.target.value),
+									rows: 3,
+									maxLength: 500,
+									dir: "rtl",
+									placeholder: isRtl ? "وصف الميتا لمحركات البحث باللغة العربية (حتى 500 حرف)..." : "Arabic meta description for search engines...",
+									className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
+								}),
+								errors.meta_description_ar && /* @__PURE__ */ jsx("p", {
+									className: "text-xs text-error mt-1",
+									children: errors.meta_description_ar
+								})
+							] }), /* @__PURE__ */ jsxs("div", { children: [
+								/* @__PURE__ */ jsxs("label", {
+									className: "block text-sm font-medium text-secondary-950 mb-1",
+									children: [
+										trans("meta_description"),
+										" (",
+										trans("lang_en") || "English",
+										")"
+									]
+								}),
+								/* @__PURE__ */ jsx("textarea", {
+									value: data.meta_description_en,
+									onChange: (e) => setData("meta_description_en", e.target.value),
+									rows: 3,
+									maxLength: 500,
+									dir: "ltr",
+									placeholder: "English meta description for search engines (up to 500 characters)...",
+									className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
+								}),
+								errors.meta_description_en && /* @__PURE__ */ jsx("p", {
+									className: "text-xs text-error mt-1",
+									children: errors.meta_description_en
+								})
+							] })]
+						}),
+						/* @__PURE__ */ jsxs("div", {
+							className: "grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 border-t border-secondary-100",
+							children: [/* @__PURE__ */ jsxs("div", { children: [
+								/* @__PURE__ */ jsxs("div", {
+									className: "flex items-center justify-between mb-2",
+									children: [/* @__PURE__ */ jsxs("label", {
+										className: "block text-sm font-semibold text-secondary-950",
 										children: [
-											"(",
-											(data.keywords || []).length,
-											")"
+											trans("keywords"),
+											" (",
+											trans("lang_ar") || "العربية",
+											")",
+											/* @__PURE__ */ jsxs("span", {
+												className: `text-xs font-normal ms-1 ${(data.keywords_ar || []).length >= MAX_KEYWORDS ? "text-red-500" : "text-muted"}`,
+												children: [
+													"(",
+													(data.keywords_ar || []).length,
+													" / ",
+													MAX_KEYWORDS,
+													")"
+												]
+											})
 										]
-									})]
-								}), (data.keywords || []).length > 0 && /* @__PURE__ */ jsx("button", {
-									type: "button",
-									onClick: clearKeywords,
-									className: "text-xs text-red-600 hover:text-red-700 font-medium transition-colors",
-									children: isRtl ? "تفريغ الكل" : "Clear All"
-								})]
-							}),
-							/* @__PURE__ */ jsxs("div", {
-								className: "flex gap-2 mb-2",
-								children: [/* @__PURE__ */ jsx("textarea", {
-									value: keywordInput,
-									onChange: (e) => setKeywordInput(e.target.value),
-									onKeyDown: (e) => {
-										if (e.key === "Enter" && !e.shiftKey) {
-											e.preventDefault();
-											addKeyword();
-										}
-									},
-									rows: 2,
-									dir: isRtl ? "rtl" : "ltr",
-									placeholder: isRtl ? "الصق النص أو الكلمات مفصولة بفاصلة (، أو .) أو سطر جديد..." : "Paste text or keywords separated by commas or newlines...",
-									className: "flex-1 px-3 py-2 border border-secondary-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 resize-y"
-								}), /* @__PURE__ */ jsx("button", {
-									type: "button",
-									onClick: addKeyword,
-									className: "px-4 py-2 bg-primary-900 text-white rounded-xl text-sm font-medium hover:bg-primary-800 transition-colors self-end h-10 shrink-0",
-									children: trans("add")
-								})]
-							}),
-							(data.keywords || []).length > 0 && /* @__PURE__ */ jsx("div", {
-								className: "flex flex-wrap gap-1.5 max-h-48 overflow-y-auto p-2.5 border border-secondary-200 rounded-xl bg-surface",
-								children: data.keywords.map((kw) => /* @__PURE__ */ jsxs("span", {
-									className: "inline-flex items-center gap-1.5 px-2.5 py-1 bg-white text-xs font-medium text-secondary-800 rounded-lg border border-secondary-200 shadow-2xs group hover:border-red-300 transition-colors",
-									children: [kw, /* @__PURE__ */ jsx("button", {
+									}), (data.keywords_ar || []).length > 0 && /* @__PURE__ */ jsx("button", {
 										type: "button",
-										onClick: () => removeKeyword(kw),
-										className: "text-secondary-400 group-hover:text-red-600 text-sm font-bold leading-none",
-										children: "×"
+										onClick: clearKeywordsAr,
+										className: "text-xs text-red-600 hover:text-red-700 font-medium transition-colors",
+										children: isRtl ? "تفريغ الكل" : "Clear All"
 									})]
-								}, kw))
-							}),
-							errors.keywords && /* @__PURE__ */ jsx("p", {
-								className: "text-xs text-error mt-1",
-								children: errors.keywords
-							})
-						] })
+								}),
+								/* @__PURE__ */ jsxs("div", {
+									className: "flex gap-2 mb-2",
+									children: [/* @__PURE__ */ jsx("textarea", {
+										value: keywordInputAr,
+										onChange: (e) => {
+											setKeywordInputAr(e.target.value);
+											setKwWarningAr(false);
+										},
+										onKeyDown: (e) => {
+											if (e.key === "Enter" && !e.shiftKey) {
+												e.preventDefault();
+												addKeywordAr();
+											}
+										},
+										rows: 2,
+										dir: "rtl",
+										disabled: (data.keywords_ar || []).length >= MAX_KEYWORDS,
+										placeholder: (data.keywords_ar || []).length >= MAX_KEYWORDS ? isRtl ? "وصلت للحد الأقصى 25 كلمة" : "Max 25 keywords reached" : isRtl ? "الصق الكلمات العربية مفصولة بفاصلة (، أو .) أو سطر جديد..." : "Paste Arabic keywords separated by commas or newlines...",
+										className: "flex-1 px-3 py-2 border border-secondary-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 resize-y disabled:opacity-50 disabled:cursor-not-allowed"
+									}), /* @__PURE__ */ jsx("button", {
+										type: "button",
+										onClick: addKeywordAr,
+										disabled: (data.keywords_ar || []).length >= MAX_KEYWORDS,
+										className: "px-4 py-2 bg-primary-900 text-white rounded-xl text-sm font-medium hover:bg-primary-800 transition-colors self-end h-10 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed",
+										children: trans("add")
+									})]
+								}),
+								kwWarningAr && /* @__PURE__ */ jsx("p", {
+									className: "text-xs text-red-500 mb-2",
+									children: isRtl ? "وصلت للحد الأقصى ٢٥ كلمة مفتاحية" : "Max 25 keywords reached"
+								}),
+								(data.keywords_ar || []).length > 0 && /* @__PURE__ */ jsx("div", {
+									className: "flex flex-wrap gap-1.5 max-h-48 overflow-y-auto p-2.5 border border-secondary-200 rounded-xl bg-surface",
+									children: data.keywords_ar.map((kw) => /* @__PURE__ */ jsxs("span", {
+										className: "inline-flex items-center gap-1.5 px-2.5 py-1 bg-white text-xs font-medium text-secondary-800 rounded-lg border border-secondary-200 shadow-2xs group hover:border-red-300 transition-colors",
+										children: [kw, /* @__PURE__ */ jsx("button", {
+											type: "button",
+											onClick: () => removeKeywordAr(kw),
+											className: "text-secondary-400 group-hover:text-red-600 text-sm font-bold leading-none",
+											children: "×"
+										})]
+									}, kw))
+								}),
+								errors.keywords_ar && /* @__PURE__ */ jsx("p", {
+									className: "text-xs text-error mt-1",
+									children: errors.keywords_ar
+								})
+							] }), /* @__PURE__ */ jsxs("div", { children: [
+								/* @__PURE__ */ jsxs("div", {
+									className: "flex items-center justify-between mb-2",
+									children: [/* @__PURE__ */ jsxs("label", {
+										className: "block text-sm font-semibold text-secondary-950",
+										children: [
+											trans("keywords"),
+											" (",
+											trans("lang_en") || "English",
+											")",
+											/* @__PURE__ */ jsxs("span", {
+												className: `text-xs font-normal ms-1 ${(data.keywords_en || []).length >= MAX_KEYWORDS ? "text-red-500" : "text-muted"}`,
+												children: [
+													"(",
+													(data.keywords_en || []).length,
+													" / ",
+													MAX_KEYWORDS,
+													")"
+												]
+											})
+										]
+									}), (data.keywords_en || []).length > 0 && /* @__PURE__ */ jsx("button", {
+										type: "button",
+										onClick: clearKeywordsEn,
+										className: "text-xs text-red-600 hover:text-red-700 font-medium transition-colors",
+										children: isRtl ? "تفريغ الكل" : "Clear All"
+									})]
+								}),
+								/* @__PURE__ */ jsxs("div", {
+									className: "flex gap-2 mb-2",
+									children: [/* @__PURE__ */ jsx("textarea", {
+										value: keywordInputEn,
+										onChange: (e) => {
+											setKeywordInputEn(e.target.value);
+											setKwWarningEn(false);
+										},
+										onKeyDown: (e) => {
+											if (e.key === "Enter" && !e.shiftKey) {
+												e.preventDefault();
+												addKeywordEn();
+											}
+										},
+										rows: 2,
+										dir: "ltr",
+										disabled: (data.keywords_en || []).length >= MAX_KEYWORDS,
+										placeholder: (data.keywords_en || []).length >= MAX_KEYWORDS ? "Max 25 keywords reached" : "Paste English keywords separated by commas or newlines...",
+										className: "flex-1 px-3 py-2 border border-secondary-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 resize-y disabled:opacity-50 disabled:cursor-not-allowed"
+									}), /* @__PURE__ */ jsx("button", {
+										type: "button",
+										onClick: addKeywordEn,
+										disabled: (data.keywords_en || []).length >= MAX_KEYWORDS,
+										className: "px-4 py-2 bg-primary-900 text-white rounded-xl text-sm font-medium hover:bg-primary-800 transition-colors self-end h-10 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed",
+										children: trans("add")
+									})]
+								}),
+								kwWarningEn && /* @__PURE__ */ jsx("p", {
+									className: "text-xs text-red-500 mb-2",
+									children: "Max 25 keywords reached"
+								}),
+								(data.keywords_en || []).length > 0 && /* @__PURE__ */ jsx("div", {
+									className: "flex flex-wrap gap-1.5 max-h-48 overflow-y-auto p-2.5 border border-secondary-200 rounded-xl bg-surface",
+									children: data.keywords_en.map((kw) => /* @__PURE__ */ jsxs("span", {
+										className: "inline-flex items-center gap-1.5 px-2.5 py-1 bg-white text-xs font-medium text-secondary-800 rounded-lg border border-secondary-200 shadow-2xs group hover:border-red-300 transition-colors",
+										children: [kw, /* @__PURE__ */ jsx("button", {
+											type: "button",
+											onClick: () => removeKeywordEn(kw),
+											className: "text-secondary-400 group-hover:text-red-600 text-sm font-bold leading-none",
+											children: "×"
+										})]
+									}, kw))
+								}),
+								errors.keywords_en && /* @__PURE__ */ jsx("p", {
+									className: "text-xs text-error mt-1",
+									children: errors.keywords_en
+								})
+							] })]
+						})
 					]
 				}),
 				/* @__PURE__ */ jsx("div", {
@@ -2964,19 +4727,42 @@ function AdminArticlesIndex({ articles, categories, filters }) {
 								children: /* @__PURE__ */ jsxs("div", {
 									className: "flex gap-2 items-center",
 									children: [
+										/* @__PURE__ */ jsxs("a", {
+											href: `/articles/${a.slug_ar || a.slug || a.id}`,
+											target: "_blank",
+											rel: "noopener noreferrer",
+											className: "text-xs px-2.5 py-1.5 rounded-lg bg-primary-50 text-primary-900 hover:bg-primary-100 font-medium transition-colors flex items-center gap-1",
+											title: isRtl ? "معاينة المقال في الموقع" : "Preview Article on site",
+											children: [/* @__PURE__ */ jsxs("svg", {
+												className: "w-3.5 h-3.5",
+												fill: "none",
+												viewBox: "0 0 24 24",
+												stroke: "currentColor",
+												strokeWidth: 2,
+												children: [/* @__PURE__ */ jsx("path", {
+													strokeLinecap: "round",
+													strokeLinejoin: "round",
+													d: "M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+												}), /* @__PURE__ */ jsx("path", {
+													strokeLinecap: "round",
+													strokeLinejoin: "round",
+													d: "M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+												})]
+											}), /* @__PURE__ */ jsx("span", { children: isRtl ? "معاينة" : "Preview" })]
+										}),
 										/* @__PURE__ */ jsx("a", {
 											href: `/admin/articles/${a.id}/edit`,
-											className: "text-xs px-2 py-1 rounded bg-surface text-secondary-700 hover:bg-secondary-200 transition-colors",
+											className: "text-xs px-2.5 py-1.5 rounded-lg bg-surface text-secondary-700 hover:bg-secondary-200 font-medium transition-colors",
 											children: trans("edit")
 										}),
 										/* @__PURE__ */ jsx("button", {
 											onClick: () => togglePublish(a.id),
-											className: `text-xs px-2 py-1 rounded transition-colors ${a.is_published ? "bg-amber-50 text-amber-700 hover:bg-amber-100" : "bg-green-50 text-green-700 hover:bg-green-100"}`,
+											className: `text-xs px-2.5 py-1.5 rounded-lg font-medium transition-colors ${a.is_published ? "bg-amber-50 text-amber-700 hover:bg-amber-100" : "bg-green-50 text-green-700 hover:bg-green-100"}`,
 											children: a.is_published ? trans("unpublish") : trans("publish")
 										}),
 										/* @__PURE__ */ jsx("button", {
 											onClick: () => confirmDelete(a.id),
-											className: "text-xs px-2 py-1 rounded bg-error/10 text-error hover:bg-error/20 transition-colors",
+											className: "text-xs px-2.5 py-1.5 rounded-lg bg-error/10 text-error hover:bg-error/20 font-medium transition-colors",
 											children: trans("delete")
 										})
 									]
@@ -3184,9 +4970,9 @@ function StatCard({ title, value, subtext, icon, color = "primary", badge }) {
 		amber: "bg-amber-50 text-amber-700 border-amber-100"
 	};
 	return /* @__PURE__ */ jsxs("div", {
-		className: "bg-white rounded-2xl p-5 border border-secondary-100 shadow-card hover:shadow-card-hover transition-all duration-200 relative overflow-hidden flex flex-col justify-between",
+		className: "bg-white rounded-2xl p-6 border border-secondary-200/80 shadow-card hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden flex flex-col justify-between",
 		children: [/* @__PURE__ */ jsxs("div", {
-			className: "flex items-start justify-between mb-3",
+			className: "flex items-start justify-between mb-4",
 			children: [/* @__PURE__ */ jsx("div", {
 				className: `w-12 h-12 rounded-xl border flex items-center justify-center shrink-0 ${colorClasses[color] || colorClasses.primary}`,
 				children: /* @__PURE__ */ jsx("svg", {
@@ -3202,7 +4988,7 @@ function StatCard({ title, value, subtext, icon, color = "primary", badge }) {
 					})
 				})
 			}), badge && /* @__PURE__ */ jsx("span", {
-				className: "px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 animate-pulse",
+				className: "px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 animate-pulse border border-red-200",
 				children: badge
 			})]
 		}), /* @__PURE__ */ jsxs("div", { children: [
@@ -3211,11 +4997,11 @@ function StatCard({ title, value, subtext, icon, color = "primary", badge }) {
 				children: value ?? 0
 			}),
 			/* @__PURE__ */ jsx("h3", {
-				className: "text-sm font-semibold text-secondary-700 mt-1",
+				className: "text-xs font-bold text-secondary-800 uppercase tracking-wider mt-1",
 				children: title
 			}),
 			subtext && /* @__PURE__ */ jsx("p", {
-				className: "text-xs text-muted mt-1 font-medium",
+				className: "text-xs text-secondary-500 mt-1 font-medium",
 				children: subtext
 			})
 		] })]
@@ -3235,7 +5021,7 @@ function CustomTooltip({ active, payload, label, locale, isRtl }) {
 		dir: isRtl ? "rtl" : "ltr",
 		className: "bg-secondary-950 text-white p-3.5 rounded-2xl shadow-2xl border border-secondary-800 backdrop-blur-md",
 		children: [/* @__PURE__ */ jsx("p", {
-			className: "text-[11px] text-secondary-400 font-semibold mb-1",
+			className: "text-xs text-secondary-400 font-semibold mb-1",
 			children: formattedDate
 		}), /* @__PURE__ */ jsxs("div", {
 			className: "flex items-center gap-2",
@@ -3378,10 +5164,10 @@ function Dashboard({ stats, topProjects = [], topUnits = [], recentUnits = [], r
 						})]
 					}),
 					/* @__PURE__ */ jsxs("div", {
-						className: "grid grid-cols-3 gap-3 mb-6 p-3 bg-surface/60 rounded-xl border border-secondary-100 text-center",
+						className: "grid grid-cols-3 gap-3 mb-6 p-3.5 bg-surface/60 rounded-2xl border border-secondary-200/60 text-center",
 						children: [
 							/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("p", {
-								className: "text-[11px] text-muted font-medium",
+								className: "text-xs text-secondary-500 font-medium",
 								children: isRtl ? "إجمالي زيارات الفترة" : "Period Total"
 							}), /* @__PURE__ */ jsx("p", {
 								className: "text-sm font-black text-secondary-950 mt-0.5",
@@ -3390,7 +5176,7 @@ function Dashboard({ stats, topProjects = [], topUnits = [], recentUnits = [], r
 							/* @__PURE__ */ jsxs("div", {
 								className: "border-x border-secondary-200/60",
 								children: [/* @__PURE__ */ jsx("p", {
-									className: "text-[11px] text-muted font-medium",
+									className: "text-xs text-secondary-500 font-medium",
 									children: isRtl ? "المتوسط اليومي" : "Daily Avg"
 								}), /* @__PURE__ */ jsx("p", {
 									className: "text-sm font-black text-primary-900 mt-0.5",
@@ -3398,7 +5184,7 @@ function Dashboard({ stats, topProjects = [], topUnits = [], recentUnits = [], r
 								})]
 							}),
 							/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("p", {
-								className: "text-[11px] text-muted font-medium",
+								className: "text-xs text-secondary-500 font-medium",
 								children: isRtl ? "أعلى زيارة يومية" : "Peak Day"
 							}), /* @__PURE__ */ jsx("p", {
 								className: "text-sm font-black text-emerald-600 mt-0.5",
@@ -3443,7 +5229,7 @@ function Dashboard({ stats, topProjects = [], topUnits = [], recentUnits = [], r
 									dataKey: "date",
 									tick: {
 										fontSize: 11,
-										fill: "#64748B"
+										fill: "#6B6B6B"
 									},
 									tickFormatter: formatXAxisTick,
 									interval: rangeDays === 30 ? 4 : rangeDays === 14 ? 1 : 0
@@ -3452,7 +5238,7 @@ function Dashboard({ stats, topProjects = [], topUnits = [], recentUnits = [], r
 									allowDecimals: false,
 									tick: {
 										fontSize: 11,
-										fill: "#64748B"
+										fill: "#6B6B6B"
 									}
 								}),
 								/* @__PURE__ */ jsx(Tooltip, { content: /* @__PURE__ */ jsx(CustomTooltip, {
@@ -3512,7 +5298,7 @@ function Dashboard({ stats, topProjects = [], topUnits = [], recentUnits = [], r
 											className: "text-xs font-bold text-secondary-950 truncate",
 											children: projName
 										}), /* @__PURE__ */ jsx("p", {
-											className: "text-[11px] text-muted truncate",
+											className: "text-xs text-secondary-500 truncate font-medium",
 											children: project.area?.name_ar || project.area?.name_en || "—"
 										})]
 									}),
@@ -3577,7 +5363,7 @@ function Dashboard({ stats, topProjects = [], topUnits = [], recentUnits = [], r
 											className: "text-xs font-bold text-secondary-950 truncate hover:text-primary-900 block",
 											children: unitName
 										}), /* @__PURE__ */ jsxs("p", {
-											className: "text-[11px] text-muted truncate",
+											className: "text-xs text-secondary-500 truncate font-medium",
 											children: [
 												unit.area?.name_ar || unit.area?.name_en || "",
 												" • ",
@@ -3588,7 +5374,7 @@ function Dashboard({ stats, topProjects = [], topUnits = [], recentUnits = [], r
 									/* @__PURE__ */ jsxs("span", {
 										className: "text-xs font-bold text-emerald-800 bg-emerald-50 px-2 py-1 rounded-lg shrink-0 flex items-center gap-1",
 										children: [/* @__PURE__ */ jsx("span", { children: unit.views_count || 0 }), /* @__PURE__ */ jsx("span", {
-											className: "text-[10px] text-emerald-600 font-normal",
+											className: "text-xs text-emerald-600 font-medium",
 											children: isRtl ? "زيارة" : "views"
 										})]
 									})
@@ -3664,7 +5450,7 @@ function Dashboard({ stats, topProjects = [], topUnits = [], recentUnits = [], r
 											className: "text-xs font-bold text-secondary-950 truncate",
 											children: unitName
 										}), /* @__PURE__ */ jsxs("p", {
-											className: "text-[11px] text-muted mt-0.5",
+											className: "text-xs text-secondary-500 font-medium mt-0.5",
 											children: [
 												unit.price ? Number(unit.price).toLocaleString() + " EGP" : "—",
 												" • ",
@@ -3708,16 +5494,16 @@ function Dashboard({ stats, topProjects = [], topUnits = [], recentUnits = [], r
 											className: "text-xs font-bold text-secondary-950 truncate",
 											children: msg.client_name
 										}), /* @__PURE__ */ jsx("span", {
-											className: `px-2 py-0.5 rounded text-[10px] font-bold ${msg.status === "replied" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`,
+											className: `px-2 py-0.5 rounded text-xs font-bold ${msg.status === "replied" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`,
 											children: msg.status === "replied" ? isRtl ? "تم الرد" : "Replied" : isRtl ? "معلق" : "Pending"
 										})]
 									}),
 									/* @__PURE__ */ jsx("p", {
-										className: "text-[11px] text-secondary-600 mt-1 truncate",
+										className: "text-xs text-secondary-600 mt-1 truncate",
 										children: msg.content || msg.client_phone
 									}),
 									msg.unit && /* @__PURE__ */ jsxs("p", {
-										className: "text-[10px] text-primary-900 font-medium mt-0.5 truncate",
+										className: "text-xs text-primary-900 font-medium mt-0.5 truncate",
 										children: ["📌 ", isRtl ? msg.unit.name_ar : msg.unit.name_en]
 									})
 								]
@@ -3725,7 +5511,7 @@ function Dashboard({ stats, topProjects = [], topUnits = [], recentUnits = [], r
 								href: `https://wa.me/${msg.client_phone?.replace(/[^0-9]/g, "")}`,
 								target: "_blank",
 								rel: "noopener noreferrer",
-								className: "px-2.5 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-[11px] font-bold transition-colors shrink-0 flex items-center gap-1",
+								className: "px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-xs font-bold transition-colors shrink-0 flex items-center gap-1",
 								children: "WhatsApp"
 							})]
 						}, msg.id))
@@ -3803,6 +5589,8 @@ function AdminFeaturesIndex({ features }) {
 				})]
 			}),
 			flash?.success && /* @__PURE__ */ jsx("div", {
+				role: "alert",
+				"aria-live": "polite",
 				className: "mb-4 px-4 py-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm",
 				children: flash.success
 			}),
@@ -3852,18 +5640,18 @@ function AdminFeaturesIndex({ features }) {
 				children: /* @__PURE__ */ jsxs("table", {
 					className: "w-full text-sm",
 					children: [/* @__PURE__ */ jsx("thead", { children: /* @__PURE__ */ jsxs("tr", {
-						className: "bg-surface text-secondary-700 text-left",
+						className: "bg-surface text-secondary-700 text-start",
 						children: [
 							/* @__PURE__ */ jsx("th", {
-								className: `px-4 py-3 font-medium ${isRtl ? "text-right" : "text-left"}`,
+								className: "px-4 py-3 font-medium text-start",
 								children: trans("name_ar") || "Name (AR)"
 							}),
 							/* @__PURE__ */ jsx("th", {
-								className: `px-4 py-3 font-medium ${isRtl ? "text-right" : "text-left"}`,
+								className: "px-4 py-3 font-medium text-start",
 								children: trans("name_en") || "Name (EN)"
 							}),
 							/* @__PURE__ */ jsx("th", {
-								className: `px-4 py-3 font-medium ${isRtl ? "text-right" : "text-left"}`,
+								className: "px-4 py-3 font-medium text-start",
 								children: trans("actions") || "Actions"
 							})
 						]
@@ -3970,6 +5758,8 @@ function AdminFinishingTypesIndex({ finishingTypes }) {
 				})]
 			}),
 			flash?.success && /* @__PURE__ */ jsx("div", {
+				role: "alert",
+				"aria-live": "polite",
 				className: "mb-4 px-4 py-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm",
 				children: flash.success
 			}),
@@ -4019,18 +5809,18 @@ function AdminFinishingTypesIndex({ finishingTypes }) {
 				children: /* @__PURE__ */ jsxs("table", {
 					className: "w-full text-sm",
 					children: [/* @__PURE__ */ jsx("thead", { children: /* @__PURE__ */ jsxs("tr", {
-						className: "bg-surface text-secondary-700 text-left",
+						className: "bg-surface text-secondary-700 text-start",
 						children: [
 							/* @__PURE__ */ jsx("th", {
-								className: `px-4 py-3 font-medium ${isRtl ? "text-right" : "text-left"}`,
+								className: "px-4 py-3 font-medium text-start",
 								children: trans("name_ar") || "Name (AR)"
 							}),
 							/* @__PURE__ */ jsx("th", {
-								className: `px-4 py-3 font-medium ${isRtl ? "text-right" : "text-left"}`,
+								className: "px-4 py-3 font-medium text-start",
 								children: trans("name_en") || "Name (EN)"
 							}),
 							/* @__PURE__ */ jsx("th", {
-								className: `px-4 py-3 font-medium ${isRtl ? "text-right" : "text-left"}`,
+								className: "px-4 py-3 font-medium text-start",
 								children: trans("actions") || "Actions"
 							})
 						]
@@ -4421,6 +6211,17 @@ var TYPE_META = {
 			en: "Unit Expired"
 		}
 	},
+	unit_permanently_deleted: {
+		icon: "trash",
+		gradient: "from-rose-600 to-red-700",
+		bg: "bg-rose-50",
+		border: "border-rose-200",
+		text: "text-rose-800",
+		label: {
+			ar: "حذف نهائي لوحدة",
+			en: "Unit Permanently Deleted"
+		}
+	},
 	project_expiry_warning: {
 		icon: "clock",
 		gradient: "from-amber-500 to-orange-500",
@@ -4430,6 +6231,17 @@ var TYPE_META = {
 		label: {
 			ar: "تنبيه انتهاء مشروع",
 			en: "Project Expiry Warning"
+		}
+	},
+	project_permanently_deleted: {
+		icon: "trash",
+		gradient: "from-rose-600 to-red-700",
+		bg: "bg-rose-50",
+		border: "border-rose-200",
+		text: "text-rose-800",
+		label: {
+			ar: "حذف نهائي لمشروع",
+			en: "Project Permanently Deleted"
 		}
 	},
 	new_project_created: {
@@ -4488,9 +6300,10 @@ var TYPE_DEFAULT = {
 		en: "Notification"
 	}
 };
-var ICON_PATHS = {
+var ICON_PATHS$1 = {
 	clock: "M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z",
 	exclamation: "M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z",
+	trash: "M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0",
 	plus: "M12 4.5v15m7.5-7.5h-15",
 	message: "M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z",
 	bell: "M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0",
@@ -4506,7 +6319,7 @@ function TypeIcon({ type, className = "w-5 h-5" }) {
 		children: /* @__PURE__ */ jsx("path", {
 			strokeLinecap: "round",
 			strokeLinejoin: "round",
-			d: ICON_PATHS[(TYPE_META[type] || TYPE_DEFAULT).icon]
+			d: ICON_PATHS$1[(TYPE_META[type] || TYPE_DEFAULT).icon]
 		})
 	});
 }
@@ -4540,7 +6353,7 @@ function groupByDate(items, isRtl, trans) {
 		items
 	}));
 }
-function NotificationsIndex({ notifications, unreadCount }) {
+function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 }) {
 	const { locale, auth, flash } = usePage().props;
 	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
@@ -4549,6 +6362,10 @@ function NotificationsIndex({ notifications, unreadCount }) {
 	const [activeTab, setActiveTab] = useState("all");
 	const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 	const [confirmClearAll, setConfirmClearAll] = useState(false);
+	const [extendModalUnit, setExtendModalUnit] = useState(null);
+	const [selectedDuration, setSelectedDuration] = useState("auto_delete_setting");
+	const [customDays, setCustomDays] = useState("");
+	const [isExtending, setIsExtending] = useState(false);
 	useEffect(() => {
 		const interval = setInterval(() => {
 			router.reload({
@@ -4585,8 +6402,26 @@ function NotificationsIndex({ notifications, unreadCount }) {
 	function handleExtendProject(projectId) {
 		router.post(`/admin/projects/${projectId}/extend`, {}, { preserveScroll: true });
 	}
-	function handleExtendUnit(unitId) {
-		router.post(`/admin/units/${unitId}/extend-expiry`, {}, { preserveScroll: true });
+	function openExtendModal(unitId, unitName) {
+		setExtendModalUnit({
+			id: unitId,
+			name: unitName
+		});
+		setSelectedDuration("auto_delete_setting");
+		setCustomDays("");
+	}
+	function submitExtendUnit() {
+		if (!extendModalUnit) return;
+		setIsExtending(true);
+		const payload = { duration_type: selectedDuration };
+		if (selectedDuration === "custom") payload.days = parseInt(customDays, 10) || autoDeleteDays || 30;
+		router.post(`/admin/units/${extendModalUnit.id}/extend-expiry`, payload, {
+			preserveScroll: true,
+			onFinish: () => {
+				setIsExtending(false);
+				setExtendModalUnit(null);
+			}
+		});
 	}
 	function handleApproveProject(projectId) {
 		router.post(`/admin/projects/${projectId}/approve`, {}, { preserveScroll: true });
@@ -4925,7 +6760,7 @@ function NotificationsIndex({ notifications, unreadCount }) {
 														children: isRtl ? "موافقة ونشر" : "Approve & publish"
 													}),
 													isUnread && isUnitExpiry && item.unit_id && isAdmin && /* @__PURE__ */ jsxs("button", {
-														onClick: () => handleExtendUnit(item.unit_id),
+														onClick: () => openExtendModal(item.unit_id, item.unit_name || item.title),
 														className: "px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1",
 														children: [/* @__PURE__ */ jsx("svg", {
 															className: "w-3.5 h-3.5",
@@ -5099,6 +6934,134 @@ function NotificationsIndex({ notifications, unreadCount }) {
 					className: `w-9 h-9 rounded-lg text-sm font-semibold flex items-center justify-center transition-colors ${page === notifications.current_page ? "bg-primary-900 text-white shadow-sm" : "bg-white text-secondary-600 border border-secondary-200 hover:border-primary-900/30 hover:text-primary-900"}`,
 					children: page
 				}, page))
+			}),
+			extendModalUnit && /* @__PURE__ */ jsx("div", {
+				className: "fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in",
+				children: /* @__PURE__ */ jsxs("div", {
+					className: "bg-white rounded-2xl shadow-2xl border border-secondary-100 max-w-md w-full p-6 space-y-5 animate-scale-up",
+					children: [
+						/* @__PURE__ */ jsxs("div", {
+							className: "flex items-start justify-between gap-3 border-b border-secondary-100 pb-4",
+							children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("h3", {
+								className: "text-lg font-bold text-secondary-900",
+								children: isRtl ? "تمديد مدة الوحدة" : "Extend Unit Listing"
+							}), /* @__PURE__ */ jsx("p", {
+								className: "text-xs text-secondary-500 mt-1 line-clamp-1",
+								children: extendModalUnit.name
+							})] }), /* @__PURE__ */ jsx("button", {
+								onClick: () => setExtendModalUnit(null),
+								className: "text-secondary-400 hover:text-secondary-600 p-1 rounded-lg hover:bg-secondary-50 transition-colors",
+								children: /* @__PURE__ */ jsx("svg", {
+									className: "w-5 h-5",
+									fill: "none",
+									viewBox: "0 0 24 24",
+									stroke: "currentColor",
+									strokeWidth: 2,
+									children: /* @__PURE__ */ jsx("path", {
+										strokeLinecap: "round",
+										strokeLinejoin: "round",
+										d: "M6 18L18 6M6 6l12 12"
+									})
+								})
+							})]
+						}),
+						/* @__PURE__ */ jsxs("div", {
+							className: "space-y-3",
+							children: [
+								/* @__PURE__ */ jsx("label", {
+									className: "text-xs font-bold text-secondary-700 uppercase tracking-wider block",
+									children: isRtl ? "اختر مدة التمديد" : "Select Extension Duration"
+								}),
+								/* @__PURE__ */ jsx("div", {
+									className: "space-y-2",
+									children: [
+										{
+											id: "7_days",
+											label: isRtl ? "7 أيام" : "7 Days"
+										},
+										{
+											id: "15_days",
+											label: isRtl ? "15 يوماً" : "15 Days"
+										},
+										{
+											id: "30_days",
+											label: isRtl ? "30 يوماً" : "30 Days"
+										},
+										{
+											id: "auto_delete_setting",
+											label: isRtl ? `مدة الحذف التلقائي الإفتراضية: ${autoDeleteDays} يوم` : `Default Auto-Delete Period: ${autoDeleteDays} Days`
+										},
+										{
+											id: "custom",
+											label: isRtl ? "مدة مخصصة (بالأيام)" : "Custom Duration (in days)"
+										}
+									].map((option) => /* @__PURE__ */ jsxs("label", {
+										className: `flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${selectedDuration === option.id ? "border-primary-900 bg-primary-50/50 text-primary-950 font-semibold shadow-sm" : "border-secondary-200 hover:border-secondary-300 text-secondary-700"}`,
+										children: [/* @__PURE__ */ jsx("input", {
+											type: "radio",
+											name: "duration_type",
+											value: option.id,
+											checked: selectedDuration === option.id,
+											onChange: () => setSelectedDuration(option.id),
+											className: "w-4 h-4 text-primary-900 border-secondary-300 focus:ring-primary-900"
+										}), /* @__PURE__ */ jsx("span", {
+											className: "text-sm",
+											children: option.label
+										})]
+									}, option.id))
+								}),
+								selectedDuration === "custom" && /* @__PURE__ */ jsxs("div", {
+									className: "pt-2 animate-fade-in",
+									children: [/* @__PURE__ */ jsx("label", {
+										className: "text-xs font-semibold text-secondary-600 block mb-1",
+										children: isRtl ? "عدد الأيام (1 - 365):" : "Number of days (1 - 365):"
+									}), /* @__PURE__ */ jsx("input", {
+										type: "number",
+										min: "1",
+										max: "365",
+										value: customDays,
+										onChange: (e) => setCustomDays(e.target.value),
+										placeholder: isRtl ? "مثال: 45" : "e.g. 45",
+										className: "w-full px-3.5 py-2.5 bg-secondary-50 border border-secondary-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 transition-colors",
+										autoFocus: true
+									})]
+								})
+							]
+						}),
+						/* @__PURE__ */ jsxs("div", {
+							className: "flex items-center justify-end gap-2.5 pt-4 border-t border-secondary-100",
+							children: [/* @__PURE__ */ jsx("button", {
+								type: "button",
+								onClick: () => setExtendModalUnit(null),
+								disabled: isExtending,
+								className: "px-4 py-2 text-sm font-semibold text-secondary-600 hover:text-secondary-800 hover:bg-secondary-100 rounded-xl transition-colors",
+								children: isRtl ? "إلغاء" : "Cancel"
+							}), /* @__PURE__ */ jsx("button", {
+								type: "button",
+								onClick: submitExtendUnit,
+								disabled: isExtending || selectedDuration === "custom" && (!customDays || parseInt(customDays, 10) < 1),
+								className: "px-5 py-2 text-sm font-semibold text-white bg-primary-900 hover:bg-primary-800 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl shadow-sm transition-colors flex items-center gap-1.5",
+								children: isExtending ? /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsxs("svg", {
+									className: "w-4 h-4 animate-spin",
+									fill: "none",
+									viewBox: "0 0 24 24",
+									children: [/* @__PURE__ */ jsx("circle", {
+										className: "opacity-25",
+										cx: "12",
+										cy: "12",
+										r: "10",
+										stroke: "currentColor",
+										strokeWidth: "4"
+									}), /* @__PURE__ */ jsx("path", {
+										className: "opacity-75",
+										fill: "currentColor",
+										d: "M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+									})]
+								}), /* @__PURE__ */ jsx("span", { children: isRtl ? "جاري التمديد..." : "Extending..." })] }) : /* @__PURE__ */ jsx("span", { children: isRtl ? "تأكيد التمديد" : "Confirm Extension" })
+							})]
+						})
+					]
+				})
 			})
 		]
 	})] });
@@ -6270,6 +8233,8 @@ function AdminProjectForm({ project, areas, features, finishingTypes, managers }
 		meta_description_ar: project?.meta_description_ar || "",
 		meta_description_en: project?.meta_description_en || "",
 		map_embed_url: project?.map_embed_url || "",
+		latitude: project?.latitude || "",
+		longitude: project?.longitude || "",
 		location_address_ar: project?.location_address_ar || "",
 		location_address_en: project?.location_address_en || "",
 		images: [],
@@ -6283,6 +8248,9 @@ function AdminProjectForm({ project, areas, features, finishingTypes, managers }
 	});
 	const [keywordInputAr, setKeywordInputAr] = useState("");
 	const [keywordInputEn, setKeywordInputEn] = useState("");
+	const [kwWarningAr, setKwWarningAr] = useState(false);
+	const [kwWarningEn, setKwWarningEn] = useState(false);
+	const MAX_KEYWORDS = 25;
 	useEffect(() => {
 		const handleBeforeUnload = (e) => {
 			if (dirty) {
@@ -6393,8 +8361,16 @@ function AdminProjectForm({ project, areas, features, finishingTypes, managers }
 		if (parsed.length > 0) {
 			const existing = new Set(data.keywords_ar);
 			const toAdd = parsed.filter((k) => !existing.has(k));
-			if (toAdd.length > 0) {
-				setData("keywords_ar", [...data.keywords_ar, ...toAdd]);
+			const available = MAX_KEYWORDS - data.keywords_ar.length;
+			if (available <= 0) {
+				setKwWarningAr(true);
+				setKeywordInputAr("");
+				return;
+			}
+			const limited = toAdd.slice(0, available);
+			setKwWarningAr(toAdd.length > available);
+			if (limited.length > 0) {
+				setData("keywords_ar", [...data.keywords_ar, ...limited]);
 				setDirty(true);
 			}
 		}
@@ -6402,10 +8378,12 @@ function AdminProjectForm({ project, areas, features, finishingTypes, managers }
 	}
 	function removeKeywordAr(kw) {
 		setData("keywords_ar", data.keywords_ar.filter((k) => k !== kw));
+		setKwWarningAr(false);
 		setDirty(true);
 	}
 	function clearKeywordsAr() {
 		setData("keywords_ar", []);
+		setKwWarningAr(false);
 		setDirty(true);
 	}
 	function addKeywordEn() {
@@ -6414,8 +8392,16 @@ function AdminProjectForm({ project, areas, features, finishingTypes, managers }
 		if (parsed.length > 0) {
 			const existing = new Set(data.keywords_en);
 			const toAdd = parsed.filter((k) => !existing.has(k));
-			if (toAdd.length > 0) {
-				setData("keywords_en", [...data.keywords_en, ...toAdd]);
+			const available = MAX_KEYWORDS - data.keywords_en.length;
+			if (available <= 0) {
+				setKwWarningEn(true);
+				setKeywordInputEn("");
+				return;
+			}
+			const limited = toAdd.slice(0, available);
+			setKwWarningEn(toAdd.length > available);
+			if (limited.length > 0) {
+				setData("keywords_en", [...data.keywords_en, ...limited]);
 				setDirty(true);
 			}
 		}
@@ -6423,10 +8409,12 @@ function AdminProjectForm({ project, areas, features, finishingTypes, managers }
 	}
 	function removeKeywordEn(kw) {
 		setData("keywords_en", data.keywords_en.filter((k) => k !== kw));
+		setKwWarningEn(false);
 		setDirty(true);
 	}
 	function clearKeywordsEn() {
 		setData("keywords_en", []);
+		setKwWarningEn(false);
 		setDirty(true);
 	}
 	function handleDeleteImage(imageId) {
@@ -6503,7 +8491,7 @@ function AdminProjectForm({ project, areas, features, finishingTypes, managers }
 	const hasErrors = errors && Object.keys(errors).length > 0;
 	return /* @__PURE__ */ jsxs(AdminSidebar, { children: [/* @__PURE__ */ jsx(Head, { title: trans("add_project") + " — " + trans("app_name") }), /* @__PURE__ */ jsxs("div", {
 		dir: isRtl ? "rtl" : "ltr",
-		className: "p-6 max-w-3xl mx-auto",
+		className: "p-6 max-w-5xl mx-auto",
 		children: [
 			/* @__PURE__ */ jsxs("div", {
 				className: "flex items-center gap-3 mb-6",
@@ -6570,6 +8558,7 @@ function AdminProjectForm({ project, areas, features, finishingTypes, managers }
 									children: [trans("name_ar"), " *"]
 								}), /* @__PURE__ */ jsx("input", {
 									type: "text",
+									maxLength: 100,
 									value: data.name_ar,
 									onChange: (e) => handleChange("name_ar", e.target.value),
 									dir: "rtl",
@@ -6580,6 +8569,7 @@ function AdminProjectForm({ project, areas, features, finishingTypes, managers }
 									children: trans("name_en")
 								}), /* @__PURE__ */ jsx("input", {
 									type: "text",
+									maxLength: 100,
 									value: data.name_en,
 									onChange: (e) => handleChange("name_en", e.target.value),
 									required: true,
@@ -6588,24 +8578,40 @@ function AdminProjectForm({ project, areas, features, finishingTypes, managers }
 							}),
 							/* @__PURE__ */ jsxs("div", {
 								className: "grid grid-cols-1 md:grid-cols-2 gap-4",
-								children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
-									className: "block text-sm font-medium text-secondary-950 mb-1",
-									children: trans("content_ar")
-								}), /* @__PURE__ */ jsx("textarea", {
-									value: data.description_ar,
-									onChange: (e) => handleChange("description_ar", e.target.value),
-									rows: 4,
-									dir: "rtl",
-									className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
-								})] }), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
-									className: "block text-sm font-medium text-secondary-950 mb-1",
-									children: trans("content_en")
-								}), /* @__PURE__ */ jsx("textarea", {
-									value: data.description_en,
-									onChange: (e) => handleChange("description_en", e.target.value),
-									rows: 4,
-									className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
-								})] })]
+								children: [/* @__PURE__ */ jsxs("div", { children: [
+									/* @__PURE__ */ jsx("label", {
+										className: "block text-sm font-medium text-secondary-950 mb-1",
+										children: trans("content_ar")
+									}),
+									/* @__PURE__ */ jsx("textarea", {
+										value: data.description_ar,
+										onChange: (e) => handleChange("description_ar", e.target.value),
+										rows: 6,
+										dir: "rtl",
+										maxLength: 5e4,
+										className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
+									}),
+									/* @__PURE__ */ jsxs("p", {
+										className: `text-xs mt-1 text-end ${data.description_ar.length >= 49500 ? "text-red-500 font-semibold" : "text-secondary-400"}`,
+										children: [data.description_ar.length, " / 50000"]
+									})
+								] }), /* @__PURE__ */ jsxs("div", { children: [
+									/* @__PURE__ */ jsx("label", {
+										className: "block text-sm font-medium text-secondary-950 mb-1",
+										children: trans("content_en")
+									}),
+									/* @__PURE__ */ jsx("textarea", {
+										value: data.description_en,
+										onChange: (e) => handleChange("description_en", e.target.value),
+										rows: 6,
+										maxLength: 5e4,
+										className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
+									}),
+									/* @__PURE__ */ jsxs("p", {
+										className: `text-xs mt-1 text-end ${data.description_en.length >= 49500 ? "text-red-500 font-semibold" : "text-secondary-400"}`,
+										children: [data.description_en.length, " / 50000"]
+									})
+								] })]
 							}),
 							/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
 								className: "block text-sm font-medium text-secondary-950 mb-1",
@@ -6959,10 +8965,12 @@ function AdminProjectForm({ project, areas, features, finishingTypes, managers }
 											trans("ar"),
 											")",
 											/* @__PURE__ */ jsxs("span", {
-												className: "text-xs text-muted font-normal ms-1",
+												className: `text-xs font-normal ms-1 ${data.keywords_ar.length >= MAX_KEYWORDS ? "text-red-500" : "text-muted"}`,
 												children: [
 													"(",
 													data.keywords_ar.length,
+													" / ",
+													MAX_KEYWORDS,
 													")"
 												]
 											})
@@ -6978,7 +8986,10 @@ function AdminProjectForm({ project, areas, features, finishingTypes, managers }
 									className: "flex gap-2 mb-2",
 									children: [/* @__PURE__ */ jsx("textarea", {
 										value: keywordInputAr,
-										onChange: (e) => setKeywordInputAr(e.target.value),
+										onChange: (e) => {
+											setKeywordInputAr(e.target.value);
+											setKwWarningAr(false);
+										},
 										onKeyDown: (e) => {
 											if (e.key === "Enter" && !e.shiftKey) {
 												e.preventDefault();
@@ -6987,14 +8998,20 @@ function AdminProjectForm({ project, areas, features, finishingTypes, managers }
 										},
 										rows: 2,
 										dir: "rtl",
-										placeholder: locale === "ar" ? "الصق النص أو الكلمات مفصولة بفاصلة (، أو .) أو سطر جديد..." : "Paste text or keywords separated by commas or newlines...",
-										className: "flex-1 px-3 py-2 border border-secondary-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 resize-y"
+										disabled: data.keywords_ar.length >= MAX_KEYWORDS,
+										placeholder: data.keywords_ar.length >= MAX_KEYWORDS ? locale === "ar" ? "وصلت للحد الأقصى 25 كلمة" : "Max 25 keywords reached" : locale === "ar" ? "الصق النص أو الكلمات مفصولة بفاصلة (، أو .) أو سطر جديد..." : "Paste text or keywords separated by commas or newlines...",
+										className: "flex-1 px-3 py-2 border border-secondary-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 resize-y disabled:opacity-50 disabled:cursor-not-allowed"
 									}), /* @__PURE__ */ jsx("button", {
 										type: "button",
 										onClick: addKeywordAr,
-										className: "px-4 py-2 bg-primary-900 text-white rounded-xl text-sm font-medium hover:bg-primary-800 transition-colors self-end h-10 shrink-0",
+										disabled: data.keywords_ar.length >= MAX_KEYWORDS,
+										className: "px-4 py-2 bg-primary-900 text-white rounded-xl text-sm font-medium hover:bg-primary-800 transition-colors self-end h-10 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed",
 										children: trans("add")
 									})]
+								}),
+								kwWarningAr && /* @__PURE__ */ jsx("p", {
+									className: "text-xs text-red-500 mb-2",
+									children: locale === "ar" ? "وصلت للحد الأقصى ٢٥ كلمة مفتاحية" : "Max 25 keywords reached"
 								}),
 								data.keywords_ar.length > 0 && /* @__PURE__ */ jsx("div", {
 									className: "flex flex-wrap gap-1.5 max-h-48 overflow-y-auto p-2.5 border border-secondary-200 rounded-xl bg-surface",
@@ -7019,10 +9036,12 @@ function AdminProjectForm({ project, areas, features, finishingTypes, managers }
 											trans("en"),
 											")",
 											/* @__PURE__ */ jsxs("span", {
-												className: "text-xs text-muted font-normal ms-1",
+												className: `text-xs font-normal ms-1 ${data.keywords_en.length >= MAX_KEYWORDS ? "text-red-500" : "text-muted"}`,
 												children: [
 													"(",
 													data.keywords_en.length,
+													" / ",
+													MAX_KEYWORDS,
 													")"
 												]
 											})
@@ -7038,7 +9057,10 @@ function AdminProjectForm({ project, areas, features, finishingTypes, managers }
 									className: "flex gap-2 mb-2",
 									children: [/* @__PURE__ */ jsx("textarea", {
 										value: keywordInputEn,
-										onChange: (e) => setKeywordInputEn(e.target.value),
+										onChange: (e) => {
+											setKeywordInputEn(e.target.value);
+											setKwWarningEn(false);
+										},
 										onKeyDown: (e) => {
 											if (e.key === "Enter" && !e.shiftKey) {
 												e.preventDefault();
@@ -7047,14 +9069,20 @@ function AdminProjectForm({ project, areas, features, finishingTypes, managers }
 										},
 										rows: 2,
 										dir: "ltr",
-										placeholder: "Paste English keywords separated by commas or newlines...",
-										className: "flex-1 px-3 py-2 border border-secondary-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 resize-y"
+										disabled: data.keywords_en.length >= MAX_KEYWORDS,
+										placeholder: data.keywords_en.length >= MAX_KEYWORDS ? "Max 25 keywords reached" : "Paste English keywords separated by commas or newlines...",
+										className: "flex-1 px-3 py-2 border border-secondary-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 resize-y disabled:opacity-50 disabled:cursor-not-allowed"
 									}), /* @__PURE__ */ jsx("button", {
 										type: "button",
 										onClick: addKeywordEn,
-										className: "px-4 py-2 bg-primary-900 text-white rounded-xl text-sm font-medium hover:bg-primary-800 transition-colors self-end h-10 shrink-0",
+										disabled: data.keywords_en.length >= MAX_KEYWORDS,
+										className: "px-4 py-2 bg-primary-900 text-white rounded-xl text-sm font-medium hover:bg-primary-800 transition-colors self-end h-10 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed",
 										children: trans("add")
 									})]
+								}),
+								kwWarningEn && /* @__PURE__ */ jsx("p", {
+									className: "text-xs text-red-500 mb-2",
+									children: locale === "ar" ? "وصلت للحد الأقصى ٢٥ كلمة مفتاحية" : "Max 25 keywords reached"
 								}),
 								data.keywords_en.length > 0 && /* @__PURE__ */ jsx("div", {
 									className: "flex flex-wrap gap-1.5 max-h-48 overflow-y-auto p-2.5 border border-secondary-200 rounded-xl bg-surface",
@@ -7142,30 +9170,46 @@ function AdminProjectForm({ project, areas, features, finishingTypes, managers }
 							/* @__PURE__ */ jsxs("div", { children: [
 								/* @__PURE__ */ jsx("label", {
 									className: "block text-sm font-medium text-secondary-950 mb-1",
-									children: trans("map_embed_url", {}, "units")
+									children: locale === "ar" ? "رابط الموقع على خرائط جوجل (Google Maps Location URL)" : "Google Maps Location URL"
 								}),
-								/* @__PURE__ */ jsx("textarea", {
+								/* @__PURE__ */ jsx("input", {
+									type: "text",
 									value: data.map_embed_url,
 									onChange: (e) => handleChange("map_embed_url", e.target.value),
-									rows: 4,
 									dir: "ltr",
-									placeholder: "<iframe src=\"...\"></iframe>",
+									placeholder: "https://www.google.com/maps/place/...",
 									className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 font-mono text-xs"
 								}),
 								/* @__PURE__ */ jsx("p", {
 									className: "text-xs text-muted mt-1",
-									children: trans("map_embed_url_help", {}, "units")
+									children: locale === "ar" ? "قم بلصق الرابط العادي لخريطة جوجل (بما في ذلك الروابط المختصرة). سيتم استخراج الإحداثيات تلقائياً عند الحفظ." : "Paste a normal Google Maps location link. The system will automatically extract the latitude and longitude."
+								}),
+								errors.map_embed_url && /* @__PURE__ */ jsx("p", {
+									className: "text-xs text-red-500 mt-1",
+									children: errors.map_embed_url
 								})
 							] }),
-							data.map_embed_url && /* @__PURE__ */ jsx("iframe", {
-								src: (() => {
-									const m = data.map_embed_url.match(/src\s*=\s*"([^"]+)"/i) || data.map_embed_url.match(/src\s*=\s*'([^']+)'/i);
-									return m ? m[1] : data.map_embed_url;
-								})(),
-								className: "w-full aspect-video rounded-lg",
-								allowFullScreen: true,
-								loading: "lazy",
-								title: "Google Maps"
+							(data.latitude || data.longitude) && /* @__PURE__ */ jsxs("div", {
+								className: "grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl",
+								children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+									className: "block text-sm font-medium text-secondary-950 mb-1",
+									children: locale === "ar" ? "دائرة العرض (Latitude)" : "Latitude"
+								}), /* @__PURE__ */ jsx("input", {
+									type: "text",
+									value: data.latitude,
+									dir: "ltr",
+									className: "w-full px-3 py-2 border border-transparent rounded-lg text-sm bg-gray-100 focus:ring-0 text-gray-500 cursor-not-allowed",
+									readOnly: true
+								})] }), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+									className: "block text-sm font-medium text-secondary-950 mb-1",
+									children: locale === "ar" ? "خط الطول (Longitude)" : "Longitude"
+								}), /* @__PURE__ */ jsx("input", {
+									type: "text",
+									value: data.longitude,
+									dir: "ltr",
+									className: "w-full px-3 py-2 border border-transparent rounded-lg text-sm bg-gray-100 focus:ring-0 text-gray-500 cursor-not-allowed",
+									readOnly: true
+								})] })]
 							})
 						]
 					}),
@@ -7514,43 +9558,65 @@ function AdminProjectsIndex({ projects, areas, filters }) {
 											})
 										}),
 										/* @__PURE__ */ jsx("td", {
-											className: "px-4 py-3 whitespace-nowrap",
+											className: "px-4 py-3 whitespace-nowrap text-center",
 											children: isAdminOrManager ? /* @__PURE__ */ jsxs("div", {
 												className: "flex items-center justify-center gap-1.5",
-												children: [/* @__PURE__ */ jsxs(Link, {
-													href: `/admin/projects/${project.id}/edit`,
-													className: "px-2.5 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl transition-all border border-blue-200/70 flex items-center gap-1 active:scale-95",
-													title: trans("edit"),
-													children: [/* @__PURE__ */ jsx("svg", {
-														className: "w-3.5 h-3.5",
-														fill: "none",
-														viewBox: "0 0 24 24",
-														stroke: "currentColor",
-														strokeWidth: 2,
-														children: /* @__PURE__ */ jsx("path", {
-															strokeLinecap: "round",
-															strokeLinejoin: "round",
-															d: "M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"
-														})
-													}), /* @__PURE__ */ jsx("span", { children: trans("edit") })]
-												}), /* @__PURE__ */ jsxs("button", {
-													type: "button",
-													onClick: () => deleteProject(project),
-													className: "px-2.5 py-1.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 rounded-xl transition-all border border-red-200/70 flex items-center gap-1 active:scale-95",
-													title: trans("delete"),
-													children: [/* @__PURE__ */ jsx("svg", {
-														className: "w-3.5 h-3.5",
-														fill: "none",
-														viewBox: "0 0 24 24",
-														stroke: "currentColor",
-														strokeWidth: 2,
-														children: /* @__PURE__ */ jsx("path", {
-															strokeLinecap: "round",
-															strokeLinejoin: "round",
-															d: "M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
-														})
-													}), /* @__PURE__ */ jsx("span", { children: trans("delete") })]
-												})]
+												children: [
+													/* @__PURE__ */ jsxs("a", {
+														href: `/${locale}/projects/${project.slug || project.id}`,
+														target: "_blank",
+														rel: "noreferrer",
+														className: "px-2.5 py-1.5 text-xs font-bold text-primary-900 bg-primary-50 hover:bg-primary-100 rounded-xl transition-all border border-primary-200/70 flex items-center gap-1 active:scale-95 shadow-xs",
+														title: isRtl ? "معاينة على الموقع" : "Preview",
+														children: [/* @__PURE__ */ jsx("svg", {
+															className: "w-3.5 h-3.5",
+															fill: "none",
+															viewBox: "0 0 24 24",
+															stroke: "currentColor",
+															strokeWidth: 2,
+															children: /* @__PURE__ */ jsx("path", {
+																strokeLinecap: "round",
+																strokeLinejoin: "round",
+																d: "M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.573 16.49 16.638 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+															})
+														}), /* @__PURE__ */ jsx("span", { children: isRtl ? "معاينة" : "Preview" })]
+													}),
+													/* @__PURE__ */ jsxs(Link, {
+														href: `/admin/projects/${project.id}/edit`,
+														className: "px-2.5 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl transition-all border border-blue-200/70 flex items-center gap-1 active:scale-95 shadow-xs",
+														title: trans("edit"),
+														children: [/* @__PURE__ */ jsx("svg", {
+															className: "w-3.5 h-3.5",
+															fill: "none",
+															viewBox: "0 0 24 24",
+															stroke: "currentColor",
+															strokeWidth: 2,
+															children: /* @__PURE__ */ jsx("path", {
+																strokeLinecap: "round",
+																strokeLinejoin: "round",
+																d: "M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"
+															})
+														}), /* @__PURE__ */ jsx("span", { children: trans("edit") })]
+													}),
+													/* @__PURE__ */ jsxs("button", {
+														type: "button",
+														onClick: () => deleteProject(project),
+														className: "px-2.5 py-1.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 rounded-xl transition-all border border-red-200/70 flex items-center gap-1 active:scale-95 shadow-xs",
+														title: trans("delete"),
+														children: [/* @__PURE__ */ jsx("svg", {
+															className: "w-3.5 h-3.5",
+															fill: "none",
+															viewBox: "0 0 24 24",
+															stroke: "currentColor",
+															strokeWidth: 2,
+															children: /* @__PURE__ */ jsx("path", {
+																strokeLinecap: "round",
+																strokeLinejoin: "round",
+																d: "M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
+															})
+														}), /* @__PURE__ */ jsx("span", { children: trans("delete") })]
+													})
+												]
 											}) : /* @__PURE__ */ jsx("span", {
 												className: "text-xs text-muted font-normal",
 												children: "—"
@@ -8541,6 +10607,8 @@ function AdminUnitTypesIndex({ unitTypes }) {
 				})]
 			}),
 			flash?.success && /* @__PURE__ */ jsx("div", {
+				role: "alert",
+				"aria-live": "polite",
 				className: "mb-4 px-4 py-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm",
 				children: flash.success
 			}),
@@ -8568,43 +10636,41 @@ function AdminUnitTypesIndex({ unitTypes }) {
 							value: data.name_en,
 							onChange: (e) => setData("name_en", e.target.value),
 							required: true,
+							dir: "ltr",
 							className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
 						})] })]
 					}),
 					/* @__PURE__ */ jsxs("div", {
-						className: "grid grid-cols-2 gap-4 mb-4",
-						children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
-							className: "block text-sm font-medium text-secondary-950 mb-1",
-							children: trans("sort_order")
-						}), /* @__PURE__ */ jsx("input", {
-							type: "number",
-							min: "0",
-							value: data.sort_order,
-							onChange: (e) => setData("sort_order", parseInt(e.target.value) || 0),
-							className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white"
-						})] }), /* @__PURE__ */ jsx("div", {
-							className: "flex items-end pb-2",
-							children: /* @__PURE__ */ jsxs("label", {
-								className: "flex items-center gap-2 cursor-pointer",
-								children: [/* @__PURE__ */ jsx("input", {
-									type: "checkbox",
-									checked: data.is_active,
-									onChange: (e) => setData("is_active", e.target.checked),
-									className: "w-5 h-5 rounded border-secondary-300 text-primary-900 focus:ring-primary-900/20 cursor-pointer"
-								}), /* @__PURE__ */ jsx("span", {
-									className: "text-sm font-medium text-secondary-950",
-									children: data.is_active ? trans("active") : trans("inactive")
-								})]
-							})
+						className: "flex items-center gap-6 mb-4",
+						children: [/* @__PURE__ */ jsxs("label", {
+							className: "flex items-center gap-2 text-sm text-secondary-700",
+							children: [/* @__PURE__ */ jsx("input", {
+								type: "checkbox",
+								checked: data.is_active,
+								onChange: (e) => setData("is_active", e.target.checked),
+								className: "rounded text-primary-900 focus:ring-primary-900"
+							}), trans("active")]
+						}), /* @__PURE__ */ jsxs("div", {
+							className: "flex items-center gap-2",
+							children: [/* @__PURE__ */ jsx("label", {
+								className: "text-sm font-medium text-secondary-700",
+								children: trans("sort_order")
+							}), /* @__PURE__ */ jsx("input", {
+								type: "number",
+								min: "0",
+								value: data.sort_order,
+								onChange: (e) => setData("sort_order", parseInt(e.target.value) || 0),
+								className: "w-20 px-3 py-1.5 border border-secondary-200 rounded-lg text-sm bg-white"
+							})]
 						})]
 					}),
 					/* @__PURE__ */ jsxs("div", {
-						className: "flex gap-2",
+						className: "flex items-center gap-3",
 						children: [/* @__PURE__ */ jsx("button", {
 							type: "submit",
 							disabled: processing,
 							className: "px-4 py-2 bg-primary-900 text-white rounded-lg text-sm font-medium hover:bg-primary-950 disabled:opacity-50",
-							children: processing ? trans("loading") : trans("save")
+							children: trans("save")
 						}), /* @__PURE__ */ jsx("button", {
 							type: "button",
 							onClick: cancelEdit,
@@ -8619,7 +10685,7 @@ function AdminUnitTypesIndex({ unitTypes }) {
 				children: /* @__PURE__ */ jsxs("table", {
 					className: "w-full text-sm",
 					children: [/* @__PURE__ */ jsx("thead", { children: /* @__PURE__ */ jsxs("tr", {
-						className: "bg-surface text-secondary-700 text-left",
+						className: "bg-surface text-secondary-700 text-start",
 						children: [
 							/* @__PURE__ */ jsx("th", {
 								className: "px-4 py-3 font-medium",
@@ -8754,6 +10820,8 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 		meta_description_ar: unit?.meta_description_ar || "",
 		meta_description_en: unit?.meta_description_en || "",
 		map_embed_url: unit?.map_embed_url || "",
+		latitude: unit?.latitude || "",
+		longitude: unit?.longitude || "",
 		location_address_ar: unit?.location_address_ar || "",
 		location_address_en: unit?.location_address_en || "",
 		images: [],
@@ -8766,6 +10834,9 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 	});
 	const [keywordInputAr, setKeywordInputAr] = useState("");
 	const [keywordInputEn, setKeywordInputEn] = useState("");
+	const [kwWarningAr, setKwWarningAr] = useState(false);
+	const [kwWarningEn, setKwWarningEn] = useState(false);
+	const MAX_KEYWORDS = 25;
 	useEffect(() => {
 		const handleBeforeUnload = (e) => {
 			if (dirty) {
@@ -8816,8 +10887,16 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 		if (parsed.length > 0) {
 			const existing = new Set(data.keywords_ar);
 			const toAdd = parsed.filter((k) => !existing.has(k));
-			if (toAdd.length > 0) {
-				setData("keywords_ar", [...data.keywords_ar, ...toAdd]);
+			const available = MAX_KEYWORDS - data.keywords_ar.length;
+			if (available <= 0) {
+				setKwWarningAr(true);
+				setKeywordInputAr("");
+				return;
+			}
+			const limited = toAdd.slice(0, available);
+			setKwWarningAr(toAdd.length > available);
+			if (limited.length > 0) {
+				setData("keywords_ar", [...data.keywords_ar, ...limited]);
 				setDirty(true);
 			}
 		}
@@ -8825,10 +10904,12 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 	}
 	function removeKeywordAr(kw) {
 		setData("keywords_ar", data.keywords_ar.filter((k) => k !== kw));
+		setKwWarningAr(false);
 		setDirty(true);
 	}
 	function clearKeywordsAr() {
 		setData("keywords_ar", []);
+		setKwWarningAr(false);
 		setDirty(true);
 	}
 	function addKeywordEn() {
@@ -8837,8 +10918,16 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 		if (parsed.length > 0) {
 			const existing = new Set(data.keywords_en);
 			const toAdd = parsed.filter((k) => !existing.has(k));
-			if (toAdd.length > 0) {
-				setData("keywords_en", [...data.keywords_en, ...toAdd]);
+			const available = MAX_KEYWORDS - data.keywords_en.length;
+			if (available <= 0) {
+				setKwWarningEn(true);
+				setKeywordInputEn("");
+				return;
+			}
+			const limited = toAdd.slice(0, available);
+			setKwWarningEn(toAdd.length > available);
+			if (limited.length > 0) {
+				setData("keywords_en", [...data.keywords_en, ...limited]);
 				setDirty(true);
 			}
 		}
@@ -8846,10 +10935,12 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 	}
 	function removeKeywordEn(kw) {
 		setData("keywords_en", data.keywords_en.filter((k) => k !== kw));
+		setKwWarningEn(false);
 		setDirty(true);
 	}
 	function clearKeywordsEn() {
 		setData("keywords_en", []);
+		setKwWarningEn(false);
 		setDirty(true);
 	}
 	function compressImage(file, maxWidth = 1920, quality = .82) {
@@ -9016,7 +11107,7 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 	const hasErrors = errors && Object.keys(errors).length > 0;
 	return /* @__PURE__ */ jsxs(AdminSidebar, { children: [/* @__PURE__ */ jsx(Head, { title: trans("add_unit") + " — " + trans("app_name") }), /* @__PURE__ */ jsxs("div", {
 		dir: isRtl ? "rtl" : "ltr",
-		className: "p-6 max-w-3xl mx-auto",
+		className: "p-6 max-w-5xl mx-auto",
 		children: [
 			/* @__PURE__ */ jsxs("div", {
 				className: "flex items-center gap-3 mb-6",
@@ -9050,28 +11141,35 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 					children: Object.entries(errors).map(([key, msg]) => /* @__PURE__ */ jsx("li", { children: msg }, key))
 				})]
 			}),
-			/* @__PURE__ */ jsx("div", {
-				className: "flex items-center gap-2 mb-8",
-				children: STEPS.map((s, i) => /* @__PURE__ */ jsxs("div", {
-					className: "flex items-center gap-2 flex-1",
-					children: [
-						/* @__PURE__ */ jsx("button", {
-							type: "button",
-							onClick: () => i <= step ? setStep(i) : null,
-							className: `w-8 h-8 rounded-full text-xs font-bold flex items-center justify-center transition-colors ${i === step ? "bg-primary-900 text-white" : i < step ? "bg-green-500 text-white" : "bg-surface text-secondary-400"}`,
-							children: i + 1
-						}),
-						/* @__PURE__ */ jsx("span", {
-							className: `text-xs hidden sm:inline ${i === step ? "text-secondary-950 font-medium" : "text-muted"}`,
-							children: trans(s.title_key) || s.key
-						}),
-						i < STEPS.length - 1 && /* @__PURE__ */ jsx("div", { className: "flex-1 h-px bg-secondary-200" })
-					]
-				}, s.key))
+			/* @__PURE__ */ jsxs("div", {
+				className: "flex items-center justify-between mb-8 relative",
+				children: [/* @__PURE__ */ jsx("div", { className: "absolute top-1/2 start-0 end-0 h-1 bg-[#F5F5F5] -z-10 rounded-full" }), STEPS.map((s, i) => /* @__PURE__ */ jsxs("div", {
+					className: "flex flex-col items-center gap-2 relative z-10",
+					children: [/* @__PURE__ */ jsx("button", {
+						type: "button",
+						onClick: () => i <= step ? setStep(i) : null,
+						className: `w-10 h-10 rounded-2xl text-sm font-black flex items-center justify-center transition-all duration-300 shadow-sm ${i === step ? "bg-[#CC0000] text-white scale-110 ring-4 ring-[#FFE3E3]" : i < step ? "bg-[#16a34a] text-white cursor-pointer hover:bg-green-600" : "bg-[#F5F5F5] text-secondary-400 cursor-not-allowed border border-secondary-200"}`,
+						children: i < step ? /* @__PURE__ */ jsx("svg", {
+							className: "w-5 h-5",
+							fill: "none",
+							viewBox: "0 0 24 24",
+							stroke: "currentColor",
+							strokeWidth: 3,
+							children: /* @__PURE__ */ jsx("path", {
+								strokeLinecap: "round",
+								strokeLinejoin: "round",
+								d: "M5 13l4 4L19 7"
+							})
+						}) : i + 1
+					}), /* @__PURE__ */ jsx("span", {
+						className: `text-xs sm:text-sm font-bold absolute -bottom-7 whitespace-nowrap transition-colors ${i === step ? "text-[#CC0000]" : "text-secondary-500"}`,
+						children: trans(s.title_key) || s.key
+					})]
+				}, s.key))]
 			}),
 			/* @__PURE__ */ jsxs("form", {
 				onSubmit: (e) => e.preventDefault(),
-				className: "bg-white rounded-xl shadow-card p-6",
+				className: "bg-white rounded-3xl shadow-sm border border-secondary-100 p-6 md:p-8 mt-12 transition-all duration-300",
 				children: [
 					step === 0 && /* @__PURE__ */ jsxs("div", {
 						className: "space-y-4",
@@ -9085,11 +11183,12 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 									}),
 									/* @__PURE__ */ jsx("input", {
 										type: "text",
+										maxLength: 100,
 										value: data.name_ar,
 										onChange: (e) => handleChange("name_ar", e.target.value),
 										dir: "rtl",
 										required: true,
-										className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
+										className: "w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none"
 									}),
 									errors.name_ar && /* @__PURE__ */ jsx("p", {
 										className: "text-xs text-red-500 mt-1",
@@ -9102,11 +11201,12 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 									}),
 									/* @__PURE__ */ jsx("input", {
 										type: "text",
+										maxLength: 100,
 										value: data.name_en,
 										onChange: (e) => handleChange("name_en", e.target.value),
 										dir: "ltr",
 										required: true,
-										className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
+										className: "w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none"
 									}),
 									errors.name_en && /* @__PURE__ */ jsx("p", {
 										className: "text-xs text-red-500 mt-1",
@@ -9116,25 +11216,41 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 							}),
 							/* @__PURE__ */ jsxs("div", {
 								className: "grid grid-cols-1 md:grid-cols-2 gap-4",
-								children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
-									className: "block text-sm font-medium text-secondary-950 mb-1",
-									children: trans("description_ar", {}, "units")
-								}), /* @__PURE__ */ jsx("textarea", {
-									value: data.description_ar,
-									onChange: (e) => handleChange("description_ar", e.target.value),
-									rows: 4,
-									dir: "rtl",
-									className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
-								})] }), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
-									className: "block text-sm font-medium text-secondary-950 mb-1",
-									children: trans("description_en", {}, "units")
-								}), /* @__PURE__ */ jsx("textarea", {
-									value: data.description_en,
-									onChange: (e) => handleChange("description_en", e.target.value),
-									rows: 4,
-									dir: "ltr",
-									className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
-								})] })]
+								children: [/* @__PURE__ */ jsxs("div", { children: [
+									/* @__PURE__ */ jsx("label", {
+										className: "block text-sm font-medium text-secondary-950 mb-1",
+										children: trans("description_ar", {}, "units")
+									}),
+									/* @__PURE__ */ jsx("textarea", {
+										value: data.description_ar,
+										onChange: (e) => handleChange("description_ar", e.target.value),
+										rows: 6,
+										dir: "rtl",
+										maxLength: 5e4,
+										className: "w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none"
+									}),
+									/* @__PURE__ */ jsxs("p", {
+										className: `text-xs mt-1 text-end ${data.description_ar.length >= 49500 ? "text-red-500 font-semibold" : "text-secondary-400"}`,
+										children: [data.description_ar.length, " / 50000"]
+									})
+								] }), /* @__PURE__ */ jsxs("div", { children: [
+									/* @__PURE__ */ jsx("label", {
+										className: "block text-sm font-medium text-secondary-950 mb-1",
+										children: trans("description_en", {}, "units")
+									}),
+									/* @__PURE__ */ jsx("textarea", {
+										value: data.description_en,
+										onChange: (e) => handleChange("description_en", e.target.value),
+										rows: 6,
+										dir: "ltr",
+										maxLength: 5e4,
+										className: "w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none"
+									}),
+									/* @__PURE__ */ jsxs("p", {
+										className: `text-xs mt-1 text-end ${data.description_en.length >= 49500 ? "text-red-500 font-semibold" : "text-secondary-400"}`,
+										children: [data.description_en.length, " / 50000"]
+									})
+								] })]
 							}),
 							/* @__PURE__ */ jsxs("div", {
 								className: "grid grid-cols-1 md:grid-cols-2 gap-4",
@@ -9147,7 +11263,7 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 										value: data.type_id,
 										onChange: (e) => handleChange("type_id", e.target.value),
 										required: true,
-										className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white",
+										className: "w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none",
 										children: [/* @__PURE__ */ jsx("option", {
 											value: "",
 											children: "—"
@@ -9169,7 +11285,7 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 										value: data.area_id,
 										onChange: (e) => handleChange("area_id", e.target.value),
 										required: true,
-										className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white",
+										className: "w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none",
 										children: [/* @__PURE__ */ jsx("option", {
 											value: "",
 											children: "—"
@@ -9194,7 +11310,7 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 									/* @__PURE__ */ jsxs(Select, {
 										value: data.transaction,
 										onChange: (e) => handleChange("transaction", e.target.value),
-										className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white",
+										className: "w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none",
 										children: [/* @__PURE__ */ jsx("option", {
 											value: "sale",
 											children: trans("sale", {}, "units")
@@ -9218,7 +11334,7 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 										value: data.price,
 										onChange: (e) => handleChange("price", e.target.value),
 										required: true,
-										className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
+										className: "w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none"
 									}),
 									errors.price && /* @__PURE__ */ jsx("p", {
 										className: "text-xs text-red-500 mt-1",
@@ -9237,7 +11353,7 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 										min: "0",
 										value: data.area_sqm,
 										onChange: (e) => handleChange("area_sqm", e.target.value),
-										className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white"
+										className: "w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none"
 									})] }),
 									/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
 										className: "block text-sm font-medium text-secondary-950 mb-1",
@@ -9247,7 +11363,7 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 										min: "0",
 										value: data.rooms,
 										onChange: (e) => handleChange("rooms", e.target.value),
-										className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white"
+										className: "w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none"
 									})] }),
 									/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
 										className: "block text-sm font-medium text-secondary-950 mb-1",
@@ -9257,7 +11373,7 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 										min: "0",
 										value: data.bathrooms,
 										onChange: (e) => handleChange("bathrooms", e.target.value),
-										className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white"
+										className: "w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none"
 									})] })
 								]
 							}),
@@ -9269,7 +11385,7 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 								}), /* @__PURE__ */ jsxs(Select, {
 									value: data.project_id,
 									onChange: (e) => handleChange("project_id", e.target.value),
-									className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white",
+									className: "w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none",
 									children: [/* @__PURE__ */ jsx("option", {
 										value: "",
 										children: "—"
@@ -9283,7 +11399,7 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 								}), /* @__PURE__ */ jsxs(Select, {
 									value: data.user_id || "",
 									onChange: (e) => handleChange("user_id", e.target.value),
-									className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white",
+									className: "w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none",
 									children: [/* @__PURE__ */ jsx("option", {
 										value: "",
 										children: locale === "ar" ? "اختر الوسيط المختص..." : "Select Agent..."
@@ -9307,7 +11423,7 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 									}), /* @__PURE__ */ jsxs(Select, {
 										value: data.payment_method,
 										onChange: (e) => handleChange("payment_method", e.target.value),
-										className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white",
+										className: "w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none",
 										children: [
 											/* @__PURE__ */ jsx("option", {
 												value: "",
@@ -9333,7 +11449,7 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 									}), /* @__PURE__ */ jsxs(Select, {
 										value: data.finishing_type_id,
 										onChange: (e) => handleChange("finishing_type_id", e.target.value),
-										className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white",
+										className: "w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none",
 										children: [/* @__PURE__ */ jsx("option", {
 											value: "",
 											children: "—"
@@ -9350,7 +11466,7 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 										value: data.down_payment,
 										onChange: (e) => handleChange("down_payment", e.target.value),
 										placeholder: locale === "ar" ? "مثال: 10% أو 500,000" : "e.g. 10% or 500,000",
-										className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
+										className: "w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none"
 									})] }), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
 										className: "block text-sm font-medium text-secondary-950 mb-1",
 										children: trans("installment_years") || "Installment Years"
@@ -9359,7 +11475,7 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 										min: "0",
 										value: data.installment_years,
 										onChange: (e) => handleChange("installment_years", e.target.value),
-										className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
+										className: "w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none"
 									})] })] })
 								]
 							}),
@@ -9565,7 +11681,7 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 									value: data.video_url,
 									onChange: (e) => handleChange("video_url", e.target.value),
 									placeholder: "https://youtube.com/...",
-									className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
+									className: "w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none"
 								}),
 								/* @__PURE__ */ jsx("p", {
 									className: "text-xs text-muted mt-1",
@@ -9589,10 +11705,12 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 											trans("ar"),
 											")",
 											/* @__PURE__ */ jsxs("span", {
-												className: "text-xs text-muted font-normal ms-1",
+												className: `text-xs font-normal ms-1 ${data.keywords_ar.length >= MAX_KEYWORDS ? "text-red-500" : "text-muted"}`,
 												children: [
 													"(",
 													data.keywords_ar.length,
+													" / ",
+													MAX_KEYWORDS,
 													")"
 												]
 											})
@@ -9608,7 +11726,10 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 									className: "flex gap-2 mb-2",
 									children: [/* @__PURE__ */ jsx("textarea", {
 										value: keywordInputAr,
-										onChange: (e) => setKeywordInputAr(e.target.value),
+										onChange: (e) => {
+											setKeywordInputAr(e.target.value);
+											setKwWarningAr(false);
+										},
 										onKeyDown: (e) => {
 											if (e.key === "Enter" && !e.shiftKey) {
 												e.preventDefault();
@@ -9617,14 +11738,20 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 										},
 										rows: 2,
 										dir: "rtl",
-										placeholder: locale === "ar" ? "الصق النص أو الكلمات مفصولة بفاصلة (، أو .) أو سطر جديد..." : "Paste text or keywords separated by commas or newlines...",
-										className: "flex-1 px-3 py-2 border border-secondary-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 resize-y"
+										disabled: data.keywords_ar.length >= MAX_KEYWORDS,
+										placeholder: data.keywords_ar.length >= MAX_KEYWORDS ? locale === "ar" ? "وصلت للحد الأقصى 25 كلمة" : "Max 25 keywords reached" : locale === "ar" ? "الصق النص أو الكلمات مفصولة بفاصلة (، أو .) أو سطر جديد..." : "Paste text or keywords separated by commas or newlines...",
+										className: "flex-1 px-3 py-2 border border-secondary-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 resize-y disabled:opacity-50 disabled:cursor-not-allowed"
 									}), /* @__PURE__ */ jsx("button", {
 										type: "button",
 										onClick: addKeywordAr,
-										className: "px-4 py-2 bg-primary-900 text-white rounded-xl text-sm font-medium hover:bg-primary-800 transition-colors self-end h-10 shrink-0",
+										disabled: data.keywords_ar.length >= MAX_KEYWORDS,
+										className: "px-4 py-2 bg-primary-900 text-white rounded-xl text-sm font-medium hover:bg-primary-800 transition-colors self-end h-10 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed",
 										children: trans("add")
 									})]
+								}),
+								kwWarningAr && /* @__PURE__ */ jsx("p", {
+									className: "text-xs text-red-500 mb-2",
+									children: locale === "ar" ? "وصلت للحد الأقصى ٢٥ كلمة مفتاحية" : "Max 25 keywords reached"
 								}),
 								data.keywords_ar.length > 0 && /* @__PURE__ */ jsx("div", {
 									className: "flex flex-wrap gap-1.5 max-h-48 overflow-y-auto p-2.5 border border-secondary-200 rounded-xl bg-surface",
@@ -9649,10 +11776,12 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 											trans("en"),
 											")",
 											/* @__PURE__ */ jsxs("span", {
-												className: "text-xs text-muted font-normal ms-1",
+												className: `text-xs font-normal ms-1 ${data.keywords_en.length >= MAX_KEYWORDS ? "text-red-500" : "text-muted"}`,
 												children: [
 													"(",
 													data.keywords_en.length,
+													" / ",
+													MAX_KEYWORDS,
 													")"
 												]
 											})
@@ -9668,7 +11797,10 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 									className: "flex gap-2 mb-2",
 									children: [/* @__PURE__ */ jsx("textarea", {
 										value: keywordInputEn,
-										onChange: (e) => setKeywordInputEn(e.target.value),
+										onChange: (e) => {
+											setKeywordInputEn(e.target.value);
+											setKwWarningEn(false);
+										},
 										onKeyDown: (e) => {
 											if (e.key === "Enter" && !e.shiftKey) {
 												e.preventDefault();
@@ -9677,14 +11809,20 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 										},
 										rows: 2,
 										dir: "ltr",
-										placeholder: "Paste English keywords separated by commas or newlines...",
-										className: "flex-1 px-3 py-2 border border-secondary-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 resize-y"
+										disabled: data.keywords_en.length >= MAX_KEYWORDS,
+										placeholder: data.keywords_en.length >= MAX_KEYWORDS ? "Max 25 keywords reached" : "Paste English keywords separated by commas or newlines...",
+										className: "flex-1 px-3 py-2 border border-secondary-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 resize-y disabled:opacity-50 disabled:cursor-not-allowed"
 									}), /* @__PURE__ */ jsx("button", {
 										type: "button",
 										onClick: addKeywordEn,
-										className: "px-4 py-2 bg-primary-900 text-white rounded-xl text-sm font-medium hover:bg-primary-800 transition-colors self-end h-10 shrink-0",
+										disabled: data.keywords_en.length >= MAX_KEYWORDS,
+										className: "px-4 py-2 bg-primary-900 text-white rounded-xl text-sm font-medium hover:bg-primary-800 transition-colors self-end h-10 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed",
 										children: trans("add")
 									})]
+								}),
+								kwWarningEn && /* @__PURE__ */ jsx("p", {
+									className: "text-xs text-red-500 mb-2",
+									children: locale === "ar" ? "وصلت للحد الأقصى ٢٥ كلمة مفتاحية" : "Max 25 keywords reached"
 								}),
 								data.keywords_en.length > 0 && /* @__PURE__ */ jsx("div", {
 									className: "flex flex-wrap gap-1.5 max-h-48 overflow-y-auto p-2.5 border border-secondary-200 rounded-xl bg-surface",
@@ -9717,7 +11855,7 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 									rows: 3,
 									maxLength: 500,
 									dir: "rtl",
-									className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
+									className: "w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none"
 								}),
 								/* @__PURE__ */ jsxs("p", {
 									className: "text-xs text-muted mt-1 text-end",
@@ -9739,7 +11877,7 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 									rows: 3,
 									maxLength: 500,
 									dir: "ltr",
-									className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
+									className: "w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none"
 								}),
 								/* @__PURE__ */ jsxs("p", {
 									className: "text-xs text-muted mt-1 text-end",
@@ -9767,7 +11905,7 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 									onChange: (e) => handleChange("location_address_ar", e.target.value),
 									onKeyDown: (e) => e.key === "Enter" && e.preventDefault(),
 									dir: "rtl",
-									className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
+									className: "w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none"
 								})] }), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsxs("label", {
 									className: "block text-sm font-medium text-secondary-950 mb-1",
 									children: [
@@ -9782,29 +11920,52 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 									onChange: (e) => handleChange("location_address_en", e.target.value),
 									onKeyDown: (e) => e.key === "Enter" && e.preventDefault(),
 									dir: "ltr",
-									className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
+									className: "w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none"
 								})] })]
 							}),
-							/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
-								className: "block text-sm font-medium text-secondary-950 mb-1",
-								children: trans("map_embed_url", {}, "units")
-							}), /* @__PURE__ */ jsx("textarea", {
-								value: data.map_embed_url,
-								onChange: (e) => handleChange("map_embed_url", e.target.value),
-								rows: 4,
-								className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900",
-								placeholder: "<iframe src=\"https://www.google.com/maps/embed?pb=...\" ></iframe>",
-								dir: "ltr"
-							})] }),
-							data.map_embed_url && /* @__PURE__ */ jsx("iframe", {
-								src: (() => {
-									const m = data.map_embed_url.match(/src\s*=\s*"([^"]+)"/i) || data.map_embed_url.match(/src\s*=\s*'([^']+)'/i);
-									return m ? m[1] : data.map_embed_url;
-								})(),
-								className: "w-full aspect-video rounded-lg",
-								allowFullScreen: true,
-								loading: "lazy",
-								title: "Google Maps"
+							/* @__PURE__ */ jsxs("div", { children: [
+								/* @__PURE__ */ jsx("label", {
+									className: "block text-sm font-medium text-secondary-950 mb-1",
+									children: locale === "ar" ? "رابط الموقع على خرائط جوجل (Google Maps Location URL)" : "Google Maps Location URL"
+								}),
+								/* @__PURE__ */ jsx("input", {
+									type: "text",
+									value: data.map_embed_url,
+									onChange: (e) => handleChange("map_embed_url", e.target.value),
+									className: "w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none font-mono text-xs",
+									placeholder: "https://www.google.com/maps/place/...",
+									dir: "ltr"
+								}),
+								/* @__PURE__ */ jsx("p", {
+									className: "text-xs text-muted mt-1",
+									children: locale === "ar" ? "قم بلصق الرابط العادي لخريطة جوجل (بما في ذلك الروابط المختصرة). سيتم استخراج الإحداثيات تلقائياً عند الحفظ." : "Paste a normal Google Maps location link. The system will automatically extract the latitude and longitude."
+								}),
+								errors.map_embed_url && /* @__PURE__ */ jsx("p", {
+									className: "text-xs text-red-500 mt-1",
+									children: errors.map_embed_url
+								})
+							] }),
+							(data.latitude || data.longitude) && /* @__PURE__ */ jsxs("div", {
+								className: "grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl",
+								children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+									className: "block text-sm font-medium text-secondary-950 mb-1",
+									children: locale === "ar" ? "دائرة العرض (Latitude)" : "Latitude"
+								}), /* @__PURE__ */ jsx("input", {
+									type: "text",
+									value: data.latitude,
+									dir: "ltr",
+									className: "w-full px-4 py-3 bg-gray-100 border-2 border-transparent rounded-xl text-sm focus:ring-0 text-gray-500 cursor-not-allowed",
+									readOnly: true
+								})] }), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+									className: "block text-sm font-medium text-secondary-950 mb-1",
+									children: locale === "ar" ? "خط الطول (Longitude)" : "Longitude"
+								}), /* @__PURE__ */ jsx("input", {
+									type: "text",
+									value: data.longitude,
+									dir: "ltr",
+									className: "w-full px-4 py-3 bg-gray-100 border-2 border-transparent rounded-xl text-sm focus:ring-0 text-gray-500 cursor-not-allowed",
+									readOnly: true
+								})] })]
 							})
 						]
 					}),
@@ -9858,19 +12019,19 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 									type: "button",
 									onClick: () => setStep(Math.max(0, step - 1)),
 									disabled: step === 0 || isSubmitting,
-									className: "px-4 py-2 bg-surface text-secondary-700 rounded-lg text-sm font-medium hover:bg-secondary-200 disabled:opacity-50",
+									className: "px-6 py-3 bg-[#F5F5F5] text-secondary-800 rounded-xl text-sm font-bold transition-all duration-200 hover:bg-[#E4E4E4] disabled:opacity-50 active:scale-[0.97]",
 									children: trans("back")
 								}), step < STEPS.length - 1 ? /* @__PURE__ */ jsx("button", {
 									type: "button",
 									onClick: () => canNext() && setStep(step + 1),
 									disabled: !canNext(),
-									className: "px-4 py-2 bg-primary-900 text-white rounded-lg text-sm font-medium hover:bg-primary-950 disabled:opacity-50",
+									className: "px-6 py-3 bg-[#CC0000] text-white rounded-xl text-sm font-bold transition-all duration-200 hover:bg-[#B00000] hover:shadow-lg disabled:opacity-50 active:scale-[0.97] focus:ring-4 focus:ring-[#FFE3E3]",
 									children: trans("next")
 								}) : /* @__PURE__ */ jsxs("button", {
 									type: "button",
 									onClick: handleSubmit,
 									disabled: processing || isSubmitting,
-									className: "px-4 py-2 bg-primary-900 text-white rounded-lg text-sm font-medium hover:bg-primary-950 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2",
+									className: "px-6 py-3 bg-[#CC0000] text-white rounded-xl text-sm font-bold transition-all duration-200 hover:bg-[#B00000] hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 active:scale-[0.97] focus:ring-4 focus:ring-[#FFE3E3]",
 									children: [isSubmitting && /* @__PURE__ */ jsxs("svg", {
 										className: "animate-spin h-4 w-4 text-white",
 										fill: "none",
@@ -9955,47 +12116,48 @@ function AdminUnitsIndex({ units, areas, unitTypes, filters }) {
 	const loading = !units;
 	const hasUnits = units?.data?.length > 0;
 	const colCount = role === "agent" ? 10 : 11;
+	const inputClasses = "w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none";
 	return /* @__PURE__ */ jsxs(AdminSidebar, { children: [/* @__PURE__ */ jsx(Head, { title: trans("sidebar_units") + " — " + trans("app_name") }), /* @__PURE__ */ jsxs("div", {
 		dir: isRtl ? "rtl" : "ltr",
-		className: "p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto",
+		className: "p-4 md:p-8 max-w-7xl mx-auto min-h-screen",
 		children: [
 			/* @__PURE__ */ jsxs("div", {
-				className: "flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-secondary-200/70 shadow-sm",
+				className: "flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 bg-white p-6 md:p-8 rounded-3xl border border-secondary-100 shadow-sm transition-all duration-300",
 				children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("h1", {
-					className: "text-2xl font-black text-secondary-950",
+					className: "text-3xl font-black text-secondary-950 mb-2",
 					children: trans("sidebar_units")
 				}), /* @__PURE__ */ jsx("p", {
-					className: "text-xs text-muted mt-0.5",
+					className: "text-secondary-500 text-sm",
 					children: isRtl ? "إدارة وتحديث العقارات والوحدات المتاحة على الموقع" : "Manage and update real estate listings"
 				})] }), /* @__PURE__ */ jsxs(Link, {
 					href: "/admin/units/create",
-					className: "px-4 py-2.5 bg-primary-900 hover:bg-primary-950 text-white rounded-xl text-xs sm:text-sm font-bold shadow-sm transition-all flex items-center justify-center gap-2 active:scale-95 shrink-0",
+					className: "inline-flex items-center justify-center px-6 py-3 bg-[#CC0000] text-white rounded-xl text-sm font-bold transition-all duration-200 hover:bg-[#B00000] hover:shadow-lg active:scale-[0.97] focus:outline-none focus:ring-4 focus:ring-[#FFE3E3]",
 					children: [/* @__PURE__ */ jsx("svg", {
-						className: "w-4 h-4",
+						className: "w-5 h-5 me-2",
 						fill: "none",
 						viewBox: "0 0 24 24",
 						stroke: "currentColor",
-						strokeWidth: 2.5,
+						strokeWidth: 2,
 						children: /* @__PURE__ */ jsx("path", {
 							strokeLinecap: "round",
 							strokeLinejoin: "round",
-							d: "M12 4.5v15m7.5-7.5h-15"
+							d: "M12 4v16m8-8H4"
 						})
 					}), /* @__PURE__ */ jsx("span", { children: trans("add_unit", {}, "units") })]
 				})]
 			}),
 			/* @__PURE__ */ jsx("div", {
-				className: "bg-white rounded-2xl border border-secondary-200/70 shadow-sm p-4 sm:p-5",
+				className: "bg-white rounded-3xl border border-secondary-100 shadow-sm p-6 mb-8 transition-all duration-300",
 				children: /* @__PURE__ */ jsxs("form", {
 					onSubmit: (e) => {
 						e.preventDefault();
 						applyFilters();
 					},
-					className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end",
+					className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 items-end",
 					children: [
 						/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
 							htmlFor: "search-input",
-							className: "block text-xs font-bold text-secondary-700 mb-1",
+							className: "block text-sm font-bold text-secondary-900 mb-2",
 							children: trans("search")
 						}), /* @__PURE__ */ jsxs("div", {
 							className: "relative",
@@ -10005,9 +12167,9 @@ function AdminUnitsIndex({ units, areas, unitTypes, filters }) {
 								value: search,
 								onChange: (e) => setSearch(e.target.value),
 								placeholder: isRtl ? "اسم العقار، العريضة..." : "Unit title, search...",
-								className: "w-full ps-9 pe-3 py-2 bg-surface border border-secondary-200 rounded-xl text-xs font-medium focus-visible:ring-2 focus-visible:ring-primary-900/20 focus-visible:border-primary-900 focus-visible:outline-none"
+								className: `${inputClasses} ps-11`
 							}), /* @__PURE__ */ jsx("svg", {
-								className: "w-4 h-4 text-secondary-400 absolute start-3 top-1/2 -translate-y-1/2 pointer-events-none",
+								className: "w-5 h-5 text-secondary-400 absolute start-4 top-1/2 -translate-y-1/2 pointer-events-none",
 								fill: "none",
 								viewBox: "0 0 24 24",
 								stroke: "currentColor",
@@ -10021,13 +12183,13 @@ function AdminUnitsIndex({ units, areas, unitTypes, filters }) {
 						})] }),
 						/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
 							htmlFor: "area-filter",
-							className: "block text-xs font-bold text-secondary-700 mb-1",
+							className: "block text-sm font-bold text-secondary-900 mb-2",
 							children: trans("area")
 						}), /* @__PURE__ */ jsxs(Select, {
 							id: "area-filter",
 							value: areaFilter,
 							onChange: (e) => setAreaFilter(e.target.value),
-							className: "w-full px-3 py-2 bg-surface border border-secondary-200 rounded-xl text-xs font-medium focus-visible:ring-2 focus-visible:ring-primary-900/20 focus-visible:border-primary-900 focus-visible:outline-none",
+							className: inputClasses,
 							children: [/* @__PURE__ */ jsx("option", {
 								value: "",
 								children: isRtl ? "كل المناطق" : "All Areas"
@@ -10038,13 +12200,13 @@ function AdminUnitsIndex({ units, areas, unitTypes, filters }) {
 						})] }),
 						/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
 							htmlFor: "type-filter",
-							className: "block text-xs font-bold text-secondary-700 mb-1",
+							className: "block text-sm font-bold text-secondary-900 mb-2",
 							children: trans("type")
 						}), /* @__PURE__ */ jsxs(Select, {
 							id: "type-filter",
 							value: typeFilter,
 							onChange: (e) => setTypeFilter(e.target.value),
-							className: "w-full px-3 py-2 bg-surface border border-secondary-200 rounded-xl text-xs font-medium focus-visible:ring-2 focus-visible:ring-primary-900/20 focus-visible:border-primary-900 focus-visible:outline-none",
+							className: inputClasses,
 							children: [/* @__PURE__ */ jsx("option", {
 								value: "",
 								children: isRtl ? "كل الأنواع" : "All Types"
@@ -10054,16 +12216,16 @@ function AdminUnitsIndex({ units, areas, unitTypes, filters }) {
 							}, t.id))]
 						})] }),
 						/* @__PURE__ */ jsxs("div", {
-							className: "flex items-center gap-2",
+							className: "flex items-center gap-3",
 							children: [/* @__PURE__ */ jsxs("button", {
 								type: "submit",
-								className: "flex-1 py-2 bg-primary-900 hover:bg-primary-950 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5",
+								className: "flex-1 px-6 py-3 bg-secondary-950 text-white rounded-xl text-sm font-bold transition-all duration-200 hover:bg-black hover:shadow-lg active:scale-[0.97] flex items-center justify-center gap-2",
 								children: [/* @__PURE__ */ jsx("svg", {
-									className: "w-3.5 h-3.5",
+									className: "w-5 h-5",
 									fill: "none",
 									viewBox: "0 0 24 24",
 									stroke: "currentColor",
-									strokeWidth: 2.5,
+									strokeWidth: 2,
 									children: /* @__PURE__ */ jsx("path", {
 										strokeLinecap: "round",
 										strokeLinejoin: "round",
@@ -10073,7 +12235,7 @@ function AdminUnitsIndex({ units, areas, unitTypes, filters }) {
 							}), (search || areaFilter || typeFilter) && /* @__PURE__ */ jsx("button", {
 								type: "button",
 								onClick: resetFilters,
-								className: "px-3 py-2 bg-surface hover:bg-secondary-200 text-secondary-700 rounded-xl text-xs font-bold transition-all border border-secondary-200",
+								className: "px-4 py-3 bg-[#F5F5F5] text-[#1A1A1A] rounded-xl text-sm font-bold transition-all duration-200 hover:bg-[#E4E4E4] active:scale-[0.97]",
 								title: isRtl ? "إعادة ضبط" : "Reset",
 								children: "✕"
 							})]
@@ -10082,80 +12244,80 @@ function AdminUnitsIndex({ units, areas, unitTypes, filters }) {
 				})
 			}),
 			/* @__PURE__ */ jsx("div", {
-				className: "bg-white rounded-2xl border border-secondary-200/70 shadow-sm overflow-hidden",
+				className: "bg-white rounded-3xl border border-secondary-100 shadow-sm overflow-hidden transition-all duration-300",
 				children: /* @__PURE__ */ jsx("div", {
 					className: "overflow-x-auto",
 					children: /* @__PURE__ */ jsxs("table", {
-						className: "w-full text-xs text-start rtl:text-right border-collapse",
+						className: "w-full text-sm text-start rtl:text-right border-collapse",
 						children: [/* @__PURE__ */ jsx("thead", { children: /* @__PURE__ */ jsxs("tr", {
-							className: "bg-slate-50/80 border-b border-secondary-200/80 text-secondary-600 font-bold uppercase tracking-wider",
+							className: "bg-surface border-b border-secondary-100 text-secondary-600 font-bold uppercase tracking-wider text-xs",
 							children: [
 								/* @__PURE__ */ jsx("th", {
-									className: "px-4 py-3.5 text-start",
+									className: "px-6 py-5 text-start",
 									children: trans("name")
 								}),
 								/* @__PURE__ */ jsx("th", {
-									className: "px-3 py-3.5 text-start",
+									className: "px-4 py-5 text-start",
 									children: trans("type", {}, "units")
 								}),
 								/* @__PURE__ */ jsx("th", {
-									className: "px-3 py-3.5 text-start",
+									className: "px-4 py-5 text-start",
 									children: trans("area")
 								}),
 								/* @__PURE__ */ jsx("th", {
-									className: "px-3 py-3.5 text-start",
+									className: "px-4 py-5 text-start",
 									children: trans("price", {}, "units")
 								}),
 								/* @__PURE__ */ jsx("th", {
-									className: "px-3 py-3.5 text-center",
+									className: "px-4 py-5 text-center",
 									children: trans("transaction", {}, "units")
 								}),
 								/* @__PURE__ */ jsx("th", {
-									className: "px-3 py-3.5 text-center",
+									className: "px-4 py-5 text-center",
 									children: isRtl ? "الزيارات" : "Views"
 								}),
 								/* @__PURE__ */ jsx("th", {
-									className: "px-3 py-3.5 text-center",
+									className: "px-4 py-5 text-center",
 									children: trans("priority_points")
 								}),
 								/* @__PURE__ */ jsx("th", {
-									className: "px-3 py-3.5 text-center",
+									className: "px-4 py-5 text-center",
 									children: trans("pinned")
 								}),
 								/* @__PURE__ */ jsx("th", {
-									className: "px-3 py-3.5 text-center",
+									className: "px-4 py-5 text-center",
 									children: trans("is_deal")
 								}),
 								role !== "agent" && /* @__PURE__ */ jsx("th", {
-									className: "px-3 py-3.5 text-center",
+									className: "px-4 py-5 text-center",
 									children: trans("active")
 								}),
 								/* @__PURE__ */ jsx("th", {
-									className: "px-4 py-3.5 text-center",
+									className: "px-6 py-5 text-center",
 									children: trans("actions")
 								})
 							]
 						}) }), /* @__PURE__ */ jsx("tbody", {
-							className: "divide-y divide-secondary-100 font-medium",
+							className: "divide-y divide-secondary-50 font-medium",
 							children: loading ? Array.from({ length: 5 }).map((_, i) => /* @__PURE__ */ jsx(SkeletonRow, { cols: colCount }, i)) : hasUnits ? units.data.map((unit) => {
 								const thumb = unit.images?.[0]?.url || (unit.images?.[0]?.path ? `/storage/${unit.images[0].path}` : null);
 								const unitTypeName = (locale === "ar" ? unit.type?.name_ar : unit.type?.name_en) || unit.type?.name_ar || unit.type?.name_en || "—";
 								const unitAreaName = (locale === "ar" ? unit.area?.name_ar : unit.area?.name_en) || unit.area?.name_ar || unit.area?.name_en || "—";
 								return /* @__PURE__ */ jsxs("tr", {
-									className: "hover:bg-slate-50/70 transition-colors",
+									className: "hover:bg-surface/60 transition-colors group",
 									children: [
 										/* @__PURE__ */ jsx("td", {
-											className: "px-4 py-3 min-w-[180px]",
+											className: "px-6 py-4 min-w-[220px]",
 											children: /* @__PURE__ */ jsxs("div", {
-												className: "flex items-center gap-3",
+												className: "flex items-center gap-4",
 												children: [thumb ? /* @__PURE__ */ jsx("img", {
 													src: thumb,
 													alt: "",
-													className: "w-10 h-10 rounded-xl object-cover shrink-0 border border-secondary-200 shadow-xs"
+													className: "w-14 h-14 rounded-2xl object-cover shrink-0 border border-secondary-100 shadow-sm"
 												}) : /* @__PURE__ */ jsx("div", {
-													className: "w-10 h-10 rounded-xl bg-surface border border-secondary-200 shrink-0 flex items-center justify-center text-secondary-400",
+													className: "w-14 h-14 rounded-2xl bg-[#F5F5F5] border border-transparent shrink-0 flex items-center justify-center text-secondary-400",
 													children: /* @__PURE__ */ jsx("svg", {
-														className: "w-5 h-5",
+														className: "w-6 h-6",
 														fill: "none",
 														viewBox: "0 0 24 24",
 														stroke: "currentColor",
@@ -10170,46 +12332,46 @@ function AdminUnitsIndex({ units, areas, unitTypes, filters }) {
 													className: "min-w-0",
 													children: [/* @__PURE__ */ jsx(Link, {
 														href: `/admin/units/${unit.id}/edit`,
-														className: "text-secondary-950 hover:text-primary-900 font-bold block truncate max-w-[200px]",
+														className: "text-secondary-950 hover:text-[#CC0000] font-black text-base block truncate max-w-[250px] transition-colors",
 														children: unit.name
 													}), /* @__PURE__ */ jsxs("span", {
-														className: "text-[11px] text-muted block truncate",
+														className: "text-xs text-secondary-500 block truncate mt-0.5",
 														children: ["#", unit.id]
 													})]
 												})]
 											})
 										}),
 										/* @__PURE__ */ jsx("td", {
-											className: "px-3 py-3 text-secondary-700 whitespace-nowrap",
+											className: "px-4 py-4 text-secondary-700 whitespace-nowrap",
 											children: unitTypeName
 										}),
 										/* @__PURE__ */ jsx("td", {
-											className: "px-3 py-3 text-secondary-700 whitespace-nowrap",
+											className: "px-4 py-4 text-secondary-700 whitespace-nowrap",
 											children: unitAreaName
 										}),
 										/* @__PURE__ */ jsxs("td", {
-											className: "px-3 py-3 whitespace-nowrap",
+											className: "px-4 py-4 whitespace-nowrap",
 											children: [/* @__PURE__ */ jsx("span", {
-												className: "font-extrabold text-secondary-950",
+												className: "font-black text-[#CC0000] text-base",
 												children: Number(unit.price).toLocaleString()
 											}), /* @__PURE__ */ jsx("span", {
-												className: "text-[10px] text-muted ms-1 font-normal",
+												className: "text-xs text-secondary-500 ms-1 font-medium",
 												children: isRtl ? "ج.م" : "EGP"
 											})]
 										}),
 										/* @__PURE__ */ jsx("td", {
-											className: "px-3 py-3 text-center whitespace-nowrap",
+											className: "px-4 py-4 text-center whitespace-nowrap",
 											children: /* @__PURE__ */ jsx("span", {
-												className: `px-2.5 py-1 rounded-lg text-[11px] font-bold ${unit.transaction === "rent" ? "bg-purple-50 text-purple-700 border border-purple-100" : "bg-blue-50 text-blue-700 border border-blue-100"}`,
+												className: `px-3 py-1.5 rounded-full text-xs font-bold ${unit.transaction === "rent" ? "bg-purple-100 text-purple-800" : "bg-blue-100 text-blue-800"}`,
 												children: trans(unit.transaction === "rent" ? "rent" : "sale", {}, "units")
 											})
 										}),
 										/* @__PURE__ */ jsx("td", {
-											className: "px-3 py-3 text-center whitespace-nowrap",
+											className: "px-4 py-4 text-center whitespace-nowrap",
 											children: /* @__PURE__ */ jsxs("span", {
-												className: "inline-flex items-center gap-1 px-2.5 py-1 bg-surface rounded-lg text-xs font-bold text-secondary-800 border border-secondary-200",
+												className: "inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#F5F5F5] rounded-full text-xs font-bold text-secondary-800",
 												children: [/* @__PURE__ */ jsx("svg", {
-													className: "w-3.5 h-3.5 text-primary-900",
+													className: "w-4 h-4 text-secondary-500",
 													fill: "none",
 													viewBox: "0 0 24 24",
 													stroke: "currentColor",
@@ -10223,53 +12385,72 @@ function AdminUnitsIndex({ units, areas, unitTypes, filters }) {
 											})
 										}),
 										/* @__PURE__ */ jsx("td", {
-											className: "px-3 py-3 text-center font-bold text-secondary-900 whitespace-nowrap",
+											className: "px-4 py-4 text-center whitespace-nowrap",
 											children: /* @__PURE__ */ jsxs("span", {
-												className: "px-2 py-0.5 bg-amber-50 text-amber-700 rounded-md border border-amber-200/70 text-xs",
+												className: "inline-flex items-center gap-1 px-3 py-1.5 bg-amber-100 text-amber-800 rounded-full font-bold text-xs",
 												children: ["⭐ ", unit.priority_points]
 											})
 										}),
 										/* @__PURE__ */ jsx("td", {
-											className: "px-3 py-3 text-center whitespace-nowrap",
+											className: "px-4 py-4 text-center whitespace-nowrap",
 											children: role !== "agent" ? /* @__PURE__ */ jsx("button", {
 												type: "button",
 												onClick: () => togglePin(unit),
-												className: `px-2.5 py-1 text-xs rounded-full font-bold transition-all active:scale-95 ${unit.is_pinned ? "bg-primary-900 text-white shadow-xs" : "bg-surface text-secondary-600 border border-secondary-200 hover:bg-secondary-100"}`,
+												className: `px-3 py-1.5 text-xs rounded-full font-bold transition-all active:scale-[0.97] ${unit.is_pinned ? "bg-secondary-950 text-white shadow-sm" : "bg-[#F5F5F5] text-secondary-600 hover:bg-[#E4E4E4]"}`,
 												children: unit.is_pinned ? isRtl ? "📌 مثبت" : "Pinned" : isRtl ? "غير مثبت" : "Unpinned"
 											}) : /* @__PURE__ */ jsx("span", {
-												className: `inline-block px-2.5 py-1 text-xs rounded-full font-bold ${unit.is_pinned ? "bg-primary-900 text-white" : "bg-surface text-secondary-600 border border-secondary-200"}`,
+												className: `inline-block px-3 py-1.5 text-xs rounded-full font-bold ${unit.is_pinned ? "bg-secondary-950 text-white" : "bg-[#F5F5F5] text-secondary-600"}`,
 												children: unit.is_pinned ? isRtl ? "📌 مثبت" : "Pinned" : isRtl ? "غير مثبت" : "Unpinned"
 											})
 										}),
 										/* @__PURE__ */ jsx("td", {
-											className: "px-3 py-3 text-center whitespace-nowrap",
+											className: "px-4 py-4 text-center whitespace-nowrap",
 											children: role !== "agent" ? /* @__PURE__ */ jsx("button", {
 												type: "button",
 												onClick: () => toggleDeal(unit),
-												className: `px-2.5 py-1 text-xs rounded-full font-bold transition-all active:scale-95 ${unit.is_deal ? "bg-amber-500 text-white shadow-xs" : "bg-surface text-secondary-600 border border-secondary-200 hover:bg-secondary-100"}`,
+												className: `px-3 py-1.5 text-xs rounded-full font-bold transition-all active:scale-[0.97] ${unit.is_deal ? "bg-amber-500 text-white shadow-sm" : "bg-[#F5F5F5] text-secondary-600 hover:bg-[#E4E4E4]"}`,
 												children: unit.is_deal ? isRtl ? "🔥 صفقة" : "Deal" : isRtl ? "عادي" : "Normal"
 											}) : /* @__PURE__ */ jsx("span", {
-												className: `inline-block px-2.5 py-1 text-xs rounded-full font-bold ${unit.is_deal ? "bg-amber-500 text-white" : "bg-surface text-secondary-600 border border-secondary-200"}`,
+												className: `inline-block px-3 py-1.5 text-xs rounded-full font-bold ${unit.is_deal ? "bg-amber-500 text-white" : "bg-[#F5F5F5] text-secondary-600"}`,
 												children: unit.is_deal ? isRtl ? "🔥 صفقة" : "Deal" : isRtl ? "عادي" : "Normal"
 											})
 										}),
 										role !== "agent" && /* @__PURE__ */ jsx("td", {
-											className: "px-3 py-3 text-center whitespace-nowrap",
+											className: "px-4 py-4 text-center whitespace-nowrap",
 											children: /* @__PURE__ */ jsx("button", {
 												type: "button",
 												onClick: () => toggleActive(unit),
-												className: `px-2.5 py-1 text-xs rounded-full font-bold transition-all active:scale-95 ${unit.is_active ? "bg-emerald-600 text-white shadow-xs" : "bg-red-50 text-red-600 border border-red-200"}`,
+												className: `px-3 py-1.5 text-xs rounded-full font-bold transition-all active:scale-[0.97] ${unit.is_active ? "bg-[#16a34a] text-white shadow-sm" : "bg-red-100 text-red-700"}`,
 												children: unit.is_active ? isRtl ? "مفعل" : "Active" : isRtl ? "معطل" : "Inactive"
 											})
 										}),
 										/* @__PURE__ */ jsx("td", {
-											className: "px-4 py-3 whitespace-nowrap",
+											className: "px-6 py-4 text-center whitespace-nowrap",
 											children: /* @__PURE__ */ jsxs("div", {
 												className: "flex items-center justify-center gap-1.5",
 												children: [
+													/* @__PURE__ */ jsxs("a", {
+														href: `/${locale}/units/${unit.slug || unit.id}`,
+														target: "_blank",
+														rel: "noreferrer",
+														className: "px-2.5 py-1.5 text-xs font-bold text-primary-900 bg-primary-50 hover:bg-primary-100 rounded-xl transition-all border border-primary-200/70 flex items-center gap-1 active:scale-95 shadow-xs",
+														title: isRtl ? "معاينة على الموقع" : "Preview",
+														children: [/* @__PURE__ */ jsx("svg", {
+															className: "w-3.5 h-3.5",
+															fill: "none",
+															viewBox: "0 0 24 24",
+															stroke: "currentColor",
+															strokeWidth: 2,
+															children: /* @__PURE__ */ jsx("path", {
+																strokeLinecap: "round",
+																strokeLinejoin: "round",
+																d: "M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.573 16.49 16.638 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+															})
+														}), /* @__PURE__ */ jsx("span", { children: isRtl ? "معاينة" : "Preview" })]
+													}),
 													(role !== "agent" || unit.user_id === auth?.user?.id) && /* @__PURE__ */ jsxs(Link, {
 														href: `/admin/units/${unit.id}/edit`,
-														className: "px-2.5 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl transition-all border border-blue-200/70 flex items-center gap-1 active:scale-95",
+														className: "px-2.5 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl transition-all border border-blue-200/70 flex items-center gap-1 active:scale-95 shadow-xs",
 														title: trans("edit"),
 														children: [/* @__PURE__ */ jsx("svg", {
 															className: "w-3.5 h-3.5",
@@ -10287,7 +12468,7 @@ function AdminUnitsIndex({ units, areas, unitTypes, filters }) {
 													role !== "agent" && /* @__PURE__ */ jsxs("button", {
 														type: "button",
 														onClick: () => openAdjustPoints(unit),
-														className: "px-2.5 py-1.5 text-xs font-bold text-amber-800 bg-amber-50 hover:bg-amber-100 rounded-xl transition-all border border-amber-200/70 flex items-center gap-1 active:scale-95",
+														className: "px-2.5 py-1.5 text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-xl transition-all border border-amber-200/70 flex items-center gap-1 active:scale-95 shadow-xs",
 														title: trans("adjust_points"),
 														children: [/* @__PURE__ */ jsx("svg", {
 															className: "w-3.5 h-3.5",
@@ -10305,7 +12486,7 @@ function AdminUnitsIndex({ units, areas, unitTypes, filters }) {
 													role !== "agent" && /* @__PURE__ */ jsxs("button", {
 														type: "button",
 														onClick: () => deleteUnit(unit),
-														className: "px-2.5 py-1.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 rounded-xl transition-all border border-red-200/70 flex items-center gap-1 active:scale-95",
+														className: "px-2.5 py-1.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 rounded-xl transition-all border border-red-200/70 flex items-center gap-1 active:scale-95 shadow-xs",
 														title: trans("delete"),
 														children: [/* @__PURE__ */ jsx("svg", {
 															className: "w-3.5 h-3.5",
@@ -10327,35 +12508,70 @@ function AdminUnitsIndex({ units, areas, unitTypes, filters }) {
 								}, unit.id);
 							}) : /* @__PURE__ */ jsx("tr", { children: /* @__PURE__ */ jsx("td", {
 								colSpan: colCount,
-								className: "px-4 py-12 text-center text-muted",
-								children: trans("no_data")
+								className: "px-6 py-20 text-center",
+								children: /* @__PURE__ */ jsxs("div", {
+									className: "flex flex-col items-center justify-center text-secondary-400",
+									children: [
+										/* @__PURE__ */ jsx("svg", {
+											className: "w-16 h-16 mb-4 text-secondary-300",
+											fill: "none",
+											viewBox: "0 0 24 24",
+											stroke: "currentColor",
+											children: /* @__PURE__ */ jsx("path", {
+												strokeLinecap: "round",
+												strokeLinejoin: "round",
+												strokeWidth: 1,
+												d: "M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+											})
+										}),
+										/* @__PURE__ */ jsx("p", {
+											className: "text-base font-bold text-secondary-700",
+											children: trans("no_data")
+										}),
+										/* @__PURE__ */ jsx("p", {
+											className: "text-sm mt-1",
+											children: isRtl ? "لا توجد وحدات متاحة أو مطابقة لبحثك." : "No units available matching your search."
+										})
+									]
+								})
 							}) })
 						})]
 					})
 				})
 			}),
 			showAdjustPointsModal && /* @__PURE__ */ jsx("div", {
-				className: "fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4",
+				className: "fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 transition-opacity",
 				onClick: () => setShowAdjustPointsModal(false),
 				children: /* @__PURE__ */ jsxs("div", {
-					className: "bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 border border-secondary-200",
+					className: "bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 border border-secondary-100 transform transition-all scale-100",
 					onClick: (e) => e.stopPropagation(),
 					children: [/* @__PURE__ */ jsxs("div", {
-						className: "flex items-center justify-between mb-4",
+						className: "flex items-center justify-between mb-6",
 						children: [/* @__PURE__ */ jsx("h3", {
-							className: "text-base font-bold text-secondary-950",
+							className: "text-xl font-black text-secondary-950",
 							children: trans("adjust_points")
 						}), /* @__PURE__ */ jsx("button", {
 							onClick: () => setShowAdjustPointsModal(false),
-							className: "text-secondary-400 hover:text-secondary-950 text-xl font-bold leading-none",
-							children: "×"
+							className: "text-secondary-400 hover:text-secondary-950 p-2 rounded-full hover:bg-[#F5F5F5] transition-colors",
+							children: /* @__PURE__ */ jsx("svg", {
+								className: "w-6 h-6",
+								fill: "none",
+								viewBox: "0 0 24 24",
+								stroke: "currentColor",
+								children: /* @__PURE__ */ jsx("path", {
+									strokeLinecap: "round",
+									strokeLinejoin: "round",
+									strokeWidth: 2,
+									d: "M6 18L18 6M6 6l12 12"
+								})
+							})
 						})]
 					}), /* @__PURE__ */ jsxs("form", {
 						onSubmit: handleAdjustPoints,
-						className: "space-y-4",
+						className: "space-y-6",
 						children: [/* @__PURE__ */ jsxs("div", { children: [
 							/* @__PURE__ */ jsxs("label", {
-								className: "block text-xs font-bold text-secondary-950 mb-1",
+								className: "block text-sm font-bold text-secondary-900 mb-2",
 								children: [trans("priority_points"), " *"]
 							}),
 							/* @__PURE__ */ jsx("input", {
@@ -10363,24 +12579,24 @@ function AdminUnitsIndex({ units, areas, unitTypes, filters }) {
 								min: "0",
 								value: pointsData.points,
 								onChange: (e) => setPointsData("points", e.target.value),
-								className: "w-full px-3 py-2 bg-surface border border-secondary-200 rounded-xl text-sm font-medium focus-visible:ring-2 focus-visible:ring-primary-900/20 focus-visible:border-primary-900 focus-visible:outline-none",
+								className: inputClasses,
 								required: true
 							}),
 							pointsErrors.points && /* @__PURE__ */ jsx("p", {
-								className: "text-xs text-error mt-1",
+								className: "text-xs text-red-500 mt-2 font-medium",
 								children: pointsErrors.points
 							})
 						] }), /* @__PURE__ */ jsxs("div", {
-							className: "flex gap-2 justify-end pt-2",
+							className: "flex gap-3 justify-end pt-2",
 							children: [/* @__PURE__ */ jsx("button", {
 								type: "button",
 								onClick: () => setShowAdjustPointsModal(false),
-								className: "px-4 py-2 bg-surface text-secondary-700 rounded-xl text-xs font-bold hover:bg-secondary-200 transition-colors",
+								className: "px-6 py-3 bg-[#F5F5F5] text-secondary-800 rounded-xl text-sm font-bold hover:bg-[#E4E4E4] transition-colors active:scale-[0.97]",
 								children: trans("cancel")
 							}), /* @__PURE__ */ jsx("button", {
 								type: "submit",
 								disabled: pointsProcessing,
-								className: "px-4 py-2 bg-primary-900 text-white rounded-xl text-xs font-bold hover:bg-primary-950 transition-colors disabled:opacity-50 shadow-xs",
+								className: "px-6 py-3 bg-[#CC0000] text-white rounded-xl text-sm font-bold hover:bg-[#B00000] transition-colors disabled:opacity-50 shadow-md active:scale-[0.97]",
 								children: pointsProcessing ? trans("loading") : trans("save")
 							})]
 						})]
@@ -11357,6 +13573,14 @@ function Header({ compareCount = 0 }) {
 	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
 	const [menuOpen, setMenuOpen] = useState(false);
+	useEffect(() => {
+		if (!menuOpen) return;
+		function handleKeyDown(e) {
+			if (e.key === "Escape") setMenuOpen(false);
+		}
+		window.addEventListener("keydown", handleKeyDown);
+		return () => window.removeEventListener("keydown", handleKeyDown);
+	}, [menuOpen]);
 	const logoSrc = settings?.site_logo ? settings.site_logo.startsWith("http") || settings.site_logo.startsWith("/storage") ? settings.site_logo : `/storage/${settings.site_logo}` : "/icon.webp";
 	const logoAlt = `${trans("app_name")} - ${isRtl ? "موقع عقارات عائلية" : "Family Real Estate"}`;
 	const isActive = (href) => {
@@ -11377,12 +13601,15 @@ function Header({ compareCount = 0 }) {
 					top: 0,
 					behavior: "smooth"
 				});
+				return;
 			}
 		}
+		e.preventDefault();
+		router.visit(locHref);
 	};
 	return /* @__PURE__ */ jsxs("header", {
 		dir: isRtl ? "rtl" : "ltr",
-		className: "sticky top-0 z-50 bg-white/90 backdrop-blur-md shadow-sticky transition-all duration-300",
+		className: "sticky top-0 z-50 bg-white/95 backdrop-blur-md md:backdrop-blur-xl shadow-sm transition-colors duration-300 border-b border-border",
 		role: "banner",
 		children: [/* @__PURE__ */ jsxs("div", {
 			className: "max-w-container mx-auto px-4 flex items-center justify-between h-16",
@@ -11412,9 +13639,9 @@ function Header({ compareCount = 0 }) {
 						return /* @__PURE__ */ jsxs(Link, {
 							href: localizedPath(item.href, locale),
 							onClick: (e) => handleNavClick(e, item.href),
-							className: `text-sm transition-colors py-1 border-b-2 flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded ${active ? "text-primary-900 border-primary-900 font-semibold" : "text-secondary-800 border-transparent hover:text-primary-900 hover:border-primary-900/50"}`,
+							className: `text-sm transition-colors duration-200 py-2 px-4 rounded-xl flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-900/10 ${active ? "text-primary-900 bg-primary-50 font-bold" : "text-secondary-800 hover:text-primary-900 hover:bg-surface-hover font-medium"}`,
 							children: [trans(item.key), item.key === "compare" && compareCount > 0 && /* @__PURE__ */ jsx("span", {
-								className: "bg-primary-900 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center mb-0.5",
+								className: "bg-primary-900 text-white text-xs font-bold rounded-full w-4.5 h-4.5 flex items-center justify-center mb-0.5",
 								"aria-label": `${compareCount} ${isRtl ? "عناصر للمقارنة" : "items to compare"}`,
 								children: compareCount
 							})]
@@ -11425,12 +13652,12 @@ function Header({ compareCount = 0 }) {
 					className: "flex items-center gap-3",
 					children: [/* @__PURE__ */ jsx("a", {
 						href: `/locale/${isRtl ? "en" : "ar"}?path=${encodeURIComponent(typeof url === "string" && url ? url : `/${locale}`)}`,
-						className: "text-xs font-medium text-secondary-700 hover:text-primary-900 border border-secondary-200 rounded-lg px-2.5 py-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
+						className: "text-xs font-medium text-secondary-700 hover:text-primary-900 border border-secondary-200 rounded-lg px-2.5 py-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 min-h-[36px] flex items-center",
 						"aria-label": isRtl ? "تغيير اللغة إلى الإنجليزية" : "Switch language to Arabic",
 						children: isRtl ? trans("lang_en") : trans("lang_ar")
 					}), /* @__PURE__ */ jsx("button", {
 						onClick: () => setMenuOpen((prev) => !prev),
-						className: "md:hidden text-secondary-700 hover:text-primary-900 p-1 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
+						className: "md:hidden text-secondary-800 hover:text-primary-900 bg-surface hover:bg-surface-hover p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-900/10 transition-colors",
 						"aria-label": trans("toggle_menu"),
 						"aria-expanded": menuOpen,
 						"aria-controls": "mobile-navigation",
@@ -11456,13 +13683,13 @@ function Header({ compareCount = 0 }) {
 			]
 		}), menuOpen && /* @__PURE__ */ jsx("nav", {
 			id: "mobile-navigation",
-			className: "md:hidden bg-white border-t border-secondary-100 px-4 py-4 flex flex-col gap-3",
+			className: "md:hidden absolute top-full left-0 right-0 bg-white shadow-xl border-t border-border rounded-b-3xl px-4 py-4 flex flex-col gap-2 origin-top animate-fade-in",
 			"aria-label": isRtl ? "تنقل الهاتف" : "Mobile Navigation",
 			children: NAV_ITEMS.map((item) => {
 				const active = isActive(item.href);
 				return /* @__PURE__ */ jsxs(Link, {
 					href: localizedPath(item.href, locale),
-					className: `block py-2 px-3 text-base rounded-lg transition-colors flex items-center justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${active ? "text-primary-900 bg-primary-50 font-medium" : "text-secondary-800 hover:text-primary-900 hover:bg-secondary-50"}`,
+					className: `block py-3 px-4 text-sm rounded-xl transition-colors duration-200 flex items-center justify-between min-h-[44px] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-900/10 ${active ? "text-primary-900 bg-primary-50 font-bold" : "text-secondary-900 hover:text-primary-900 hover:bg-surface-hover font-medium"}`,
 					onClick: (e) => handleNavClick(e, item.href),
 					children: [trans(item.key), item.key === "compare" && compareCount > 0 && /* @__PURE__ */ jsx("span", {
 						className: "bg-primary-900 text-white text-xs font-bold rounded-full px-2 py-0.5",
@@ -11474,49 +13701,57 @@ function Header({ compareCount = 0 }) {
 	});
 }
 //#endregion
-//#region resources/js/Hooks/useCompare.js
+//#region resources/js/Contexts/CompareContext.jsx
 var COMPARE_KEY_PREFIX = "family_home_compare_list_";
 var MAX_COMPARE_ITEMS = 4;
-function getCompareKey(type = "unit") {
+function getCompareKey(type) {
 	return `${COMPARE_KEY_PREFIX}${type}`;
 }
-function getStoredCompareList(type = "unit") {
+function getStoredCompareList(type) {
 	if (typeof window === "undefined") return [];
 	try {
 		const key = getCompareKey(type);
-		let stored = localStorage.getItem(key);
+		let stored = safeStorage.getItem(key);
 		if (!stored && type === "unit") {
-			const legacy = localStorage.getItem("family_home_compare_list");
+			const legacy = safeStorage.getItem("family_home_compare_list");
 			if (legacy) {
-				localStorage.setItem(key, legacy);
-				localStorage.removeItem("family_home_compare_list");
+				safeStorage.setItem(key, legacy);
+				safeStorage.removeItem("family_home_compare_list");
 				stored = legacy;
 			}
 		}
 		return stored ? JSON.parse(stored) : [];
-	} catch (e) {
-		console.error("Failed to parse compare list", e);
+	} catch {
 		return [];
 	}
 }
-function useCompare(type = "unit") {
-	const [compareList, setCompareList] = useState(() => getStoredCompareList(type));
+var CompareContext = createContext(null);
+function CompareProvider({ children }) {
+	const [lists, setLists] = useState({});
+	const syncType = useCallback((type) => {
+		setLists((prev) => ({
+			...prev,
+			[type]: getStoredCompareList(type)
+		}));
+	}, []);
 	useEffect(() => {
-		setCompareList(getStoredCompareList(type));
 		const handleSync = (e) => {
-			if (!e.detail || e.detail.type === type) setCompareList(getStoredCompareList(type));
+			const type = e.detail?.type;
+			if (type) syncType(type);
+		};
+		const handleStorage = (e) => {
+			if (!e.key || !e.key.startsWith(COMPARE_KEY_PREFIX)) return;
+			const type = e.key.slice(25);
+			syncType(type);
 		};
 		window.addEventListener("compareListUpdated", handleSync);
-		const handleStorage = (e) => {
-			if (e.key === getCompareKey(type)) setCompareList(getStoredCompareList(type));
-		};
 		window.addEventListener("storage", handleStorage);
 		return () => {
 			window.removeEventListener("compareListUpdated", handleSync);
 			window.removeEventListener("storage", handleStorage);
 		};
-	}, [type]);
-	const toggleCompare = (id) => {
+	}, [syncType]);
+	const toggleCompare = useCallback((type, id) => {
 		const currentList = getStoredCompareList(type);
 		let newList;
 		if (currentList.includes(id)) newList = currentList.filter((item) => item !== id);
@@ -11524,19 +13759,45 @@ function useCompare(type = "unit") {
 			if (currentList.length >= MAX_COMPARE_ITEMS) return false;
 			newList = [...currentList, id];
 		}
-		localStorage.setItem(getCompareKey(type), JSON.stringify(newList));
-		window.dispatchEvent(new CustomEvent("compareListUpdated", { detail: { type } }));
+		safeStorage.setItem(getCompareKey(type), JSON.stringify(newList));
+		setLists((prev) => ({
+			...prev,
+			[type]: newList
+		}));
+		if (typeof window !== "undefined") try {
+			window.dispatchEvent(new CustomEvent("compareListUpdated", { detail: { type } }));
+		} catch {}
 		return true;
-	};
-	const clearCompare = () => {
-		localStorage.removeItem(getCompareKey(type));
-		window.dispatchEvent(new CustomEvent("compareListUpdated", { detail: { type } }));
-	};
+	}, []);
+	const clearCompare = useCallback((type) => {
+		safeStorage.removeItem(getCompareKey(type));
+		setLists((prev) => ({
+			...prev,
+			[type]: []
+		}));
+		if (typeof window !== "undefined") try {
+			window.dispatchEvent(new CustomEvent("compareListUpdated", { detail: { type } }));
+		} catch {}
+	}, []);
+	const getList = useCallback((type) => lists[type] ?? getStoredCompareList(type), [lists]);
+	return /* @__PURE__ */ jsx(CompareContext.Provider, {
+		value: {
+			getList,
+			toggleCompare,
+			clearCompare,
+			maxItems: MAX_COMPARE_ITEMS
+		},
+		children
+	});
+}
+function useCompare(type = "unit") {
+	const ctx = useContext(CompareContext);
+	if (!ctx) throw new Error("useCompare must be used within a CompareProvider");
 	return {
-		compareList,
-		toggleCompare,
-		clearCompare,
-		maxItems: MAX_COMPARE_ITEMS
+		compareList: ctx.getList(type),
+		toggleCompare: (id) => ctx.toggleCompare(type, id),
+		clearCompare: () => ctx.clearCompare(type),
+		maxItems: ctx.maxItems
 	};
 }
 //#endregion
@@ -11692,18 +13953,18 @@ function Footer() {
 	};
 	return /* @__PURE__ */ jsxs("footer", {
 		dir: isRtl ? "rtl" : "ltr",
-		className: "bg-secondary-950 text-white",
+		className: "bg-secondary-950 text-white pt-16 pb-6 md:pt-20",
 		children: [
 			/* @__PURE__ */ jsx("div", {
-				className: "max-w-container mx-auto px-4 py-12",
+				className: "max-w-container mx-auto px-4",
 				children: /* @__PURE__ */ jsxs("div", {
-					className: "grid grid-cols-1 md:grid-cols-3 gap-8",
+					className: "grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-12 mb-16",
 					children: [
 						/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("h3", {
-							className: "text-sm font-semibold text-secondary-300 uppercase tracking-wider mb-4",
+							className: "text-base font-bold text-white tracking-wide mb-6",
 							children: trans("quick_links")
 						}), /* @__PURE__ */ jsx("ul", {
-							className: "space-y-2.5",
+							className: "space-y-3.5",
 							children: QUICK_LINKS.map((item) => /* @__PURE__ */ jsx("li", { children: /* @__PURE__ */ jsx(Link, {
 								href: localizedPath(item.href, locale),
 								onClick: (e) => handleNavClick(e, item.href),
@@ -11712,10 +13973,10 @@ function Footer() {
 							}) }, item.key))
 						})] }),
 						/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("h3", {
-							className: "text-sm font-semibold text-secondary-300 uppercase tracking-wider mb-4",
+							className: "text-base font-bold text-white tracking-wide mb-6",
 							children: trans("contact_info")
 						}), /* @__PURE__ */ jsxs("div", {
-							className: "space-y-2.5 text-sm text-secondary-400",
+							className: "space-y-4 text-sm text-secondary-300",
 							children: [
 								settings?.company_phone && /* @__PURE__ */ jsxs("a", {
 									href: `tel:${settings.company_phone.replace(/\s+/g, "")}`,
@@ -11743,11 +14004,7 @@ function Footer() {
 									rel: "noopener noreferrer",
 									className: "flex items-center gap-2 hover:text-green-400 transition-colors w-fit",
 									title: trans("whatsapp_chat"),
-									children: [/* @__PURE__ */ jsx("svg", {
-										className: "w-4 h-4 shrink-0 text-green-500 fill-current",
-										viewBox: "0 0 24 24",
-										children: /* @__PURE__ */ jsx("path", { d: "M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" })
-									}), /* @__PURE__ */ jsx("span", {
+									children: [/* @__PURE__ */ jsx(WhatsAppIcon$1, { className: "w-4 h-4 shrink-0 text-green-500 fill-current" }), /* @__PURE__ */ jsx("span", {
 										dir: "ltr",
 										children: settings.company_whatsapp
 									})]
@@ -11794,7 +14051,7 @@ function Footer() {
 							]
 						})] }),
 						/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("h3", {
-							className: "text-sm font-semibold text-secondary-300 uppercase tracking-wider mb-4",
+							className: "text-base font-bold text-white tracking-wide mb-6",
 							children: trans("follow_us")
 						}), /* @__PURE__ */ jsx("div", {
 							className: "flex gap-3",
@@ -11802,7 +14059,7 @@ function Footer() {
 								href: social.url,
 								target: "_blank",
 								rel: "noopener noreferrer",
-								className: "w-9 h-9 rounded-full bg-secondary-800 hover:bg-primary-900 flex items-center justify-center transition-colors",
+								className: "w-10 h-10 rounded-xl bg-white/5 hover:bg-primary-900 border border-white/10 hover:border-primary-900 flex items-center justify-center transition-all duration-300 hover:-translate-y-1",
 								"aria-label": social.label,
 								children: /* @__PURE__ */ jsx("svg", {
 									className: "w-4.5 h-4.5 text-white fill-current",
@@ -11815,9 +14072,9 @@ function Footer() {
 				})
 			}),
 			/* @__PURE__ */ jsx("div", {
-				className: "border-t border-secondary-800 py-4",
+				className: "border-t border-white/10 mt-8 pt-8 pb-4",
 				children: /* @__PURE__ */ jsxs("p", {
-					className: "text-center text-xs text-secondary-300",
+					className: "text-center text-sm font-medium text-white/50",
 					children: [
 						"© ",
 						(/* @__PURE__ */ new Date()).getFullYear(),
@@ -11834,7 +14091,7 @@ function Footer() {
 }
 //#endregion
 //#region resources/js/Components/UI/SeoHead.jsx
-function SeoHead({ title, description, keywords, ogImage, ogType = "website", canonical, jsonLd, hreflang }) {
+function SeoHead({ title, description, keywords, ogImage, ogType = "website", canonical, jsonLd, hreflang, robots }) {
 	const { locale, seo_page, appUrl, seo_meta } = usePage().props;
 	const { url } = usePage();
 	const siteName = useTrans(locale)("site_title");
@@ -11843,9 +14100,17 @@ function SeoHead({ title, description, keywords, ogImage, ogType = "website", ca
 	const pathWithoutLocale = cleanPath.replace(/^\/(ar|en)(\/|$)/, "/");
 	const baseUrl = appUrl || (typeof window !== "undefined" ? window.location.origin : "");
 	const pageSeo = seo_page || null;
-	const finalTitle = pageSeo ? isRtl ? pageSeo.meta_title_ar || title : pageSeo.meta_title_en || title : title;
-	const finalDescription = pageSeo ? isRtl ? pageSeo.meta_description_ar || description : pageSeo.meta_description_en || description : description;
-	const finalKeywords = pageSeo ? isRtl ? Array.isArray(pageSeo.meta_keywords_ar) && pageSeo.meta_keywords_ar.length > 0 ? pageSeo.meta_keywords_ar.join(", ") : keywords : Array.isArray(pageSeo.meta_keywords_en) && pageSeo.meta_keywords_en.length > 0 ? pageSeo.meta_keywords_en.join(", ") : keywords : keywords;
+	const cleanMetaDescription = (text) => {
+		if (!text) return "";
+		let clean = String(text).replace(/<\/?[^>]+(>|$)/g, "").replace(/\*{1,3}([^*]*)\*{1,3}/g, "$1").replace(/#{1,6}\s*/g, "").replace(/^[\s\-\*\+]\s+/gm, "").replace(/\[([^\]]+)\]\([^\)]+\)/g, "$1").replace(/`{1,3}[^`]*`{1,3}/g, "").replace(/_{1,2}([^_]*)_{1,2}/g, "$1").replace(/[\r\n]+/g, " ").replace(/\s+/g, " ").trim();
+		return clean.length > 160 ? clean.substring(0, 157) + "..." : clean;
+	};
+	const finalTitle = pageSeo ? isRtl ? pageSeo.meta_title_ar || title : pageSeo.meta_title_en || title : seo_meta?.title || title;
+	const finalDescription = cleanMetaDescription(pageSeo ? isRtl ? pageSeo.meta_description_ar || description : pageSeo.meta_description_en || description : seo_meta?.description || description);
+	const rawKeywords = keywords || seo_meta?.keywords || (pageSeo ? isRtl ? pageSeo.meta_keywords_ar : pageSeo.meta_keywords_en : null);
+	const keywordsString = Array.isArray(rawKeywords) ? rawKeywords.filter(Boolean).join(", ") : typeof rawKeywords === "string" ? rawKeywords : null;
+	const hasFilterQuery = typeof url === "string" && url.includes("?") && /[?&](price_|size_|features|transaction|search|finishing_type|payment_method)/.test(url);
+	const finalRobots = robots || seo_meta?.robots || (hasFilterQuery ? "noindex, follow" : null);
 	const finalCanonical = (canonical || seo_meta?.canonical || (baseUrl ? `${baseUrl}${cleanPath}` : cleanPath)).split("?")[0];
 	const urlAr = hreflang?.ar || seo_meta?.hreflang?.ar || baseUrl + (pathWithoutLocale === "/" ? "/ar" : `/ar${pathWithoutLocale === "/" ? "" : pathWithoutLocale}`);
 	const urlEn = hreflang?.en || seo_meta?.hreflang?.en || baseUrl + (pathWithoutLocale === "/" ? "/en" : `/en${pathWithoutLocale === "/" ? "" : pathWithoutLocale}`);
@@ -11858,15 +14123,20 @@ function SeoHead({ title, description, keywords, ogImage, ogType = "website", ca
 	}
 	return /* @__PURE__ */ jsxs(Head, { children: [
 		finalTitle && /* @__PURE__ */ jsx("title", { children: finalTitle }),
+		finalRobots && /* @__PURE__ */ jsx("meta", {
+			"head-key": "robots",
+			name: "robots",
+			content: finalRobots
+		}),
 		finalDescription && /* @__PURE__ */ jsx("meta", {
 			"head-key": "description",
 			name: "description",
 			content: finalDescription
 		}),
-		finalKeywords && /* @__PURE__ */ jsx("meta", {
+		keywordsString && /* @__PURE__ */ jsx("meta", {
 			"head-key": "keywords",
 			name: "keywords",
-			content: finalKeywords
+			content: keywordsString
 		}),
 		finalTitle && /* @__PURE__ */ jsx("meta", {
 			"head-key": "og:title",
@@ -11889,26 +14159,27 @@ function SeoHead({ title, description, keywords, ogImage, ogType = "website", ca
 			content: siteName
 		}),
 		finalOgImage && /* @__PURE__ */ jsx("meta", {
+			"head-key": "og:image",
 			property: "og:image",
 			content: finalOgImage
 		}),
-		finalOgImage && /* @__PURE__ */ jsx("meta", {
-			property: "og:image:secure_url",
-			content: finalOgImage
-		}),
 		/* @__PURE__ */ jsx("meta", {
+			"head-key": "og:url",
 			property: "og:url",
 			content: finalCanonical
 		}),
 		/* @__PURE__ */ jsx("meta", {
+			"head-key": "twitter:card",
 			name: "twitter:card",
 			content: "summary_large_image"
 		}),
 		finalTitle && /* @__PURE__ */ jsx("meta", {
+			"head-key": "twitter:title",
 			name: "twitter:title",
 			content: finalTitle
 		}),
 		finalDescription && /* @__PURE__ */ jsx("meta", {
+			"head-key": "twitter:description",
 			name: "twitter:description",
 			content: finalDescription
 		}),
@@ -11941,6 +14212,7 @@ function SeoHead({ title, description, keywords, ogImage, ogType = "website", ca
 			href: urlAr
 		}),
 		jsonLd && /* @__PURE__ */ jsx("script", {
+			"head-key": "jsonld",
 			type: "application/ld+json",
 			children: JSON.stringify(jsonLd)
 		})
@@ -11967,29 +14239,43 @@ function About({ page }) {
 			}),
 			/* @__PURE__ */ jsx(Header, {}),
 			/* @__PURE__ */ jsxs("main", {
-				className: "flex-1 max-w-3xl mx-auto px-4 py-12 w-full",
+				id: "main-content",
+				tabIndex: "-1",
+				className: "flex-1 max-w-4xl mx-auto px-4 py-12 sm:py-20 w-full focus:outline-none",
 				children: [
-					/* @__PURE__ */ jsx("h1", {
-						className: "text-3xl font-bold text-secondary-950 mb-8",
-						children: trans("about")
+					/* @__PURE__ */ jsxs("div", {
+						className: "text-center mb-12",
+						children: [/* @__PURE__ */ jsx("h1", {
+							className: "text-4xl sm:text-5xl font-black text-secondary-950 tracking-tight",
+							children: trans("about")
+						}), /* @__PURE__ */ jsx("div", { className: "w-20 h-1.5 bg-primary-900 rounded-full mx-auto mt-6" })]
 					}),
 					images.length > 0 && /* @__PURE__ */ jsx("div", {
-						className: "grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8",
-						children: images.map((img, i) => /* @__PURE__ */ jsx("img", {
-							src: `/storage/${img}`,
-							alt: trans("about_image"),
-							width: 800,
-							height: 400,
-							className: "w-full h-48 object-cover rounded-xl",
-							loading: "lazy"
+						className: "grid grid-cols-1 sm:grid-cols-2 gap-6 mb-12",
+						children: images.map((img, i) => /* @__PURE__ */ jsx("div", {
+							className: "rounded-3xl overflow-hidden border border-secondary-100 shadow-sm relative group",
+							children: /* @__PURE__ */ jsx("img", {
+								src: `/storage/${img}`,
+								alt: trans("about_image"),
+								width: 800,
+								height: 400,
+								className: "w-full h-64 object-cover group-hover:scale-105 transition-transform duration-500",
+								loading: "lazy"
+							})
 						}, i))
 					}),
-					content ? /* @__PURE__ */ jsx("div", {
-						className: "prose prose-sm sm:prose-base max-w-none text-secondary-800 leading-relaxed",
-						dangerouslySetInnerHTML: { __html: content }
-					}) : /* @__PURE__ */ jsx("p", {
-						className: "text-muted text-sm",
-						children: trans("no_data")
+					/* @__PURE__ */ jsx("div", {
+						className: "bg-white rounded-[2rem] shadow-sm border border-secondary-100 p-8 sm:p-12",
+						children: content ? /* @__PURE__ */ jsx("div", {
+							className: "prose prose-base sm:prose-lg max-w-none text-secondary-800 leading-loose prose-headings:font-black prose-headings:text-secondary-950 prose-a:text-primary-900 prose-a:font-bold prose-img:rounded-3xl",
+							dangerouslySetInnerHTML: { __html: content }
+						}) : /* @__PURE__ */ jsx("div", {
+							className: "text-center py-10",
+							children: /* @__PURE__ */ jsx("p", {
+								className: "text-secondary-500 text-sm font-medium",
+								children: trans("no_data")
+							})
+						})
 					})
 				]
 			}),
@@ -11998,8 +14284,31 @@ function About({ page }) {
 	});
 }
 //#endregion
+//#region resources/js/Utils/contact.js
+/**
+* Resolves contact information (WhatsApp and Phone) for an agent/user,
+* falling back to site settings if the agent did not provide contact numbers.
+*
+* @param {Object|null} agent - The user/agent object (e.g., unit.user, project.user, or agent)
+* @param {Object|null} settings - The global site settings (page.props.settings)
+* @returns {{ whatsapp: string, phone: string, rawWhatsapp: string, rawPhone: string }}
+*/
+function getAgentContacts(agent, settings = {}) {
+	const agentWhatsapp = agent?.whatsapp || agent?.profile?.whatsapp || null;
+	const agentPhone = agent?.phone || agent?.profile?.phone || null;
+	const siteWhatsapp = settings?.company_whatsapp || settings?.whatsapp_number || settings?.phone || null;
+	const sitePhone = settings?.phone || settings?.company_phone || settings?.company_whatsapp || null;
+	const finalWhatsapp = (agentWhatsapp || siteWhatsapp || "201000000000").toString();
+	const finalPhone = (agentPhone || sitePhone || finalWhatsapp || "201000000000").toString();
+	return {
+		whatsapp: finalWhatsapp.replace(/[^0-9]/g, ""),
+		rawWhatsapp: finalWhatsapp,
+		phone: finalPhone.replace(/[^0-9+]/g, ""),
+		rawPhone: finalPhone
+	};
+}
+//#endregion
 //#region resources/js/Components/UI/UnitCard.jsx
-var PLACEHOLDER$5 = "/images/fallback.webp";
 function SkeletonCard$2() {
 	return /* @__PURE__ */ jsxs("div", {
 		className: "bg-white rounded-2xl shadow-card overflow-hidden border border-secondary-100/50",
@@ -12008,20 +14317,12 @@ function SkeletonCard$2() {
 			children: [
 				/* @__PURE__ */ jsx("div", { className: "skeleton h-5 w-3/4 rounded" }),
 				/* @__PURE__ */ jsx("div", { className: "skeleton h-4 w-1/2 rounded" }),
-				/* @__PURE__ */ jsxs("div", {
-					className: "flex gap-3",
-					children: [
-						/* @__PURE__ */ jsx("div", { className: "skeleton h-4 w-16 rounded" }),
-						/* @__PURE__ */ jsx("div", { className: "skeleton h-4 w-16 rounded" }),
-						/* @__PURE__ */ jsx("div", { className: "skeleton h-4 w-16 rounded" })
-					]
-				}),
-				/* @__PURE__ */ jsx("div", { className: "skeleton h-10 w-full rounded-xl mt-4" })
+				/* @__PURE__ */ jsx("div", { className: "skeleton h-6 w-1/3 rounded" })
 			]
 		})]
 	});
 }
-function UnitCard({ unit, loading = false }) {
+function UnitCard({ unit, loading = false, priority = false }) {
 	const { locale, settings } = usePage().props;
 	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
@@ -12029,21 +14330,17 @@ function UnitCard({ unit, loading = false }) {
 	if (loading) return /* @__PURE__ */ jsx(SkeletonCard$2, {});
 	if (!unit) return null;
 	const mainImage = unit?.images?.find((img) => img.is_main || img.is_primary) || unit?.images?.[0];
-	const thumbnail = mainImage?.thumb_url || mainImage?.url || (mainImage?.path ? mainImage.path.startsWith("http") || mainImage.path.startsWith("/") ? mainImage.path : `/storage/${mainImage.path}` : PLACEHOLDER$5);
-	const isFeatured = (unit?.priority_points ?? 0) > 0;
+	const thumbnail = getStorageUrl(mainImage?.thumb_url || mainImage?.url || mainImage?.path, PLACEHOLDER$2);
 	const isCompared = compareList.includes(unit?.id);
-	const uploaderWhatsapp = unit?.project?.user?.profile?.whatsapp || unit?.project?.user?.whatsapp || unit?.user?.profile?.whatsapp || unit?.user?.whatsapp;
-	const defaultWhatsapp = settings?.company_whatsapp || settings?.whatsapp_number || settings?.phone || "201000000000";
-	const whatsappPhone = uploaderWhatsapp || defaultWhatsapp;
-	const whatsappMsg = encodeURIComponent(trans("unit_whatsapp_inquiry", { name: unit?.name || "" }));
-	const whatsappLink = `https://wa.me/${whatsappPhone.replace(/[^0-9]/g, "")}?text=${whatsappMsg}`;
+	const whatsappLink = `https://wa.me/${getAgentContacts(unit?.user || unit?.project?.user, settings).whatsapp}?text=${encodeURIComponent(trans("unit_whatsapp_inquiry", { name: unit?.name || "" }))}`;
 	const areaName = unit.area?.name || (isRtl ? "مصر" : "Egypt");
 	const imageAlt = unit.alt_text || `${unit.name || (isRtl ? "عقار" : "Property")} ${isRtl ? "في" : "in"} ${areaName} - ${trans("app_name")}`;
+	const unitSlug = isRtl && unit.slug_ar ? unit.slug_ar : unit.slug_en || unit.slug || unit.id;
 	return /* @__PURE__ */ jsxs("article", {
 		dir: isRtl ? "rtl" : "ltr",
-		className: "bg-white rounded-2xl shadow-card overflow-hidden hover:shadow-2xl transition-all duration-300 group border border-secondary-100/70 hover:-translate-y-1.5 flex flex-col justify-between",
+		className: "bg-white rounded-2xl shadow-card overflow-hidden hover:shadow-2xl transition-[transform,box-shadow] duration-300 group border border-secondary-100/70 hover:-translate-y-1.5 flex flex-col justify-between",
 		children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsxs(Link, {
-			href: localizedPath(`/units/${unit.slug}`, locale),
+			href: localizedPath(`/units/${unitSlug}`, locale),
 			className: "block relative overflow-hidden aspect-[4/3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
 			children: [
 				/* @__PURE__ */ jsx(OptimizedImage, {
@@ -12052,24 +14349,16 @@ function UnitCard({ unit, loading = false }) {
 					width: 400,
 					height: 300,
 					lazy: true,
-					fallbackSrc: PLACEHOLDER$5,
+					fallbackSrc: PLACEHOLDER$2,
 					className: "w-full h-full object-cover group-hover:scale-108 transition-transform duration-700 ease-out"
 				}),
 				/* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-gradient-to-t from-secondary-950/60 via-transparent to-black/20 opacity-80 group-hover:opacity-60 transition-opacity" }),
-				/* @__PURE__ */ jsxs("div", {
+				/* @__PURE__ */ jsx("div", {
 					className: "absolute top-3 start-3 flex flex-wrap gap-1.5 z-10",
-					children: [isFeatured && /* @__PURE__ */ jsxs("span", {
-						className: "bg-gradient-to-r from-amber-500 to-amber-600 text-white text-[11px] font-bold px-3 py-1 rounded-full shadow-md flex items-center gap-1",
-						children: [/* @__PURE__ */ jsx("svg", {
-							className: "w-3 h-3 fill-current text-white",
-							viewBox: "0 0 20 20",
-							"aria-hidden": "true",
-							children: /* @__PURE__ */ jsx("path", { d: "M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" })
-						}), trans("featured")]
-					}), /* @__PURE__ */ jsx("span", {
-						className: "bg-secondary-900/80 backdrop-blur-md text-white text-[11px] font-semibold px-2.5 py-1 rounded-full shadow-sm",
+					children: /* @__PURE__ */ jsx("span", {
+						className: "bg-secondary-900/80 backdrop-blur-md text-white text-xs font-semibold px-2.5 py-1 rounded-full shadow-sm",
 						children: trans(unit.transaction === "rent" ? "rent" : "sale")
-					})]
+					})
 				}),
 				unit.area?.name && /* @__PURE__ */ jsxs("span", {
 					className: "absolute bottom-3 start-3 text-white text-xs font-medium bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded-md flex items-center gap-1",
@@ -12096,7 +14385,7 @@ function UnitCard({ unit, loading = false }) {
 			className: "p-5",
 			children: [
 				/* @__PURE__ */ jsx(Link, {
-					href: localizedPath(`/units/${unit.slug}`, locale),
+					href: localizedPath(`/units/${unitSlug}`, locale),
 					className: "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded",
 					children: /* @__PURE__ */ jsx("h2", {
 						className: "text-base font-bold text-secondary-950 truncate mb-1.5 group-hover:text-primary-900 transition-colors",
@@ -12180,7 +14469,7 @@ function UnitCard({ unit, loading = false }) {
 				},
 				"aria-label": `${trans("compare")} ${unit.name}`,
 				"aria-pressed": isCompared,
-				className: `flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${isCompared ? "text-primary-900 bg-primary-50 border border-primary-200" : "text-secondary-600 bg-secondary-50 hover:bg-secondary-100 hover:text-secondary-900"}`,
+				className: `flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${isCompared ? "text-primary-900 bg-primary-50 border border-primary-200" : "text-secondary-600 bg-secondary-50 hover:bg-secondary-100 hover:text-secondary-900"}`,
 				children: [/* @__PURE__ */ jsx("svg", {
 					className: "w-3.5 h-3.5",
 					fill: "none",
@@ -12200,26 +14489,23 @@ function UnitCard({ unit, loading = false }) {
 				rel: "noopener noreferrer",
 				onClick: (e) => e.stopPropagation(),
 				"aria-label": `${trans("inquire")} ${unit.name} ${trans("contact_via_whatsapp")}`,
-				className: "flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-600 hover:text-white rounded-xl transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500",
+				className: "flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-600 hover:text-white rounded-xl transition-colors duration-200 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500",
 				title: trans("contact_via_whatsapp"),
-				children: [/* @__PURE__ */ jsx("svg", {
-					className: "w-4 h-4 fill-current",
-					viewBox: "0 0 24 24",
-					"aria-hidden": "true",
-					children: /* @__PURE__ */ jsx("path", { d: "M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" })
-				}), trans("inquire")]
+				children: [/* @__PURE__ */ jsx(WhatsAppIcon$1, { className: "w-4 h-4" }), trans("inquire")]
 			})]
 		})]
 	});
 }
+var UnitCard_default = memo(UnitCard);
 //#endregion
 //#region resources/js/Components/UI/Pagination.jsx
-function Pagination({ meta, links: routeLinks }) {
+function Pagination({ meta, links: routeLinks, pageParam = "page" }) {
 	const { locale } = usePage().props;
 	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
-	if (!meta || meta.last_page <= 1) return null;
-	const { current_page, last_page, per_page, total } = meta;
+	const pageMeta = meta?.meta || meta;
+	if (!pageMeta || typeof pageMeta.last_page !== "number" || pageMeta.last_page <= 1) return null;
+	const { current_page = 1, last_page = 1 } = pageMeta;
 	const preserveState = {
 		preserveState: true,
 		preserveScroll: true
@@ -12230,55 +14516,56 @@ function Pagination({ meta, links: routeLinks }) {
 	const end = Math.min(last_page, current_page + range);
 	for (let i = start; i <= end; i++) pages.push(i);
 	function buildUrl(page) {
+		if (typeof window === "undefined") return "#";
 		const params = new URLSearchParams(window.location.search);
-		params.set("page", page);
+		params.set(pageParam, page);
 		return window.location.pathname + "?" + params.toString();
 	}
 	return /* @__PURE__ */ jsxs("nav", {
 		dir: isRtl ? "rtl" : "ltr",
-		className: "flex items-center justify-center gap-1 mt-8",
+		className: "flex items-center justify-center gap-1.5 mt-8 flex-wrap",
 		"aria-label": isRtl ? "صفحات النتائج" : "Pagination",
 		children: [
 			current_page > 1 ? /* @__PURE__ */ jsx(Link, {
 				href: buildUrl(current_page - 1),
-				className: "px-3 py-2 text-sm text-secondary-700 hover:bg-surface rounded-lg transition-colors",
+				className: "min-w-[44px] min-h-[44px] px-3.5 flex items-center justify-center text-sm font-semibold text-secondary-700 hover:bg-surface-hover rounded-xl transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
 				...preserveState,
 				children: trans("previous")
 			}) : /* @__PURE__ */ jsx("span", {
-				className: "px-3 py-2 text-sm text-secondary-300 cursor-not-allowed",
+				className: "min-w-[44px] min-h-[44px] px-3.5 flex items-center justify-center text-sm font-semibold text-secondary-300 cursor-not-allowed",
 				children: trans("previous")
 			}),
 			start > 1 && /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx(Link, {
 				href: buildUrl(1),
-				className: "px-3 py-2 text-sm text-secondary-700 hover:bg-surface rounded-lg transition-colors",
+				className: "min-w-[44px] min-h-[44px] px-3.5 flex items-center justify-center text-sm font-semibold text-secondary-700 hover:bg-surface-hover rounded-xl transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
 				...preserveState,
 				children: "1"
 			}), start > 2 && /* @__PURE__ */ jsx("span", {
-				className: "px-2 text-secondary-400 text-sm",
+				className: "min-w-[36px] min-h-[44px] px-1 flex items-center justify-center text-secondary-400 text-sm",
 				children: "..."
 			})] }),
 			pages.map((page) => /* @__PURE__ */ jsx(Link, {
 				href: buildUrl(page),
-				className: `px-3 py-2 text-sm rounded-lg transition-colors ${page === current_page ? "bg-primary-900 text-white" : "text-secondary-700 hover:bg-surface"}`,
+				className: `min-w-[44px] min-h-[44px] px-3.5 flex items-center justify-center text-sm font-semibold rounded-xl transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${page === current_page ? "bg-primary-900 text-white shadow-sm" : "text-secondary-700 hover:bg-surface-hover"}`,
 				...preserveState,
 				children: page
 			}, page)),
 			end < last_page && /* @__PURE__ */ jsxs(Fragment, { children: [end < last_page - 1 && /* @__PURE__ */ jsx("span", {
-				className: "px-2 text-secondary-400 text-sm",
+				className: "min-w-[36px] min-h-[44px] px-1 flex items-center justify-center text-secondary-400 text-sm",
 				children: "..."
 			}), /* @__PURE__ */ jsx(Link, {
 				href: buildUrl(last_page),
-				className: "px-3 py-2 text-sm text-secondary-700 hover:bg-surface rounded-lg transition-colors",
+				className: "min-w-[44px] min-h-[44px] px-3.5 flex items-center justify-center text-sm font-semibold text-secondary-700 hover:bg-surface-hover rounded-xl transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
 				...preserveState,
 				children: last_page
 			})] }),
 			current_page < last_page ? /* @__PURE__ */ jsx(Link, {
 				href: buildUrl(current_page + 1),
-				className: "px-3 py-2 text-sm text-secondary-700 hover:bg-surface rounded-lg transition-colors",
+				className: "min-w-[44px] min-h-[44px] px-3.5 flex items-center justify-center text-sm font-semibold text-secondary-700 hover:bg-surface-hover rounded-xl transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
 				...preserveState,
 				children: trans("next")
 			}) : /* @__PURE__ */ jsx("span", {
-				className: "px-3 py-2 text-sm text-secondary-300 cursor-not-allowed",
+				className: "min-w-[44px] min-h-[44px] px-3.5 flex items-center justify-center text-sm font-semibold text-secondary-300 cursor-not-allowed",
 				children: trans("next")
 			})
 		]
@@ -12288,28 +14575,30 @@ function Pagination({ meta, links: routeLinks }) {
 //#region resources/js/Pages/Public/Agents/Show.jsx
 var Show_exports$4 = /* @__PURE__ */ __exportAll({ default: () => Show });
 function Show({ agent, units, locale }) {
+	const { settings } = usePage().props;
 	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
-	const avatarSrc = agent.avatar ? agent.avatar.startsWith("http") || agent.avatar.startsWith("/storage") ? agent.avatar : `/storage/${agent.avatar}` : null;
+	const agentContacts = getAgentContacts(agent, settings);
+	const avatarSrc = getStorageUrl(agent.avatar, null);
 	const channels = [
 		{
 			key: "phone",
-			url: agent.phone ? `tel:${agent.phone}` : null,
-			label: agent.phone
+			url: `tel:${agentContacts.phone}`,
+			label: agentContacts.rawPhone
 		},
 		{
 			key: "whatsapp",
-			url: agent.whatsapp ? `https://wa.me/${agent.whatsapp.replace(/[^0-9]/g, "")}` : null,
-			label: agent.whatsapp
+			url: `https://wa.me/${agentContacts.whatsapp}`,
+			label: agentContacts.rawWhatsapp
 		},
 		{
 			key: "facebook",
-			url: agent.facebook || null,
+			url: agent.facebook || agent.profile?.facebook || null,
 			label: trans("facebook", {}, "admin")
 		},
 		{
 			key: "linkedin",
-			url: agent.linkedin || null,
+			url: agent.linkedin || agent.profile?.linkedin || null,
 			label: trans("social_linkedin", {}, "admin")
 		}
 	].filter((c) => c.url);
@@ -12320,116 +14609,132 @@ function Show({ agent, units, locale }) {
 			/* @__PURE__ */ jsx(Header, { locale }),
 			/* @__PURE__ */ jsxs("div", {
 				dir: isRtl ? "rtl" : "ltr",
-				className: "container py-8 sm:py-12",
+				className: "max-w-container mx-auto px-4 py-12 sm:py-16",
 				children: [
 					/* @__PURE__ */ jsxs("div", {
-						className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 sm:p-10 mb-10 flex flex-col sm:flex-row items-center sm:items-start gap-8",
-						children: [/* @__PURE__ */ jsx("div", {
-							className: "shrink-0",
-							children: avatarSrc ? /* @__PURE__ */ jsx("img", {
-								src: avatarSrc,
-								alt: agent.name,
-								width: 160,
-								height: 160,
-								className: "w-32 h-32 sm:w-40 sm:h-40 rounded-full object-cover shadow-md border-4 border-white"
-							}) : /* @__PURE__ */ jsx("div", {
-								className: "w-32 h-32 sm:w-40 sm:h-40 rounded-full bg-primary-50 flex items-center justify-center text-primary-900 font-bold text-4xl sm:text-5xl border-4 border-white shadow-md",
-								children: agent.name?.charAt(0)?.toUpperCase() || "?"
-							})
-						}), /* @__PURE__ */ jsxs("div", {
-							className: "flex-1 text-center sm:text-start space-y-4",
-							children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("h1", {
-								className: "text-2xl sm:text-3xl font-bold text-secondary-950",
-								children: agent.name
-							}), /* @__PURE__ */ jsx("p", {
-								className: "text-secondary-600 mt-1",
-								children: trans(agent.role)
-							})] }), /* @__PURE__ */ jsx("div", {
-								className: "flex flex-wrap items-center justify-center sm:justify-start gap-3 pt-2",
-								children: channels.map((ch) => /* @__PURE__ */ jsxs("a", {
-									href: ch.url,
-									target: ch.key !== "phone" ? "_blank" : void 0,
-									rel: ch.key !== "phone" ? "noopener noreferrer" : void 0,
-									className: `flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors ${ch.key === "whatsapp" ? "bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366]/20" : ch.key === "facebook" ? "bg-[#1877F2]/10 text-[#1877F2] hover:bg-[#1877F2]/20" : ch.key === "linkedin" ? "bg-[#0A66C2]/10 text-[#0A66C2] hover:bg-[#0A66C2]/20" : "bg-primary-50 text-primary-900 hover:bg-primary-100"}`,
-									children: [
-										ch.key === "phone" && /* @__PURE__ */ jsx("svg", {
-											className: "w-4 h-4 shrink-0",
-											fill: "none",
-											viewBox: "0 0 24 24",
-											stroke: "currentColor",
-											strokeWidth: 2,
-											children: /* @__PURE__ */ jsx("path", {
-												strokeLinecap: "round",
-												strokeLinejoin: "round",
-												d: "M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+						className: "bg-white rounded-[2rem] shadow-sm border border-secondary-100 p-8 sm:p-12 mb-12 flex flex-col sm:flex-row items-center sm:items-start gap-8 relative overflow-hidden",
+						children: [
+							/* @__PURE__ */ jsx("div", { className: "absolute top-0 end-0 w-64 h-64 bg-primary-50 rounded-full blur-3xl opacity-50 -z-10 translate-x-1/3 -translate-y-1/3" }),
+							/* @__PURE__ */ jsx("div", {
+								className: "shrink-0 relative z-10",
+								children: avatarSrc ? /* @__PURE__ */ jsx("img", {
+									src: avatarSrc,
+									alt: agent.name,
+									width: 160,
+									height: 160,
+									className: "w-32 h-32 sm:w-40 sm:h-40 rounded-full object-cover shadow-sm border-4 border-white"
+								}) : /* @__PURE__ */ jsx("div", {
+									className: "w-32 h-32 sm:w-40 sm:h-40 rounded-full bg-primary-50 flex items-center justify-center text-primary-900 font-black text-4xl sm:text-5xl border-4 border-white shadow-sm",
+									children: agent.name?.charAt(0)?.toUpperCase() || "?"
+								})
+							}),
+							/* @__PURE__ */ jsxs("div", {
+								className: "flex-1 text-center sm:text-start space-y-4 relative z-10",
+								children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("h1", {
+									className: "text-3xl sm:text-4xl font-black text-secondary-950 tracking-tight",
+									children: agent.name
+								}), /* @__PURE__ */ jsx("p", {
+									className: "text-secondary-500 font-medium mt-2 text-lg",
+									children: trans(agent.role)
+								})] }), /* @__PURE__ */ jsx("div", {
+									className: "flex flex-wrap items-center justify-center sm:justify-start gap-3 pt-2",
+									children: channels.map((ch) => /* @__PURE__ */ jsxs("a", {
+										href: ch.url,
+										target: ch.key !== "phone" ? "_blank" : void 0,
+										rel: ch.key !== "phone" ? "noopener noreferrer" : void 0,
+										className: `flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors ${ch.key === "whatsapp" ? "bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366]/20" : ch.key === "facebook" ? "bg-[#1877F2]/10 text-[#1877F2] hover:bg-[#1877F2]/20" : ch.key === "linkedin" ? "bg-[#0A66C2]/10 text-[#0A66C2] hover:bg-[#0A66C2]/20" : "bg-primary-50 text-primary-900 hover:bg-primary-100"}`,
+										children: [
+											ch.key === "phone" && /* @__PURE__ */ jsx("svg", {
+												className: "w-4 h-4 shrink-0",
+												fill: "none",
+												viewBox: "0 0 24 24",
+												stroke: "currentColor",
+												strokeWidth: 2,
+												children: /* @__PURE__ */ jsx("path", {
+													strokeLinecap: "round",
+													strokeLinejoin: "round",
+													d: "M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+												})
+											}),
+											ch.key === "whatsapp" && /* @__PURE__ */ jsx("svg", {
+												className: "w-4 h-4 shrink-0",
+												fill: "currentColor",
+												viewBox: "0 0 24 24",
+												children: /* @__PURE__ */ jsx("path", { d: "M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" })
+											}),
+											ch.key === "facebook" && /* @__PURE__ */ jsx("svg", {
+												className: "w-4 h-4 shrink-0",
+												fill: "currentColor",
+												viewBox: "0 0 24 24",
+												children: /* @__PURE__ */ jsx("path", { d: "M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" })
+											}),
+											ch.key === "linkedin" && /* @__PURE__ */ jsx("svg", {
+												className: "w-4 h-4 shrink-0",
+												fill: "currentColor",
+												viewBox: "0 0 24 24",
+												children: /* @__PURE__ */ jsx("path", { d: "M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" })
+											}),
+											/* @__PURE__ */ jsx("span", {
+												dir: "ltr",
+												children: ch.label
 											})
-										}),
-										ch.key === "whatsapp" && /* @__PURE__ */ jsx("svg", {
-											className: "w-4 h-4 shrink-0",
-											fill: "currentColor",
-											viewBox: "0 0 24 24",
-											children: /* @__PURE__ */ jsx("path", { d: "M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" })
-										}),
-										ch.key === "facebook" && /* @__PURE__ */ jsx("svg", {
-											className: "w-4 h-4 shrink-0",
-											fill: "currentColor",
-											viewBox: "0 0 24 24",
-											children: /* @__PURE__ */ jsx("path", { d: "M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" })
-										}),
-										ch.key === "linkedin" && /* @__PURE__ */ jsx("svg", {
-											className: "w-4 h-4 shrink-0",
-											fill: "currentColor",
-											viewBox: "0 0 24 24",
-											children: /* @__PURE__ */ jsx("path", { d: "M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" })
-										}),
-										/* @__PURE__ */ jsx("span", {
-											dir: "ltr",
-											children: ch.label
-										})
-									]
-								}, ch.key))
-							})]
-						})]
+										]
+									}, ch.key))
+								})]
+							})
+						]
 					}),
 					/* @__PURE__ */ jsx("div", {
-						className: "mb-6 flex items-center justify-between",
-						children: /* @__PURE__ */ jsxs("h2", {
-							className: "text-xl sm:text-2xl font-bold text-secondary-950",
-							children: [
-								trans("agent_units", {}, "units") || trans("units_count", {}, "units"),
-								" (",
-								units.total,
-								")"
-							]
+						className: "mb-8 flex items-center justify-between",
+						children: /* @__PURE__ */ jsxs("div", {
+							className: "flex items-center gap-3",
+							children: [/* @__PURE__ */ jsx("div", { className: "w-1.5 h-6 bg-primary-600 rounded-full" }), /* @__PURE__ */ jsxs("h2", {
+								className: "text-2xl sm:text-3xl font-black text-secondary-950 tracking-tight",
+								children: [
+									trans("agent_units", {}, "units") || trans("units_count", {}, "units"),
+									" ",
+									/* @__PURE__ */ jsxs("span", {
+										className: "text-secondary-400 font-medium",
+										children: [
+											"(",
+											units.total,
+											")"
+										]
+									})
+								]
+							})]
 						})
 					}),
 					units.data.length > 0 ? /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("div", {
 						className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6",
-						children: units.data.map((unit) => /* @__PURE__ */ jsx(UnitCard, { unit }, unit.id))
+						children: units.data.map((unit) => /* @__PURE__ */ jsx(UnitCard_default, { unit }, unit.id))
 					}), units.last_page > 1 && /* @__PURE__ */ jsx("div", {
 						className: "mt-10 flex justify-center",
 						children: /* @__PURE__ */ jsx(Pagination, { links: units.links })
 					})] }) : /* @__PURE__ */ jsxs("div", {
-						className: "text-center py-20 bg-white rounded-2xl border border-secondary-100",
+						className: "text-center py-24 bg-white rounded-[2rem] border border-secondary-100 shadow-sm max-w-2xl mx-auto",
 						children: [
-							/* @__PURE__ */ jsx("svg", {
-								className: "w-16 h-16 mx-auto text-secondary-300 mb-4",
-								fill: "none",
-								viewBox: "0 0 24 24",
-								stroke: "currentColor",
-								children: /* @__PURE__ */ jsx("path", {
-									strokeLinecap: "round",
-									strokeLinejoin: "round",
-									strokeWidth: 1.5,
-									d: "M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+							/* @__PURE__ */ jsx("div", {
+								className: "w-20 h-20 bg-secondary-50 rounded-full flex items-center justify-center mx-auto mb-6",
+								children: /* @__PURE__ */ jsx("svg", {
+									className: "w-10 h-10 text-secondary-400",
+									fill: "none",
+									viewBox: "0 0 24 24",
+									stroke: "currentColor",
+									children: /* @__PURE__ */ jsx("path", {
+										strokeLinecap: "round",
+										strokeLinejoin: "round",
+										strokeWidth: 1.5,
+										d: "M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+									})
 								})
 							}),
 							/* @__PURE__ */ jsx("h3", {
-								className: "text-lg font-semibold text-secondary-950 mb-2",
+								className: "text-2xl font-black text-secondary-950 mb-3",
 								children: trans("no_units", {}, "units")
 							}),
 							/* @__PURE__ */ jsx("p", {
-								className: "text-secondary-600",
+								className: "text-secondary-500 text-sm md:text-base leading-relaxed max-w-sm mx-auto",
 								children: trans("agent_no_units", {}, "units") || trans("no_units", {}, "units")
 							})
 						]
@@ -12461,6 +14766,14 @@ function SearchBar({ areas = [], unitTypes = [], features = [], finishingTypes =
 	});
 	const [isSearching, setIsSearching] = useState(false);
 	const [showAdvanced, setShowAdvanced] = useState(false);
+	useEffect(() => {
+		if (!showAdvanced) return;
+		function handleKeyDown(e) {
+			if (e.key === "Escape") setShowAdvanced(false);
+		}
+		window.addEventListener("keydown", handleKeyDown);
+		return () => window.removeEventListener("keydown", handleKeyDown);
+	}, [showAdvanced]);
 	function update(key, value) {
 		setLocal((prev) => ({
 			...prev,
@@ -12513,41 +14826,42 @@ function SearchBar({ areas = [], unitTypes = [], features = [], finishingTypes =
 			};
 		});
 	}
-	return /* @__PURE__ */ jsx("div", {
+	return /* @__PURE__ */ jsxs("div", {
 		className: "w-full max-w-5xl mx-auto relative z-[60]",
-		children: /* @__PURE__ */ jsxs("form", {
+		children: [/* @__PURE__ */ jsxs("form", {
 			onSubmit: handleSubmit,
 			dir: isRtl ? "rtl" : "ltr",
-			className: "bg-white rounded-3xl md:rounded-[2rem] shadow-xl hover:shadow-2xl transition-shadow duration-300 w-full",
+			className: "hidden md:block bg-white/95 backdrop-blur-xl rounded-[2rem] shadow-2xl border border-white/60 transition-all duration-300 w-full hover:shadow-[0_20px_50px_rgba(0,0,0,0.25)] relative z-20",
 			children: [/* @__PURE__ */ jsxs("div", {
-				className: "flex flex-col md:flex-row items-center md:divide-x divide-y md:divide-y-0 rtl:divide-x-reverse divide-secondary-100 p-2 md:p-2.5",
+				className: "flex flex-row items-center divide-x rtl:divide-x-reverse divide-secondary-100 p-2.5",
 				children: [
 					/* @__PURE__ */ jsxs("div", {
-						className: "flex-1 w-full px-5 py-3 hover:bg-surface/60 transition-colors cursor-text group rounded-2xl md:rounded-s-3xl md:rounded-e-none",
+						className: "flex-1 w-full px-5 py-3 hover:bg-surface/60 transition-colors cursor-text group rounded-s-3xl",
 						children: [/* @__PURE__ */ jsx("label", {
-							htmlFor: "search-input",
-							className: "block text-[10px] font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors",
+							htmlFor: "d-search-input",
+							className: "block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors",
 							children: trans("search")
 						}), /* @__PURE__ */ jsx("input", {
-							id: "search-input",
+							id: "d-search-input",
 							type: "text",
 							value: local.search,
 							onChange: (e) => update("search", e.target.value),
 							placeholder: locale === "ar" ? "ابحث بالاسم..." : "Search by name...",
-							className: "w-full bg-transparent border-none text-sm focus:ring-0 text-secondary-800 placeholder-secondary-400 outline-none"
+							className: "w-full bg-transparent border-none text-sm focus:ring-0 text-secondary-800 placeholder-secondary-400 outline-none p-0"
 						})]
 					}),
 					/* @__PURE__ */ jsxs("div", {
-						className: "flex-1 w-full px-5 py-3 hover:bg-surface/60 transition-colors cursor-pointer group rounded-2xl md:rounded-none",
+						className: "flex-1 w-full px-5 py-3 hover:bg-surface/60 transition-colors cursor-pointer group",
 						children: [/* @__PURE__ */ jsx("label", {
-							htmlFor: "transaction-filter",
-							className: "block text-[10px] font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors",
+							htmlFor: "d-transaction-filter",
+							className: "block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors",
 							children: trans("transaction")
 						}), /* @__PURE__ */ jsxs(Select, {
-							id: "transaction-filter",
+							variant: "ghost",
+							id: "d-transaction-filter",
 							value: local.transaction,
 							onChange: (e) => update("transaction", e.target.value),
-							className: "w-full text-secondary-800 outline-none cursor-pointer",
+							className: "w-full text-secondary-800 outline-none cursor-pointer p-0",
 							children: [
 								/* @__PURE__ */ jsx("option", {
 									value: "",
@@ -12577,47 +14891,49 @@ function SearchBar({ areas = [], unitTypes = [], features = [], finishingTypes =
 						})]
 					}),
 					/* @__PURE__ */ jsxs("div", {
-						className: "flex-1 w-full px-5 py-3 hover:bg-surface/60 transition-colors cursor-pointer group rounded-2xl md:rounded-none",
+						className: "flex-1 w-full px-5 py-3 hover:bg-surface/60 transition-colors cursor-pointer group",
 						children: [/* @__PURE__ */ jsx("label", {
-							htmlFor: "area-filter",
-							className: "block text-[10px] font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors",
+							htmlFor: "d-area-filter",
+							className: "block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors",
 							children: trans("area")
 						}), /* @__PURE__ */ jsxs(Select, {
-							id: "area-filter",
+							variant: "ghost",
+							id: "d-area-filter",
 							value: local.area_id,
 							onChange: (e) => update("area_id", e.target.value),
-							className: "w-full text-secondary-800 outline-none cursor-pointer",
+							className: "w-full text-secondary-800 outline-none cursor-pointer p-0",
 							children: [/* @__PURE__ */ jsx("option", {
 								value: "",
 								children: locale === "ar" ? "كل المناطق" : "All Areas"
 							}), areas?.map((area) => /* @__PURE__ */ jsx("option", {
 								value: area.id,
 								children: locale === "ar" ? area.name_ar : area.name_en
-							}, area.id))]
+							}, `d-a-${area.id}`))]
 						})]
 					}),
 					/* @__PURE__ */ jsxs("div", {
-						className: "flex-1 w-full px-5 py-3 hover:bg-surface/60 transition-colors cursor-pointer group rounded-2xl md:rounded-none",
+						className: "flex-1 w-full px-5 py-3 hover:bg-surface/60 transition-colors cursor-pointer group",
 						children: [/* @__PURE__ */ jsx("label", {
-							htmlFor: "type-filter",
-							className: "block text-[10px] font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors",
+							htmlFor: "d-type-filter",
+							className: "block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors",
 							children: trans("type")
 						}), /* @__PURE__ */ jsxs(Select, {
-							id: "type-filter",
+							variant: "ghost",
+							id: "d-type-filter",
 							value: local.type_id,
 							onChange: (e) => update("type_id", e.target.value),
-							className: "w-full text-secondary-800 outline-none cursor-pointer",
+							className: "w-full text-secondary-800 outline-none cursor-pointer p-0",
 							children: [/* @__PURE__ */ jsx("option", {
 								value: "",
 								children: locale === "ar" ? "كل الأنواع" : "All Types"
 							}), unitTypes?.map((ut) => /* @__PURE__ */ jsx("option", {
 								value: ut.id,
 								children: locale === "ar" ? ut.name_ar : ut.name_en
-							}, ut.id))]
+							}, `d-ut-${ut.id}`))]
 						})]
 					}),
 					/* @__PURE__ */ jsxs("div", {
-						className: "w-full md:w-auto p-2 flex items-center justify-between md:justify-center gap-3 md:gap-2 shrink-0 md:ps-4",
+						className: "w-auto p-2 flex items-center justify-center gap-2 shrink-0 ps-4",
 						children: [/* @__PURE__ */ jsx("button", {
 							type: "button",
 							onClick: () => setShowAdvanced(!showAdvanced),
@@ -12638,7 +14954,7 @@ function SearchBar({ areas = [], unitTypes = [], features = [], finishingTypes =
 						}), /* @__PURE__ */ jsx("button", {
 							type: "submit",
 							disabled: isSearching,
-							className: "w-12 h-12 bg-primary-900 text-white rounded-full flex items-center justify-center hover:bg-primary-950 active:scale-95 transition-all duration-200 disabled:opacity-80",
+							className: "w-12 h-12 bg-primary-900 text-white rounded-full flex items-center justify-center hover:bg-primary-950 active:scale-95 transition-all duration-200 disabled:opacity-80 shadow-md",
 							"aria-label": trans("search"),
 							children: isSearching ? /* @__PURE__ */ jsxs("svg", {
 								className: "animate-spin w-5 h-5",
@@ -12673,173 +14989,152 @@ function SearchBar({ areas = [], unitTypes = [], features = [], finishingTypes =
 					})
 				]
 			}), /* @__PURE__ */ jsx("div", {
-				className: `transition-all duration-300 ease-in-out origin-top rounded-b-3xl md:rounded-b-[2rem] ${showAdvanced ? "overflow-visible" : "overflow-hidden"}`,
-				style: {
-					maxHeight: showAdvanced ? "1500px" : "0px",
-					opacity: showAdvanced ? 1 : 0
-				},
+				className: `transition-all duration-300 ease-in-out origin-top rounded-2xl absolute left-0 right-0 top-full mt-2 z-50 bg-white shadow-2xl border border-secondary-200 ${showAdvanced ? "opacity-100 overflow-visible scale-y-100" : "opacity-0 overflow-hidden pointer-events-none scale-y-95 max-h-0"}`,
+				style: { maxHeight: showAdvanced ? "1500px" : "0px" },
 				children: /* @__PURE__ */ jsxs("div", {
-					className: "px-4 py-4 bg-surface/30 border-t border-secondary-100 flex flex-col gap-4",
+					className: "px-6 py-6 border-t border-secondary-100 flex flex-col gap-5",
 					children: [
 						/* @__PURE__ */ jsxs("div", {
-							className: "flex flex-col sm:flex-row gap-4 w-full",
-							children: [/* @__PURE__ */ jsxs("div", {
-								className: "flex-1 w-full",
-								children: [/* @__PURE__ */ jsx("label", {
-									htmlFor: "price-min-input",
-									className: "block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-1",
-									children: locale === "ar" ? "الحد الأدنى للسعر" : "Minimum Price"
+							className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4",
+							children: [
+								/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+									htmlFor: "d-price-min",
+									className: "block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-1.5",
+									children: locale === "ar" ? "سعر يبدأ من" : "Min Price"
 								}), /* @__PURE__ */ jsx("input", {
-									id: "price-min-input",
+									id: "d-price-min",
 									type: "number",
 									min: "0",
 									value: local.price_min,
 									onChange: (e) => update("price_min", e.target.value),
 									placeholder: "0",
-									className: "w-full px-3 py-0 h-10 border border-secondary-200 bg-white rounded-xl text-sm focus:ring-2 focus:ring-primary-900 transition-all duration-200 outline-none"
-								})]
-							}), /* @__PURE__ */ jsxs("div", {
-								className: "flex-1 w-full",
-								children: [/* @__PURE__ */ jsx("label", {
-									htmlFor: "price-max-input",
-									className: "block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-1",
-									children: locale === "ar" ? "الحد الأقصى للسعر" : "Maximum Price"
+									className: "w-full px-4 h-11 border border-secondary-200 bg-surface rounded-xl text-sm focus:ring-2 focus:ring-primary-900 transition-all outline-none"
+								})] }),
+								/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+									htmlFor: "d-price-max",
+									className: "block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-1.5",
+									children: locale === "ar" ? "سعر يصل إلى" : "Max Price"
 								}), /* @__PURE__ */ jsx("input", {
-									id: "price-max-input",
+									id: "d-price-max",
 									type: "number",
 									min: "0",
 									value: local.price_max,
 									onChange: (e) => update("price_max", e.target.value),
 									placeholder: locale === "ar" ? "لا يوجد حد" : "No limit",
-									className: "w-full px-3 py-0 h-10 border border-secondary-200 bg-white rounded-xl text-sm focus:ring-2 focus:ring-primary-900 transition-all duration-200 outline-none"
-								})]
-							})]
-						}),
-						/* @__PURE__ */ jsxs("div", {
-							className: "flex flex-col sm:flex-row gap-4 w-full",
-							children: [/* @__PURE__ */ jsxs("div", {
-								className: "flex-1 w-full",
-								children: [/* @__PURE__ */ jsx("label", {
-									htmlFor: "size-min-input",
-									className: "block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-1",
-									children: locale === "ar" ? "الحد الأدنى للمساحة" : "Minimum Size"
+									className: "w-full px-4 h-11 border border-secondary-200 bg-surface rounded-xl text-sm focus:ring-2 focus:ring-primary-900 transition-all outline-none"
+								})] }),
+								/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+									htmlFor: "d-size-min",
+									className: "block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-1.5",
+									children: locale === "ar" ? "مساحة تبدأ من" : "Min Size"
 								}), /* @__PURE__ */ jsx("input", {
-									id: "size-min-input",
+									id: "d-size-min",
 									type: "number",
 									min: "0",
 									value: local.size_min,
 									onChange: (e) => update("size_min", e.target.value),
 									placeholder: "0",
-									className: "w-full px-3 py-0 h-10 border border-secondary-200 bg-white rounded-xl text-sm focus:ring-2 focus:ring-primary-900 transition-all duration-200 outline-none"
-								})]
-							}), /* @__PURE__ */ jsxs("div", {
-								className: "flex-1 w-full",
-								children: [/* @__PURE__ */ jsx("label", {
-									htmlFor: "size-max-input",
-									className: "block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-1",
-									children: locale === "ar" ? "الحد الأقصى للمساحة" : "Maximum Size"
+									className: "w-full px-4 h-11 border border-secondary-200 bg-surface rounded-xl text-sm focus:ring-2 focus:ring-primary-900 transition-all outline-none"
+								})] }),
+								/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+									htmlFor: "d-size-max",
+									className: "block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-1.5",
+									children: locale === "ar" ? "مساحة تصل إلى" : "Max Size"
 								}), /* @__PURE__ */ jsx("input", {
-									id: "size-max-input",
+									id: "d-size-max",
 									type: "number",
 									min: "0",
 									value: local.size_max,
 									onChange: (e) => update("size_max", e.target.value),
 									placeholder: locale === "ar" ? "لا يوجد حد" : "No limit",
-									className: "w-full px-3 py-0 h-10 border border-secondary-200 bg-white rounded-xl text-sm focus:ring-2 focus:ring-primary-900 transition-all duration-200 outline-none"
-								})]
-							})]
+									className: "w-full px-4 h-11 border border-secondary-200 bg-surface rounded-xl text-sm focus:ring-2 focus:ring-primary-900 transition-all outline-none"
+								})] })
+							]
 						}),
 						/* @__PURE__ */ jsxs("div", {
-							className: "flex flex-col sm:flex-row gap-4 w-full",
-							children: [/* @__PURE__ */ jsxs("div", {
-								className: "flex-1 w-full",
-								children: [/* @__PURE__ */ jsx("label", {
-									htmlFor: "payment-method-filter",
-									className: "block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-1",
-									children: trans("payment_method") || "Payment Method"
-								}), /* @__PURE__ */ jsxs(Select, {
-									id: "payment-method-filter",
-									value: local.payment_method,
-									onChange: (e) => update("payment_method", e.target.value),
-									className: "w-full",
-									children: [
-										/* @__PURE__ */ jsx("option", {
-											value: "",
-											children: trans("all") || "All"
-										}),
-										/* @__PURE__ */ jsx("option", {
-											value: "cash",
-											children: trans("cash") || "Cash"
-										}),
-										/* @__PURE__ */ jsx("option", {
-											value: "installment",
-											children: trans("installment") || "Installment"
-										}),
-										/* @__PURE__ */ jsx("option", {
-											value: "both",
-											children: trans("both") || "Cash & Installment"
-										})
-									]
-								})]
-							}), /* @__PURE__ */ jsxs("div", {
-								className: "flex-1 w-full",
-								children: [/* @__PURE__ */ jsx("label", {
-									htmlFor: "finishing-type-filter",
-									className: "block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-1",
-									children: trans("finishing_type") || "Finishing Type"
-								}), /* @__PURE__ */ jsxs(Select, {
-									id: "finishing-type-filter",
-									value: local.finishing_type_id,
-									onChange: (e) => update("finishing_type_id", e.target.value),
-									className: "w-full",
-									children: [/* @__PURE__ */ jsx("option", {
+							className: "grid grid-cols-1 sm:grid-cols-2 gap-4",
+							children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+								htmlFor: "d-payment-method",
+								className: "block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-1.5",
+								children: trans("payment_method") || "Payment Method"
+							}), /* @__PURE__ */ jsxs(Select, {
+								variant: "ghost",
+								id: "d-payment-method",
+								value: local.payment_method,
+								onChange: (e) => update("payment_method", e.target.value),
+								className: "w-full bg-surface border border-secondary-200 rounded-xl h-11",
+								children: [
+									/* @__PURE__ */ jsx("option", {
 										value: "",
 										children: trans("all") || "All"
-									}), finishingTypes?.map((f) => /* @__PURE__ */ jsx("option", {
-										value: f.id,
-										children: locale === "ar" ? f.name_ar : f.name_en
-									}, f.id))]
-								})]
-							})]
+									}),
+									/* @__PURE__ */ jsx("option", {
+										value: "cash",
+										children: trans("cash") || "Cash"
+									}),
+									/* @__PURE__ */ jsx("option", {
+										value: "installment",
+										children: trans("installment") || "Installment"
+									}),
+									/* @__PURE__ */ jsx("option", {
+										value: "both",
+										children: trans("both") || "Cash & Installment"
+									})
+								]
+							})] }), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+								htmlFor: "d-finishing-type",
+								className: "block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-1.5",
+								children: trans("finishing_type") || "Finishing Type"
+							}), /* @__PURE__ */ jsxs(Select, {
+								variant: "ghost",
+								id: "d-finishing-type",
+								value: local.finishing_type_id,
+								onChange: (e) => update("finishing_type_id", e.target.value),
+								className: "w-full bg-surface border border-secondary-200 rounded-xl h-11",
+								children: [/* @__PURE__ */ jsx("option", {
+									value: "",
+									children: trans("all") || "All"
+								}), finishingTypes?.map((f) => /* @__PURE__ */ jsx("option", {
+									value: f.id,
+									children: locale === "ar" ? f.name_ar : f.name_en
+								}, `d-f-${f.id}`))]
+							})] })]
 						}),
 						features?.length > 0 && /* @__PURE__ */ jsxs("div", {
-							className: "w-full pt-3 border-t border-secondary-100/50",
+							className: "w-full pt-4 border-t border-secondary-100/50",
 							children: [/* @__PURE__ */ jsx("label", {
-								className: "block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-2",
+								className: "block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-3",
 								children: trans("features") || "Features"
 							}), /* @__PURE__ */ jsx("div", {
-								className: "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2",
+								className: "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3",
 								children: features.map((feature) => {
-									const isChecked = Array.isArray(local.features) ? local.features.includes(String(feature.id)) || local.features.includes(feature.id) : false;
-									return /* @__PURE__ */ jsxs("div", {
-										className: "flex items-center gap-2 group",
+									return /* @__PURE__ */ jsxs("label", {
+										className: "flex items-center gap-2.5 group cursor-pointer",
 										children: [/* @__PURE__ */ jsx("input", {
 											type: "checkbox",
-											id: `feature-${feature.id}`,
-											checked: isChecked,
+											checked: Array.isArray(local.features) && (local.features.includes(String(feature.id)) || local.features.includes(feature.id)),
 											onChange: () => toggleFeature(feature.id),
-											className: "w-5 h-5 rounded border-secondary-300 text-primary-900 focus:ring-primary-900/20 cursor-pointer"
-										}), /* @__PURE__ */ jsx("label", {
-											htmlFor: `feature-${feature.id}`,
-											className: "text-xs text-secondary-700 group-hover:text-primary-900 transition-colors cursor-pointer select-none",
+											className: "w-5 h-5 rounded border-secondary-300 text-primary-900 focus:ring-primary-900/20 cursor-pointer transition-colors"
+										}), /* @__PURE__ */ jsx("span", {
+											className: "text-sm font-medium text-secondary-700 group-hover:text-primary-900 transition-colors select-none",
 											children: locale === "ar" ? feature.name_ar : feature.name_en
 										})]
-									}, feature.id);
+									}, `d-feat-${feature.id}`);
 								})
 							})]
 						}),
 						/* @__PURE__ */ jsx("div", {
-							className: "w-full flex justify-end pt-3 border-t border-secondary-100/50",
+							className: "w-full flex justify-end pt-4 border-t border-secondary-100/50",
 							children: /* @__PURE__ */ jsxs("button", {
 								type: "button",
 								onClick: handleReset,
-								className: "w-full sm:w-auto px-6 h-10 text-secondary-700 bg-transparent hover:bg-secondary-200/50 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2",
+								className: "px-6 h-10 text-secondary-700 bg-transparent hover:bg-secondary-100 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2",
 								children: [/* @__PURE__ */ jsx("svg", {
 									className: "w-4 h-4",
 									fill: "none",
 									viewBox: "0 0 24 24",
 									stroke: "currentColor",
-									strokeWidth: 2,
+									strokeWidth: 2.5,
 									children: /* @__PURE__ */ jsx("path", {
 										strokeLinecap: "round",
 										strokeLinejoin: "round",
@@ -12851,12 +15146,332 @@ function SearchBar({ areas = [], unitTypes = [], features = [], finishingTypes =
 					]
 				})
 			})]
-		})
+		}), /* @__PURE__ */ jsxs("div", {
+			className: "md:hidden",
+			children: [/* @__PURE__ */ jsxs("form", {
+				onSubmit: handleSubmit,
+				dir: isRtl ? "rtl" : "ltr",
+				className: "bg-white/95 backdrop-blur-xl rounded-[1.5rem] shadow-xl border border-white/60 p-2 flex items-center justify-between gap-2 relative z-20",
+				children: [/* @__PURE__ */ jsxs("button", {
+					type: "button",
+					onClick: () => setShowAdvanced(true),
+					className: "flex-1 flex items-center gap-3 px-3 py-2 text-start bg-transparent outline-none",
+					children: [/* @__PURE__ */ jsx("svg", {
+						className: "w-5 h-5 text-primary-900 shrink-0",
+						fill: "none",
+						viewBox: "0 0 24 24",
+						stroke: "currentColor",
+						strokeWidth: 2,
+						children: /* @__PURE__ */ jsx("path", {
+							strokeLinecap: "round",
+							strokeLinejoin: "round",
+							d: "M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+						})
+					}), /* @__PURE__ */ jsxs("div", {
+						className: "flex-1 overflow-hidden whitespace-nowrap",
+						children: [/* @__PURE__ */ jsx("p", {
+							className: "text-sm font-bold text-secondary-900 truncate",
+							children: local.search || (locale === "ar" ? "بحث..." : "Search...")
+						}), /* @__PURE__ */ jsx("p", {
+							className: "text-xs text-secondary-500 font-medium truncate",
+							children: [
+								local.transaction && (local.transaction === "sale" ? trans("sale") : local.transaction === "rent" ? trans("rent") : trans(local.transaction)),
+								local.area_id && areas?.find((a) => a.id == local.area_id)?.[locale === "ar" ? "name_ar" : "name_en"],
+								local.type_id && unitTypes?.find((u) => u.id == local.type_id)?.[locale === "ar" ? "name_ar" : "name_en"]
+							].filter(Boolean).join(" • ") || (locale === "ar" ? "جميع الفلاتر" : "All Filters")
+						})]
+					})]
+				}), /* @__PURE__ */ jsx("button", {
+					type: "button",
+					onClick: () => setShowAdvanced(true),
+					className: "w-11 h-11 rounded-full bg-surface text-primary-900 flex items-center justify-center shrink-0 border border-secondary-200",
+					children: /* @__PURE__ */ jsx("svg", {
+						className: "w-5 h-5",
+						fill: "none",
+						viewBox: "0 0 24 24",
+						stroke: "currentColor",
+						strokeWidth: 1.5,
+						children: /* @__PURE__ */ jsx("path", {
+							strokeLinecap: "round",
+							strokeLinejoin: "round",
+							d: "M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75"
+						})
+					})
+				})]
+			}), showAdvanced && /* @__PURE__ */ jsxs("div", {
+				dir: isRtl ? "rtl" : "ltr",
+				className: "fixed inset-0 z-[100] flex flex-col justify-end pointer-events-auto",
+				children: [/* @__PURE__ */ jsx("div", {
+					className: "absolute inset-0 bg-secondary-950/40 backdrop-blur-xs sm:backdrop-blur-sm transition-opacity",
+					onClick: () => setShowAdvanced(false)
+				}), /* @__PURE__ */ jsxs("div", {
+					className: "relative bg-white rounded-t-[2rem] w-full max-h-[90vh] flex flex-col shadow-2xl animate-slideUp",
+					children: [
+						/* @__PURE__ */ jsxs("div", {
+							className: "flex-none p-5 pb-3 border-b border-secondary-100 flex items-center justify-between sticky top-0 bg-white rounded-t-[2rem] z-10",
+							children: [
+								/* @__PURE__ */ jsx("h3", {
+									className: "text-lg font-black text-secondary-950 tracking-tight",
+									children: locale === "ar" ? "الفلاتر" : "Filters"
+								}),
+								/* @__PURE__ */ jsx("button", {
+									type: "button",
+									onClick: () => setShowAdvanced(false),
+									"aria-label": trans("close") || "Close",
+									className: "w-11 h-11 min-w-[44px] min-h-[44px] rounded-full bg-surface text-secondary-600 flex items-center justify-center hover:bg-secondary-200 transition-colors",
+									children: /* @__PURE__ */ jsx("svg", {
+										className: "w-5 h-5",
+										fill: "none",
+										viewBox: "0 0 24 24",
+										stroke: "currentColor",
+										strokeWidth: 2,
+										children: /* @__PURE__ */ jsx("path", {
+											strokeLinecap: "round",
+											strokeLinejoin: "round",
+											d: "M6 18L18 6M6 6l12 12"
+										})
+									})
+								}),
+								/* @__PURE__ */ jsx("div", { className: "absolute top-2 left-1/2 -translate-x-1/2 w-12 h-1.5 rounded-full bg-secondary-200" })
+							]
+						}),
+						/* @__PURE__ */ jsxs("div", {
+							className: "flex-1 overflow-y-auto p-5 pb-24 flex flex-col gap-6 hide-scrollbar",
+							children: [
+								/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+									htmlFor: "m-search",
+									className: "block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-2",
+									children: trans("search")
+								}), /* @__PURE__ */ jsx("input", {
+									id: "m-search",
+									type: "text",
+									value: local.search,
+									onChange: (e) => update("search", e.target.value),
+									placeholder: locale === "ar" ? "ابحث بالاسم..." : "Search...",
+									className: "w-full px-4 h-12 border border-secondary-200 bg-surface rounded-xl text-sm focus:ring-2 focus:ring-primary-900 transition-all outline-none"
+								})] }),
+								/* @__PURE__ */ jsxs("div", {
+									className: "grid grid-cols-2 gap-3",
+									children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+										htmlFor: "m-transaction",
+										className: "block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-2",
+										children: trans("transaction")
+									}), /* @__PURE__ */ jsxs(Select, {
+										id: "m-transaction",
+										value: local.transaction,
+										onChange: (e) => update("transaction", e.target.value),
+										className: "w-full bg-surface border border-secondary-200 rounded-xl h-12",
+										children: [
+											/* @__PURE__ */ jsx("option", {
+												value: "",
+												children: locale === "ar" ? "الكل" : "All"
+											}),
+											/* @__PURE__ */ jsx("option", {
+												value: "sale",
+												children: trans("sale")
+											}),
+											/* @__PURE__ */ jsx("option", {
+												value: "rent",
+												children: trans("rent")
+											}),
+											/* @__PURE__ */ jsx("option", {
+												value: "new_project",
+												children: locale === "ar" ? "مشروع جديد" : "New Project"
+											})
+										]
+									})] }), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+										htmlFor: "m-type",
+										className: "block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-2",
+										children: trans("type")
+									}), /* @__PURE__ */ jsxs(Select, {
+										id: "m-type",
+										value: local.type_id,
+										onChange: (e) => update("type_id", e.target.value),
+										className: "w-full bg-surface border border-secondary-200 rounded-xl h-12",
+										children: [/* @__PURE__ */ jsx("option", {
+											value: "",
+											children: locale === "ar" ? "الكل" : "All"
+										}), unitTypes?.map((ut) => /* @__PURE__ */ jsx("option", {
+											value: ut.id,
+											children: locale === "ar" ? ut.name_ar : ut.name_en
+										}, `m-ut-${ut.id}`))]
+									})] })]
+								}),
+								/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+									htmlFor: "m-area",
+									className: "block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-2",
+									children: trans("area")
+								}), /* @__PURE__ */ jsxs(Select, {
+									id: "m-area",
+									value: local.area_id,
+									onChange: (e) => update("area_id", e.target.value),
+									className: "w-full bg-surface border border-secondary-200 rounded-xl h-12",
+									children: [/* @__PURE__ */ jsx("option", {
+										value: "",
+										children: locale === "ar" ? "كل المناطق" : "All Areas"
+									}), areas?.map((area) => /* @__PURE__ */ jsx("option", {
+										value: area.id,
+										children: locale === "ar" ? area.name_ar : area.name_en
+									}, `m-a-${area.id}`))]
+								})] }),
+								/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+									className: "block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-2",
+									children: trans("price") || "Price"
+								}), /* @__PURE__ */ jsxs("div", {
+									className: "flex items-center gap-3",
+									children: [
+										/* @__PURE__ */ jsx("input", {
+											type: "number",
+											min: "0",
+											value: local.price_min,
+											onChange: (e) => update("price_min", e.target.value),
+											placeholder: locale === "ar" ? "من" : "Min",
+											className: "w-full px-4 h-12 border border-secondary-200 bg-surface rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary-900"
+										}),
+										/* @__PURE__ */ jsx("span", {
+											className: "text-secondary-400 font-medium",
+											children: "-"
+										}),
+										/* @__PURE__ */ jsx("input", {
+											type: "number",
+											min: "0",
+											value: local.price_max,
+											onChange: (e) => update("price_max", e.target.value),
+											placeholder: locale === "ar" ? "إلى" : "Max",
+											className: "w-full px-4 h-12 border border-secondary-200 bg-surface rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary-900"
+										})
+									]
+								})] }),
+								/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+									className: "block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-2",
+									children: locale === "ar" ? "المساحة" : "Size"
+								}), /* @__PURE__ */ jsxs("div", {
+									className: "flex items-center gap-3",
+									children: [
+										/* @__PURE__ */ jsx("input", {
+											type: "number",
+											min: "0",
+											value: local.size_min,
+											onChange: (e) => update("size_min", e.target.value),
+											placeholder: locale === "ar" ? "من" : "Min",
+											className: "w-full px-4 h-12 border border-secondary-200 bg-surface rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary-900"
+										}),
+										/* @__PURE__ */ jsx("span", {
+											className: "text-secondary-400 font-medium",
+											children: "-"
+										}),
+										/* @__PURE__ */ jsx("input", {
+											type: "number",
+											min: "0",
+											value: local.size_max,
+											onChange: (e) => update("size_max", e.target.value),
+											placeholder: locale === "ar" ? "إلى" : "Max",
+											className: "w-full px-4 h-12 border border-secondary-200 bg-surface rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary-900"
+										})
+									]
+								})] }),
+								/* @__PURE__ */ jsxs("div", {
+									className: "grid grid-cols-2 gap-3",
+									children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+										htmlFor: "m-payment",
+										className: "block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-2",
+										children: trans("payment_method") || "Payment Method"
+									}), /* @__PURE__ */ jsxs(Select, {
+										id: "m-payment",
+										value: local.payment_method,
+										onChange: (e) => update("payment_method", e.target.value),
+										className: "w-full bg-surface border border-secondary-200 rounded-xl h-12",
+										children: [
+											/* @__PURE__ */ jsx("option", {
+												value: "",
+												children: trans("all") || "All"
+											}),
+											/* @__PURE__ */ jsx("option", {
+												value: "cash",
+												children: trans("cash")
+											}),
+											/* @__PURE__ */ jsx("option", {
+												value: "installment",
+												children: trans("installment")
+											}),
+											/* @__PURE__ */ jsx("option", {
+												value: "both",
+												children: trans("both")
+											})
+										]
+									})] }), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+										htmlFor: "m-finish",
+										className: "block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-2",
+										children: trans("finishing_type") || "Finishing Type"
+									}), /* @__PURE__ */ jsxs(Select, {
+										id: "m-finish",
+										value: local.finishing_type_id,
+										onChange: (e) => update("finishing_type_id", e.target.value),
+										className: "w-full bg-surface border border-secondary-200 rounded-xl h-12",
+										children: [/* @__PURE__ */ jsx("option", {
+											value: "",
+											children: trans("all") || "All"
+										}), finishingTypes?.map((f) => /* @__PURE__ */ jsx("option", {
+											value: f.id,
+											children: locale === "ar" ? f.name_ar : f.name_en
+										}, `m-f-${f.id}`))]
+									})] })]
+								}),
+								features?.length > 0 && /* @__PURE__ */ jsxs("div", {
+									className: "pt-2",
+									children: [/* @__PURE__ */ jsx("label", {
+										className: "block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-3",
+										children: trans("features") || "Features"
+									}), /* @__PURE__ */ jsx("div", {
+										className: "flex flex-wrap gap-2",
+										children: features.map((feature) => {
+											return /* @__PURE__ */ jsx("button", {
+												type: "button",
+												onClick: () => toggleFeature(feature.id),
+												className: `px-4 py-2 rounded-full text-sm font-medium border transition-colors ${Array.isArray(local.features) && (local.features.includes(String(feature.id)) || local.features.includes(feature.id)) ? "bg-primary-900 border-primary-900 text-white" : "bg-white border-secondary-200 text-secondary-700 hover:border-primary-900 hover:text-primary-900"}`,
+												children: locale === "ar" ? feature.name_ar : feature.name_en
+											}, `m-feat-${feature.id}`);
+										})
+									})]
+								})
+							]
+						}),
+						/* @__PURE__ */ jsxs("div", {
+							className: "flex-none p-4 bg-white border-t border-secondary-100 flex items-center gap-3 absolute bottom-0 left-0 right-0 z-20 shadow-[0_-10px_20px_rgba(0,0,0,0.05)]",
+							children: [/* @__PURE__ */ jsx("button", {
+								type: "button",
+								onClick: handleReset,
+								className: "w-1/3 h-12 rounded-xl border border-secondary-200 text-secondary-700 font-bold text-sm bg-surface hover:bg-secondary-200 active:scale-95 transition-all",
+								children: locale === "ar" ? "إعادة ضبط" : "Reset"
+							}), /* @__PURE__ */ jsxs("button", {
+								type: "button",
+								onClick: (e) => {
+									setShowAdvanced(false);
+									handleSubmit(e);
+								},
+								className: "flex-1 h-12 rounded-xl bg-primary-900 text-white font-bold text-sm shadow-md hover:bg-primary-950 active:scale-95 transition-all flex items-center justify-center gap-2",
+								children: [/* @__PURE__ */ jsx("svg", {
+									className: "w-4 h-4",
+									fill: "none",
+									viewBox: "0 0 24 24",
+									stroke: "currentColor",
+									strokeWidth: 2.5,
+									children: /* @__PURE__ */ jsx("path", {
+										strokeLinecap: "round",
+										strokeLinejoin: "round",
+										d: "M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+									})
+								}), locale === "ar" ? "إظهار النتائج" : "Show Results"]
+							})]
+						})
+					]
+				})]
+			})]
+		})]
 	});
 }
 //#endregion
 //#region resources/js/Components/UI/ProjectCard.jsx
-var PLACEHOLDER$4 = "/images/fallback.webp";
 function SkeletonCard$1() {
 	return /* @__PURE__ */ jsxs("div", {
 		className: "bg-white rounded-2xl shadow-card overflow-hidden border border-secondary-100 animate-pulse",
@@ -12881,43 +15496,84 @@ function ProjectCard({ project, loading = false }) {
 	if (loading) return /* @__PURE__ */ jsx(SkeletonCard$1, {});
 	if (!project) return null;
 	const mainImage = project?.images?.find((img) => img.is_main || img.is_primary) || project?.images?.[0];
-	const thumbnail = mainImage?.thumb_url || mainImage?.url || (mainImage?.path ? mainImage.path.startsWith("http") || mainImage.path.startsWith("/") ? mainImage.path : `/storage/${mainImage.path}` : PLACEHOLDER$4);
+	const thumbnail = getStorageUrl(mainImage?.thumb_url || mainImage?.url || mainImage?.path, PLACEHOLDER$2);
 	const isCompared = compareList.includes(project?.id);
 	const areaName = project.area?.name || project.area_name || (isRtl ? "مصر" : "Egypt");
 	const imageAlt = project.alt_text || `${project.name || (isRtl ? "مشروع عقاري" : "Project")} ${isRtl ? "في" : "in"} ${areaName} - ${trans("app_name")}`;
 	const unitsCount = project.units_count ?? project.units?.length ?? 0;
+	const projectSlug = isRtl && project.slug_ar ? project.slug_ar : project.slug_en || project.slug || project.id;
 	return /* @__PURE__ */ jsxs("article", {
 		dir: isRtl ? "rtl" : "ltr",
-		className: "bg-white rounded-2xl shadow-card hover:shadow-xl transition-all duration-300 overflow-hidden group border border-secondary-100/80 flex flex-col h-full",
+		className: "bg-white rounded-2xl shadow-card hover:shadow-2xl hover:-translate-y-1.5 transition-[transform,box-shadow] duration-300 overflow-hidden group border border-secondary-100/80 flex flex-col h-full",
 		children: [/* @__PURE__ */ jsxs("div", {
 			className: "relative overflow-hidden aspect-[4/3] bg-secondary-100",
-			children: [/* @__PURE__ */ jsx(Link, {
-				href: localizedPath(`/projects/${project.slug}`, locale),
-				className: "block w-full h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
-				children: /* @__PURE__ */ jsx(OptimizedImage, {
-					src: thumbnail,
-					alt: imageAlt,
-					width: 480,
-					height: 360,
-					lazy: true,
-					fallbackSrc: PLACEHOLDER$4,
-					className: "w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+			children: [
+				/* @__PURE__ */ jsx(Link, {
+					href: localizedPath(`/projects/${projectSlug}`, locale),
+					className: "block w-full h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
+					children: /* @__PURE__ */ jsx(OptimizedImage, {
+						src: thumbnail,
+						alt: imageAlt,
+						width: 480,
+						height: 360,
+						lazy: true,
+						fallbackSrc: PLACEHOLDER$2,
+						className: "w-full h-full object-cover group-hover:scale-108 transition-transform duration-500 ease-out"
+					})
+				}),
+				/* @__PURE__ */ jsxs("div", {
+					className: "absolute top-3 inset-x-3 flex items-center justify-between pointer-events-none z-10",
+					children: [/* @__PURE__ */ jsx("span", {
+						className: "bg-white/95 text-secondary-900 text-xs font-bold px-3 py-1 rounded-full shadow-sm backdrop-blur-md border border-white/40",
+						children: trans("project")
+					}), /* @__PURE__ */ jsx("button", {
+						onClick: (e) => {
+							e.preventDefault();
+							e.stopPropagation();
+							toggleCompare(project.id);
+						},
+						className: `pointer-events-auto p-2 rounded-full backdrop-blur-md transition-colors shadow-sm ${isCompared ? "bg-primary-900 text-white" : "bg-white/90 text-secondary-700 hover:bg-white hover:text-primary-900"}`,
+						title: isCompared ? trans("remove_from_compare") || "إزالة من المقارنة" : trans("add_to_compare") || "إضافة للمقارنة",
+						children: /* @__PURE__ */ jsx("svg", {
+							className: "w-4 h-4",
+							fill: isCompared ? "currentColor" : "none",
+							viewBox: "0 0 24 24",
+							stroke: "currentColor",
+							strokeWidth: 2,
+							children: /* @__PURE__ */ jsx("path", {
+								strokeLinecap: "round",
+								strokeLinejoin: "round",
+								d: "M3 6l3 18h12l3-18H3zm5 4v10m4-10v10m4-10v10"
+							})
+						})
+					})]
+				}),
+				project.area?.name && /* @__PURE__ */ jsxs("span", {
+					className: "absolute bottom-3 start-3 text-white text-xs font-medium bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded-md flex items-center gap-1",
+					children: [/* @__PURE__ */ jsxs("svg", {
+						className: "w-3.5 h-3.5 text-primary-400",
+						fill: "none",
+						viewBox: "0 0 24 24",
+						stroke: "currentColor",
+						strokeWidth: 2,
+						"aria-hidden": "true",
+						children: [/* @__PURE__ */ jsx("path", {
+							strokeLinecap: "round",
+							strokeLinejoin: "round",
+							d: "M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"
+						}), /* @__PURE__ */ jsx("path", {
+							strokeLinecap: "round",
+							strokeLinejoin: "round",
+							d: "M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
+						})]
+					}), project.area.name]
 				})
-			}), /* @__PURE__ */ jsxs("div", {
-				className: "absolute top-3 inset-x-3 flex items-center justify-between pointer-events-none z-10",
-				children: [/* @__PURE__ */ jsx("span", {
-					className: "bg-white/95 text-secondary-900 text-xs font-semibold px-3 py-1 rounded-full shadow-sm backdrop-blur-md border border-white/40",
-					children: areaName
-				}), project.payment_method && /* @__PURE__ */ jsx("span", {
-					className: "bg-secondary-900/90 text-white text-[11px] font-medium px-2.5 py-0.5 rounded-full shadow-sm backdrop-blur-md",
-					children: project.payment_method === "cash" ? isRtl ? "كاش" : "Cash" : project.payment_method === "installment" ? isRtl ? "تقسيط" : "Installment" : isRtl ? "كاش وتقسيط" : "Cash & Installment"
-				})]
-			})]
+			]
 		}), /* @__PURE__ */ jsxs("div", {
-			className: "p-5 flex flex-col flex-1 justify-between gap-4",
+			className: "p-5 flex-1 flex flex-col justify-between",
 			children: [/* @__PURE__ */ jsxs("div", { children: [
 				/* @__PURE__ */ jsx(Link, {
-					href: localizedPath(`/projects/${project.slug}`, locale),
+					href: localizedPath(`/projects/${projectSlug}`, locale),
 					className: "block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded",
 					children: /* @__PURE__ */ jsx("h2", {
 						className: "text-base font-bold text-secondary-950 group-hover:text-primary-900 transition-colors line-clamp-1 mb-1.5",
@@ -12925,105 +15581,579 @@ function ProjectCard({ project, loading = false }) {
 					})
 				}),
 				project.description && /* @__PURE__ */ jsx("p", {
-					className: "text-xs text-secondary-500 line-clamp-2 leading-relaxed mb-3",
+					className: "text-xs text-secondary-500 line-clamp-2 leading-relaxed mb-3 font-medium",
 					children: project.description
 				}),
 				/* @__PURE__ */ jsxs("div", {
 					className: "flex items-center gap-2 flex-wrap text-xs",
 					children: [/* @__PURE__ */ jsxs("span", {
-						className: "bg-primary-50 text-primary-900 px-2.5 py-1 rounded-md font-semibold",
+						className: "bg-primary-50 text-primary-900 px-2.5 py-1 rounded-lg font-bold",
 						children: [
 							unitsCount,
 							" ",
 							trans("units_count") || (isRtl ? "وحدة متاحة" : "Units")
 						]
 					}), project.installment_years > 0 && /* @__PURE__ */ jsx("span", {
-						className: "bg-secondary-50 text-secondary-700 px-2.5 py-1 rounded-md font-medium",
+						className: "bg-secondary-100/70 text-secondary-800 px-2.5 py-1 rounded-lg font-semibold",
 						children: isRtl ? `تقسيط حتى ${project.installment_years} سنوات` : `Up to ${project.installment_years} yrs installment`
 					})]
 				})
 			] }), /* @__PURE__ */ jsxs("div", {
-				className: "flex items-center justify-between pt-3 border-t border-secondary-100 mt-auto",
+				className: "flex items-center justify-between pt-3 border-t border-secondary-100/70 mt-auto",
 				children: [/* @__PURE__ */ jsx("button", {
 					onClick: (e) => {
 						e.preventDefault();
 						toggleCompare(project.id);
 					},
-					className: `text-xs px-3 py-1.5 rounded-lg border transition-all duration-200 font-medium ${isCompared ? "bg-primary-900 text-white border-primary-900 shadow-sm" : "bg-white text-secondary-600 border-secondary-200 hover:border-primary-900 hover:text-primary-900"}`,
+					className: `text-xs px-3.5 py-1.5 rounded-xl border transition-colors duration-200 font-semibold ${isCompared ? "bg-primary-900 text-white border-primary-900 shadow-sm" : "bg-secondary-50 text-secondary-700 border-secondary-200 hover:border-primary-900 hover:text-primary-900 hover:bg-white"}`,
 					"aria-label": `${trans("compare")} ${project.name}`,
 					"aria-pressed": isCompared,
-					children: isCompared ? isRtl ? "تمت الإضافة للمقارنة" : "Added to Compare" : trans("compare")
-				}), /* @__PURE__ */ jsx(Link, {
-					href: localizedPath(`/projects/${project.slug}`, locale),
-					className: "text-xs font-semibold text-primary-900 hover:text-primary-950 hover:underline transition-all",
-					children: trans("show_more") || (isRtl ? "التفاصيل ←" : "Details →")
+					children: isCompared ? isRtl ? "تمت الإضافة" : "Added" : trans("compare")
+				}), /* @__PURE__ */ jsxs(Link, {
+					href: localizedPath(`/projects/${projectSlug}`, locale),
+					className: "text-xs font-bold text-primary-900 hover:text-primary-700 flex items-center gap-1 group/link transition-colors",
+					children: [/* @__PURE__ */ jsx("span", { children: trans("show_more") || (isRtl ? "التفاصيل" : "Details") }), /* @__PURE__ */ jsx("svg", {
+						className: "w-3.5 h-3.5 rtl:rotate-180 group-hover/link:translate-x-0.5 rtl:group-hover/link:-translate-x-0.5 transition-transform",
+						fill: "none",
+						viewBox: "0 0 24 24",
+						stroke: "currentColor",
+						strokeWidth: 2.5,
+						children: /* @__PURE__ */ jsx("path", {
+							strokeLinecap: "round",
+							strokeLinejoin: "round",
+							d: "M8.25 4.5l7.5 7.5-7.5 7.5"
+						})
+					})]
 				})]
 			})]
 		})]
 	});
 }
+var ProjectCard_default = memo(ProjectCard);
+//#endregion
+//#region resources/js/Components/UI/IconByName.jsx
+/**
+* Renders a SAFE, static SVG icon from an allowlisted icon NAME.
+*
+* Security: this component NEVER renders HTML/SVG from the database. The icon
+* value coming from the server is a plain allowlisted name; every name below
+* maps to a hardcoded set of SVG path elements written in this file. Any
+* unknown or missing value degrades to a safe default "star" icon.
+* There is NO dangerouslySetInnerHTML anywhere in this component.
+*/
+var ICON_PATHS = {
+	default: ["M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.562.562 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"],
+	location: ["M15 10.5a3 3 0 11-6 0 3 3 0 016 0z", "M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"],
+	school: ["M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5"],
+	hospital: ["M12 9.75v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"],
+	shopping: ["M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z"],
+	transport: ["M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"],
+	wifi: ["M8.288 15.038a5.25 5.25 0 017.424 0M5.106 11.856c3.807-3.808 9.98-3.808 13.788 0M1.924 8.674c5.565-5.565 14.587-5.565 20.152 0M12.53 18.22l-.53.53-.53-.53a.75.75 0 011.06 0z"],
+	security: ["M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"],
+	bank: ["M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75z"],
+	library: ["M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z"],
+	pharmacy: ["M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5"],
+	post_office: ["M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"],
+	fire_station: ["M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 00-3.857-2.475 8.25 8.25 0 006.858 4.956z"],
+	stadium: ["M9 4H5.25A2.25 2.25 0 003 6.25v1.5A2.25 2.25 0 005.25 10H9m6-6h3.75A2.25 2.25 0 0121 6.25v1.5a2.25 2.25 0 01-2.25 2.25H15M9 4v7.5m0 0H6.75M9 4h6m0 0v7.5m0 0h2.25M9 11.5V13m0 3.75v1.5a2.25 2.25 0 002.25 2.25h1.5a2.25 2.25 0 002.25-2.25V17"],
+	hotel: ["M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"],
+	airport: ["M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"],
+	beach: ["M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z"],
+	museum: ["M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75z"],
+	community_center: ["M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"],
+	smart_home: ["M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 002.25-2.25V6.75a2.25 2.25 0 00-2.25-2.25H6.75A2.25 2.25 0 004.5 6.75v10.5a2.25 2.25 0 002.25 2.25zm.75-12h9v9h-9v-9z"],
+	cctv: ["M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"],
+	search: ["M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"]
+};
+var DEFAULT_NAME = "default";
+/**
+* @param {string|null|[string]} iconName Allowlisted icon name (or array with
+*                                       a single name for legacy payloads).
+* @param {string} className Tailwind classes for the <svg>
+* @param {boolean} filled   Use filled (non-stroke) path rendering
+*/
+function IconByName({ iconName, className = "w-6 h-6", strokeWidth = 1.8 }) {
+	const key = Array.isArray(iconName) ? iconName[0] : iconName;
+	return /* @__PURE__ */ jsx("svg", {
+		viewBox: "0 0 24 24",
+		className,
+		fill: "none",
+		stroke: "currentColor",
+		strokeWidth,
+		strokeLinecap: "round",
+		strokeLinejoin: "round",
+		"aria-hidden": "true",
+		children: (ICON_PATHS[typeof key === "string" ? key : ""] || ICON_PATHS[DEFAULT_NAME]).map((d, i) => /* @__PURE__ */ jsx("path", { d }, i))
+	});
+}
 //#endregion
 //#region resources/js/Pages/Public/Areas/Show.jsx
 var Show_exports$3 = /* @__PURE__ */ __exportAll({ default: () => AreaShow });
-function AreaShow({ area, units, projects, seo, areas, unitTypes, features, finishingTypes }) {
+function AreaShow({ area, relatedAreas, units, projects, seo, areas, unitTypes, features, finishingTypes }) {
 	const { locale, appUrl } = usePage().props;
 	const { url: currentUrl } = usePage();
 	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
-	const [activeTab, setActiveTab] = useState("all");
-	const areaName = isRtl ? area?.name_ar || area?.name_en || area?.name : area?.name_en || area?.name_ar || area?.name;
-	const unitsCount = units?.total ?? units?.data?.length ?? 0;
-	const projectsCount = projects?.total ?? projects?.data?.length ?? 0;
-	const pageTitle = seo?.title || (isRtl ? `عقارات ومشاريع في ${areaName} - ${trans("app_name")}` : `Properties & Projects in ${areaName} - ${trans("app_name")}`);
-	const pageDescription = seo?.description || (isRtl ? `تصفح أحدث الوحدات العقارية والمشاريع المتاحة للبيع والاستثمار في منطقة ${areaName}.` : `Explore the latest real estate units and projects available in ${areaName}.`);
-	const pageKeywords = Array.isArray(seo?.keywords) ? seo.keywords.join(", ") : seo?.keywords;
+	const [activeTab, setActiveTab] = useState("projects");
+	const [openFaq, setOpenFaq] = useState(null);
+	const areaName = isRtl ? area?.name_ar || area?.name_en : area?.name_en || area?.name_ar;
+	const heroTitle = isRtl ? area?.hero_title_ar || areaName : area?.hero_title_en || areaName;
+	const heroDesc = isRtl ? area?.hero_description_ar || area?.short_description_ar : area?.hero_description_en || area?.short_description_en;
+	const aboutArea = isRtl ? area?.about_ar : area?.about_en;
+	const address = isRtl ? area?.address_ar : area?.address_en;
+	const unitsCount = area?.units_count || (units?.total ?? units?.data?.length ?? 0);
+	const projectsCount = area?.projects_count || (projects?.total ?? projects?.data?.length ?? 0);
+	const heroImage = getStorageUrl(area?.image_path || area?.hero_image);
+	const pageTitle = seo?.title || `${heroTitle} - ${trans("app_name")}`;
+	const pageDescription = seo?.description || heroDesc;
+	const toggleFaq = (index) => {
+		setOpenFaq(openFaq === index ? null : index);
+	};
 	return /* @__PURE__ */ jsxs("div", {
 		dir: isRtl ? "rtl" : "ltr",
-		className: "min-h-screen bg-surface flex flex-col font-sans",
+		className: "min-h-screen bg-[#FAFAFA] flex flex-col font-sans",
 		children: [
 			/* @__PURE__ */ jsx(SeoHead, {
 				title: pageTitle,
 				description: pageDescription,
-				keywords: pageKeywords,
-				ogImage: seo?.ogImage,
+				ogImage: seo?.ogImage || heroImage,
 				canonical: appUrl && currentUrl ? `${appUrl}${currentUrl.split("?")[0]}` : void 0
 			}),
 			/* @__PURE__ */ jsx(Header, {}),
 			/* @__PURE__ */ jsxs("main", {
-				className: "flex-1",
+				id: "main-content",
+				tabIndex: "-1",
+				className: "flex-1 focus:outline-none",
 				children: [
 					/* @__PURE__ */ jsxs("section", {
-						className: "relative bg-secondary-950 py-12 md:py-16 overflow-hidden",
-						children: [
-							/* @__PURE__ */ jsx("div", { className: "absolute inset-0 z-0 bg-gradient-to-r from-secondary-950 via-secondary-900 to-primary-950 opacity-90" }),
-							/* @__PURE__ */ jsx("div", { className: "absolute -top-24 -right-24 w-96 h-96 bg-primary-500/10 rounded-full blur-3xl" }),
-							/* @__PURE__ */ jsx("div", { className: "absolute -bottom-24 -left-24 w-96 h-96 bg-primary-600/10 rounded-full blur-3xl" }),
-							/* @__PURE__ */ jsxs("div", {
-								className: "relative z-10 max-w-container mx-auto px-4",
+						className: "relative min-h-[480px] md:min-h-[540px] pt-24 pb-20 md:pt-32 md:pb-28 flex items-center justify-center overflow-hidden bg-gradient-to-br from-secondary-950 via-secondary-900 to-primary-950",
+						children: [/* @__PURE__ */ jsxs("div", {
+							className: "absolute inset-0 z-0",
+							children: [(area?.image_path || area?.hero_image) && /* @__PURE__ */ jsx("img", {
+								src: heroImage,
+								alt: heroTitle,
+								onError: (e) => {
+									e.currentTarget.style.display = "none";
+								},
+								className: "w-full h-full object-cover object-center scale-105 animate-subtle-zoom opacity-50"
+							}), /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-gradient-to-t from-secondary-950 via-secondary-950/70 to-black/40" })]
+						}), /* @__PURE__ */ jsxs("div", {
+							className: "relative z-10 max-w-container mx-auto px-4 w-full",
+							children: [/* @__PURE__ */ jsxs("nav", {
+								className: "flex items-center gap-2 text-xs md:text-sm text-white/80 mb-4 font-medium",
+								"aria-label": "Breadcrumb",
 								children: [
-									/* @__PURE__ */ jsxs("nav", {
-										className: "flex items-center gap-2 text-xs text-secondary-300 mb-6",
-										"aria-label": "Breadcrumb",
-										children: [
-											/* @__PURE__ */ jsx(Link, {
-												href: localizedPath("/", locale),
-												className: "hover:text-white transition-colors",
-												children: trans("home")
-											}),
-											/* @__PURE__ */ jsx("span", { children: "/" }),
-											/* @__PURE__ */ jsx("span", {
-												className: "text-primary-400 font-semibold",
-												children: areaName
-											})
-										]
+									/* @__PURE__ */ jsx(Link, {
+										href: localizedPath("/", locale),
+										className: "hover:text-white transition-colors",
+										children: trans("home")
+									}),
+									/* @__PURE__ */ jsx("span", { children: "/" }),
+									/* @__PURE__ */ jsx("span", {
+										className: "text-white font-bold",
+										children: areaName
+									})
+								]
+							}), /* @__PURE__ */ jsxs("div", {
+								className: "max-w-3xl",
+								children: [
+									/* @__PURE__ */ jsx("h1", {
+										className: "text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tight leading-tight mb-4 drop-shadow-md",
+										children: heroTitle
+									}),
+									heroDesc && /* @__PURE__ */ jsx("p", {
+										className: "text-sm sm:text-base md:text-lg text-white/90 font-medium leading-relaxed max-w-2xl drop-shadow mb-8",
+										children: heroDesc
 									}),
 									/* @__PURE__ */ jsxs("div", {
-										className: "flex flex-col md:flex-row md:items-center justify-between gap-6",
-										children: [/* @__PURE__ */ jsxs("div", { children: [
+										className: "inline-flex items-center gap-4 md:gap-6 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-2.5 px-5 text-white",
+										children: [
 											/* @__PURE__ */ jsxs("div", {
-												className: "inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-500/20 text-primary-300 border border-primary-500/30 text-xs font-semibold mb-3",
-												children: [/* @__PURE__ */ jsxs("svg", {
-													className: "w-3.5 h-3.5",
+												className: "flex items-center gap-2",
+												children: [/* @__PURE__ */ jsx("span", {
+													className: "text-xl md:text-2xl font-black text-primary-400",
+													children: projectsCount
+												}), /* @__PURE__ */ jsx("span", {
+													className: "text-xs md:text-sm font-bold text-white/90",
+													children: trans("projects")
+												})]
+											}),
+											/* @__PURE__ */ jsx("span", { className: "w-px h-6 bg-white/20" }),
+											/* @__PURE__ */ jsxs("div", {
+												className: "flex items-center gap-2",
+												children: [/* @__PURE__ */ jsx("span", {
+													className: "text-xl md:text-2xl font-black text-primary-400",
+													children: unitsCount
+												}), /* @__PURE__ */ jsx("span", {
+													className: "text-xs md:text-sm font-bold text-white/90",
+													children: trans("units")
+												})]
+											})
+										]
+									})
+								]
+							})]
+						})]
+					}),
+					/* @__PURE__ */ jsx("div", {
+						className: "max-w-container mx-auto px-4 relative z-30 -mt-8 md:-mt-12 mb-16",
+						children: /* @__PURE__ */ jsx(SearchBar, {
+							areas,
+							unitTypes,
+							features,
+							finishingTypes,
+							filters: { area_id: area?.id }
+						})
+					}),
+					/* @__PURE__ */ jsx("section", {
+						className: "max-w-container mx-auto px-4 py-12 md:py-20",
+						children: /* @__PURE__ */ jsxs("div", {
+							className: "grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16",
+							children: [/* @__PURE__ */ jsxs("div", {
+								className: "lg:col-span-7 space-y-6",
+								children: [
+									/* @__PURE__ */ jsxs("div", {
+										className: "inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-50 text-primary-900 text-xs font-bold mb-2 border border-primary-100",
+										children: [/* @__PURE__ */ jsx("svg", {
+											className: "w-4 h-4",
+											fill: "none",
+											viewBox: "0 0 24 24",
+											stroke: "currentColor",
+											strokeWidth: 2.5,
+											children: /* @__PURE__ */ jsx("path", {
+												strokeLinecap: "round",
+												strokeLinejoin: "round",
+												d: "M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+											})
+										}), trans("about_area")]
+									}),
+									/* @__PURE__ */ jsx("h2", {
+										className: "text-3xl md:text-4xl font-black text-secondary-950 leading-tight",
+										children: trans("discover_life_in_area", { name: areaName })
+									}),
+									/* @__PURE__ */ jsx("div", {
+										className: "prose prose-lg prose-secondary max-w-none text-secondary-600 leading-relaxed font-medium",
+										children: aboutArea ? aboutArea.split("\n").map((paragraph, idx) => /* @__PURE__ */ jsx("p", { children: paragraph }, idx)) : /* @__PURE__ */ jsx("p", { children: heroDesc || trans("learn_more_about_area", { name: areaName }) })
+									}),
+									area?.gallery && area.gallery.length > 0 && /* @__PURE__ */ jsx("div", {
+										className: "mt-8 grid grid-cols-2 md:grid-cols-3 gap-4",
+										children: area.gallery.map((img, idx) => /* @__PURE__ */ jsx("img", {
+											src: getStorageUrl(img),
+											alt: `${areaName} gallery ${idx}`,
+											className: "w-full h-32 md:h-40 object-cover rounded-2xl shadow-sm hover:scale-105 transition-transform duration-300 cursor-pointer"
+										}, idx))
+									})
+								]
+							}), /* @__PURE__ */ jsx("div", {
+								className: "lg:col-span-5",
+								children: /* @__PURE__ */ jsxs("div", {
+									className: "bg-white rounded-3xl p-8 md:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-secondary-100 h-full",
+									children: [/* @__PURE__ */ jsx("h3", {
+										className: "text-2xl font-black text-secondary-950 mb-8 border-b border-secondary-100 pb-4",
+										children: trans("why_choose_this_area")
+									}), /* @__PURE__ */ jsx("div", {
+										className: "space-y-6",
+										children: area?.features?.filter((f) => f.is_active)?.length > 0 ? area.features.filter((f) => f.is_active).sort((a, b) => a.sort_order - b.sort_order).map((feature, idx) => {
+											const fTitle = isRtl ? feature.title_ar : feature.title_en || feature.title_ar;
+											const fDesc = isRtl ? feature.description_ar : feature.description_en || feature.description_ar;
+											return /* @__PURE__ */ jsxs("div", {
+												className: "flex gap-4",
+												children: [/* @__PURE__ */ jsx("div", {
+													className: "shrink-0 w-14 h-14 rounded-2xl bg-primary-50 flex items-center justify-center text-primary-800",
+													children: /* @__PURE__ */ jsx(IconByName, {
+														iconName: feature.icon_name || feature.icon,
+														className: "w-7 h-7"
+													})
+												}), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("h4", {
+													className: "text-lg font-bold text-secondary-950 mb-1",
+													children: fTitle
+												}), fDesc && /* @__PURE__ */ jsx("p", {
+													className: "text-sm text-secondary-500 font-medium leading-relaxed",
+													children: fDesc
+												})] })]
+											}, idx);
+										}) : /* @__PURE__ */ jsx("div", {
+											className: "text-secondary-400 text-sm",
+											children: trans("no_features_added_currently")
+										})
+									})]
+								})
+							})]
+						})
+					}),
+					/* @__PURE__ */ jsx("section", {
+						className: "bg-secondary-50 py-16 md:py-24 border-y border-secondary-200/50",
+						children: /* @__PURE__ */ jsxs("div", {
+							className: "max-w-container mx-auto px-4",
+							children: [
+								/* @__PURE__ */ jsxs("div", {
+									className: "text-center mb-10",
+									children: [/* @__PURE__ */ jsx("h2", {
+										className: "text-3xl md:text-4xl font-black text-secondary-950 mb-4",
+										children: trans("properties_in_area", { name: areaName })
+									}), /* @__PURE__ */ jsxs("div", {
+										className: "inline-flex bg-white p-1.5 rounded-2xl shadow-sm border border-secondary-100",
+										children: [/* @__PURE__ */ jsxs("button", {
+											onClick: () => setActiveTab("projects"),
+											className: `px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === "projects" ? "bg-primary-900 text-white shadow-md" : "text-secondary-600 hover:text-secondary-900 hover:bg-secondary-50"}`,
+											children: [
+												trans("projects"),
+												" (",
+												projectsCount,
+												")"
+											]
+										}), /* @__PURE__ */ jsxs("button", {
+											onClick: () => setActiveTab("units"),
+											className: `px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === "units" ? "bg-primary-900 text-white shadow-md" : "text-secondary-600 hover:text-secondary-900 hover:bg-secondary-50"}`,
+											children: [
+												trans("units"),
+												" (",
+												unitsCount,
+												")"
+											]
+										})]
+									})]
+								}),
+								activeTab === "projects" && /* @__PURE__ */ jsx("div", {
+									className: "animate-fade-in",
+									children: projects?.data?.length > 0 ? /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("div", {
+										className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6",
+										children: projects.data.map((project) => /* @__PURE__ */ jsx(ProjectCard_default, { project }, project.id))
+									}), /* @__PURE__ */ jsx(Pagination, {
+										meta: projects,
+										pageParam: "projects_page"
+									})] }) : /* @__PURE__ */ jsx("div", {
+										className: "bg-white rounded-3xl p-12 text-center border border-secondary-100",
+										children: /* @__PURE__ */ jsx("p", {
+											className: "text-secondary-500 font-bold",
+											children: trans("no_projects_available")
+										})
+									})
+								}),
+								activeTab === "units" && /* @__PURE__ */ jsx("div", {
+									className: "animate-fade-in",
+									children: units?.data?.length > 0 ? /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("div", {
+										className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5",
+										children: units.data.map((unit) => /* @__PURE__ */ jsx(UnitCard_default, { unit }, unit.id))
+									}), /* @__PURE__ */ jsx(Pagination, {
+										meta: units,
+										pageParam: "units_page"
+									})] }) : /* @__PURE__ */ jsx("div", {
+										className: "bg-white rounded-3xl p-12 text-center border border-secondary-100",
+										children: /* @__PURE__ */ jsx("p", {
+											className: "text-secondary-500 font-bold",
+											children: trans("no_units_available")
+										})
+									})
+								})
+							]
+						})
+					}),
+					/* @__PURE__ */ jsx("section", {
+						className: "max-w-container mx-auto px-4 py-16 md:py-24",
+						children: /* @__PURE__ */ jsxs("div", {
+							className: "grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16",
+							children: [/* @__PURE__ */ jsxs("div", {
+								className: "lg:col-span-5",
+								children: [/* @__PURE__ */ jsx("h2", {
+									className: "text-3xl font-black text-secondary-950 mb-8",
+									children: trans("nearby_places")
+								}), /* @__PURE__ */ jsx("div", {
+									className: "space-y-4",
+									children: area?.nearbyPlaces?.filter((p) => p.is_active)?.length > 0 ? area.nearbyPlaces.filter((p) => p.is_active).sort((a, b) => a.sort_order - b.sort_order).map((place, idx) => {
+										const pName = isRtl ? place.name_ar : place.name_en || place.name_ar;
+										return /* @__PURE__ */ jsxs("div", {
+											className: "flex items-center justify-between bg-white p-4 rounded-3xl border border-secondary-100 shadow-sm hover:border-primary-400 hover:shadow-md transition-all",
+											children: [/* @__PURE__ */ jsxs("div", {
+												className: "flex items-center gap-3",
+												children: [/* @__PURE__ */ jsx("div", {
+													className: "w-12 h-12 rounded-full bg-secondary-50 flex items-center justify-center text-secondary-600",
+													children: /* @__PURE__ */ jsx(IconByName, {
+														iconName: place.icon_name || place.icon,
+														className: "w-6 h-6"
+													})
+												}), /* @__PURE__ */ jsx("span", {
+													className: "font-bold text-secondary-900",
+													children: pName
+												})]
+											}), place.distance && /* @__PURE__ */ jsxs("div", {
+												className: "flex flex-col items-end px-2",
+												children: [/* @__PURE__ */ jsx("span", {
+													className: "text-xl font-black text-primary-800 leading-none",
+													children: place.distance
+												}), /* @__PURE__ */ jsx("span", {
+													className: "text-xs text-secondary-500 font-bold",
+													children: place.distance_unit
+												})]
+											})]
+										}, idx);
+									}) : /* @__PURE__ */ jsx("div", {
+										className: "text-secondary-400 text-sm",
+										children: trans("no_nearby_places")
+									})
+								})]
+							}), /* @__PURE__ */ jsxs("div", {
+								className: "lg:col-span-7",
+								children: [/* @__PURE__ */ jsxs("h2", {
+									className: "text-3xl font-black text-secondary-950 mb-8 flex items-center justify-between",
+									children: [trans("location_on_map"), address && /* @__PURE__ */ jsx("span", {
+										className: "text-sm text-secondary-500 font-medium max-w-[200px] md:max-w-none truncate",
+										children: address
+									})]
+								}), /* @__PURE__ */ jsx("div", {
+									className: "w-full h-[300px] md:h-[400px] bg-secondary-100 rounded-3xl overflow-hidden border border-secondary-200 shadow-sm relative",
+									children: area?.latitude && area?.longitude && area?.latitude != "0" && area?.longitude != "0" ? /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("div", {
+										className: "w-full h-[300px] md:h-[400px] bg-secondary-100 rounded-3xl overflow-hidden border border-secondary-200 shadow-sm relative",
+										children: /* @__PURE__ */ jsx("iframe", {
+											width: "100%",
+											height: "100%",
+											style: { border: 0 },
+											src: `https://maps.google.com/maps?q=${area.latitude},${area.longitude}&z=14&output=embed`,
+											allowFullScreen: true
+										})
+									}), /* @__PURE__ */ jsx("div", {
+										className: "mt-3 flex justify-end",
+										children: /* @__PURE__ */ jsxs("a", {
+											href: `https://www.google.com/maps/search/?api=1&query=${area.latitude},${area.longitude}`,
+											target: "_blank",
+											rel: "noopener noreferrer",
+											className: "inline-flex items-center gap-2 text-sm font-medium text-primary-700 hover:text-primary-900 transition-colors",
+											children: [/* @__PURE__ */ jsxs("svg", {
+												className: "w-4 h-4",
+												fill: "none",
+												viewBox: "0 0 24 24",
+												stroke: "currentColor",
+												strokeWidth: 2,
+												children: [/* @__PURE__ */ jsx("path", {
+													strokeLinecap: "round",
+													strokeLinejoin: "round",
+													d: "M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+												}), /* @__PURE__ */ jsx("path", {
+													strokeLinecap: "round",
+													strokeLinejoin: "round",
+													d: "M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+												})]
+											}), isRtl ? "فتح في خرائط جوجل" : "Open in Google Maps"]
+										})
+									})] }) : /* @__PURE__ */ jsx("div", {
+										className: "w-full h-[300px] md:h-[400px] bg-secondary-100 rounded-3xl overflow-hidden border border-secondary-200 shadow-sm relative",
+										children: /* @__PURE__ */ jsxs("div", {
+											className: "absolute inset-0 flex items-center justify-center text-secondary-400 flex-col gap-2",
+											children: [/* @__PURE__ */ jsx("svg", {
+												className: "w-12 h-12",
+												fill: "none",
+												viewBox: "0 0 24 24",
+												stroke: "currentColor",
+												children: /* @__PURE__ */ jsx("path", {
+													strokeLinecap: "round",
+													strokeLinejoin: "round",
+													strokeWidth: 1,
+													d: "M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"
+												})
+											}), /* @__PURE__ */ jsx("span", { children: trans("map_not_available") })]
+										})
+									})
+								})]
+							})]
+						})
+					}),
+					area?.faqs?.filter((f) => f.is_active)?.length > 0 && /* @__PURE__ */ jsx("section", {
+						className: "bg-white py-16 md:py-24 border-t border-secondary-100",
+						children: /* @__PURE__ */ jsxs("div", {
+							className: "max-w-3xl mx-auto px-4",
+							children: [/* @__PURE__ */ jsxs("div", {
+								className: "text-center mb-12",
+								children: [/* @__PURE__ */ jsx("h2", {
+									className: "text-3xl md:text-4xl font-black text-secondary-950 mb-4",
+									children: trans("frequently_asked_questions")
+								}), /* @__PURE__ */ jsx("p", {
+									className: "text-secondary-500 font-medium",
+									children: trans("everything_about_area", { name: areaName })
+								})]
+							}), /* @__PURE__ */ jsx("div", {
+								className: "space-y-4",
+								children: area.faqs.filter((f) => f.is_active).sort((a, b) => a.sort_order - b.sort_order).map((faq, idx) => {
+									const q = isRtl ? faq.question_ar : faq.question_en || faq.question_ar;
+									const a = isRtl ? faq.answer_ar : faq.answer_en || faq.answer_ar;
+									const isOpen = openFaq === idx;
+									return /* @__PURE__ */ jsxs("div", {
+										className: `border border-secondary-200 rounded-3xl overflow-hidden transition-colors ${isOpen ? "border-primary-600 bg-white shadow-sm" : "bg-surface hover:bg-white hover:border-secondary-300"}`,
+										children: [/* @__PURE__ */ jsxs("button", {
+											onClick: () => toggleFaq(idx),
+											className: "w-full flex items-center justify-between p-6 md:p-8 text-left focus:outline-none",
+											children: [/* @__PURE__ */ jsx("span", {
+												className: `font-bold text-lg md:text-xl ${isOpen ? "text-primary-800" : "text-secondary-950"}`,
+												children: q
+											}), /* @__PURE__ */ jsx("svg", {
+												className: `w-6 h-6 transition-transform duration-300 ${isOpen ? "rotate-180 text-primary-800" : "text-secondary-400"}`,
+												fill: "none",
+												viewBox: "0 0 24 24",
+												stroke: "currentColor",
+												strokeWidth: 2.5,
+												children: /* @__PURE__ */ jsx("path", {
+													strokeLinecap: "round",
+													strokeLinejoin: "round",
+													d: "M19 9l-7 7-7-7"
+												})
+											})]
+										}), /* @__PURE__ */ jsx("div", {
+											className: `overflow-hidden transition-all duration-300 ${isOpen ? "max-h-96" : "max-h-0"}`,
+											children: /* @__PURE__ */ jsx("div", {
+												className: "p-6 md:p-8 pt-0 text-secondary-600 font-medium leading-relaxed text-sm md:text-base",
+												children: a
+											})
+										})]
+									}, idx);
+								})
+							})]
+						})
+					}),
+					relatedAreas && relatedAreas.length > 0 && /* @__PURE__ */ jsxs("section", {
+						className: "max-w-container mx-auto px-4 py-16 md:py-24 border-t border-secondary-100",
+						children: [/* @__PURE__ */ jsxs("div", {
+							className: "flex items-center justify-between mb-10",
+							children: [/* @__PURE__ */ jsx("h2", {
+								className: "text-3xl font-black text-secondary-950",
+								children: trans("areas_you_might_like")
+							}), /* @__PURE__ */ jsxs(Link, {
+								href: localizedPath("/units", locale),
+								className: "text-primary-700 font-bold text-sm flex items-center gap-2 hover:text-primary-900 transition-colors",
+								children: [trans("explore_all_areas"), /* @__PURE__ */ jsx("svg", {
+									className: "w-4 h-4 rtl:rotate-180",
+									fill: "none",
+									viewBox: "0 0 24 24",
+									stroke: "currentColor",
+									strokeWidth: 2,
+									children: /* @__PURE__ */ jsx("path", {
+										strokeLinecap: "round",
+										strokeLinejoin: "round",
+										d: "M9 5l7 7-7 7"
+									})
+								})]
+							})]
+						}), /* @__PURE__ */ jsx("div", {
+							className: "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6",
+							children: relatedAreas.map((rArea) => {
+								const rName = isRtl ? rArea.name_ar : rArea.name_en;
+								const rSlug = rArea.slug || rArea.id;
+								const rImg = rArea.image_path || rArea.hero_image ? getStorageUrl(rArea.image_path || rArea.hero_image) : null;
+								return /* @__PURE__ */ jsxs(Link, {
+									href: localizedPath(`/areas/${rSlug}`, locale),
+									className: "group relative h-64 rounded-3xl overflow-hidden block bg-gradient-to-br from-secondary-900 via-secondary-800 to-primary-950",
+									children: [
+										rImg ? /* @__PURE__ */ jsx("img", {
+											src: rImg,
+											alt: rName,
+											onError: (e) => {
+												e.currentTarget.style.display = "none";
+											},
+											className: "w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+										}) : /* @__PURE__ */ jsx("div", {
+											className: "w-full h-full flex flex-col items-center justify-center text-white/40 group-hover:text-primary-400 transition-colors pb-10",
+											children: /* @__PURE__ */ jsx("div", {
+												className: "w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center shadow-inner group-hover:scale-110 group-hover:bg-primary-900/30 transition-all",
+												children: /* @__PURE__ */ jsxs("svg", {
+													className: "w-7 h-7 text-primary-400",
 													fill: "none",
 													viewBox: "0 0 24 24",
 													stroke: "currentColor",
@@ -13031,177 +16161,32 @@ function AreaShow({ area, units, projects, seo, areas, unitTypes, features, fini
 													children: [/* @__PURE__ */ jsx("path", {
 														strokeLinecap: "round",
 														strokeLinejoin: "round",
-														d: "M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+														d: "M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"
 													}), /* @__PURE__ */ jsx("path", {
 														strokeLinecap: "round",
 														strokeLinejoin: "round",
-														d: "M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+														d: "M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
 													})]
-												}), /* @__PURE__ */ jsx("span", { children: isRtl ? "منطقة عقارية" : "Real Estate Region" })]
-											}),
-											/* @__PURE__ */ jsx("h1", {
-												className: "text-3xl md:text-5xl font-black text-white tracking-tight leading-tight mb-3",
-												children: areaName
-											}),
-											/* @__PURE__ */ jsx("p", {
-												className: "text-secondary-300 text-sm md:text-base max-w-2xl font-normal leading-relaxed",
-												children: isRtl ? `اعثر على أفضل الخيارات العقارية السكنية والتجارية والمشاريع الاستثمارية في منطقة ${areaName}.` : `Find top residential, commercial properties, and investment projects in ${areaName}.`
+												})
 											})
-										] }), /* @__PURE__ */ jsxs("div", {
-											className: "flex items-center gap-3 shrink-0",
-											children: [/* @__PURE__ */ jsxs("div", {
-												className: "bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl px-5 py-3 text-center min-w-[110px]",
-												children: [/* @__PURE__ */ jsx("div", {
-													className: "text-2xl font-black text-white",
-													children: unitsCount
-												}), /* @__PURE__ */ jsx("div", {
-													className: "text-xs text-secondary-300 font-medium mt-0.5",
-													children: trans("units")
-												})]
-											}), /* @__PURE__ */ jsxs("div", {
-												className: "bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl px-5 py-3 text-center min-w-[110px]",
-												children: [/* @__PURE__ */ jsx("div", {
-													className: "text-2xl font-black text-primary-400",
-													children: projectsCount
-												}), /* @__PURE__ */ jsx("div", {
-													className: "text-xs text-secondary-300 font-medium mt-0.5",
-													children: trans("projects")
-												})]
+										}),
+										/* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" }),
+										/* @__PURE__ */ jsxs("div", {
+											className: "absolute bottom-0 inset-x-0 p-6",
+											children: [/* @__PURE__ */ jsx("h3", {
+												className: "text-white text-xl font-black mb-1",
+												children: rName
+											}), /* @__PURE__ */ jsxs("p", {
+												className: "text-white/80 text-sm font-bold",
+												children: [
+													rArea.projects_count,
+													" ",
+													trans("projects")
+												]
 											})]
-										})]
-									}),
-									/* @__PURE__ */ jsx("div", {
-										className: "mt-8",
-										children: /* @__PURE__ */ jsx(SearchBar, {
-											areas,
-											unitTypes,
-											features,
-											finishingTypes,
-											filters: { area_id: area?.id }
 										})
-									})
-								]
-							})
-						]
-					}),
-					/* @__PURE__ */ jsx("section", {
-						className: "max-w-container mx-auto px-4 pt-8 pb-4",
-						children: /* @__PURE__ */ jsx("div", {
-							className: "flex items-center justify-between border-b border-secondary-200 pb-4",
-							children: /* @__PURE__ */ jsxs("div", {
-								className: "flex items-center gap-2 overflow-x-auto no-scrollbar",
-								children: [
-									/* @__PURE__ */ jsxs("button", {
-										onClick: () => setActiveTab("all"),
-										className: `px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 ${activeTab === "all" ? "bg-primary-900 text-white shadow-md" : "bg-white text-secondary-700 hover:bg-secondary-100 border border-secondary-200"}`,
-										children: [
-											isRtl ? "عرض الكل" : "All Listings",
-											" (",
-											unitsCount + projectsCount,
-											")"
-										]
-									}),
-									/* @__PURE__ */ jsxs("button", {
-										onClick: () => setActiveTab("units"),
-										className: `px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 ${activeTab === "units" ? "bg-primary-900 text-white shadow-md" : "bg-white text-secondary-700 hover:bg-secondary-100 border border-secondary-200"}`,
-										children: [
-											trans("units"),
-											" (",
-											unitsCount,
-											")"
-										]
-									}),
-									/* @__PURE__ */ jsxs("button", {
-										onClick: () => setActiveTab("projects"),
-										className: `px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 ${activeTab === "projects" ? "bg-primary-900 text-white shadow-md" : "bg-white text-secondary-700 hover:bg-secondary-100 border border-secondary-200"}`,
-										children: [
-											trans("projects"),
-											" (",
-											projectsCount,
-											")"
-										]
-									})
-								]
-							})
-						})
-					}),
-					(activeTab === "all" || activeTab === "projects") && /* @__PURE__ */ jsxs("section", {
-						className: "max-w-container mx-auto px-4 py-8",
-						children: [/* @__PURE__ */ jsxs("div", {
-							className: "flex items-center justify-between mb-6",
-							children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsxs("h2", {
-								className: "text-2xl font-black text-secondary-950 tracking-tight flex items-center gap-2",
-								children: [/* @__PURE__ */ jsx("span", { className: "w-2.5 h-6 bg-primary-900 rounded-full inline-block" }), isRtl ? `المشاريع في ${areaName}` : `Projects in ${areaName}`]
-							}), /* @__PURE__ */ jsx("p", {
-								className: "text-xs text-secondary-500 mt-1",
-								children: isRtl ? "أحدث المجمعات والمشاريع السكنية والتجارية" : "Latest residential and commercial projects"
-							})] }), projectsCount > 0 && /* @__PURE__ */ jsxs(Link, {
-								href: localizedPath(`/projects?area_id=${area.id}`, locale),
-								className: "text-xs font-bold text-primary-900 hover:text-primary-700 flex items-center gap-1",
-								children: [trans("show_more"), /* @__PURE__ */ jsx("svg", {
-									className: "w-3.5 h-3.5 rtl:rotate-180",
-									fill: "none",
-									viewBox: "0 0 24 24",
-									stroke: "currentColor",
-									strokeWidth: 2.5,
-									children: /* @__PURE__ */ jsx("path", {
-										strokeLinecap: "round",
-										strokeLinejoin: "round",
-										d: "M8.25 4.5l7.5 7.5-7.5 7.5"
-									})
-								})]
-							})]
-						}), projects?.data?.length > 0 ? /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("div", {
-							className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6",
-							children: projects.data.map((project) => /* @__PURE__ */ jsx(ProjectCard, { project }, project.id))
-						}), /* @__PURE__ */ jsx(Pagination, {
-							meta: projects,
-							pageParam: "projects_page"
-						})] }) : /* @__PURE__ */ jsx("div", {
-							className: "bg-white rounded-2xl p-8 text-center border border-secondary-100",
-							children: /* @__PURE__ */ jsx("p", {
-								className: "text-sm text-secondary-500 font-medium",
-								children: isRtl ? `لا توجد مشاريع مضافة حالياً في منطقة ${areaName}` : `No projects available in ${areaName} currently`
-							})
-						})]
-					}),
-					(activeTab === "all" || activeTab === "units") && /* @__PURE__ */ jsxs("section", {
-						className: "max-w-container mx-auto px-4 py-8 border-t border-secondary-100",
-						children: [/* @__PURE__ */ jsxs("div", {
-							className: "flex items-center justify-between mb-6",
-							children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsxs("h2", {
-								className: "text-2xl font-black text-secondary-950 tracking-tight flex items-center gap-2",
-								children: [/* @__PURE__ */ jsx("span", { className: "w-2.5 h-6 bg-primary-600 rounded-full inline-block" }), isRtl ? `الوحدات المعروضة في ${areaName}` : `Units available in ${areaName}`]
-							}), /* @__PURE__ */ jsx("p", {
-								className: "text-xs text-secondary-500 mt-1",
-								children: isRtl ? "وحدات سكنية وتجارية ممتازة للبيع وللاستثمار" : "Residential and commercial units for sale and investment"
-							})] }), unitsCount > 0 && /* @__PURE__ */ jsxs(Link, {
-								href: localizedPath(`/units?area_id=${area.id}`, locale),
-								className: "text-xs font-bold text-primary-900 hover:text-primary-700 flex items-center gap-1",
-								children: [trans("show_more"), /* @__PURE__ */ jsx("svg", {
-									className: "w-3.5 h-3.5 rtl:rotate-180",
-									fill: "none",
-									viewBox: "0 0 24 24",
-									stroke: "currentColor",
-									strokeWidth: 2.5,
-									children: /* @__PURE__ */ jsx("path", {
-										strokeLinecap: "round",
-										strokeLinejoin: "round",
-										d: "M8.25 4.5l7.5 7.5-7.5 7.5"
-									})
-								})]
-							})]
-						}), units?.data?.length > 0 ? /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("div", {
-							className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5",
-							children: units.data.map((unit) => /* @__PURE__ */ jsx(UnitCard, { unit }, unit.id))
-						}), /* @__PURE__ */ jsx(Pagination, {
-							meta: units,
-							pageParam: "units_page"
-						})] }) : /* @__PURE__ */ jsx("div", {
-							className: "bg-white rounded-2xl p-8 text-center border border-secondary-100",
-							children: /* @__PURE__ */ jsx("p", {
-								className: "text-sm text-secondary-500 font-medium",
-								children: isRtl ? `لا توجد وحدات معروضة حالياً في منطقة ${areaName}` : `No units available in ${areaName} currently`
+									]
+								}, rArea.id);
 							})
 						})]
 					})
@@ -13213,7 +16198,7 @@ function AreaShow({ area, units, projects, seo, areas, unitTypes, features, fini
 }
 //#endregion
 //#region resources/js/Components/UI/ArticleCard.jsx
-var PLACEHOLDER$3 = "/images/fallback.webp";
+var PLACEHOLDER$1 = "/images/fallback.webp";
 function SkeletonCard() {
 	return /* @__PURE__ */ jsxs("div", {
 		className: "bg-white rounded-2xl border border-secondary-200/60 shadow-xs overflow-hidden h-full flex flex-col animate-pulse",
@@ -13234,7 +16219,7 @@ function ArticleCard({ article, loading = false }) {
 	const isRtl = locale === "ar";
 	if (loading) return /* @__PURE__ */ jsx(SkeletonCard, {});
 	const headerImg = article?.images?.find((img) => img.position === "header") || article?.images?.[0];
-	const thumbnail = headerImg?.thumb_url || headerImg?.url || (headerImg?.path ? headerImg.path.startsWith("http") || headerImg.path.startsWith("/") ? headerImg.path : `/storage/${headerImg.path}` : PLACEHOLDER$3);
+	const thumbnail = headerImg?.thumb_url || headerImg?.url || (headerImg?.path ? headerImg.path.startsWith("http") || headerImg.path.startsWith("/") ? headerImg.path : `/storage/${headerImg.path}` : PLACEHOLDER$1);
 	const imageAlt = article.alt_text || `${article.title} - ${trans("app_name")}`;
 	const categoryName = article.category ? isRtl ? article.category.name_ar : article.category.name_en : null;
 	const formattedDate = article.published_at ? new Date(article.published_at).toLocaleDateString(isRtl ? "ar-EG" : "en-US", {
@@ -13243,27 +16228,27 @@ function ArticleCard({ article, loading = false }) {
 		day: "numeric"
 	}) : "";
 	return /* @__PURE__ */ jsxs(Link, {
-		href: localizedPath(`/articles/${article.slug}`, locale),
-		className: "group bg-white rounded-2xl border border-secondary-200/80 shadow-xs hover:shadow-md hover:border-primary-900/40 transition-all duration-300 flex flex-col h-full overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary-500",
+		href: localizedPath(`/articles/${isRtl && article.slug_ar ? article.slug_ar : article.slug_en || article.slug || article.id}`, locale),
+		className: "group bg-white rounded-2xl border border-secondary-200/80 shadow-card hover:shadow-2xl hover:-translate-y-1.5 transition-[transform,box-shadow] duration-300 flex flex-col h-full overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary-500",
 		children: [/* @__PURE__ */ jsxs("div", {
-			className: "relative h-48 w-full overflow-hidden bg-secondary-100",
+			className: "relative aspect-[16/10] w-full overflow-hidden bg-secondary-100",
 			children: [/* @__PURE__ */ jsx(OptimizedImage, {
 				src: thumbnail,
 				alt: imageAlt,
-				width: 400,
+				width: 480,
 				height: 300,
 				lazy: true,
-				fallbackSrc: PLACEHOLDER$3,
-				className: "w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+				fallbackSrc: PLACEHOLDER$1,
+				className: "w-full h-full object-cover group-hover:scale-108 transition-transform duration-500 ease-out"
 			}), categoryName && /* @__PURE__ */ jsx("span", {
-				className: "absolute top-3 start-3 px-2.5 py-1 text-xs font-semibold text-secondary-900 bg-white/90 backdrop-blur-sm rounded-lg shadow-xs border border-white/60",
+				className: "absolute top-3 start-3 px-3 py-1 text-xs font-bold text-secondary-900 bg-white/95 backdrop-blur-md rounded-full shadow-sm border border-white/40",
 				children: categoryName
 			})]
-		}), /* @__PURE__ */ jsx("div", {
-			className: "p-5 flex-1 flex flex-col justify-between",
-			children: /* @__PURE__ */ jsxs("div", { children: [
+		}), /* @__PURE__ */ jsxs("div", {
+			className: "p-5 flex-1 flex flex-col justify-between gap-3",
+			children: [/* @__PURE__ */ jsxs("div", { children: [
 				formattedDate && /* @__PURE__ */ jsx("p", {
-					className: "text-xs text-secondary-500 mb-2",
+					className: "text-xs font-medium text-secondary-500 mb-2",
 					children: formattedDate
 				}),
 				/* @__PURE__ */ jsx("h2", {
@@ -13271,13 +16256,31 @@ function ArticleCard({ article, loading = false }) {
 					children: article.title
 				}),
 				article.excerpt && /* @__PURE__ */ jsx("p", {
-					className: "text-xs sm:text-sm text-secondary-600 line-clamp-2 leading-relaxed",
+					className: "text-xs text-secondary-600 line-clamp-2 leading-relaxed font-medium",
 					children: article.excerpt
 				})
-			] })
+			] }), /* @__PURE__ */ jsx("div", {
+				className: "pt-3 border-t border-secondary-100/70 mt-auto flex items-center justify-between",
+				children: /* @__PURE__ */ jsxs("span", {
+					className: "text-xs font-bold text-primary-900 group-hover:text-primary-700 flex items-center gap-1 transition-colors",
+					children: [/* @__PURE__ */ jsx("span", { children: isRtl ? "اقرأ المقال" : "Read Article" }), /* @__PURE__ */ jsx("svg", {
+						className: "w-3.5 h-3.5 rtl:rotate-180 group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5 transition-transform",
+						fill: "none",
+						viewBox: "0 0 24 24",
+						stroke: "currentColor",
+						strokeWidth: 2.5,
+						children: /* @__PURE__ */ jsx("path", {
+							strokeLinecap: "round",
+							strokeLinejoin: "round",
+							d: "M8.25 4.5l7.5 7.5-7.5 7.5"
+						})
+					})]
+				})
+			})]
 		})]
 	});
 }
+var ArticleCard_default = memo(ArticleCard);
 //#endregion
 //#region resources/js/Pages/Public/Articles/Index.jsx
 var Index_exports$2 = /* @__PURE__ */ __exportAll({ default: () => ArticlesIndex });
@@ -13297,39 +16300,49 @@ function ArticlesIndex({ articles, categories, currentCategory }) {
 			}),
 			/* @__PURE__ */ jsx(Header, {}),
 			/* @__PURE__ */ jsxs("main", {
-				className: "flex-1 max-w-container mx-auto px-4 py-8 sm:py-10 w-full",
-				children: [
-					/* @__PURE__ */ jsx("div", {
-						className: "mb-6",
-						children: /* @__PURE__ */ jsx("h1", {
-							className: "text-2xl sm:text-3xl font-bold text-secondary-950",
-							children: currentCategory ? isRtl ? currentCategory.name_ar : currentCategory.name_en : trans("articles")
-						})
-					}),
-					categories?.length > 0 && /* @__PURE__ */ jsx("div", {
-						className: "mb-8 overflow-x-auto pb-2 scrollbar-none",
-						children: /* @__PURE__ */ jsxs("div", {
-							className: "flex items-center gap-2 min-w-max",
-							children: [/* @__PURE__ */ jsx(Link, {
-								href: localizedPath("/articles", locale),
-								className: `px-3.5 py-1.5 text-sm font-medium rounded-full transition-colors ${!currentCategory ? "bg-primary-900 text-white" : "bg-white text-secondary-700 border border-secondary-200 hover:border-primary-900/40"}`,
-								children: trans("all")
-							}), categories.map((cat) => {
-								const isActive = currentCategory?.id === cat.id;
-								return /* @__PURE__ */ jsx(Link, {
-									href: localizedPath(`/articles?category=${cat.slug}`, locale),
-									className: `px-3.5 py-1.5 text-sm font-medium rounded-full transition-colors ${isActive ? "bg-primary-900 text-white" : "bg-white text-secondary-700 border border-secondary-200 hover:border-primary-900/40"}`,
-									children: isRtl ? cat.name_ar : cat.name_en
-								}, cat.id);
-							})]
-						})
-					}),
-					isLoading ? /* @__PURE__ */ jsx("div", {
+				id: "main-content",
+				tabIndex: "-1",
+				className: "flex-1 w-full flex flex-col focus:outline-none",
+				children: [/* @__PURE__ */ jsx("div", {
+					className: "bg-gradient-to-b from-surface-hover to-surface pt-8 pb-10 px-4",
+					children: /* @__PURE__ */ jsxs("div", {
+						className: "max-w-container mx-auto",
+						children: [/* @__PURE__ */ jsx("div", {
+							className: "flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8",
+							children: /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("h1", {
+								className: "text-2xl md:text-3xl font-black text-secondary-950 tracking-tight mb-2",
+								children: currentCategory ? isRtl ? currentCategory.name_ar : currentCategory.name_en : trans("articles")
+							}), /* @__PURE__ */ jsx("p", {
+								className: "text-sm font-medium text-secondary-500",
+								children: trans("articles_description")
+							})] })
+						}), categories?.length > 0 && /* @__PURE__ */ jsx("div", {
+							className: "overflow-x-auto pb-2 scrollbar-none",
+							children: /* @__PURE__ */ jsxs("div", {
+								className: "flex items-center gap-2 min-w-max",
+								children: [/* @__PURE__ */ jsx(Link, {
+									href: localizedPath("/articles", locale),
+									className: `px-4 py-2 text-sm font-bold rounded-xl transition-all ${!currentCategory ? "bg-primary-900 text-white shadow-sm" : "bg-white text-secondary-600 hover:text-secondary-900 shadow-sm border border-secondary-100 hover:border-secondary-300"}`,
+									children: trans("all")
+								}), categories.map((cat) => {
+									const isActive = currentCategory?.id === cat.id;
+									return /* @__PURE__ */ jsx(Link, {
+										href: localizedPath(`/articles?category=${cat.slug}`, locale),
+										className: `px-4 py-2 text-sm font-bold rounded-xl transition-all ${isActive ? "bg-primary-900 text-white shadow-sm" : "bg-white text-secondary-600 hover:text-secondary-900 shadow-sm border border-secondary-100 hover:border-secondary-300"}`,
+										children: isRtl ? cat.name_ar : cat.name_en
+									}, cat.id);
+								})]
+							})
+						})]
+					})
+				}), /* @__PURE__ */ jsx("div", {
+					className: "flex-1 max-w-container mx-auto px-4 py-8 w-full",
+					children: isLoading ? /* @__PURE__ */ jsx("div", {
 						className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6",
-						children: Array.from({ length: 6 }).map((_, i) => /* @__PURE__ */ jsx(ArticleCard, { loading: true }, i))
+						children: Array.from({ length: 6 }).map((_, i) => /* @__PURE__ */ jsx(ArticleCard_default, { loading: true }, i))
 					}) : hasArticles ? /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("div", {
 						className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6",
-						children: articles.data.map((article) => /* @__PURE__ */ jsx(ArticleCard, { article }, article.id))
+						children: articles.data.map((article) => /* @__PURE__ */ jsx(ArticleCard_default, { article }, article.id))
 					}), /* @__PURE__ */ jsx("div", {
 						className: "mt-10 flex justify-center",
 						children: /* @__PURE__ */ jsx(Pagination, {
@@ -13337,17 +16350,35 @@ function ArticlesIndex({ articles, categories, currentCategory }) {
 							links: articles.links
 						})
 					})] }) : /* @__PURE__ */ jsxs("div", {
-						className: "text-center py-16 bg-white rounded-2xl border border-secondary-200/60 p-6 max-w-md mx-auto",
-						children: [/* @__PURE__ */ jsx("p", {
-							className: "text-secondary-600 text-sm mb-4",
-							children: trans("no_results")
-						}), /* @__PURE__ */ jsx(Link, {
-							href: localizedPath("/articles", locale),
-							className: "inline-flex items-center px-4 py-2 bg-primary-900 text-white rounded-xl text-sm font-medium hover:bg-primary-950 transition-colors",
-							children: isRtl ? "عرض كل المقالات" : "View All Articles"
-						})]
+						className: "text-center py-20 bg-white rounded-[2rem] border border-secondary-100 shadow-sm max-w-2xl mx-auto w-full",
+						children: [
+							/* @__PURE__ */ jsx("div", {
+								className: "w-16 h-16 bg-surface-hover text-secondary-400 rounded-full flex items-center justify-center mx-auto mb-4",
+								children: /* @__PURE__ */ jsx("svg", {
+									className: "w-8 h-8",
+									fill: "none",
+									viewBox: "0 0 24 24",
+									stroke: "currentColor",
+									strokeWidth: 1.5,
+									children: /* @__PURE__ */ jsx("path", {
+										strokeLinecap: "round",
+										strokeLinejoin: "round",
+										d: "M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
+									})
+								})
+							}),
+							/* @__PURE__ */ jsx("p", {
+								className: "text-secondary-900 font-bold text-lg mb-2",
+								children: trans("no_results")
+							}),
+							/* @__PURE__ */ jsx(Link, {
+								href: localizedPath("/articles", locale),
+								className: "inline-flex mt-4 px-6 py-2.5 bg-primary-900 text-white rounded-xl text-sm font-bold hover:bg-primary-950 transition-colors shadow-sm",
+								children: trans("view_all_articles")
+							})
+						]
 					})
-				]
+				})]
 			}),
 			/* @__PURE__ */ jsx(Footer, {})
 		]
@@ -13355,11 +16386,20 @@ function ArticlesIndex({ articles, categories, currentCategory }) {
 }
 //#endregion
 //#region resources/js/Pages/Public/Articles/Show.jsx
+/**
+* THESIS: The Article Display page is a pure, distraction-free editorial view.
+*         All non-essential marketing popups and sidebar widgets are removed to focus 100% on reading comfort.
+* OWN-WORLD: Clean white canvas, Cairo typography, comfortable reading line length (max-w-3xl), high-contrast headers.
+* FIRST VIEWPORT: Breadcrumb → Title → Author & Reading Time → Full-width Hero cover.
+* FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md.
+*/
 var Show_exports$2 = /* @__PURE__ */ __exportAll({ default: () => ArticleShow });
-function ArticleShow({ article, relatedArticles }) {
-	const { locale } = usePage().props;
+function ArticleShow({ article, relatedArticles, suggestedUnits }) {
+	const { locale, appUrl } = usePage().props;
 	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
+	const [copied, setCopied] = useState(false);
+	const [lightboxUrl, setLightboxUrl] = useState(null);
 	const headerImage = article?.images?.find((img) => img.position === "header") || article?.images?.[0];
 	const topImages = article?.images?.filter((img) => img.position === "top") || [];
 	const middleImages = article?.images?.filter((img) => img.position === "middle") || [];
@@ -13371,6 +16411,12 @@ function ArticleShow({ article, relatedArticles }) {
 		month: "long",
 		day: "numeric"
 	}) : "";
+	const readingTimeMin = useMemo(() => {
+		if (!article?.content) return 1;
+		const cleanText = article.content.replace(/<[^>]*>/g, "").trim();
+		const wordCount = cleanText ? cleanText.split(/\s+/).length : 0;
+		return Math.max(1, Math.ceil(wordCount / 200));
+	}, [article?.content]);
 	const jsonLd = useMemo(() => {
 		if (!article) return null;
 		return {
@@ -13387,172 +16433,500 @@ function ArticleShow({ article, relatedArticles }) {
 			}
 		};
 	}, [article, headerImgUrl]);
+	function handleCopyLink() {
+		if (typeof window !== "undefined") {
+			navigator.clipboard.writeText(window.location.href);
+			setCopied(true);
+			setTimeout(() => setCopied(false), 2500);
+		}
+	}
+	const { normalizedContent, unusedMiddleImages } = useMemo(() => {
+		if (!article?.content) return {
+			normalizedContent: "",
+			unusedMiddleImages: middleImages
+		};
+		let parsedContent = article.content || "";
+		const usedMiddleIndices = /* @__PURE__ */ new Set();
+		const middleAndOtherImages = [...middleImages, ...(article?.images || []).filter((img) => img.position !== "header" && !middleImages.some((m) => m.id === img.id))];
+		parsedContent = parsedContent.replace(/(?:<p[^>]*>\s*)?(?:<(?:span|code|strong|b|em|font|mark)\b[^>]*>\s*)*\[\s*(?:صورة|صوره|صره|image|img)\s*[:\-_\s]?\s*([0-9\u0660-\u0669]+)\s*\](?:\s*<\/(?:span|code|strong|b|em|font|mark)>)*(?:\s*<\/p>)?/gi, (match, rawIndex) => {
+			const normalizedIndex = parseInt(rawIndex.replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 1632)), 10);
+			const targetImg = middleImages[normalizedIndex - 1] || middleAndOtherImages[normalizedIndex - 1];
+			if (targetImg) {
+				usedMiddleIndices.add(normalizedIndex - 1);
+				const imgPath = targetImg.url || (targetImg.path ? targetImg.path.startsWith("http") || targetImg.path.startsWith("/") ? targetImg.path : `/storage/${targetImg.path}` : "");
+				const altText = (targetImg.alt_text || article.title || "").replace(/"/g, "&quot;");
+				let imageHtml = `<figure class="my-8"><img src="${imgPath}" alt="${altText}" width="1200" height="800" class="w-full h-auto rounded-2xl border border-secondary-200/60 object-cover shadow-sm" loading="lazy" /></figure>`;
+				if (targetImg.link_url) {
+					let safeLink = targetImg.link_url.trim();
+					if (!/^(https?:|\/|#|mailto:|tel:)/i.test(safeLink)) safeLink = "https://" + safeLink;
+					const isExternal = /^https?:\/\//i.test(safeLink);
+					imageHtml = `<figure class="my-8"><a href="${safeLink.replace(/"/g, "&quot;")}" ${isExternal ? "target=\"_blank\" rel=\"noopener noreferrer\"" : ""} class="block hover:opacity-95 transition-opacity"><img src="${imgPath}" alt="${altText}" width="1200" height="800" class="w-full h-auto rounded-2xl border border-secondary-200/60 object-cover shadow-sm" loading="lazy" /></a></figure>`;
+				}
+				return imageHtml;
+			}
+			return match;
+		});
+		const unused = middleImages.filter((_, idx) => !usedMiddleIndices.has(idx));
+		parsedContent = parsedContent.replace(/<img\b([^>]*)\bsrc=["']([^"']+)["']([^>]*)>/gi, (match, prefix, src, suffix) => {
+			let resolvedSrc = src;
+			if (src.startsWith("articles/") || src.startsWith("editor/") || src.startsWith("uploads/")) resolvedSrc = `/storage/${src}`;
+			else if (src.startsWith("storage/")) resolvedSrc = `/${src}`;
+			return `<img${prefix}src="${resolvedSrc}"${suffix}>`;
+		});
+		let normalized = parsedContent;
+		normalized = normalized.replace(/<(\/?)h1\b([^>]*)>/gi, "<$1h2$2>");
+		if (!/<h2\b/i.test(normalized) && /<h3\b/i.test(normalized)) normalized = normalized.replace(/<(\/?)h5\b([^>]*)>/gi, "<$1h6$2>").replace(/<(\/?)h4\b([^>]*)>/gi, "<$1h5$2>").replace(/<(\/?)h3\b([^>]*)>/gi, "<$1h2$2>");
+		normalized = normalized.replace(/<a\b([^>]*)\bhref=["']([^"']+)["']([^>]*)>/gi, (match, prefix, href, suffix) => {
+			let cleanHref = href.trim();
+			if (cleanHref.startsWith("www.")) cleanHref = "https://" + cleanHref;
+			const isExternal = /^https?:\/\//i.test(cleanHref);
+			const hasTarget = /target=/i.test(match);
+			const hasRel = /rel=/i.test(match);
+			let extra = "";
+			if (isExternal && !hasTarget) extra += " target=\"_blank\"";
+			if (isExternal && !hasRel) extra += " rel=\"noopener noreferrer\"";
+			return `<a${prefix}href="${cleanHref}"${suffix}${extra}>`;
+		});
+		return {
+			normalizedContent: normalized,
+			unusedMiddleImages: unused
+		};
+	}, [
+		article?.content,
+		article?.images,
+		middleImages,
+		article?.title
+	]);
 	if (!article) return /* @__PURE__ */ jsxs("div", {
 		dir: isRtl ? "rtl" : "ltr",
-		className: "min-h-screen bg-surface flex flex-col font-sans",
+		className: "min-h-screen bg-white flex flex-col font-sans",
 		children: [
 			/* @__PURE__ */ jsx(Header, {}),
 			/* @__PURE__ */ jsx("main", {
-				className: "flex-1 flex items-center justify-center py-16",
-				children: /* @__PURE__ */ jsx("p", {
-					className: "text-secondary-600 text-sm mb-4",
+				className: "flex-1 flex items-center justify-center py-20 text-center",
+				children: /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("p", {
+					className: "text-secondary-600 font-semibold text-base mb-4",
 					children: trans("no_results")
-				})
+				}), /* @__PURE__ */ jsx(Link, {
+					href: localizedPath("/articles", locale),
+					className: "px-5 py-2.5 bg-primary-900 text-white rounded-xl text-xs font-bold",
+					children: trans("back_to_articles")
+				})] })
 			}),
 			/* @__PURE__ */ jsx(Footer, {})
 		]
 	});
-	let parsedContent = article.content || "";
-	const usedMiddleIndices = /* @__PURE__ */ new Set();
-	middleImages.forEach((img, index) => {
-		const shortcodeEn = `[image:${index + 1}]`;
-		const shortcodeAr = `[صورة:${index + 1}]`;
-		if (parsedContent.includes(shortcodeEn) || parsedContent.includes(shortcodeAr)) {
-			usedMiddleIndices.add(index);
-			let imageHtml = `<img src="${img.url || (img.path.startsWith("http") || img.path.startsWith("/") ? img.path : `/storage/${img.path}`)}" alt="${(img.alt_text || article.title || "").replace(/"/g, "&quot;")}" width="1200" height="800" class="w-full h-auto rounded-2xl my-6 border border-secondary-200/60 object-cover" loading="lazy" />`;
-			if (img.link_url) imageHtml = `<a href="${img.link_url.replace(/"/g, "&quot;")}" target="_blank" rel="noopener noreferrer" class="block hover:opacity-95 transition-opacity">${imageHtml}</a>`;
-			parsedContent = parsedContent.replaceAll(shortcodeEn, imageHtml);
-			parsedContent = parsedContent.replaceAll(shortcodeAr, imageHtml);
-		}
-	});
-	const unusedMiddleImages = middleImages.filter((_, idx) => !usedMiddleIndices.has(idx));
+	const currentUrl = typeof window !== "undefined" ? window.location.href : appUrl;
+	const whatsappShareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(`${article.title}\n${currentUrl}`)}`;
 	return /* @__PURE__ */ jsxs("div", {
 		dir: isRtl ? "rtl" : "ltr",
-		className: "min-h-screen bg-surface flex flex-col font-sans",
+		className: "min-h-screen bg-white flex flex-col font-sans",
 		children: [
 			/* @__PURE__ */ jsx(SeoHead, {
 				title: `${article?.title || ""} - ${trans("site_title")}`,
 				description: article?.meta_description || article?.excerpt || "",
-				keywords: article?.keywords || "",
+				keywords: isRtl ? article?.keywords_ar || article?.keywords : article?.keywords_en || article?.keywords || article?.keywords_ar,
 				ogImage: headerImgUrl,
-				ogType: "article"
-			}),
-			jsonLd && /* @__PURE__ */ jsx("script", {
-				type: "application/ld+json",
-				dangerouslySetInnerHTML: { __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }
+				ogType: "article",
+				jsonLd
 			}),
 			/* @__PURE__ */ jsx(Header, {}),
-			/* @__PURE__ */ jsxs("main", {
-				className: "flex-1 max-w-container mx-auto px-4 py-8 sm:py-10 w-full",
-				children: [/* @__PURE__ */ jsxs("article", {
-					className: "max-w-3xl mx-auto",
-					children: [
-						/* @__PURE__ */ jsxs(Link, {
-							href: localizedPath("/articles", locale),
-							className: "text-xs sm:text-sm font-medium text-secondary-600 hover:text-primary-900 transition-colors mb-6 inline-block",
-							children: ["← ", trans("articles")]
-						}),
-						/* @__PURE__ */ jsxs("div", {
-							className: "flex items-center gap-2 text-xs text-secondary-500 mb-3",
+			/* @__PURE__ */ jsx("main", {
+				id: "main-content",
+				tabIndex: "-1",
+				className: "flex-1 w-full py-8 sm:py-14 bg-white focus:outline-none",
+				children: /* @__PURE__ */ jsx("div", {
+					className: "max-w-[1400px] mx-auto px-4 sm:px-6",
+					children: /* @__PURE__ */ jsxs("div", {
+						className: "grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-start",
+						children: [/* @__PURE__ */ jsxs("article", {
+							className: "lg:col-span-9 w-full",
 							children: [
-								categoryName && /* @__PURE__ */ jsx("span", {
-									className: "font-semibold text-primary-900 bg-primary-50 px-2.5 py-0.5 rounded-full border border-primary-100",
-									children: categoryName
+								/* @__PURE__ */ jsxs("nav", {
+									className: "flex items-center gap-2 text-xs font-semibold text-secondary-700 mb-6",
+									"aria-label": "Breadcrumb",
+									children: [
+										/* @__PURE__ */ jsx(Link, {
+											href: localizedPath("/", locale),
+											className: "hover:text-primary-900 transition-colors",
+											children: trans("home")
+										}),
+										/* @__PURE__ */ jsx("span", { children: "/" }),
+										/* @__PURE__ */ jsx(Link, {
+											href: localizedPath("/articles", locale),
+											className: "hover:text-primary-900 transition-colors",
+											children: trans("articles") || trans("articles")
+										}),
+										categoryName && /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("span", { children: "/" }), /* @__PURE__ */ jsx("span", {
+											className: "text-secondary-900 font-bold",
+											children: categoryName
+										})] })
+									]
 								}),
-								categoryName && formattedDate && /* @__PURE__ */ jsx("span", { children: "•" }),
-								formattedDate && /* @__PURE__ */ jsx("span", { children: formattedDate })
-							]
-						}),
-						/* @__PURE__ */ jsx("h1", {
-							className: "text-2xl sm:text-3xl lg:text-4xl font-bold text-secondary-950 leading-snug mb-6",
-							children: article.title
-						}),
-						headerImgUrl && /* @__PURE__ */ jsx("div", {
-							className: "mb-8 rounded-2xl overflow-hidden shadow-sm border border-secondary-200/60 max-h-[480px] bg-secondary-100",
-							children: headerImage?.link_url ? /* @__PURE__ */ jsx("a", {
-								href: headerImage.link_url,
-								target: "_blank",
-								rel: "noopener noreferrer",
-								className: "block hover:opacity-95 transition-opacity",
-								children: /* @__PURE__ */ jsx("img", {
-									src: headerImgUrl,
-									alt: article.title,
-									width: 1200,
-									height: 675,
-									className: "w-full h-full object-cover max-h-[480px]"
+								/* @__PURE__ */ jsxs("div", {
+									className: "flex items-center gap-3 flex-wrap text-xs text-secondary-700 mb-4",
+									children: [
+										categoryName && /* @__PURE__ */ jsx("span", {
+											className: "font-bold text-primary-900 bg-primary-50 px-3 py-1 rounded-xl border border-primary-200",
+											children: categoryName
+										}),
+										formattedDate && /* @__PURE__ */ jsx("span", {
+											className: "font-semibold text-secondary-700",
+											children: formattedDate
+										}),
+										/* @__PURE__ */ jsx("span", { children: "•" }),
+										/* @__PURE__ */ jsxs("span", {
+											className: "font-semibold flex items-center gap-1 text-secondary-700",
+											children: [
+												/* @__PURE__ */ jsx("svg", {
+													className: "w-3.5 h-3.5 text-secondary-600",
+													fill: "none",
+													viewBox: "0 0 24 24",
+													stroke: "currentColor",
+													strokeWidth: 2,
+													"aria-hidden": "true",
+													children: /* @__PURE__ */ jsx("path", {
+														strokeLinecap: "round",
+														strokeLinejoin: "round",
+														d: "M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
+													})
+												}),
+												readingTimeMin,
+												" ",
+												trans("min_read")
+											]
+										})
+									]
+								}),
+								/* @__PURE__ */ jsx("h1", {
+									className: "text-2xl sm:text-4xl lg:text-5xl font-black text-secondary-950 leading-[1.25] mb-8 tracking-tight",
+									children: article.title
+								}),
+								/* @__PURE__ */ jsxs("div", {
+									className: "flex items-center justify-between py-4 border-y border-secondary-100 mb-10 text-xs",
+									children: [/* @__PURE__ */ jsxs("div", {
+										className: "flex items-center gap-3",
+										children: [/* @__PURE__ */ jsx("div", {
+											className: "w-9 h-9 rounded-full bg-primary-900 text-white font-bold flex items-center justify-center text-xs shadow-sm shrink-0",
+											children: "FH"
+										}), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("span", {
+											className: "font-bold text-secondary-950 block text-xs",
+											children: trans("family_home_real_estate")
+										}), /* @__PURE__ */ jsx("span", {
+											className: "text-xs text-secondary-700 font-semibold",
+											children: trans("editorial_team")
+										})] })]
+									}), /* @__PURE__ */ jsxs("div", {
+										className: "flex items-center gap-2",
+										children: [/* @__PURE__ */ jsxs("a", {
+											href: whatsappShareUrl,
+											target: "_blank",
+											rel: "noopener noreferrer",
+											className: "inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold transition-colors duration-200 shadow-xs",
+											title: trans("share_whatsapp"),
+											children: [/* @__PURE__ */ jsx(WhatsAppIcon, { className: "w-4 h-4 fill-current" }), /* @__PURE__ */ jsx("span", { children: trans("share") })]
+										}), /* @__PURE__ */ jsx("button", {
+											type: "button",
+											onClick: handleCopyLink,
+											className: "px-3.5 py-2 bg-secondary-100 hover:bg-secondary-200 text-secondary-900 rounded-xl text-xs font-bold transition-colors",
+											children: copied ? trans("copied") : trans("copy_link")
+										})]
+									})]
+								}),
+								headerImgUrl && /* @__PURE__ */ jsxs("div", {
+									className: "mb-10 rounded-[2rem] overflow-hidden shadow-sm border border-secondary-100 max-h-[520px] bg-secondary-50 relative group",
+									children: [/* @__PURE__ */ jsx("img", {
+										src: headerImgUrl,
+										alt: article.title,
+										width: 1200,
+										height: 675,
+										className: "w-full h-full object-cover max-h-[520px] cursor-pointer group-hover:scale-102 transition-transform duration-500",
+										onClick: () => setLightboxUrl(headerImgUrl),
+										fetchPriority: "high",
+										loading: "eager"
+									}), /* @__PURE__ */ jsxs("button", {
+										type: "button",
+										onClick: () => setLightboxUrl(headerImgUrl),
+										className: "absolute bottom-4 end-4 bg-black/60 hover:bg-black/80 text-white p-2.5 rounded-xl backdrop-blur-md transition-colors text-xs font-semibold flex items-center gap-1.5",
+										"aria-label": trans("expand_image") || "Expand image",
+										children: [/* @__PURE__ */ jsx("svg", {
+											className: "w-4 h-4",
+											fill: "none",
+											viewBox: "0 0 24 24",
+											stroke: "currentColor",
+											strokeWidth: 2,
+											"aria-hidden": "true",
+											children: /* @__PURE__ */ jsx("path", {
+												strokeLinecap: "round",
+												strokeLinejoin: "round",
+												d: "M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6"
+											})
+										}), /* @__PURE__ */ jsx("span", { children: trans("expand") })]
+									})]
+								}),
+								topImages.length > 0 && /* @__PURE__ */ jsx("div", {
+									className: "grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10",
+									children: topImages.map((img) => {
+										const imgSrc = img.url || (img.path.startsWith("http") || img.path.startsWith("/") ? img.path : `/storage/${img.path}`);
+										return /* @__PURE__ */ jsx("div", {
+											className: "rounded-3xl overflow-hidden border border-secondary-100 shadow-sm",
+											children: /* @__PURE__ */ jsx("img", {
+												src: imgSrc,
+												alt: img.alt_text || article.title,
+												width: 800,
+												height: 450,
+												className: "w-full h-56 object-cover cursor-pointer hover:scale-105 transition-transform duration-300",
+												onClick: () => setLightboxUrl(imgSrc),
+												loading: "lazy"
+											})
+										}, img.id);
+									})
+								}),
+								/* @__PURE__ */ jsx("div", {
+									className: "prose prose-base sm:prose-lg max-w-none text-secondary-800 leading-loose font-sans\n                            prose-headings:font-black prose-headings:text-secondary-950 prose-headings:mt-12 prose-headings:mb-4 prose-headings:tracking-tight\n                            prose-p:text-secondary-800 prose-p:leading-loose prose-p:mb-6 prose-p:font-medium\n                            prose-img:rounded-3xl prose-img:my-8 prose-img:w-full prose-img:object-cover prose-img:shadow-sm\n                            prose-blockquote:bg-primary-50/70 prose-blockquote:p-6 prose-blockquote:rounded-3xl prose-blockquote:text-secondary-950 prose-blockquote:font-semibold prose-blockquote:not-italic prose-blockquote:border border-primary-100\n                            prose-a:text-primary-900 prose-a:font-bold prose-a:underline hover:prose-a:text-primary-950",
+									dangerouslySetInnerHTML: { __html: normalizedContent }
+								}),
+								unusedMiddleImages.length > 0 && /* @__PURE__ */ jsx("div", {
+									className: "grid grid-cols-1 sm:grid-cols-2 gap-4 mt-10",
+									children: unusedMiddleImages.map((img) => {
+										const imgSrc = img.url || (img.path.startsWith("http") || img.path.startsWith("/") ? img.path : `/storage/${img.path}`);
+										return /* @__PURE__ */ jsx("div", {
+											className: "rounded-3xl overflow-hidden border border-secondary-100 shadow-sm",
+											children: /* @__PURE__ */ jsx("img", {
+												src: imgSrc,
+												alt: img.alt_text || article.title,
+												width: 800,
+												height: 450,
+												className: "w-full h-56 object-cover cursor-pointer hover:scale-105 transition-transform duration-300",
+												onClick: () => setLightboxUrl(imgSrc),
+												loading: "lazy"
+											})
+										}, img.id);
+									})
+								}),
+								bottomImages.length > 0 && /* @__PURE__ */ jsx("div", {
+									className: "grid grid-cols-1 sm:grid-cols-2 gap-4 mt-10",
+									children: bottomImages.map((img) => {
+										const imgSrc = img.url || (img.path.startsWith("http") || img.path.startsWith("/") ? img.path : `/storage/${img.path}`);
+										return /* @__PURE__ */ jsx("div", {
+											className: "rounded-3xl overflow-hidden border border-secondary-100 shadow-sm",
+											children: /* @__PURE__ */ jsx("img", {
+												src: imgSrc,
+												alt: img.alt_text || article.title,
+												width: 800,
+												height: 450,
+												className: "w-full h-56 object-cover cursor-pointer hover:scale-105 transition-transform duration-300",
+												onClick: () => setLightboxUrl(imgSrc),
+												loading: "lazy"
+											})
+										}, img.id);
+									})
+								}),
+								/* @__PURE__ */ jsxs("div", {
+									className: "mt-14 pt-8 border-t border-secondary-200 flex flex-col sm:flex-row items-center justify-between gap-4 bg-secondary-50 p-6 rounded-3xl",
+									children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("h2", {
+										className: "text-sm font-bold text-secondary-950",
+										children: trans("share_this_article")
+									}), /* @__PURE__ */ jsx("p", {
+										className: "text-xs text-secondary-700 font-medium mt-0.5",
+										children: trans("spread_knowledge")
+									})] }), /* @__PURE__ */ jsxs("a", {
+										href: whatsappShareUrl,
+										target: "_blank",
+										rel: "noopener noreferrer",
+										className: "inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold transition-colors duration-200 shadow-sm shrink-0",
+										title: trans("share_whatsapp"),
+										children: [/* @__PURE__ */ jsx(WhatsAppIcon, { className: "w-4 h-4 fill-current" }), /* @__PURE__ */ jsx("span", { children: trans("share_whatsapp") })]
+									})]
 								})
-							}) : /* @__PURE__ */ jsx("img", {
-								src: headerImgUrl,
-								alt: article.title,
-								width: 1200,
-								height: 675,
-								className: "w-full h-full object-cover max-h-[480px]"
-							})
-						}),
-						topImages.length > 0 && /* @__PURE__ */ jsx("div", {
-							className: "grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8",
-							children: topImages.map((img) => {
-								const imgTag = /* @__PURE__ */ jsx("img", {
-									src: img.url || (img.path.startsWith("http") || img.path.startsWith("/") ? img.path : `/storage/${img.path}`),
-									alt: img.alt_text || article.title,
-									width: 800,
-									height: 450,
-									className: "w-full h-56 rounded-2xl object-cover border border-secondary-200/60",
-									loading: "lazy"
-								});
-								return img.link_url ? /* @__PURE__ */ jsx("a", {
-									href: img.link_url,
-									target: "_blank",
-									rel: "noopener noreferrer",
-									className: "block hover:opacity-95 transition-opacity",
-									children: imgTag
-								}, img.id) : /* @__PURE__ */ jsx("div", { children: imgTag }, img.id);
-							})
-						}),
-						/* @__PURE__ */ jsx("div", {
-							className: "prose prose-base sm:prose-lg max-w-none text-secondary-800 leading-relaxed\r\n                            prose-headings:font-bold prose-headings:text-secondary-950 prose-headings:mt-8 prose-headings:mb-3\r\n                            prose-p:text-secondary-800 prose-p:leading-relaxed prose-p:mb-5\r\n                            prose-img:rounded-2xl prose-img:my-6 prose-img:w-full prose-img:object-cover\r\n                            prose-blockquote:border-s-4 prose-blockquote:border-primary-900 prose-blockquote:bg-secondary-50 prose-blockquote:p-4 prose-blockquote:rounded-e-xl prose-blockquote:text-secondary-900 prose-blockquote:not-italic\r\n                            prose-a:text-primary-900 prose-a:underline hover:prose-a:text-primary-950",
-							dangerouslySetInnerHTML: { __html: parsedContent }
-						}),
-						unusedMiddleImages.length > 0 && /* @__PURE__ */ jsx("div", {
-							className: "grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8",
-							children: unusedMiddleImages.map((img) => {
-								const imgTag = /* @__PURE__ */ jsx("img", {
-									src: img.url || (img.path.startsWith("http") || img.path.startsWith("/") ? img.path : `/storage/${img.path}`),
-									alt: img.alt_text || article.title,
-									width: 800,
-									height: 450,
-									className: "w-full h-56 rounded-2xl object-cover border border-secondary-200/60",
-									loading: "lazy"
-								});
-								return img.link_url ? /* @__PURE__ */ jsx("a", {
-									href: img.link_url,
-									target: "_blank",
-									rel: "noopener noreferrer",
-									className: "block hover:opacity-95 transition-opacity",
-									children: imgTag
-								}, img.id) : /* @__PURE__ */ jsx("div", { children: imgTag }, img.id);
-							})
-						}),
-						bottomImages.length > 0 && /* @__PURE__ */ jsx("div", {
-							className: "grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8",
-							children: bottomImages.map((img) => {
-								const imgTag = /* @__PURE__ */ jsx("img", {
-									src: img.url || (img.path.startsWith("http") || img.path.startsWith("/") ? img.path : `/storage/${img.path}`),
-									alt: img.alt_text || article.title,
-									width: 800,
-									height: 450,
-									className: "w-full h-56 rounded-2xl object-cover border border-secondary-200/60",
-									loading: "lazy"
-								});
-								return img.link_url ? /* @__PURE__ */ jsx("a", {
-									href: img.link_url,
-									target: "_blank",
-									rel: "noopener noreferrer",
-									className: "block hover:opacity-95 transition-opacity",
-									children: imgTag
-								}, img.id) : /* @__PURE__ */ jsx("div", { children: imgTag }, img.id);
-							})
+							]
+						}), /* @__PURE__ */ jsxs("aside", {
+							className: "lg:col-span-3 w-full space-y-8 sticky top-24",
+							children: [
+								/* @__PURE__ */ jsxs("div", {
+									className: "bg-white rounded-3xl p-6 shadow-sm border border-secondary-200/60",
+									children: [/* @__PURE__ */ jsxs("h2", {
+										className: "font-bold text-secondary-950 mb-4 text-sm flex items-center gap-2",
+										children: [/* @__PURE__ */ jsx("svg", {
+											className: "w-4 h-4 text-primary-700",
+											fill: "none",
+											viewBox: "0 0 24 24",
+											stroke: "currentColor",
+											strokeWidth: 2,
+											children: /* @__PURE__ */ jsx("path", {
+												strokeLinecap: "round",
+												strokeLinejoin: "round",
+												d: "M13 10V3L4 14h7v7l9-11h-7z"
+											})
+										}), trans("quick_links")]
+									}), /* @__PURE__ */ jsxs("ul", {
+										className: "space-y-2",
+										children: [
+											/* @__PURE__ */ jsx("li", { children: /* @__PURE__ */ jsxs(Link, {
+												href: localizedPath("/", locale),
+												className: "flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-secondary-800 hover:text-primary-900 hover:bg-primary-50 transition-colors border border-transparent hover:border-primary-100",
+												children: [/* @__PURE__ */ jsx("span", { className: "w-1.5 h-1.5 rounded-full bg-secondary-400" }), trans("home")]
+											}) }),
+											/* @__PURE__ */ jsx("li", { children: /* @__PURE__ */ jsxs(Link, {
+												href: localizedPath("/units", locale),
+												className: "flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-secondary-800 hover:text-primary-900 hover:bg-primary-50 transition-colors border border-transparent hover:border-primary-100",
+												children: [/* @__PURE__ */ jsx("span", { className: "w-1.5 h-1.5 rounded-full bg-secondary-400" }), trans("browse_available_units")]
+											}) }),
+											/* @__PURE__ */ jsx("li", { children: /* @__PURE__ */ jsxs(Link, {
+												href: localizedPath("/projects", locale),
+												className: "flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-secondary-800 hover:text-primary-900 hover:bg-primary-50 transition-colors border border-transparent hover:border-primary-100",
+												children: [/* @__PURE__ */ jsx("span", { className: "w-1.5 h-1.5 rounded-full bg-secondary-400" }), trans("explore_latest_projects")]
+											}) })
+										]
+									})]
+								}),
+								suggestedUnits?.length > 0 && /* @__PURE__ */ jsxs("div", {
+									className: "bg-white rounded-3xl p-6 shadow-sm border border-secondary-200/60",
+									children: [/* @__PURE__ */ jsxs("h2", {
+										className: "font-bold text-secondary-950 mb-4 text-sm flex items-center justify-between",
+										children: [/* @__PURE__ */ jsxs("span", {
+											className: "flex items-center gap-2",
+											children: [/* @__PURE__ */ jsx("svg", {
+												className: "w-4 h-4 text-primary-700",
+												fill: "none",
+												viewBox: "0 0 24 24",
+												stroke: "currentColor",
+												strokeWidth: 2,
+												children: /* @__PURE__ */ jsx("path", {
+													strokeLinecap: "round",
+													strokeLinejoin: "round",
+													d: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+												})
+											}), trans("suggested_properties")]
+										}), /* @__PURE__ */ jsx(Link, {
+											href: localizedPath("/units", locale),
+											className: "text-xs text-secondary-600 hover:text-primary-700 font-semibold",
+											children: trans("view_all")
+										})]
+									}), /* @__PURE__ */ jsx("ul", {
+										className: "space-y-4",
+										children: suggestedUnits.map((unit) => {
+											const unitImg = unit?.images?.find((img) => img.is_primary) || unit?.images?.[0];
+											const unitImgUrl = unitImg?.url || (unitImg?.path ? unitImg.path.startsWith("http") || unitImg.path.startsWith("/") ? unitImg.path : `/storage/${unitImg.path}` : null);
+											return /* @__PURE__ */ jsx("li", { children: /* @__PURE__ */ jsxs(Link, {
+												href: localizedPath(`/units/${isRtl && unit.slug_ar ? unit.slug_ar : unit.slug_en || unit.slug || unit.id}`, locale),
+												className: "group flex gap-3 items-center",
+												children: [unitImgUrl && /* @__PURE__ */ jsx("div", {
+													className: "shrink-0 w-16 h-16 rounded-xl overflow-hidden bg-secondary-100 border border-secondary-200/50 shadow-xs",
+													children: /* @__PURE__ */ jsx("img", {
+														src: unitImgUrl,
+														alt: unit.title,
+														width: 64,
+														height: 64,
+														className: "w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+													})
+												}), /* @__PURE__ */ jsxs("div", {
+													className: "flex-1",
+													children: [/* @__PURE__ */ jsx("p", {
+														className: "text-xs font-bold text-secondary-950 group-hover:text-primary-700 line-clamp-2 leading-relaxed transition-colors",
+														children: unit.title
+													}), /* @__PURE__ */ jsxs("span", {
+														className: "text-[11px] text-primary-800 font-black mt-1 block",
+														children: [
+															new Intl.NumberFormat(isRtl ? "ar-EG" : "en-US").format(unit.price),
+															" ",
+															trans("egp")
+														]
+													})]
+												})]
+											}) }, unit.id);
+										})
+									})]
+								}),
+								relatedArticles?.length > 0 && /* @__PURE__ */ jsxs("div", {
+									className: "bg-white rounded-3xl p-6 shadow-sm border border-secondary-200/60",
+									children: [/* @__PURE__ */ jsxs("h2", {
+										className: "font-bold text-secondary-950 mb-4 text-sm flex items-center justify-between",
+										children: [/* @__PURE__ */ jsxs("span", {
+											className: "flex items-center gap-2",
+											children: [/* @__PURE__ */ jsx("svg", {
+												className: "w-4 h-4 text-primary-700",
+												fill: "none",
+												viewBox: "0 0 24 24",
+												stroke: "currentColor",
+												strokeWidth: 2,
+												children: /* @__PURE__ */ jsx("path", {
+													strokeLinecap: "round",
+													strokeLinejoin: "round",
+													d: "M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"
+												})
+											}), trans("suggested_articles")]
+										}), /* @__PURE__ */ jsx(Link, {
+											href: localizedPath("/articles", locale),
+											className: "text-xs text-secondary-600 hover:text-primary-700 font-semibold",
+											children: trans("view_all")
+										})]
+									}), /* @__PURE__ */ jsx("ul", {
+										className: "space-y-4",
+										children: relatedArticles.slice(0, 4).map((related) => {
+											const relatedImg = related?.images?.find((img) => img.position === "header") || related?.images?.[0];
+											const relatedImgUrl = relatedImg?.url || (relatedImg?.path ? relatedImg.path.startsWith("http") || relatedImg.path.startsWith("/") ? relatedImg.path : `/storage/${relatedImg.path}` : null);
+											return /* @__PURE__ */ jsx("li", { children: /* @__PURE__ */ jsxs(Link, {
+												href: localizedPath(`/articles/${isRtl && related.slug_ar ? related.slug_ar : related.slug_en || related.slug || related.id}`, locale),
+												className: "group flex gap-3 items-center",
+												children: [relatedImgUrl && /* @__PURE__ */ jsx("div", {
+													className: "shrink-0 w-16 h-16 rounded-xl overflow-hidden bg-secondary-100 border border-secondary-200/50 shadow-xs",
+													children: /* @__PURE__ */ jsx("img", {
+														src: relatedImgUrl,
+														alt: related.title,
+														width: 64,
+														height: 64,
+														className: "w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+													})
+												}), /* @__PURE__ */ jsxs("div", {
+													className: "flex-1",
+													children: [/* @__PURE__ */ jsx("p", {
+														className: "text-xs font-bold text-secondary-950 group-hover:text-primary-700 line-clamp-2 leading-relaxed transition-colors",
+														children: related.title
+													}), /* @__PURE__ */ jsx("span", {
+														className: "text-[11px] text-secondary-600 mt-1 block font-medium",
+														children: related.created_at ? new Date(related.created_at).toLocaleDateString(isRtl ? "ar-EG" : "en-US", {
+															day: "numeric",
+															month: "short",
+															year: "numeric"
+														}) : ""
+													})]
+												})]
+											}) }, related.id);
+										})
+									})]
+								})
+							]
+						})]
+					})
+				})
+			}),
+			lightboxUrl && /* @__PURE__ */ jsxs("div", {
+				className: "fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4",
+				onClick: () => setLightboxUrl(null),
+				role: "dialog",
+				"aria-modal": "true",
+				children: [/* @__PURE__ */ jsx("button", {
+					type: "button",
+					onClick: () => setLightboxUrl(null),
+					className: "absolute top-4 end-4 text-white bg-white/10 hover:bg-white/20 p-3 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center",
+					"aria-label": trans("close_image") || "Close image",
+					children: /* @__PURE__ */ jsx("svg", {
+						className: "w-6 h-6",
+						fill: "none",
+						viewBox: "0 0 24 24",
+						stroke: "currentColor",
+						strokeWidth: 2,
+						children: /* @__PURE__ */ jsx("path", {
+							strokeLinecap: "round",
+							strokeLinejoin: "round",
+							d: "M6 18L18 6M6 6l12 12"
 						})
-					]
-				}), relatedArticles?.length > 0 && /* @__PURE__ */ jsxs("section", {
-					className: "max-w-5xl mx-auto mt-16 pt-10 border-t border-secondary-200/80",
-					children: [/* @__PURE__ */ jsx("h2", {
-						className: "text-xl font-bold text-secondary-950 mb-6",
-						children: trans("read_more") || (isRtl ? "مقالات ذات صلة" : "Related Articles")
-					}), /* @__PURE__ */ jsx("div", {
-						className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6",
-						children: relatedArticles.slice(0, 3).map((related) => /* @__PURE__ */ jsx(ArticleCard, { article: related }, related.id))
-					})]
+					})
+				}), /* @__PURE__ */ jsx("img", {
+					src: lightboxUrl,
+					alt: "",
+					className: "max-w-full max-h-[90vh] object-contain rounded-2xl shadow-2xl"
 				})]
 			}),
 			/* @__PURE__ */ jsx(Footer, {})
@@ -13678,10 +17052,10 @@ function CompareSearch({ type, currentIds }) {
 //#endregion
 //#region resources/js/Pages/Public/Comparison.jsx
 var Comparison_exports = /* @__PURE__ */ __exportAll({ default: () => Comparison });
-var PLACEHOLDER$2 = "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 400 300\"%3E%3Crect fill=\"%23F0F0F0\" width=\"400\" height=\"300\"/%3E%3C/svg%3E";
+var PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 400 300\"%3E%3Crect fill=\"%23F0F0F0\" width=\"400\" height=\"300\"/%3E%3C/svg%3E";
 function getItemImage(item) {
 	const img = item.images?.[0];
-	return img?.url || (img?.path ? img.path.startsWith("http") || img.path.startsWith("/storage") ? img.path : `/storage/${img.path}` : PLACEHOLDER$2);
+	return img?.url || (img?.path ? img.path.startsWith("http") || img.path.startsWith("/storage") ? img.path : `/storage/${img.path}` : PLACEHOLDER);
 }
 function calcScore(item, best) {
 	if (!best) return null;
@@ -13710,7 +17084,7 @@ function getBestValues(items) {
 }
 function ScoreBadge({ score }) {
 	return /* @__PURE__ */ jsx("div", {
-		className: `w-9 h-9 rounded-xl ${score >= 80 ? "bg-emerald-500" : score >= 60 ? "bg-amber-500" : "bg-secondary-400"} text-white flex items-center justify-center text-sm font-bold shadow-sm`,
+		className: `w-10 h-10 rounded-2xl ${score >= 80 ? "bg-emerald-500" : score >= 60 ? "bg-amber-500" : "bg-secondary-400"} text-white flex items-center justify-center text-sm font-bold shadow-sm`,
 		children: score
 	});
 }
@@ -13758,14 +17132,14 @@ function ComparisonSection({ type, title, items, maxItems, isRtl, locale, trans 
 		className: "mb-10",
 		children: [
 			/* @__PURE__ */ jsxs("div", {
-				className: "flex items-center justify-between mb-5",
+				className: "flex items-center justify-between mb-6",
 				children: [/* @__PURE__ */ jsxs("div", {
 					className: "flex items-center gap-3",
 					children: [/* @__PURE__ */ jsx("h2", {
-						className: "text-lg font-bold text-secondary-950",
+						className: "text-xl font-black text-secondary-950",
 						children: title
 					}), /* @__PURE__ */ jsxs("span", {
-						className: "text-xs text-secondary-500 bg-secondary-100 px-2.5 py-1 rounded-full font-medium",
+						className: "text-xs text-secondary-600 bg-secondary-100 px-3 py-1 rounded-full font-bold",
 						children: [
 							items.length,
 							" / ",
@@ -13773,12 +17147,12 @@ function ComparisonSection({ type, title, items, maxItems, isRtl, locale, trans 
 						]
 					})]
 				}), /* @__PURE__ */ jsxs("div", {
-					className: "flex items-center gap-2",
+					className: "flex items-center gap-3",
 					children: [/* @__PURE__ */ jsxs(Link, {
 						href: localizedPath(type === "unit" ? "/units" : "/projects", locale),
-						className: "px-3 py-1.5 text-xs font-semibold text-primary-900 hover:bg-primary-50 rounded-lg transition-colors flex items-center gap-1.5",
+						className: "px-4 py-2 text-sm font-bold text-primary-900 bg-primary-50 hover:bg-primary-100 rounded-xl transition-colors flex items-center gap-2",
 						children: [/* @__PURE__ */ jsx("svg", {
-							className: "w-3.5 h-3.5",
+							className: "w-4 h-4",
 							fill: "none",
 							viewBox: "0 0 24 24",
 							stroke: "currentColor",
@@ -13804,9 +17178,9 @@ function ComparisonSection({ type, title, items, maxItems, isRtl, locale, trans 
 					const score = type === "unit" ? calcScore(item, best) : null;
 					const features = item.features || [];
 					return /* @__PURE__ */ jsxs("div", {
-						className: "bg-white rounded-2xl shadow-card border border-secondary-100 overflow-hidden hover:shadow-md transition-shadow group",
+						className: "bg-white rounded-3xl shadow-sm border border-secondary-100 overflow-hidden hover:shadow-md transition-all group",
 						children: [/* @__PURE__ */ jsxs("div", {
-							className: "relative h-40 overflow-hidden",
+							className: "relative h-48 overflow-hidden bg-secondary-50",
 							children: [
 								/* @__PURE__ */ jsx("img", {
 									src: getItemImage(item),
@@ -13816,19 +17190,19 @@ function ComparisonSection({ type, title, items, maxItems, isRtl, locale, trans 
 									className: "w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
 								}),
 								score && /* @__PURE__ */ jsx("div", {
-									className: "absolute top-2 end-2",
+									className: "absolute top-3 end-3",
 									children: /* @__PURE__ */ jsx(ScoreBadge, { score })
 								}),
 								/* @__PURE__ */ jsx("button", {
 									onClick: () => handleRemove(item.id),
-									className: "absolute top-2 start-2 w-7 h-7 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-secondary-400 hover:text-red-600 hover:bg-white transition-colors shadow-xs",
+									className: "absolute top-3 start-3 w-8 h-8 bg-white/90 backdrop-blur-md rounded-full flex items-center justify-center text-secondary-500 hover:text-red-600 hover:bg-white transition-all shadow-sm",
 									title: trans("remove_from_compare"),
 									children: /* @__PURE__ */ jsx("svg", {
-										className: "w-3.5 h-3.5",
+										className: "w-4 h-4",
 										fill: "none",
 										viewBox: "0 0 24 24",
 										stroke: "currentColor",
-										strokeWidth: 2,
+										strokeWidth: 2.5,
 										children: /* @__PURE__ */ jsx("path", {
 											strokeLinecap: "round",
 											strokeLinejoin: "round",
@@ -13950,10 +17324,10 @@ function ComparisonSection({ type, title, items, maxItems, isRtl, locale, trans 
 									})]
 								}),
 								/* @__PURE__ */ jsx("div", {
-									className: "mt-3 pt-3 border-t border-secondary-100 flex gap-2",
+									className: "mt-4 pt-4 border-t border-secondary-100 flex gap-2",
 									children: /* @__PURE__ */ jsx(Link, {
 										href: localizedPath(type === "unit" ? `/units/${item.slug}` : `/projects/${item.slug}`, locale),
-										className: "flex-1 block text-center py-2 bg-primary-900/5 hover:bg-primary-900 text-primary-900 hover:text-white text-xs font-semibold rounded-xl transition-colors",
+										className: "flex-1 block text-center py-2.5 bg-primary-50 hover:bg-primary-900 text-primary-900 hover:text-white text-xs font-bold rounded-2xl transition-colors",
 										children: trans("show_more")
 									})
 								})
@@ -13963,9 +17337,9 @@ function ComparisonSection({ type, title, items, maxItems, isRtl, locale, trans 
 				})
 			}),
 			items.length >= 2 && type === "unit" && /* @__PURE__ */ jsxs("div", {
-				className: "mt-6 bg-white rounded-2xl shadow-card border border-secondary-100 overflow-hidden",
+				className: "mt-8 bg-white rounded-3xl shadow-sm border border-secondary-100 overflow-hidden",
 				children: [/* @__PURE__ */ jsx("div", {
-					className: "p-4 border-b border-secondary-100 bg-surface/50",
+					className: "p-5 border-b border-secondary-100 bg-surface/50",
 					children: /* @__PURE__ */ jsxs("h3", {
 						className: "text-sm font-bold text-secondary-950 flex items-center gap-2",
 						children: [/* @__PURE__ */ jsx("svg", {
@@ -14116,18 +17490,20 @@ function Comparison({ items, type, max_items }) {
 			}),
 			/* @__PURE__ */ jsx(Header, {}),
 			/* @__PURE__ */ jsx("main", {
-				className: "flex-1 max-w-container mx-auto px-4 py-6 w-full",
+				id: "main-content",
+				tabIndex: "-1",
+				className: "flex-1 max-w-container mx-auto px-4 py-8 md:py-12 w-full focus:outline-none",
 				children: !hasAny ? /* @__PURE__ */ jsxs("div", {
-					className: "text-center py-20 max-w-md mx-auto",
+					className: "text-center py-24 px-6 max-w-2xl mx-auto bg-white rounded-[2rem] border border-secondary-100 shadow-sm",
 					children: [
 						/* @__PURE__ */ jsx("div", {
-							className: "w-20 h-20 bg-secondary-100 rounded-full flex items-center justify-center mx-auto mb-5",
+							className: "w-20 h-20 bg-secondary-50 rounded-full flex items-center justify-center mx-auto mb-6",
 							children: /* @__PURE__ */ jsx("svg", {
 								className: "w-10 h-10 text-secondary-400",
 								fill: "none",
 								viewBox: "0 0 24 24",
 								stroke: "currentColor",
-								strokeWidth: 1,
+								strokeWidth: 1.5,
 								children: /* @__PURE__ */ jsx("path", {
 									strokeLinecap: "round",
 									strokeLinejoin: "round",
@@ -14136,39 +17512,39 @@ function Comparison({ items, type, max_items }) {
 							})
 						}),
 						/* @__PURE__ */ jsx("h2", {
-							className: "text-xl font-bold text-secondary-950 mb-2",
+							className: "text-2xl font-black text-secondary-950 mb-3 tracking-tight",
 							children: trans("compare_properties")
 						}),
 						/* @__PURE__ */ jsx("p", {
-							className: "text-sm text-secondary-500 mb-6 leading-relaxed",
-							children: isRtl ? "أضف وحدات أو مشاريع إلى المقارنة لترى الفروقات بينها وتختار الأنسب لك." : "Add units or projects to compare and find the best option for you."
+							className: "text-sm md:text-base text-secondary-500 mb-8 leading-relaxed max-w-sm mx-auto",
+							children: trans("add_units_to_compare")
 						}),
 						/* @__PURE__ */ jsxs("div", {
-							className: "flex items-center justify-center gap-3",
+							className: "flex flex-col sm:flex-row items-center justify-center gap-4",
 							children: [/* @__PURE__ */ jsx(Link, {
 								href: localizedPath("/units", locale),
-								className: "px-5 py-2.5 bg-primary-900 text-white text-sm font-semibold rounded-xl hover:bg-primary-950 transition-colors",
+								className: "w-full sm:w-auto px-8 py-3 bg-primary-900 text-white text-sm font-bold rounded-2xl hover:bg-primary-950 transition-colors shadow-sm",
 								children: trans("units")
 							}), /* @__PURE__ */ jsx(Link, {
 								href: localizedPath("/projects", locale),
-								className: "px-5 py-2.5 bg-secondary-100 text-secondary-700 text-sm font-semibold rounded-xl hover:bg-secondary-200 transition-colors",
+								className: "w-full sm:w-auto px-8 py-3 bg-secondary-100 text-secondary-800 text-sm font-bold rounded-2xl hover:bg-secondary-200 transition-colors",
 								children: trans("projects")
 							})]
 						})
 					]
 				}) : /* @__PURE__ */ jsxs(Fragment, { children: [
 					/* @__PURE__ */ jsxs("div", {
-						className: "flex items-center justify-between mb-6",
+						className: "flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10 pb-8 border-b border-secondary-200",
 						children: [/* @__PURE__ */ jsxs("div", {
-							className: "flex items-center gap-3",
+							className: "flex items-center gap-4",
 							children: [/* @__PURE__ */ jsx("div", {
-								className: "w-10 h-10 rounded-xl bg-primary-900/10 text-primary-900 flex items-center justify-center",
+								className: "w-14 h-14 rounded-2xl bg-primary-50 text-primary-900 flex items-center justify-center border border-primary-100",
 								children: /* @__PURE__ */ jsx("svg", {
-									className: "w-5 h-5",
+									className: "w-7 h-7",
 									fill: "none",
 									viewBox: "0 0 24 24",
 									stroke: "currentColor",
-									strokeWidth: 1.5,
+									strokeWidth: 2,
 									children: /* @__PURE__ */ jsx("path", {
 										strokeLinecap: "round",
 										strokeLinejoin: "round",
@@ -14176,19 +17552,19 @@ function Comparison({ items, type, max_items }) {
 									})
 								})
 							}), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("h1", {
-								className: "text-xl font-bold text-secondary-950",
+								className: "text-3xl md:text-4xl font-black text-secondary-950 tracking-tight",
 								children: trans("compare")
 							}), /* @__PURE__ */ jsx("p", {
-								className: "text-xs text-secondary-500",
+								className: "text-sm font-medium text-secondary-500 mt-1",
 								children: trans("compare_options_subtitle")
 							})] })]
 						}), /* @__PURE__ */ jsxs("div", {
-							className: "flex items-center gap-1.5 bg-secondary-100 rounded-xl p-1",
+							className: "flex items-center gap-2 bg-secondary-100/50 rounded-2xl p-1.5 border border-secondary-200/60",
 							children: [/* @__PURE__ */ jsxs(Link, {
 								href: localizedPath(`/compare?type=unit&ids=${unitList.join(",")}`, locale),
-								className: `px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-colors ${type === "unit" ? "bg-white text-primary-900 shadow-xs" : "text-secondary-600 hover:text-secondary-900"}`,
+								className: `px-5 py-2.5 text-sm font-bold rounded-xl transition-all ${type === "unit" ? "bg-white text-primary-900 shadow-sm" : "text-secondary-600 hover:text-secondary-900 hover:bg-secondary-100"}`,
 								children: [trans("units"), unitList.length > 0 && /* @__PURE__ */ jsxs("span", {
-									className: "ms-1.5 text-[10px] opacity-60",
+									className: "ms-2 text-xs opacity-70",
 									children: [
 										"(",
 										unitList.length,
@@ -14197,9 +17573,9 @@ function Comparison({ items, type, max_items }) {
 								})]
 							}), /* @__PURE__ */ jsxs(Link, {
 								href: localizedPath(`/compare?type=project&ids=${projectList.join(",")}`, locale),
-								className: `px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-colors ${type === "project" ? "bg-white text-primary-900 shadow-xs" : "text-secondary-600 hover:text-secondary-900"}`,
+								className: `px-5 py-2.5 text-sm font-bold rounded-xl transition-all ${type === "project" ? "bg-white text-primary-900 shadow-sm" : "text-secondary-600 hover:text-secondary-900 hover:bg-secondary-100"}`,
 								children: [trans("projects"), projectList.length > 0 && /* @__PURE__ */ jsxs("span", {
-									className: "ms-1.5 text-[10px] opacity-60",
+									className: "ms-2 text-xs opacity-70",
 									children: [
 										"(",
 										projectList.length,
@@ -14279,32 +17655,52 @@ function Contact() {
 			}),
 			/* @__PURE__ */ jsx(Header, {}),
 			/* @__PURE__ */ jsxs("main", {
-				className: "flex-1 max-w-2xl mx-auto px-4 py-12 w-full",
+				id: "main-content",
+				tabIndex: "-1",
+				className: "flex-1 max-w-3xl mx-auto px-4 py-12 sm:py-20 w-full focus:outline-none",
 				children: [
-					/* @__PURE__ */ jsx("h1", {
-						className: "text-3xl font-bold text-secondary-950 mb-2",
-						children: trans("contact")
+					/* @__PURE__ */ jsxs("div", {
+						className: "text-center mb-12",
+						children: [
+							/* @__PURE__ */ jsx("h1", {
+								className: "text-4xl sm:text-5xl font-black text-secondary-950 mb-4 tracking-tight",
+								children: trans("contact")
+							}),
+							/* @__PURE__ */ jsx("p", {
+								className: "text-sm md:text-base text-secondary-500 max-w-md mx-auto leading-relaxed",
+								children: trans("contact_info")
+							}),
+							/* @__PURE__ */ jsx("div", { className: "w-16 h-1.5 bg-primary-900 rounded-full mx-auto mt-6" })
+						]
 					}),
-					/* @__PURE__ */ jsx("p", {
-						className: "text-sm text-muted mb-8",
-						children: trans("contact_info")
+					(sentSuccess || flash?.success) && /* @__PURE__ */ jsxs("div", {
+						className: "mb-8 p-5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-sm font-bold flex items-center gap-3",
+						children: [/* @__PURE__ */ jsx("svg", {
+							className: "w-5 h-5 shrink-0",
+							fill: "none",
+							viewBox: "0 0 24 24",
+							stroke: "currentColor",
+							strokeWidth: 2,
+							children: /* @__PURE__ */ jsx("path", {
+								strokeLinecap: "round",
+								strokeLinejoin: "round",
+								d: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+							})
+						}), flash?.success || trans("contact_message_sent_success")]
 					}),
-					(sentSuccess || flash?.success) && /* @__PURE__ */ jsx("div", {
-						className: "mb-6 p-4 bg-green-50 border border-green-200 text-green-800 rounded-xl text-sm font-medium",
-						children: flash?.success || trans("contact_message_sent_success")
-					}),
-					/* @__PURE__ */ jsx("div", {
-						className: "bg-white rounded-xl shadow-card p-6 sm:p-8",
-						children: /* @__PURE__ */ jsxs("form", {
+					/* @__PURE__ */ jsxs("div", {
+						className: "bg-white rounded-[2rem] shadow-sm border border-secondary-100 p-8 sm:p-12 relative overflow-hidden",
+						children: [/* @__PURE__ */ jsx("div", { className: "absolute top-0 end-0 w-64 h-64 bg-primary-50 rounded-full blur-3xl opacity-50 pointer-events-none -translate-y-1/2 translate-x-1/2" }), /* @__PURE__ */ jsxs("form", {
 							onSubmit: handleSubmit,
 							noValidate: true,
+							className: "relative z-10",
 							children: [
 								/* @__PURE__ */ jsxs("div", {
-									className: "mb-4",
+									className: "mb-5",
 									children: [
 										/* @__PURE__ */ jsx("label", {
 											htmlFor: "client_name",
-											className: "block text-sm font-medium text-secondary-950 mb-1",
+											className: "block text-sm font-bold text-secondary-950 mb-2",
 											children: trans("your_name", {}, "messages")
 										}),
 										/* @__PURE__ */ jsx("input", {
@@ -14313,44 +17709,44 @@ function Contact() {
 											value: data.client_name,
 											onChange: (e) => setData("client_name", e.target.value),
 											required: true,
-											className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
+											className: "w-full px-4 py-3 border border-secondary-200 rounded-2xl text-sm bg-surface focus:bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 transition-colors"
 										}),
 										errors.client_name && /* @__PURE__ */ jsx("p", {
-											className: "text-xs text-error mt-1",
+											className: "text-xs text-red-600 font-medium mt-1.5",
 											children: errors.client_name
 										})
 									]
 								}),
 								/* @__PURE__ */ jsxs("div", {
-									className: "grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4",
+									className: "grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5",
 									children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
 										htmlFor: "client_phone",
-										className: "block text-sm font-medium text-secondary-950 mb-1",
+										className: "block text-sm font-bold text-secondary-950 mb-2",
 										children: trans("your_phone", {}, "messages")
 									}), /* @__PURE__ */ jsx("input", {
 										id: "client_phone",
 										type: "tel",
 										value: data.client_phone,
 										onChange: (e) => setData("client_phone", e.target.value),
-										className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
+										className: "w-full px-4 py-3 border border-secondary-200 rounded-2xl text-sm bg-surface focus:bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 transition-colors"
 									})] }), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
 										htmlFor: "client_email",
-										className: "block text-sm font-medium text-secondary-950 mb-1",
+										className: "block text-sm font-bold text-secondary-950 mb-2",
 										children: trans("your_email", {}, "messages")
 									}), /* @__PURE__ */ jsx("input", {
 										id: "client_email",
 										type: "email",
 										value: data.client_email,
 										onChange: (e) => setData("client_email", e.target.value),
-										className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
+										className: "w-full px-4 py-3 border border-secondary-200 rounded-2xl text-sm bg-surface focus:bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 transition-colors"
 									})] })]
 								}),
 								/* @__PURE__ */ jsxs("div", {
-									className: "mb-6",
+									className: "mb-8",
 									children: [
 										/* @__PURE__ */ jsx("label", {
 											htmlFor: "content",
-											className: "block text-sm font-medium text-secondary-950 mb-1",
+											className: "block text-sm font-bold text-secondary-950 mb-2",
 											children: trans("your_message", {}, "messages")
 										}),
 										/* @__PURE__ */ jsx("textarea", {
@@ -14359,10 +17755,10 @@ function Contact() {
 											onChange: (e) => setData("content", e.target.value),
 											required: true,
 											rows: 5,
-											className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
+											className: "w-full px-4 py-3 border border-secondary-200 rounded-2xl text-sm bg-surface focus:bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 transition-colors resize-y"
 										}),
 										errors.content && /* @__PURE__ */ jsx("p", {
-											className: "text-xs text-error mt-1",
+											className: "text-xs text-red-600 font-medium mt-1.5",
 											children: errors.content
 										})
 									]
@@ -14370,7 +17766,7 @@ function Contact() {
 								/* @__PURE__ */ jsxs("button", {
 									type: "submit",
 									disabled: processing || isSubmitting,
-									className: "w-full px-4 py-2.5 bg-primary-900 text-white rounded-lg text-sm font-medium hover:bg-primary-950 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2",
+									className: "w-full sm:w-auto min-w-[200px] px-8 py-3.5 bg-primary-900 text-white rounded-2xl text-sm font-bold hover:bg-primary-950 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-sm mx-auto",
 									children: [(processing || isSubmitting) && /* @__PURE__ */ jsxs("svg", {
 										className: "animate-spin h-4 w-4 text-white inline-block",
 										fill: "none",
@@ -14390,7 +17786,7 @@ function Contact() {
 									}), processing || isSubmitting ? trans("loading") : trans("send_message", {}, "messages")]
 								})
 							]
-						})
+						})]
 					})
 				]
 			}),
@@ -14404,157 +17800,242 @@ var Home_exports = /* @__PURE__ */ __exportAll({ default: () => Home });
 var HERO_BG = "/images/hero.webp";
 var HERO_BG_MOBILE = "/images/hero-mobile.webp";
 function Home({ featuredUnits, latestUnits, latestProjects, popularSearches, areas, unitTypes, features, finishingTypes }) {
-	const { locale, settings, appUrl } = usePage().props;
-	const { url: currentUrl } = usePage();
+	const { locale, settings } = usePage().props;
 	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
-	const heroTitle = isRtl ? settings?.hero_title_ar || trans("hero_title") : settings?.hero_title_en || trans("hero_title");
-	const heroSubtitle = isRtl ? settings?.hero_subtitle_ar || trans("hero_subtitle") : settings?.hero_subtitle_en || trans("hero_subtitle");
-	const heroImage = settings?.hero_image ? `/storage/${settings.hero_image}` : HERO_BG;
-	const heroImageMobile = settings?.hero_image_mobile ? `/storage/${settings.hero_image_mobile}` : settings?.hero_image ? `/storage/${settings.hero_image}` : HERO_BG_MOBILE;
+	const heroTitle = isRtl ? settings?.hero_title_ar || trans("hero_title") : settings?.hero_title_en || settings?.hero_title_ar || trans("hero_title");
+	const heroSubtitle = isRtl ? settings?.hero_subtitle_ar || trans("hero_subtitle") : settings?.hero_subtitle_en || settings?.hero_subtitle_ar || trans("hero_subtitle");
+	const heroImage = settings?.hero_image ? getStorageUrl(settings.hero_image, HERO_BG) : HERO_BG;
+	const heroImageMobile = settings?.hero_image_mobile ? getStorageUrl(settings.hero_image_mobile, HERO_BG_MOBILE) : settings?.hero_image ? getStorageUrl(settings.hero_image, HERO_BG_MOBILE) : HERO_BG_MOBILE;
+	const firstFeaturedImg = featuredUnits?.data?.[0]?.images?.[0];
+	const homeOgImage = getStorageUrl(firstFeaturedImg?.url || firstFeaturedImg?.path, null);
 	const isLoading = !featuredUnits && !latestUnits && !latestProjects;
 	const hasFeatured = featuredUnits?.data?.length > 0;
 	const hasLatest = latestUnits?.data?.length > 0;
 	const hasProjects = latestProjects?.data?.length > 0;
-	const firstFeaturedImg = featuredUnits?.data?.[0]?.images?.[0];
-	const homeOgImage = firstFeaturedImg?.url || (firstFeaturedImg?.path ? `/storage/${firstFeaturedImg.path}` : null);
 	return /* @__PURE__ */ jsxs("div", {
 		dir: isRtl ? "rtl" : "ltr",
 		className: "min-h-screen bg-surface flex flex-col font-sans",
 		children: [
 			/* @__PURE__ */ jsx(SeoHead, {
-				title: trans("site_title"),
-				description: trans("home_description"),
+				title: `${trans("app_name")} | ${trans("site_title")}`,
+				description: heroSubtitle || trans("hero_subtitle"),
 				ogImage: homeOgImage,
-				canonical: appUrl && currentUrl ? `${appUrl}${currentUrl.split("?")[0]}` : void 0
+				ogType: "website"
 			}),
 			/* @__PURE__ */ jsx(Header, {}),
 			/* @__PURE__ */ jsxs("main", {
+				id: "main-content",
 				className: "flex-1",
 				children: [
 					/* @__PURE__ */ jsxs("section", {
-						className: "relative bg-secondary-950 flex flex-col justify-center min-h-[80vh]",
-						children: [/* @__PURE__ */ jsxs("div", {
-							className: "absolute inset-0 z-0 overflow-hidden",
-							children: [/* @__PURE__ */ jsxs("picture", {
-								className: "w-full h-full",
+						className: "relative min-h-[520px] md:min-h-[580px] flex items-center justify-center pt-8 pb-24 md:pb-32 md:pt-20 px-4 z-20",
+						children: [
+							/* @__PURE__ */ jsxs("picture", {
+								className: "absolute inset-0 w-full h-full overflow-hidden",
 								children: [/* @__PURE__ */ jsx("source", {
 									media: "(max-width: 640px)",
 									srcSet: heroImageMobile
 								}), /* @__PURE__ */ jsx("img", {
 									src: heroImage,
-									alt: "",
+									alt: trans("site_title"),
 									width: 1920,
 									height: 1080,
-									className: "w-full h-full object-cover scale-105",
+									className: "w-full h-full object-cover object-center scale-105 animate-subtle-zoom",
 									fetchPriority: "high",
 									loading: "eager",
 									decoding: "sync"
 								})]
-							}), /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-gradient-to-t from-secondary-950 via-secondary-950/85 to-black/60" })]
-						}), /* @__PURE__ */ jsxs("div", {
-							className: "relative z-20 max-w-container mx-auto px-4 py-20 sm:py-28 text-center w-full",
+							}),
+							/* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-gradient-to-t from-black/85 via-black/50 to-black/30" }),
+							/* @__PURE__ */ jsxs("div", {
+								className: "relative z-10 max-w-container mx-auto w-full text-center space-y-6 md:space-y-8 mt-2",
+								children: [/* @__PURE__ */ jsxs("div", {
+									className: "space-y-3 max-w-3xl mx-auto px-2",
+									children: [/* @__PURE__ */ jsx("h1", {
+										className: "text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white leading-tight tracking-tight drop-shadow-md",
+										children: heroTitle
+									}), /* @__PURE__ */ jsx("p", {
+										className: "text-sm sm:text-base md:text-lg text-white/80 font-medium max-w-2xl mx-auto drop-shadow",
+										children: heroSubtitle
+									})]
+								}), /* @__PURE__ */ jsx("div", {
+									className: "max-w-4xl mx-auto",
+									children: /* @__PURE__ */ jsx(SearchBar, {
+										initialUnitTypes: unitTypes,
+										initialAreas: areas,
+										initialFeatures: features,
+										initialFinishingTypes: finishingTypes,
+										popularSearches
+									})
+								})]
+							})
+						]
+					}),
+					/* @__PURE__ */ jsx("section", {
+						className: "md:hidden max-w-container mx-auto px-4 mb-8",
+						children: /* @__PURE__ */ jsxs("div", {
+							className: "grid grid-cols-2 gap-3",
 							children: [
-								/* @__PURE__ */ jsx("h1", {
-									className: "text-4xl sm:text-5xl lg:text-6xl font-black text-white mb-6 tracking-tight leading-tight max-w-4xl mx-auto drop-shadow-md",
-									children: heroTitle
+								/* @__PURE__ */ jsxs(Link, {
+									href: localizedPath("/units", locale),
+									className: "bg-white rounded-2xl p-4 flex items-center justify-center gap-3 shadow-[0_2px_10px_rgba(0,0,0,0.04)] border border-border hover:shadow-md transition-shadow",
+									children: [/* @__PURE__ */ jsx("svg", {
+										className: "w-5 h-5 text-primary-900 shrink-0",
+										fill: "none",
+										viewBox: "0 0 24 24",
+										stroke: "currentColor",
+										strokeWidth: 2,
+										children: /* @__PURE__ */ jsx("path", {
+											strokeLinecap: "round",
+											strokeLinejoin: "round",
+											d: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+										})
+									}), /* @__PURE__ */ jsx("span", {
+										className: "font-bold text-sm text-secondary-950",
+										children: trans("units")
+									})]
 								}),
-								/* @__PURE__ */ jsx("p", {
-									className: "text-base sm:text-lg lg:text-xl text-secondary-200 mb-10 max-w-2xl mx-auto font-medium leading-relaxed",
-									children: heroSubtitle
+								/* @__PURE__ */ jsxs(Link, {
+									href: localizedPath("/projects", locale),
+									className: "bg-white rounded-2xl p-4 flex items-center justify-center gap-3 shadow-[0_2px_10px_rgba(0,0,0,0.04)] border border-border hover:shadow-md transition-shadow",
+									children: [/* @__PURE__ */ jsx("svg", {
+										className: "w-5 h-5 text-primary-900 shrink-0",
+										fill: "none",
+										viewBox: "0 0 24 24",
+										stroke: "currentColor",
+										strokeWidth: 2,
+										children: /* @__PURE__ */ jsx("path", {
+											strokeLinecap: "round",
+											strokeLinejoin: "round",
+											d: "M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+										})
+									}), /* @__PURE__ */ jsx("span", {
+										className: "font-bold text-sm text-secondary-950",
+										children: trans("projects")
+									})]
 								}),
-								/* @__PURE__ */ jsx(SearchBar, {
-									areas,
-									unitTypes,
-									features,
-									finishingTypes
+								/* @__PURE__ */ jsxs("a", {
+									href: "#areas-section",
+									className: "bg-white rounded-2xl p-4 flex items-center justify-center gap-3 shadow-[0_2px_10px_rgba(0,0,0,0.04)] border border-border hover:shadow-md transition-shadow",
+									children: [/* @__PURE__ */ jsxs("svg", {
+										className: "w-5 h-5 text-primary-900 shrink-0",
+										fill: "none",
+										viewBox: "0 0 24 24",
+										stroke: "currentColor",
+										strokeWidth: 2,
+										children: [/* @__PURE__ */ jsx("path", {
+											strokeLinecap: "round",
+											strokeLinejoin: "round",
+											d: "M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+										}), /* @__PURE__ */ jsx("path", {
+											strokeLinecap: "round",
+											strokeLinejoin: "round",
+											d: "M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+										})]
+									}), /* @__PURE__ */ jsx("span", {
+										className: "font-bold text-sm text-secondary-950",
+										children: trans("areas")
+									})]
+								}),
+								/* @__PURE__ */ jsxs(Link, {
+									href: localizedPath("/units/deals", locale),
+									className: "bg-white rounded-2xl p-4 flex items-center justify-center gap-3 shadow-[0_2px_10px_rgba(0,0,0,0.04)] border border-border hover:shadow-md transition-shadow",
+									children: [/* @__PURE__ */ jsx("svg", {
+										className: "w-5 h-5 text-primary-900 shrink-0",
+										fill: "none",
+										viewBox: "0 0 24 24",
+										stroke: "currentColor",
+										strokeWidth: 2,
+										children: /* @__PURE__ */ jsx("path", {
+											strokeLinecap: "round",
+											strokeLinejoin: "round",
+											d: "M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+										})
+									}), /* @__PURE__ */ jsx("span", {
+										className: "font-bold text-sm text-secondary-950",
+										children: trans("deals") || "الصفقات"
+									})]
 								})
 							]
-						})]
-					}),
-					popularSearches?.length > 0 && /* @__PURE__ */ jsxs("section", {
-						className: "max-w-container mx-auto px-4 py-8",
-						children: [/* @__PURE__ */ jsxs("div", {
-							className: "flex items-center gap-2 mb-4",
-							children: [/* @__PURE__ */ jsx("svg", {
-								className: "w-4 h-4 text-primary-900",
-								fill: "none",
-								viewBox: "0 0 24 24",
-								stroke: "currentColor",
-								strokeWidth: 2,
-								children: /* @__PURE__ */ jsx("path", {
-									strokeLinecap: "round",
-									strokeLinejoin: "round",
-									d: "M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
-								})
-							}), /* @__PURE__ */ jsx("h2", {
-								className: "text-sm font-bold text-secondary-950 uppercase tracking-wider",
-								children: trans("popular_searches")
-							})]
-						}), /* @__PURE__ */ jsx("div", {
-							className: "flex flex-wrap gap-2",
-							children: popularSearches.map((ps) => /* @__PURE__ */ jsx(Link, {
-								href: localizedPath(`/units?search=${encodeURIComponent(ps.keyword)}`, locale),
-								className: "px-3.5 py-1.5 bg-white text-xs font-semibold text-secondary-700 rounded-full border border-secondary-200 hover:border-primary-900 hover:text-primary-900 hover:shadow-sm transition-all",
-								children: ps.keyword
-							}, ps.keyword))
-						})]
+						})
 					}),
 					areas?.length > 0 && /* @__PURE__ */ jsxs("section", {
-						className: "max-w-container mx-auto px-4 py-8",
+						id: "areas-section",
+						className: "max-w-container mx-auto px-4 py-8 mb-4",
 						children: [/* @__PURE__ */ jsx("div", {
-							className: "flex items-center justify-between mb-6",
-							children: /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("h2", {
-								className: "text-2xl font-black text-secondary-950 tracking-tight",
-								children: trans("explore_areas")
-							}), /* @__PURE__ */ jsx("p", {
-								className: "text-xs text-secondary-500 mt-1",
-								children: trans("explore_areas_subtitle")
-							})] })
+							className: "flex items-center justify-between mb-4",
+							children: /* @__PURE__ */ jsx("h2", {
+								className: "text-xl sm:text-2xl font-black text-secondary-950 tracking-tight",
+								children: trans("explore_areas") || "المناطق الأكثر بحثاً"
+							})
 						}), /* @__PURE__ */ jsx("div", {
-							className: "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4",
-							children: areas.map((area) => {
+							className: "flex overflow-x-auto gap-4 snap-x snap-mandatory hide-scrollbar pb-4",
+							children: areas?.map((area) => {
 								const areaName = isRtl ? area.name_ar || area.name_en || area.name : area.name_en || area.name_ar || area.name;
+								const areaSlug = area.slug || area.id;
+								getStorageUrl(area.image_path || area.hero_image);
 								return /* @__PURE__ */ jsxs(Link, {
-									href: localizedPath(`/areas/${area.slug || area.id}`, locale),
-									className: "group relative bg-white hover:bg-primary-950 rounded-2xl p-4 border border-secondary-200/80 hover:border-primary-900 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col items-center text-center overflow-hidden",
+									href: localizedPath(`/areas/${areaSlug}`, locale),
+									className: "group relative shrink-0 w-[180px] md:w-[220px] h-[240px] bg-gradient-to-br from-secondary-900 via-secondary-800 to-primary-950 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-[transform,box-shadow] duration-300 snap-center",
 									children: [
-										/* @__PURE__ */ jsx("div", {
-											className: "w-10 h-10 rounded-full bg-primary-50 group-hover:bg-primary-900 text-primary-900 group-hover:text-white flex items-center justify-center mb-3 transition-colors duration-300",
-											children: /* @__PURE__ */ jsxs("svg", {
-												className: "w-5 h-5",
-												fill: "none",
-												viewBox: "0 0 24 24",
-												stroke: "currentColor",
-												strokeWidth: 2,
-												children: [/* @__PURE__ */ jsx("path", {
-													strokeLinecap: "round",
-													strokeLinejoin: "round",
-													d: "M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-												}), /* @__PURE__ */ jsx("path", {
-													strokeLinecap: "round",
-													strokeLinejoin: "round",
-													d: "M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-												})]
+										area.image_path || area.hero_image ? /* @__PURE__ */ jsx("img", {
+											src: getStorageUrl(area.image_path || area.hero_image),
+											alt: areaName,
+											width: 220,
+											height: 240,
+											loading: "lazy",
+											decoding: "async",
+											onError: (e) => {
+												e.currentTarget.style.display = "none";
+											},
+											className: "w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+										}) : /* @__PURE__ */ jsx("div", {
+											className: "w-full h-full flex flex-col items-center justify-center text-white/40 group-hover:text-primary-400 transition-colors pb-10",
+											children: /* @__PURE__ */ jsx("div", {
+												className: "w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center shadow-inner group-hover:scale-110 group-hover:bg-primary-900/30 transition-[transform,background-color] duration-200",
+												children: /* @__PURE__ */ jsxs("svg", {
+													className: "w-7 h-7 text-primary-400",
+													fill: "none",
+													viewBox: "0 0 24 24",
+													stroke: "currentColor",
+													strokeWidth: 2,
+													children: [/* @__PURE__ */ jsx("path", {
+														strokeLinecap: "round",
+														strokeLinejoin: "round",
+														d: "M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"
+													}), /* @__PURE__ */ jsx("path", {
+														strokeLinecap: "round",
+														strokeLinejoin: "round",
+														d: "M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
+													})]
+												})
 											})
 										}),
-										/* @__PURE__ */ jsx("span", {
-											className: "text-sm font-bold text-secondary-900 group-hover:text-white transition-colors duration-300 line-clamp-1",
-											children: areaName
-										}),
-										/* @__PURE__ */ jsxs("span", {
-											className: "text-[11px] font-medium text-secondary-400 group-hover:text-primary-200 mt-1 transition-colors duration-300 flex items-center gap-0.5",
-											children: [/* @__PURE__ */ jsx("span", { children: isRtl ? "عرض المكان" : "Explore" }), /* @__PURE__ */ jsx("svg", {
-												className: "w-3 h-3 rtl:rotate-180",
-												fill: "none",
-												viewBox: "0 0 24 24",
-												stroke: "currentColor",
-												strokeWidth: 2,
-												children: /* @__PURE__ */ jsx("path", {
-													strokeLinecap: "round",
-													strokeLinejoin: "round",
-													d: "M8.25 4.5l7.5 7.5-7.5 7.5"
-												})
+										/* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" }),
+										/* @__PURE__ */ jsxs("div", {
+											className: "absolute bottom-0 left-0 right-0 p-4 text-start",
+											children: [/* @__PURE__ */ jsx("h3", {
+												className: "text-white font-bold text-base mb-1",
+												children: areaName
+											}), /* @__PURE__ */ jsxs("div", {
+												className: "flex items-center gap-1.5 text-white/90 text-xs font-medium",
+												children: [/* @__PURE__ */ jsxs("svg", {
+													className: "w-3.5 h-3.5 shrink-0",
+													fill: "none",
+													viewBox: "0 0 24 24",
+													stroke: "currentColor",
+													strokeWidth: 2,
+													children: [/* @__PURE__ */ jsx("path", {
+														strokeLinecap: "round",
+														strokeLinejoin: "round",
+														d: "M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+													}), /* @__PURE__ */ jsx("path", {
+														strokeLinecap: "round",
+														strokeLinejoin: "round",
+														d: "M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+													})]
+												}), /* @__PURE__ */ jsx("span", { children: trans("explore") || "استكشف" })]
 											})]
 										})
 									]
@@ -14562,131 +18043,84 @@ function Home({ featuredUnits, latestUnits, latestProjects, popularSearches, are
 							})
 						})]
 					}),
-					/* @__PURE__ */ jsx("section", {
-						className: "bg-surface py-12 border-t border-secondary-100",
-						children: /* @__PURE__ */ jsxs("div", {
-							className: "max-w-container mx-auto px-4",
-							children: [/* @__PURE__ */ jsxs("div", {
-								className: "flex items-center justify-between mb-6",
-								children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("h2", {
-									className: "text-2xl font-black text-secondary-950 tracking-tight",
-									children: trans("latest_projects")
-								}), /* @__PURE__ */ jsx("p", {
-									className: "text-xs text-secondary-500 mt-1",
-									children: trans("latest_projects_subtitle")
-								})] }), /* @__PURE__ */ jsxs(Link, {
-									href: localizedPath("/projects", locale),
-									className: "text-xs font-bold text-primary-900 hover:text-primary-700 flex items-center gap-1",
-									children: [trans("show_more"), /* @__PURE__ */ jsx("svg", {
-										className: "w-3.5 h-3.5 rtl:rotate-180",
-										fill: "none",
-										viewBox: "0 0 24 24",
-										stroke: "currentColor",
-										strokeWidth: 2.5,
-										children: /* @__PURE__ */ jsx("path", {
-											strokeLinecap: "round",
-											strokeLinejoin: "round",
-											d: "M8.25 4.5l7.5 7.5-7.5 7.5"
-										})
-									})]
+					hasFeatured && Array.isArray(featuredUnits?.data) && /* @__PURE__ */ jsxs("section", {
+						className: "bg-transparent py-8 max-w-container mx-auto px-4 mb-4",
+						children: [
+							/* @__PURE__ */ jsxs("div", {
+								className: "flex items-center justify-between mb-4",
+								children: [/* @__PURE__ */ jsx("h2", {
+									className: "text-xl sm:text-2xl font-black text-secondary-950 tracking-tight",
+									children: trans("featured_units") || (isRtl ? "وحدات مميزة" : "Featured Properties")
+								}), /* @__PURE__ */ jsx(Link, {
+									href: localizedPath("/units?is_featured=1", locale),
+									className: "px-4 py-1.5 bg-white text-secondary-800 border border-border rounded-full text-xs font-bold hover:bg-surface-hover hover:text-primary-900 transition-colors shadow-sm",
+									children: trans("view_all") || "عرض الكل"
 								})]
-							}), isLoading ? /* @__PURE__ */ jsx("div", {
+							}),
+							/* @__PURE__ */ jsx("div", {
 								className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5",
-								children: Array.from({ length: 4 }).map((_, i) => /* @__PURE__ */ jsx(ProjectCard, { loading: true }, i))
-							}) : hasProjects && Array.isArray(latestProjects?.data) ? /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("div", {
-								className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5",
-								children: latestProjects.data.map((project) => /* @__PURE__ */ jsx(ProjectCard, { project }, project.id))
-							}), /* @__PURE__ */ jsx(Pagination, {
-								meta: latestProjects,
-								links: latestProjects?.links
-							})] }) : /* @__PURE__ */ jsx("p", {
-								className: "text-sm text-muted text-center py-12",
-								children: trans("no_results")
-							})]
-						})
+								children: featuredUnits.data.map((unit) => /* @__PURE__ */ jsx(UnitCard_default, { unit }, unit.id))
+							}),
+							/* @__PURE__ */ jsx(Pagination, {
+								meta: featuredUnits,
+								links: featuredUnits?.links,
+								pageParam: "featured_page"
+							})
+						]
 					}),
 					/* @__PURE__ */ jsxs("section", {
-						className: "max-w-container mx-auto px-4 py-12 border-t border-secondary-100",
+						className: "bg-transparent py-8 max-w-container mx-auto px-4",
 						children: [/* @__PURE__ */ jsxs("div", {
-							className: "flex items-center justify-between mb-6",
-							children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("h2", {
-								className: "text-2xl font-black text-secondary-950 tracking-tight",
-								children: trans("featured_units")
-							}), /* @__PURE__ */ jsx("p", {
-								className: "text-xs text-secondary-500 mt-1",
-								children: trans("featured_units_subtitle")
-							})] }), /* @__PURE__ */ jsxs(Link, {
-								href: localizedPath("/units", locale),
-								className: "text-xs font-bold text-primary-900 hover:text-primary-700 flex items-center gap-1",
-								children: [trans("show_more"), /* @__PURE__ */ jsx("svg", {
-									className: "w-3.5 h-3.5 rtl:rotate-180",
-									fill: "none",
-									viewBox: "0 0 24 24",
-									stroke: "currentColor",
-									strokeWidth: 2.5,
-									children: /* @__PURE__ */ jsx("path", {
-										strokeLinecap: "round",
-										strokeLinejoin: "round",
-										d: "M8.25 4.5l7.5 7.5-7.5 7.5"
-									})
-								})]
+							className: "flex items-center justify-between mb-4",
+							children: [/* @__PURE__ */ jsx("h2", {
+								className: "text-xl sm:text-2xl font-black text-secondary-950 tracking-tight",
+								children: trans("latest_projects") || "أحدث المشاريع"
+							}), /* @__PURE__ */ jsx(Link, {
+								href: localizedPath("/projects", locale),
+								className: "px-4 py-1.5 bg-white text-secondary-800 border border-border rounded-full text-xs font-bold hover:bg-surface-hover hover:text-primary-900 transition-colors shadow-sm",
+								children: trans("view_all") || "عرض الكل"
 							})]
 						}), isLoading ? /* @__PURE__ */ jsx("div", {
 							className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5",
-							children: Array.from({ length: 4 }).map((_, i) => /* @__PURE__ */ jsx(UnitCard, { loading: true }, i))
-						}) : hasFeatured && Array.isArray(featuredUnits?.data) ? /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("div", {
+							children: Array.from({ length: 4 }).map((_, i) => /* @__PURE__ */ jsx(ProjectCard_default, { loading: true }, i))
+						}) : hasProjects && Array.isArray(latestProjects?.data) ? /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("div", {
 							className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5",
-							children: featuredUnits.data.map((unit) => /* @__PURE__ */ jsx(UnitCard, { unit }, unit.id))
+							children: latestProjects.data.map((project) => /* @__PURE__ */ jsx(ProjectCard_default, { project }, project.id))
 						}), /* @__PURE__ */ jsx(Pagination, {
-							meta: featuredUnits,
-							links: featuredUnits?.links
+							meta: latestProjects,
+							links: latestProjects?.links,
+							pageParam: "latest_projects_page"
 						})] }) : /* @__PURE__ */ jsx("p", {
 							className: "text-sm text-muted text-center py-12",
 							children: trans("no_results")
 						})]
 					}),
-					/* @__PURE__ */ jsx("section", {
-						className: "bg-surface py-12 border-t border-secondary-100",
-						children: /* @__PURE__ */ jsxs("div", {
-							className: "max-w-container mx-auto px-4",
-							children: [/* @__PURE__ */ jsxs("div", {
-								className: "flex items-center justify-between mb-6",
-								children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("h2", {
-									className: "text-2xl font-black text-secondary-950 tracking-tight",
-									children: trans("latest_units")
-								}), /* @__PURE__ */ jsx("p", {
-									className: "text-xs text-secondary-500 mt-1",
-									children: trans("latest_units_subtitle")
-								})] }), /* @__PURE__ */ jsxs(Link, {
-									href: localizedPath("/units", locale),
-									className: "text-xs font-bold text-primary-900 hover:text-primary-700 flex items-center gap-1",
-									children: [trans("show_more"), /* @__PURE__ */ jsx("svg", {
-										className: "w-3.5 h-3.5 rtl:rotate-180",
-										fill: "none",
-										viewBox: "0 0 24 24",
-										stroke: "currentColor",
-										strokeWidth: 2.5,
-										children: /* @__PURE__ */ jsx("path", {
-											strokeLinecap: "round",
-											strokeLinejoin: "round",
-											d: "M8.25 4.5l7.5 7.5-7.5 7.5"
-										})
-									})]
-								})]
-							}), isLoading ? /* @__PURE__ */ jsx("div", {
-								className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5",
-								children: Array.from({ length: 4 }).map((_, i) => /* @__PURE__ */ jsx(UnitCard, { loading: true }, i))
-							}) : hasLatest && Array.isArray(latestUnits?.data) ? /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("div", {
-								className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5",
-								children: latestUnits.data.map((unit) => /* @__PURE__ */ jsx(UnitCard, { unit }, unit.id))
-							}), /* @__PURE__ */ jsx(Pagination, {
-								meta: latestUnits,
-								links: latestUnits?.links
-							})] }) : /* @__PURE__ */ jsx("p", {
-								className: "text-sm text-muted text-center py-12",
-								children: trans("no_results")
+					/* @__PURE__ */ jsxs("section", {
+						className: "bg-transparent py-8 max-w-container mx-auto px-4 mb-12",
+						children: [/* @__PURE__ */ jsxs("div", {
+							className: "flex items-center justify-between mb-4",
+							children: [/* @__PURE__ */ jsx("h2", {
+								className: "text-xl sm:text-2xl font-black text-secondary-950 tracking-tight",
+								children: trans("latest_units") || "أحدث الوحدات"
+							}), /* @__PURE__ */ jsx(Link, {
+								href: localizedPath("/units", locale),
+								className: "px-4 py-1.5 bg-white text-secondary-800 border border-border rounded-full text-xs font-bold hover:bg-surface-hover hover:text-primary-900 transition-colors shadow-sm",
+								children: trans("view_all") || "عرض الكل"
 							})]
-						})
+						}), isLoading ? /* @__PURE__ */ jsx("div", {
+							className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5",
+							children: Array.from({ length: 4 }).map((_, i) => /* @__PURE__ */ jsx(UnitCard_default, { loading: true }, i))
+						}) : hasLatest && Array.isArray(latestUnits?.data) ? /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("div", {
+							className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5",
+							children: latestUnits.data.map((unit) => /* @__PURE__ */ jsx(UnitCard_default, { unit }, unit.id))
+						}), /* @__PURE__ */ jsx(Pagination, {
+							meta: latestUnits,
+							links: latestUnits?.links,
+							pageParam: "latest_units_page"
+						})] }) : /* @__PURE__ */ jsx("p", {
+							className: "text-sm text-muted text-center py-12",
+							children: trans("no_results")
+						})]
 					})
 				]
 			}),
@@ -14737,329 +18171,286 @@ function ProjectsIndex({ projects, filters, areas, features, finishingTypes }) {
 		className: "min-h-screen bg-surface flex flex-col font-sans",
 		children: [
 			/* @__PURE__ */ jsx(SeoHead, {
-				title: `${trans("projects_page_title") || (isRtl ? "المشاريع العقارية" : "Real Estate Projects")} - ${trans("site_title")}`,
+				title: `${trans("projects_page_title")} - ${trans("site_title")}`,
 				description: trans("projects_description")
 			}),
 			/* @__PURE__ */ jsx(Header, {}),
 			/* @__PURE__ */ jsxs("main", {
-				className: "flex-1 max-w-container mx-auto px-4 py-8 md:py-12 w-full",
-				children: [
-					/* @__PURE__ */ jsxs("div", {
-						className: "mb-8 text-center max-w-3xl mx-auto",
-						children: [
-							/* @__PURE__ */ jsx("span", {
-								className: "inline-block bg-primary-50 text-primary-900 text-xs font-bold px-3 py-1 rounded-full mb-3 tracking-wide",
-								children: isRtl ? "المشاريع العقارية" : "Real Estate Projects"
-							}),
-							/* @__PURE__ */ jsx("h1", {
-								className: "text-3xl md:text-4xl font-extrabold text-secondary-950 tracking-tight leading-tight mb-3",
-								children: trans("projects_page_title") || (isRtl ? "أبرز المشاريع والمجمعات السكنية" : "Featured Projects")
-							}),
-							/* @__PURE__ */ jsx("p", {
-								className: "text-sm md:text-base text-secondary-600 leading-relaxed",
-								children: isRtl ? "تصفح أفضل المشاريع الفاخرة المتاحة للبيع والتقسيط في أرقى المناطق والمدن" : "Browse premium real estate developments and residential compounds across top locations"
-							})
-						]
-					}),
-					/* @__PURE__ */ jsxs("form", {
-						onSubmit: (e) => {
-							e.preventDefault();
-							handleSearch();
-						},
-						className: "bg-white rounded-2xl md:rounded-full shadow-lg border border-secondary-100 hover:shadow-xl transition-shadow duration-300 w-full mb-10 relative z-20",
-						children: [/* @__PURE__ */ jsxs("div", {
-							className: "flex flex-col md:flex-row items-center md:divide-x divide-y md:divide-y-0 rtl:divide-x-reverse divide-secondary-100 p-2 md:p-2.5",
-							children: [
-								/* @__PURE__ */ jsxs("div", {
-									className: "flex-1 w-full px-5 py-3 hover:bg-surface/50 transition-colors group rounded-xl md:rounded-s-full md:rounded-e-none",
-									children: [/* @__PURE__ */ jsx("label", {
-										className: "block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors",
-										children: trans("search")
-									}), /* @__PURE__ */ jsx("input", {
-										type: "text",
-										value: search,
-										onChange: (e) => setSearch(e.target.value),
-										placeholder: trans("search_projects") || (isRtl ? "ابحث باسم المشروع..." : "Search by project name..."),
-										className: "w-full bg-transparent border-none text-sm focus:ring-0 text-secondary-800 placeholder-secondary-400 outline-none p-0"
-									})]
+				id: "main-content",
+				tabIndex: "-1",
+				className: "flex-1 w-full flex flex-col focus:outline-none",
+				children: [/* @__PURE__ */ jsx("div", {
+					className: "bg-gradient-to-b from-surface-hover to-surface pt-8 pb-10 px-4",
+					children: /* @__PURE__ */ jsxs("div", {
+						className: "max-w-container mx-auto",
+						children: [/* @__PURE__ */ jsx("div", {
+							className: "flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8 text-center md:text-start",
+							children: /* @__PURE__ */ jsxs("div", { children: [
+								/* @__PURE__ */ jsx("span", {
+									className: "inline-block bg-primary-50 text-primary-900 text-xs font-bold px-3 py-1 rounded-full mb-3 tracking-wide",
+									children: trans("real_estate_projects")
 								}),
-								/* @__PURE__ */ jsxs("div", {
-									className: "flex-1 w-full px-5 py-3 hover:bg-surface/50 transition-colors cursor-pointer group rounded-xl md:rounded-none",
-									children: [/* @__PURE__ */ jsx("label", {
-										className: "block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors",
-										children: trans("area")
-									}), /* @__PURE__ */ jsxs(Select, {
-										value: areaId,
-										onChange: (e) => setAreaId(e.target.value),
-										className: "w-full text-secondary-800 outline-none cursor-pointer border-none p-0 focus:ring-0 bg-transparent text-sm font-medium",
-										children: [/* @__PURE__ */ jsx("option", {
-											value: "",
-											children: isRtl ? "جميع المناطق" : "All Areas"
-										}), areas?.map((area) => /* @__PURE__ */ jsx("option", {
-											value: area.id,
-											children: locale === "ar" ? area.name_ar : area.name_en
-										}, area.id))]
-									})]
+								/* @__PURE__ */ jsx("h1", {
+									className: "text-2xl md:text-3xl font-black text-secondary-950 tracking-tight leading-tight mb-2",
+									children: trans("projects_page_title")
 								}),
-								/* @__PURE__ */ jsxs("div", {
-									className: "w-full md:w-auto p-2 flex items-center justify-between md:justify-center gap-2 shrink-0 md:ps-4",
-									children: [
-										/* @__PURE__ */ jsx("button", {
-											type: "button",
-											onClick: () => setShowAdvanced(!showAdvanced),
-											className: `px-4 py-2.5 rounded-full text-xs font-semibold transition-all ${showAdvanced ? "bg-primary-50 text-primary-900 border border-primary-200" : "bg-surface text-secondary-700 hover:bg-secondary-100"}`,
-											children: isRtl ? "تصفية إضافية" : "More Filters"
-										}),
-										(search || areaId || paymentMethod || finishingTypeId || selectedFeatures.length > 0) && /* @__PURE__ */ jsx("button", {
-											type: "button",
-											onClick: handleReset,
-											className: "px-3 py-2.5 rounded-full text-xs font-medium text-secondary-500 hover:text-secondary-900 transition-colors",
-											children: trans("clear_filters") || (isRtl ? "إعادة ضبط" : "Reset")
-										}),
-										/* @__PURE__ */ jsx("button", {
-											type: "submit",
-											className: "px-6 py-2.5 bg-primary-900 text-white font-semibold text-xs rounded-full hover:bg-primary-950 active:scale-95 transition-all duration-200 shadow-sm",
-											children: trans("search") || (isRtl ? "بحث" : "Search")
-										})
-									]
+								/* @__PURE__ */ jsx("p", {
+									className: "text-sm font-medium text-secondary-500 max-w-2xl mx-auto md:mx-0",
+									children: hasProjects ? locale === "ar" ? `تم العثور على ${projects.meta?.total || projects.total || projects.data?.length} مشروع` : `Found ${projects.meta?.total || projects.total || projects.data?.length} projects` : isRtl ? "تصفح أفضل المشاريع الفاخرة المتاحة للبيع والتقسيط في أرقى المناطق والمدن" : "Browse premium real estate developments and residential compounds across top locations"
 								})
-							]
+							] })
 						}), /* @__PURE__ */ jsx("div", {
-							className: "transition-all duration-300 ease-in-out origin-top overflow-hidden rounded-b-2xl md:rounded-b-[1.5rem]",
-							style: {
-								maxHeight: showAdvanced ? "800px" : "0px",
-								opacity: showAdvanced ? 1 : 0
-							},
-							children: /* @__PURE__ */ jsxs("div", {
-								className: "px-6 py-6 bg-surface/40 border-t border-secondary-100 flex flex-col gap-6",
+							className: "w-full max-w-5xl mx-auto relative z-30",
+							children: /* @__PURE__ */ jsxs("form", {
+								onSubmit: (e) => {
+									e.preventDefault();
+									handleSearch();
+								},
+								className: "bg-white/95 backdrop-blur-xl rounded-3xl md:rounded-[2rem] shadow-2xl border border-white/60 transition-all duration-300 w-full hover:shadow-[0_20px_50px_rgba(0,0,0,0.22)]",
 								children: [/* @__PURE__ */ jsxs("div", {
-									className: "flex flex-col sm:flex-row gap-6 w-full",
-									children: [/* @__PURE__ */ jsxs("div", {
-										className: "flex-1 w-full",
-										children: [/* @__PURE__ */ jsx("label", {
-											className: "block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-2",
-											children: trans("payment_method") || (isRtl ? "طريقة الدفع" : "Payment Method")
-										}), /* @__PURE__ */ jsxs(Select, {
-											value: paymentMethod,
-											onChange: (e) => setPaymentMethod(e.target.value),
-											className: "w-full px-4 py-2 border border-secondary-200 bg-white rounded-xl text-sm focus:ring-2 focus:ring-primary-900 transition-all outline-none",
-											children: [
-												/* @__PURE__ */ jsx("option", {
+									className: "flex flex-col md:flex-row items-center md:divide-x divide-y md:divide-y-0 rtl:divide-x-reverse divide-secondary-100 p-2 md:p-2.5",
+									children: [
+										/* @__PURE__ */ jsxs("div", {
+											className: "flex-1 w-full px-5 py-3 hover:bg-surface/60 transition-colors cursor-text group rounded-2xl md:rounded-s-3xl md:rounded-e-none",
+											children: [/* @__PURE__ */ jsx("label", {
+												htmlFor: "project-search-input",
+												className: "block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors",
+												children: trans("search")
+											}), /* @__PURE__ */ jsx("input", {
+												id: "project-search-input",
+												type: "text",
+												value: search,
+												onChange: (e) => setSearch(e.target.value),
+												placeholder: trans("search_projects"),
+												className: "w-full bg-transparent border-none text-sm focus:ring-0 text-secondary-800 placeholder-secondary-400 outline-none p-0"
+											})]
+										}),
+										/* @__PURE__ */ jsxs("div", {
+											className: "flex-1 w-full px-5 py-3 hover:bg-surface/60 transition-colors cursor-pointer group rounded-2xl md:rounded-none",
+											children: [/* @__PURE__ */ jsx("label", {
+												htmlFor: "project-area-select",
+												className: "block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors",
+												children: trans("area")
+											}), /* @__PURE__ */ jsxs(Select, {
+												id: "project-area-select",
+												value: areaId,
+												onChange: (e) => setAreaId(e.target.value),
+												className: "w-full text-secondary-800 outline-none cursor-pointer border-none p-0 focus:ring-0 bg-transparent text-sm font-medium",
+												children: [/* @__PURE__ */ jsx("option", {
 													value: "",
-													children: trans("all") || (isRtl ? "الكل" : "All")
+													children: trans("all_areas")
+												}), areas?.map((area) => /* @__PURE__ */ jsx("option", {
+													value: area.id,
+													children: locale === "ar" ? area.name_ar : area.name_en
+												}, area.id))]
+											})]
+										}),
+										/* @__PURE__ */ jsxs("div", {
+											className: "flex-1 w-full px-5 py-3 hover:bg-surface/60 transition-colors cursor-pointer group rounded-2xl md:rounded-none",
+											children: [/* @__PURE__ */ jsx("label", {
+												htmlFor: "project-payment-select",
+												className: "block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors",
+												children: trans("payment_method")
+											}), /* @__PURE__ */ jsxs(Select, {
+												id: "project-payment-select",
+												value: paymentMethod,
+												onChange: (e) => setPaymentMethod(e.target.value),
+												className: "w-full text-secondary-800 outline-none cursor-pointer border-none p-0 focus:ring-0 bg-transparent text-sm font-medium",
+												children: [
+													/* @__PURE__ */ jsx("option", {
+														value: "",
+														children: trans("all")
+													}),
+													/* @__PURE__ */ jsx("option", {
+														value: "cash",
+														children: trans("cash")
+													}),
+													/* @__PURE__ */ jsx("option", {
+														value: "installment",
+														children: trans("installment")
+													}),
+													/* @__PURE__ */ jsx("option", {
+														value: "both",
+														children: trans("both")
+													})
+												]
+											})]
+										}),
+										/* @__PURE__ */ jsxs("div", {
+											className: "w-full md:w-auto p-2 flex items-center justify-between md:justify-center gap-2 shrink-0 md:ps-4",
+											children: [
+												/* @__PURE__ */ jsxs("button", {
+													type: "button",
+													onClick: () => setShowAdvanced(!showAdvanced),
+													className: `px-4 py-3 rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 ${showAdvanced ? "bg-primary-50 text-primary-900 border border-primary-200 shadow-xs" : "bg-secondary-50 text-secondary-700 hover:bg-secondary-100"}`,
+													children: [/* @__PURE__ */ jsx("svg", {
+														className: "w-3.5 h-3.5",
+														fill: "none",
+														viewBox: "0 0 24 24",
+														stroke: "currentColor",
+														strokeWidth: 2,
+														"aria-hidden": "true",
+														children: /* @__PURE__ */ jsx("path", {
+															strokeLinecap: "round",
+															strokeLinejoin: "round",
+															d: "M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0m-9.75 0h9.75"
+														})
+													}), /* @__PURE__ */ jsx("span", { children: trans("more_filters") })]
 												}),
-												/* @__PURE__ */ jsx("option", {
-													value: "cash",
-													children: trans("cash") || (isRtl ? "كاش" : "Cash")
+												(search || areaId || paymentMethod || finishingTypeId || selectedFeatures.length > 0) && /* @__PURE__ */ jsx("button", {
+													type: "button",
+													onClick: handleReset,
+													className: "px-3 py-3 rounded-2xl text-xs font-medium text-secondary-500 hover:text-secondary-900 transition-colors",
+													children: trans("clear_filters")
 												}),
-												/* @__PURE__ */ jsx("option", {
-													value: "installment",
-													children: trans("installment") || (isRtl ? "تقسيط" : "Installment")
-												}),
-												/* @__PURE__ */ jsx("option", {
-													value: "both",
-													children: trans("both") || (isRtl ? "كاش وتقسيط" : "Cash & Installment")
+												/* @__PURE__ */ jsxs("button", {
+													type: "submit",
+													className: "px-7 py-3 bg-primary-900 hover:bg-primary-950 text-white font-bold text-xs rounded-2xl md:rounded-2xl shadow-md active:scale-95 transition-all duration-200 flex items-center justify-center gap-2",
+													children: [/* @__PURE__ */ jsx("svg", {
+														className: "w-4 h-4 text-white",
+														fill: "none",
+														viewBox: "0 0 24 24",
+														stroke: "currentColor",
+														strokeWidth: 2.5,
+														"aria-hidden": "true",
+														children: /* @__PURE__ */ jsx("path", {
+															strokeLinecap: "round",
+															strokeLinejoin: "round",
+															d: "M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+														})
+													}), /* @__PURE__ */ jsx("span", { children: trans("search") })]
 												})
 											]
-										})]
-									}), /* @__PURE__ */ jsxs("div", {
-										className: "flex-1 w-full",
-										children: [/* @__PURE__ */ jsx("label", {
-											className: "block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-2",
-											children: trans("finishing_type") || (isRtl ? "نوع التشطيب" : "Finishing Type")
-										}), /* @__PURE__ */ jsxs(Select, {
-											value: finishingTypeId,
-											onChange: (e) => setFinishingTypeId(e.target.value),
-											className: "w-full px-4 py-2 border border-secondary-200 bg-white rounded-xl text-sm focus:ring-2 focus:ring-primary-900 transition-all outline-none",
-											children: [/* @__PURE__ */ jsx("option", {
-												value: "",
-												children: trans("all") || (isRtl ? "الكل" : "All")
-											}), finishingTypes?.map((f) => /* @__PURE__ */ jsx("option", {
-												value: f.id,
-												children: locale === "ar" ? f.name_ar : f.name_en
-											}, f.id))]
-										})]
-									})]
-								}), features?.length > 0 && /* @__PURE__ */ jsxs("div", {
-									className: "w-full pt-4 border-t border-secondary-200/60",
-									children: [/* @__PURE__ */ jsx("label", {
-										className: "block text-[11px] font-bold text-secondary-950 uppercase tracking-wider mb-3",
-										children: trans("features") || (isRtl ? "المميزات والخدمات" : "Features")
-									}), /* @__PURE__ */ jsx("div", {
-										className: "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3",
-										children: features.map((feature) => /* @__PURE__ */ jsxs("label", {
-											className: "flex items-center gap-2 cursor-pointer group",
-											children: [/* @__PURE__ */ jsx("input", {
-												type: "checkbox",
-												checked: selectedFeatures.includes(String(feature.id)) || selectedFeatures.includes(feature.id),
-												onChange: () => toggleFeature(feature.id),
-												className: "w-4 h-4 rounded border-secondary-300 text-primary-900 focus:ring-primary-900/20 cursor-pointer"
-											}), /* @__PURE__ */ jsx("span", {
-												className: "text-sm text-secondary-700 group-hover:text-primary-900 transition-colors",
-												children: locale === "ar" ? feature.name_ar : feature.name_en
+										})
+									]
+								}), /* @__PURE__ */ jsx("div", {
+									className: `transition-all duration-300 ease-in-out origin-top rounded-b-3xl md:rounded-b-[2rem] ${showAdvanced ? "overflow-visible" : "overflow-hidden"}`,
+									style: {
+										maxHeight: showAdvanced ? "1000px" : "0px",
+										opacity: showAdvanced ? 1 : 0
+									},
+									children: /* @__PURE__ */ jsxs("div", {
+										className: "px-6 pt-6 pb-8 bg-surface/40 border-t border-secondary-100 flex flex-col gap-6 rounded-b-3xl md:rounded-b-[2rem]",
+										children: [/* @__PURE__ */ jsx("div", {
+											className: "flex flex-col sm:flex-row gap-6 w-full",
+											children: /* @__PURE__ */ jsxs("div", {
+												className: "flex-1 w-full",
+												children: [/* @__PURE__ */ jsx("label", {
+													htmlFor: "project-finishing-select",
+													className: "block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-2",
+													children: trans("finishing_type")
+												}), /* @__PURE__ */ jsxs(Select, {
+													id: "project-finishing-select",
+													value: finishingTypeId,
+													onChange: (e) => setFinishingTypeId(e.target.value),
+													className: "w-full",
+													children: [/* @__PURE__ */ jsx("option", {
+														value: "",
+														children: trans("all")
+													}), finishingTypes?.map((f) => /* @__PURE__ */ jsx("option", {
+														value: f.id,
+														children: locale === "ar" ? f.name_ar : f.name_en
+													}, f.id))]
+												})]
+											})
+										}), features?.length > 0 && /* @__PURE__ */ jsxs("div", {
+											className: "w-full pt-4 border-t border-secondary-200/60",
+											children: [/* @__PURE__ */ jsx("label", {
+												className: "block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-3",
+												children: trans("features")
+											}), /* @__PURE__ */ jsx("div", {
+												className: "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3",
+												children: features.map((feature) => /* @__PURE__ */ jsxs("label", {
+													className: "flex items-center gap-2 cursor-pointer group",
+													children: [/* @__PURE__ */ jsx("input", {
+														type: "checkbox",
+														checked: selectedFeatures.includes(String(feature.id)) || selectedFeatures.includes(feature.id),
+														onChange: () => toggleFeature(feature.id),
+														className: "w-4 h-4 rounded border-secondary-300 text-primary-900 focus:ring-primary-900/20 cursor-pointer"
+													}), /* @__PURE__ */ jsx("span", {
+														className: "text-sm text-secondary-700 group-hover:text-primary-900 transition-colors",
+														children: locale === "ar" ? feature.name_ar : feature.name_en
+													})]
+												}, feature.id))
 											})]
-										}, feature.id))
-									})]
+										})]
+									})
 								})]
 							})
 						})]
-					}),
-					isLoading ? /* @__PURE__ */ jsx("div", {
+					})
+				}), /* @__PURE__ */ jsx("div", {
+					className: "flex-1 max-w-container mx-auto px-4 py-8 w-full",
+					children: isLoading ? /* @__PURE__ */ jsx("div", {
 						className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6",
-						children: Array.from({ length: 6 }).map((_, i) => /* @__PURE__ */ jsx(ProjectCard, { loading: true }, i))
-					}) : hasProjects ? /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("div", {
-						className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10",
-						children: projects.data.map((project) => /* @__PURE__ */ jsx(ProjectCard, { project }, project.id))
-					}), /* @__PURE__ */ jsx(Pagination, {
-						meta: projects,
-						links: projects.links
-					})] }) : /* @__PURE__ */ jsxs("div", {
-						className: "bg-white rounded-2xl border border-secondary-100 p-12 text-center max-w-md mx-auto my-8",
+						children: Array.from({ length: 6 }).map((_, i) => /* @__PURE__ */ jsx(ProjectCard_default, { loading: true }, i))
+					}) : hasProjects ? /* @__PURE__ */ jsxs("div", {
+						className: "flex flex-col gap-8 mb-8",
+						children: [/* @__PURE__ */ jsx("div", {
+							className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6",
+							children: projects.data.map((project) => /* @__PURE__ */ jsx(ProjectCard_default, { project }, project.id))
+						}), /* @__PURE__ */ jsx(Pagination, {
+							meta: projects.meta || projects,
+							links: projects.links
+						})]
+					}) : /* @__PURE__ */ jsxs("div", {
+						className: "text-center py-20 bg-white rounded-[2rem] border border-secondary-100 shadow-sm max-w-2xl mx-auto w-full",
 						children: [
+							/* @__PURE__ */ jsx("div", {
+								className: "w-16 h-16 bg-surface-hover text-secondary-400 rounded-full flex items-center justify-center mx-auto mb-4",
+								children: /* @__PURE__ */ jsx("svg", {
+									className: "w-8 h-8",
+									fill: "none",
+									viewBox: "0 0 24 24",
+									stroke: "currentColor",
+									strokeWidth: 1.5,
+									children: /* @__PURE__ */ jsx("path", {
+										strokeLinecap: "round",
+										strokeLinejoin: "round",
+										d: "M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+									})
+								})
+							}),
 							/* @__PURE__ */ jsx("h3", {
-								className: "text-base font-bold text-secondary-900 mb-2",
-								children: isRtl ? "لم يتم العثور على مشاريع مطابقة" : "No Projects Found"
+								className: "text-secondary-900 font-bold text-lg mb-2",
+								children: trans("no_projects_found")
 							}),
 							/* @__PURE__ */ jsx("p", {
-								className: "text-xs text-secondary-500 mb-6 leading-relaxed",
-								children: isRtl ? "جرب البحث بكلمات مختلفة أو قم بإزالة بعض الفلاتر" : "Try adjusting your search criteria or resetting filters"
+								className: "text-secondary-500 text-sm mb-6",
+								children: trans("try_adjusting_your_search_crit")
 							}),
 							/* @__PURE__ */ jsx("button", {
 								onClick: handleReset,
 								className: "px-5 py-2.5 bg-secondary-900 text-white rounded-xl text-xs font-semibold hover:bg-secondary-950 transition-colors",
-								children: isRtl ? "عرض كل المشاريع" : "Show All Projects"
+								children: trans("show_all_projects")
 							})
 						]
 					})
-				]
+				})]
 			}),
 			/* @__PURE__ */ jsx(Footer, {})
 		]
 	});
 }
 //#endregion
-//#region resources/js/Components/Features/AgentCard.jsx
-function AgentCard({ agent }) {
-	const { locale, settings } = usePage().props;
-	const trans = useTrans(locale);
-	const isRtl = locale === "ar";
-	if (!agent) return null;
-	const defaultWhatsapp = settings?.company_whatsapp || settings?.whatsapp_number || settings?.phone;
-	const targetWhatsapp = agent.whatsapp || defaultWhatsapp;
-	const avatarSrc = agent.avatar ? agent.avatar.startsWith("http") || agent.avatar.startsWith("/storage") ? agent.avatar : `/storage/${agent.avatar}` : null;
-	const agentAlt = isRtl ? `الوكيل العقاري ${agent.name}` : `Real Estate Agent ${agent.name}`;
-	const channels = [
-		{
-			key: "phone",
-			url: agent.phone ? `tel:${agent.phone}` : null,
-			label: agent.phone
-		},
-		{
-			key: "whatsapp",
-			url: targetWhatsapp ? `https://wa.me/${targetWhatsapp.replace(/[^0-9]/g, "")}` : null,
-			label: targetWhatsapp
-		},
-		{
-			key: "facebook",
-			url: agent.facebook || null,
-			label: trans("facebook")
-		},
-		{
-			key: "linkedin",
-			url: agent.linkedin || null,
-			label: trans("social_linkedin", {}, "admin")
-		}
-	].filter((c) => c.url);
-	return /* @__PURE__ */ jsxs("article", {
-		dir: isRtl ? "rtl" : "ltr",
-		className: "bg-white rounded-xl shadow-card p-6 border border-secondary-100 hover:shadow-lg transition-shadow",
-		children: [/* @__PURE__ */ jsxs(Link, {
-			href: localizedPath(`/agents/${agent.id}`, locale),
-			className: "flex items-center gap-4 mb-4 hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-lg",
-			children: [avatarSrc ? /* @__PURE__ */ jsx(OptimizedImage, {
-				src: avatarSrc,
-				alt: agentAlt,
-				width: 56,
-				height: 56,
-				lazy: true,
-				className: "w-14 h-14 rounded-full object-cover border border-secondary-200"
-			}) : /* @__PURE__ */ jsx("div", {
-				className: "w-14 h-14 rounded-full bg-primary-100 flex items-center justify-center text-primary-900 font-bold text-lg border border-primary-200",
-				"aria-label": agentAlt,
-				children: agent.name?.charAt(0)?.toUpperCase() || "?"
-			}), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("h3", {
-				className: "text-sm font-semibold text-secondary-950",
-				children: agent.name
-			}), /* @__PURE__ */ jsx("p", {
-				className: "text-xs text-muted",
-				children: trans("agent", {}, "units")
-			})] })]
-		}), /* @__PURE__ */ jsx("div", {
-			className: "space-y-2",
-			children: channels.map((ch) => /* @__PURE__ */ jsxs("a", {
-				href: ch.url,
-				target: ch.key === "facebook" ? "_blank" : void 0,
-				rel: ch.key === "facebook" ? "noopener noreferrer" : void 0,
-				className: "flex items-center gap-2 text-sm text-secondary-700 hover:text-primary-900 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 rounded px-1",
-				"aria-label": `${ch.label} (${agent.name})`,
-				children: [
-					ch.key === "phone" && /* @__PURE__ */ jsx("svg", {
-						className: "w-4 h-4 shrink-0 text-primary-600",
-						fill: "none",
-						viewBox: "0 0 24 24",
-						stroke: "currentColor",
-						strokeWidth: 1.5,
-						"aria-hidden": "true",
-						children: /* @__PURE__ */ jsx("path", {
-							strokeLinecap: "round",
-							strokeLinejoin: "round",
-							d: "M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"
-						})
-					}),
-					ch.key === "whatsapp" && /* @__PURE__ */ jsx("svg", {
-						className: "w-4 h-4 shrink-0 text-emerald-600",
-						fill: "currentColor",
-						viewBox: "0 0 24 24",
-						"aria-hidden": "true",
-						children: /* @__PURE__ */ jsx("path", { d: "M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.414-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" })
-					}),
-					ch.key === "facebook" && /* @__PURE__ */ jsx("svg", {
-						className: "w-4 h-4 shrink-0 text-blue-600",
-						fill: "currentColor",
-						viewBox: "0 0 24 24",
-						"aria-hidden": "true",
-						children: /* @__PURE__ */ jsx("path", { d: "M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" })
-					}),
-					/* @__PURE__ */ jsx("span", { children: ch.label })
-				]
-			}, ch.key))
-		})]
-	});
-}
-//#endregion
 //#region resources/js/Utils/youtube.js
 function getYouTubeEmbedUrl(url) {
-	if (!url) return null;
-	for (const pattern of [
-		/youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/,
-		/youtu\.be\/([a-zA-Z0-9_-]+)/,
-		/youtube\.com\/embed\/([a-zA-Z0-9_-]+)/,
-		/youtube\.com\/shorts\/([a-zA-Z0-9_-]+)/
-	]) {
-		const match = url.match(pattern);
-		if (match) return `https://www.youtube.com/embed/${match[1]}`;
+	if (!url || typeof url !== "string") return null;
+	const trimmed = url.trim();
+	if (!trimmed) return null;
+	for (const pattern of [/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/]) {
+		const match = trimmed.match(pattern);
+		if (match && match[1]) return `https://www.youtube.com/embed/${match[1]}`;
+	}
+	if (trimmed.includes("vimeo.com")) {
+		const match = trimmed.match(/vimeo\.com\/(?:video\/)?([0-9]+)/);
+		if (match && match[1]) return `https://player.vimeo.com/video/${match[1]}`;
 	}
 	return null;
 }
 //#endregion
 //#region resources/js/Pages/Public/Projects/Show.jsx
 var Show_exports$1 = /* @__PURE__ */ __exportAll({ default: () => ProjectShow });
-function extractEmbedSrc$1(value) {
-	if (!value) return "";
-	const match = value.match(/src\s*=\s*"([^"]+)"/i) || value.match(/src\s*=\s*'([^']+)'/i);
-	return match ? match[1] : value;
-}
-var PLACEHOLDER$1 = "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 600\"%3E%3Crect fill=\"%23F0F0F0\" width=\"800\" height=\"600\"/%3E%3C/svg%3E";
 function ProjectShow({ project }) {
 	const page = usePage();
 	const { locale, appUrl } = page.props;
@@ -15067,16 +18458,21 @@ function ProjectShow({ project }) {
 	const isRtl = locale === "ar";
 	const [lightboxIndex, setLightboxIndex] = useState(null);
 	const [activeImageIndex, setActiveImageIndex] = useState(null);
+	const embedUrl = getYouTubeEmbedUrl(project?.video_url);
+	const agentContacts = getAgentContacts(project?.user, page.props.settings);
 	const images = project?.images ?? [];
 	const units = project?.units ?? [];
 	const mainImage = images.find((img) => img.is_main || img.is_primary) || images[0];
 	const mainImageIndex = Math.max(images.indexOf(mainImage), 0);
 	const selectedImageIndex = activeImageIndex ?? mainImageIndex;
 	const selectedImage = images[selectedImageIndex] || mainImage;
-	const thumbnail = selectedImage?.url || (selectedImage?.path ? selectedImage.path.startsWith("http") || selectedImage.path.startsWith("/") ? selectedImage.path : `/storage/${selectedImage.path}` : PLACEHOLDER$1);
+	const thumbnail = getStorageUrl(selectedImage?.url || selectedImage?.path, PLACEHOLDER$2);
 	const jsonLd = useMemo(() => {
 		if (!project) return null;
-		const image = mainImage?.url || (mainImage?.path ? `/storage/${mainImage.path}` : null);
+		const image = getStorageUrl(mainImage?.url || mainImage?.path, null);
+		const lat = project.latitude;
+		const lng = project.longitude;
+		const hasValidCoords = lat && lng && parseFloat(lat) !== 0 && parseFloat(lng) !== 0 && isFinite(parseFloat(lat)) && isFinite(parseFloat(lng));
 		return {
 			"@context": "https://schema.org",
 			"@type": "RealEstateListing",
@@ -15085,9 +18481,18 @@ function ProjectShow({ project }) {
 			url: `${appUrl || ""}${page.url.split("?")[0]}`,
 			...image ? { image } : {},
 			numberOfUnits: project.units?.length || 0,
-			...project.location_address ? { address: {
-				"@type": "PostalAddress",
-				addressLocality: project.location_address
+			...hasValidCoords || project.location_address ? { contentLocation: {
+				"@type": "Place",
+				...project.name ? { name: project.name } : {},
+				...project.location_address ? { address: {
+					"@type": "PostalAddress",
+					addressLocality: project.location_address
+				} } : {},
+				...hasValidCoords ? { geo: {
+					"@type": "GeoCoordinates",
+					latitude: lat,
+					longitude: lng
+				} } : {}
 			} } : {}
 		};
 	}, [
@@ -15118,211 +18523,87 @@ function ProjectShow({ project }) {
 			/* @__PURE__ */ jsx(SeoHead, {
 				title: `${project?.name || ""} - ${trans("site_title")}`,
 				description: project?.meta_description || project?.description || "",
-				keywords: project?.keywords || "",
+				keywords: isRtl ? project?.keywords_ar || project?.keywords : project?.keywords_en || project?.keywords || project?.keywords_ar,
 				ogImage: mainImage?.url || (mainImage?.path ? `/storage/${mainImage.path}` : null),
-				ogType: "website"
-			}),
-			jsonLd && /* @__PURE__ */ jsx("script", {
-				type: "application/ld+json",
-				dangerouslySetInnerHTML: { __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }
+				ogType: "website",
+				jsonLd
 			}),
 			/* @__PURE__ */ jsx(Header, {}),
 			/* @__PURE__ */ jsxs("main", {
-				className: "flex-1 max-w-container mx-auto px-4 py-8 w-full space-y-8",
-				children: [/* @__PURE__ */ jsxs("div", {
-					className: "grid grid-cols-1 lg:grid-cols-3 gap-8",
-					children: [/* @__PURE__ */ jsxs("div", {
-						className: "lg:col-span-2 space-y-6",
+				id: "main-content",
+				className: "flex-1 max-w-container mx-auto px-4 py-6 md:py-8 w-full pb-28 md:pb-12",
+				children: [
+					/* @__PURE__ */ jsxs("nav", {
+						className: "flex items-center gap-2 text-xs font-medium text-secondary-500 mb-5 overflow-x-auto pb-1",
+						"aria-label": "Breadcrumb",
 						children: [
-							/* @__PURE__ */ jsxs("div", {
-								className: "bg-white rounded-xl shadow-card overflow-hidden relative group",
+							/* @__PURE__ */ jsx(Link, {
+								href: localizedPath("/", locale),
+								className: "hover:text-primary-900 transition-colors shrink-0",
+								children: trans("home")
+							}),
+							/* @__PURE__ */ jsx("span", { children: "/" }),
+							/* @__PURE__ */ jsx(Link, {
+								href: localizedPath("/projects", locale),
+								className: "hover:text-primary-900 transition-colors shrink-0",
+								children: trans("projects")
+							}),
+							project.area?.name && /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("span", { children: "/" }), /* @__PURE__ */ jsx(Link, {
+								href: localizedPath(`/areas/${project.area.slug || project.area.id}`, locale),
+								className: "hover:text-primary-900 transition-colors shrink-0",
+								children: project.area.name
+							})] }),
+							/* @__PURE__ */ jsx("span", { children: "/" }),
+							/* @__PURE__ */ jsx("span", {
+								className: "text-secondary-900 font-bold truncate max-w-[200px] sm:max-w-xs",
+								children: project.name
+							})
+						]
+					}),
+					/* @__PURE__ */ jsxs("div", {
+						className: "grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8 items-start mb-8",
+						children: [/* @__PURE__ */ jsx("div", {
+							className: "lg:col-span-7 space-y-4",
+							children: /* @__PURE__ */ jsxs("div", {
+								className: "bg-white rounded-2xl shadow-sm border border-secondary-100 overflow-hidden relative group",
 								children: [/* @__PURE__ */ jsxs("div", {
-									className: "relative overflow-hidden",
+									className: "relative overflow-hidden aspect-[16/10] sm:aspect-[16/9]",
 									children: [
 										/* @__PURE__ */ jsx("img", {
 											src: thumbnail,
 											alt: project.alt_text || project.name,
 											width: 1200,
 											height: 900,
-											className: "w-full h-64 sm:h-80 lg:h-96 object-cover",
+											className: "w-full h-full object-cover",
 											fetchPriority: "high",
 											loading: "eager",
 											decoding: "sync"
 										}),
-										/* @__PURE__ */ jsxs("button", {
-											type: "button",
-											onClick: () => setLightboxIndex(selectedImageIndex),
-											className: "absolute top-4 end-4 bg-black/60 hover:bg-black/85 text-white p-2.5 rounded-xl shadow-lg backdrop-blur-md transition-all flex items-center gap-1.5 text-xs font-medium hover:scale-105 z-10",
-											title: trans("zoom") || "تكبير الصورة",
-											"aria-label": "Zoom image",
-											children: [/* @__PURE__ */ jsx("svg", {
-												className: "w-4 h-4",
-												fill: "none",
-												viewBox: "0 0 24 24",
-												stroke: "currentColor",
-												strokeWidth: 2,
-												children: /* @__PURE__ */ jsx("path", {
-													strokeLinecap: "round",
-													strokeLinejoin: "round",
-													d: "M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6"
-												})
-											}), /* @__PURE__ */ jsx("span", { children: trans("zoom") })]
-										}),
-										images.length > 1 && /* @__PURE__ */ jsxs(Fragment, { children: [
-											/* @__PURE__ */ jsx("button", {
-												type: "button",
-												onClick: (e) => {
-													e.stopPropagation();
-													setActiveImageIndex((prev) => prev === 0 ? images.length - 1 : prev - 1);
-												},
-												className: "absolute start-3 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/75 text-white p-2.5 rounded-full shadow-lg backdrop-blur-sm transition-all hover:scale-110 z-10",
-												"aria-label": "Previous image",
-												children: /* @__PURE__ */ jsx("svg", {
-													className: `w-5 h-5 ${isRtl ? "rotate-180" : ""}`,
-													fill: "none",
-													viewBox: "0 0 24 24",
-													stroke: "currentColor",
-													strokeWidth: 2.5,
-													children: /* @__PURE__ */ jsx("path", {
-														strokeLinecap: "round",
-														strokeLinejoin: "round",
-														d: "M15.75 19.5L8.25 12l7.5-7.5"
-													})
-												})
-											}),
-											/* @__PURE__ */ jsx("button", {
-												type: "button",
-												onClick: (e) => {
-													e.stopPropagation();
-													setActiveImageIndex((prev) => prev === images.length - 1 ? 0 : prev + 1);
-												},
-												className: "absolute end-3 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/75 text-white p-2.5 rounded-full shadow-lg backdrop-blur-sm transition-all hover:scale-110 z-10",
-												"aria-label": "Next image",
-												children: /* @__PURE__ */ jsx("svg", {
-													className: `w-5 h-5 ${isRtl ? "rotate-180" : ""}`,
-													fill: "none",
-													viewBox: "0 0 24 24",
-													stroke: "currentColor",
-													strokeWidth: 2.5,
-													children: /* @__PURE__ */ jsx("path", {
-														strokeLinecap: "round",
-														strokeLinejoin: "round",
-														d: "M8.25 4.5l7.5 7.5-7.5 7.5"
-													})
-												})
-											}),
-											/* @__PURE__ */ jsxs("div", {
-												className: "absolute bottom-4 start-4 bg-black/60 text-white text-xs px-3 py-1 rounded-full backdrop-blur-sm font-medium z-10",
-												children: [
-													selectedImageIndex + 1,
-													" / ",
-													images.length
-												]
+										/* @__PURE__ */ jsx("div", {
+											className: "absolute top-4 start-4 z-10",
+											children: /* @__PURE__ */ jsx("span", {
+												className: "bg-[#CC0000] text-white text-xs font-bold px-3.5 py-1.5 rounded-full shadow-md",
+												children: isRtl ? "مشروع عقاري" : "Project"
 											})
-										] })
-									]
-								}), images.length > 1 && /* @__PURE__ */ jsx("div", {
-									className: "flex gap-2 p-3 overflow-x-auto bg-slate-50 border-t border-secondary-100",
-									children: images.map((img, i) => /* @__PURE__ */ jsx("img", {
-										src: img.thumb_url || img.url || (img.path?.startsWith("http") || img.path?.startsWith("/") ? img.path : `/storage/${img.path}`),
-										alt: img.alt_text || "",
-										width: 80,
-										height: 64,
-										className: `w-20 h-16 object-cover rounded-lg cursor-pointer border-2 transition-all shrink-0 ${i === selectedImageIndex ? "border-primary-900 ring-2 ring-primary-900/30 scale-105" : "border-transparent opacity-70 hover:opacity-100 hover:border-secondary-300"}`,
-										loading: "lazy",
-										onClick: () => setActiveImageIndex(i)
-									}, i))
-								})]
-							}),
-							project.video_url && (() => {
-								const embedUrl = getYouTubeEmbedUrl(project.video_url);
-								return /* @__PURE__ */ jsx("div", {
-									className: "bg-white rounded-xl shadow-card overflow-hidden aspect-video",
-									children: embedUrl ? /* @__PURE__ */ jsx("iframe", {
-										src: embedUrl,
-										title: project.name,
-										className: "w-full h-full",
-										loading: "lazy",
-										allow: "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture",
-										allowFullScreen: true
-									}) : /* @__PURE__ */ jsx("a", {
-										href: project.video_url,
-										target: "_blank",
-										rel: "noopener noreferrer",
-										className: "flex items-center justify-center h-full text-primary-900",
-										children: trans("watch_video")
-									})
-								});
-							})(),
-							/* @__PURE__ */ jsxs("div", {
-								className: "bg-white rounded-xl shadow-card p-6",
-								children: [
-									/* @__PURE__ */ jsx("h1", {
-										className: "text-2xl font-bold text-secondary-950 mb-2",
-										children: project.name
-									}),
-									/* @__PURE__ */ jsxs("p", {
-										className: "text-sm text-muted mb-4",
-										children: [project.area?.name || "", units.length > 0 && /* @__PURE__ */ jsxs("span", { children: [
-											" · ",
-											units.length,
-											" ",
-											trans("units_count") || trans("plural")
-										] })]
-									}),
-									project.description && /* @__PURE__ */ jsxs("div", {
-										className: "mb-6",
-										children: [/* @__PURE__ */ jsx("h2", {
-											className: "text-lg font-semibold text-secondary-950 mb-2",
-											children: trans("description", {}, "projects")
-										}), /* @__PURE__ */ jsx("p", {
-											className: "text-sm text-secondary-800 leading-relaxed whitespace-pre-line",
-											children: project.description
-										})]
-									}),
-									/* @__PURE__ */ jsxs("div", {
-										className: "flex flex-wrap gap-2 mb-6",
-										children: [project.payment_method && /* @__PURE__ */ jsx("span", {
-											className: "px-3 py-1 bg-surface rounded-full text-sm font-medium text-secondary-800 border border-secondary-200",
-											children: trans(project.payment_method)
-										}), project.finishingType && /* @__PURE__ */ jsx("span", {
-											className: "px-3 py-1 bg-surface rounded-full text-sm font-medium text-secondary-800 border border-secondary-200",
-											children: locale === "ar" ? project.finishingType.name_ar : project.finishingType.name_en
-										})]
-									}),
-									["installment", "both"].includes(project.payment_method) && (project.down_payment || project.installment_years) && /* @__PURE__ */ jsxs("div", {
-										className: "mb-6 bg-surface p-4 rounded-xl border border-secondary-100",
-										children: [/* @__PURE__ */ jsx("h2", {
-											className: "text-lg font-semibold text-secondary-950 mb-3",
-											children: trans("payment_details") || "Payment Details"
-										}), /* @__PURE__ */ jsxs("div", {
-											className: "grid grid-cols-2 gap-4",
-											children: [project.down_payment && /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("p", {
-												className: "text-xs text-muted mb-1",
-												children: trans("down_payment") || "Down Payment"
-											}), /* @__PURE__ */ jsx("p", {
-												className: "text-sm font-bold text-secondary-950",
-												children: !isNaN(project.down_payment) && !isNaN(parseFloat(project.down_payment)) ? Number(project.down_payment).toLocaleString(locale === "ar" ? "ar-SA" : "en-US") : project.down_payment
-											})] }), project.installment_years && /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("p", {
-												className: "text-xs text-muted mb-1",
-												children: trans("installment_years") || "Installment Years"
-											}), /* @__PURE__ */ jsx("p", {
-												className: "text-sm font-bold text-secondary-950",
-												children: project.installment_years
-											})] })]
-										})]
-									}),
-									project.features?.length > 0 && /* @__PURE__ */ jsxs("div", {
-										className: "mb-6",
-										children: [/* @__PURE__ */ jsx("h2", {
-											className: "text-lg font-semibold text-secondary-950 mb-3",
-											children: trans("features") || "Features"
-										}), /* @__PURE__ */ jsx("div", {
-											className: "grid grid-cols-2 sm:grid-cols-3 gap-3",
-											children: project.features.map((feature) => /* @__PURE__ */ jsxs("div", {
-												className: "flex items-center gap-2",
-												children: [/* @__PURE__ */ jsx("svg", {
-													className: "w-5 h-5 text-primary-900 shrink-0",
+										}),
+										/* @__PURE__ */ jsx("div", {
+											className: "absolute top-4 end-4 flex items-center gap-2 z-10",
+											children: /* @__PURE__ */ jsx("button", {
+												type: "button",
+												onClick: () => {
+													if (navigator.share) navigator.share({
+														title: project.name,
+														url: window.location.href
+													}).catch(() => {});
+													else {
+														navigator.clipboard.writeText(window.location.href);
+														alert(isRtl ? "تم نسخ رابط الصفحة" : "Link copied");
+													}
+												},
+												className: "w-9 h-9 bg-white/90 hover:bg-white text-secondary-800 rounded-full shadow-md backdrop-blur-md flex items-center justify-center transition-all hover:scale-105",
+												title: isRtl ? "مشاركة" : "Share",
+												children: /* @__PURE__ */ jsx("svg", {
+													className: "w-4 h-4",
 													fill: "none",
 													viewBox: "0 0 24 24",
 													stroke: "currentColor",
@@ -15330,82 +18611,772 @@ function ProjectShow({ project }) {
 													children: /* @__PURE__ */ jsx("path", {
 														strokeLinecap: "round",
 														strokeLinejoin: "round",
-														d: "M5 13l4 4L19 7"
+														d: "M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0-10.5a2.25 2.25 0 100-4.5 2.25 2.25 0 000 4.5zm0 10.5a2.25 2.25 0 100-4.5 2.25 2.25 0 000 4.5z"
 													})
-												}), /* @__PURE__ */ jsx("span", {
-													className: "text-sm text-secondary-800",
-													children: locale === "ar" ? feature.name_ar : feature.name_en
-												})]
-											}, feature.id))
-										})]
+												})
+											})
+										}),
+										/* @__PURE__ */ jsxs("div", {
+											className: "absolute bottom-4 start-4 flex items-center gap-2 z-10 flex-wrap",
+											children: [/* @__PURE__ */ jsxs("span", {
+												className: "bg-black/60 text-white px-3 py-1.5 rounded-xl text-xs font-bold backdrop-blur-md border border-white/20",
+												children: [
+													selectedImageIndex + 1,
+													" / ",
+													images.length || 1
+												]
+											}), /* @__PURE__ */ jsxs("button", {
+												type: "button",
+												onClick: () => setLightboxIndex(selectedImageIndex),
+												className: "bg-white/90 hover:bg-white text-secondary-950 px-3.5 py-1.5 rounded-xl shadow-md backdrop-blur-md transition-all flex items-center gap-1.5 text-xs font-bold border border-secondary-200",
+												children: [/* @__PURE__ */ jsx("svg", {
+													className: "w-4 h-4 text-secondary-700",
+													fill: "none",
+													viewBox: "0 0 24 24",
+													stroke: "currentColor",
+													strokeWidth: 2,
+													children: /* @__PURE__ */ jsx("path", {
+														strokeLinecap: "round",
+														strokeLinejoin: "round",
+														d: "M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15"
+													})
+												}), /* @__PURE__ */ jsx("span", { children: isRtl ? "عرض جميع الصور" : "View All Photos" })]
+											})]
+										}),
+										images.length > 1 && /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("button", {
+											type: "button",
+											onClick: (e) => {
+												e.stopPropagation();
+												setActiveImageIndex(selectedImageIndex === 0 ? images.length - 1 : selectedImageIndex - 1);
+											},
+											className: "absolute start-3 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/75 text-white p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full shadow-lg backdrop-blur-sm transition-colors z-10",
+											"aria-label": trans("previous_image") || "Previous image",
+											children: /* @__PURE__ */ jsx("svg", {
+												className: `w-4 h-4 ${isRtl ? "rotate-180" : ""}`,
+												fill: "none",
+												viewBox: "0 0 24 24",
+												stroke: "currentColor",
+												strokeWidth: 2.5,
+												children: /* @__PURE__ */ jsx("path", {
+													strokeLinecap: "round",
+													strokeLinejoin: "round",
+													d: "M15.75 19.5L8.25 12l7.5-7.5"
+												})
+											})
+										}), /* @__PURE__ */ jsx("button", {
+											type: "button",
+											onClick: (e) => {
+												e.stopPropagation();
+												setActiveImageIndex(selectedImageIndex === images.length - 1 ? 0 : selectedImageIndex + 1);
+											},
+											className: "absolute end-3 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/75 text-white p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full shadow-lg backdrop-blur-sm transition-colors z-10",
+											"aria-label": trans("next_image") || "Next image",
+											children: /* @__PURE__ */ jsx("svg", {
+												className: `w-4 h-4 ${isRtl ? "rotate-180" : ""}`,
+												fill: "none",
+												viewBox: "0 0 24 24",
+												stroke: "currentColor",
+												strokeWidth: 2.5,
+												children: /* @__PURE__ */ jsx("path", {
+													strokeLinecap: "round",
+													strokeLinejoin: "round",
+													d: "M8.25 4.5l7.5 7.5-7.5 7.5"
+												})
+											})
+										})] })
+									]
+								}), images.length > 1 && /* @__PURE__ */ jsx("div", {
+									className: "grid grid-cols-5 gap-2 p-3 bg-surface border-t border-secondary-100",
+									children: images.slice(0, 5).map((img, i) => {
+										const isLastAndMore = i === 4 && images.length > 5;
+										const remainingCount = images.length - 4;
+										return /* @__PURE__ */ jsxs("div", {
+											onClick: () => {
+												if (isLastAndMore) setLightboxIndex(4);
+												else setActiveImageIndex(i);
+											},
+											className: "relative rounded-xl overflow-hidden cursor-pointer aspect-[4/3] border border-secondary-200",
+											children: [/* @__PURE__ */ jsx("img", {
+												src: getStorageUrl(img.thumb_url || img.url || img.path, "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 600\"%3E%3Crect fill=\"%23F0F0F0\" width=\"800\" height=\"600\"/%3E%3C/svg%3E"),
+												alt: img.alt_text || "",
+												className: `w-full h-full object-cover transition-transform ${i === selectedImageIndex ? "ring-2 ring-[#CC0000]" : "opacity-80 hover:opacity-100"}`,
+												loading: "lazy"
+											}), isLastAndMore && /* @__PURE__ */ jsxs("div", {
+												className: "absolute inset-0 bg-black/60 flex items-center justify-center text-white font-bold text-sm",
+												children: ["+", remainingCount]
+											})]
+										}, i);
+									})
+								})]
+							})
+						}), /* @__PURE__ */ jsxs("div", {
+							className: "lg:col-span-5 bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-6",
+							children: [
+								/* @__PURE__ */ jsxs("div", { children: [
+									/* @__PURE__ */ jsx("div", {
+										className: "inline-block px-3 py-1 bg-surface rounded-full border border-secondary-200 text-xs font-bold text-secondary-700 mb-3",
+										children: isRtl ? "مشروع متميز" : "Featured Project"
 									}),
-									project.map_embed_url && /* @__PURE__ */ jsxs("div", { children: [
+									/* @__PURE__ */ jsx("h1", {
+										className: "text-2xl font-black text-secondary-950 leading-snug mb-2",
+										children: project.name
+									}),
+									/* @__PURE__ */ jsxs("p", {
+										className: "text-xs font-semibold text-secondary-500 flex items-center gap-1.5",
+										children: [/* @__PURE__ */ jsxs("svg", {
+											className: "w-4 h-4 text-secondary-400 shrink-0",
+											fill: "none",
+											viewBox: "0 0 24 24",
+											stroke: "currentColor",
+											strokeWidth: 2,
+											children: [/* @__PURE__ */ jsx("path", {
+												strokeLinecap: "round",
+												strokeLinejoin: "round",
+												d: "M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"
+											}), /* @__PURE__ */ jsx("path", {
+												strokeLinecap: "round",
+												strokeLinejoin: "round",
+												d: "M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
+											})]
+										}), /* @__PURE__ */ jsx("span", { children: project.area?.name || project.location_address || "" })]
+									})
+								] }),
+								/* @__PURE__ */ jsxs("div", {
+									className: "grid grid-cols-2 gap-3 pt-2",
+									children: [/* @__PURE__ */ jsxs("a", {
+										href: `https://wa.me/${agentContacts.whatsapp}`,
+										target: "_blank",
+										rel: "noopener noreferrer",
+										className: "w-full py-3 px-4 bg-[#CC0000] hover:bg-[#b30000] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-all active:scale-98",
+										children: [/* @__PURE__ */ jsx("svg", {
+											className: "w-4 h-4",
+											fill: "none",
+											viewBox: "0 0 24 24",
+											stroke: "currentColor",
+											strokeWidth: 2,
+											children: /* @__PURE__ */ jsx("path", {
+												strokeLinecap: "round",
+												strokeLinejoin: "round",
+												d: "M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"
+											})
+										}), /* @__PURE__ */ jsx("span", { children: isRtl ? "تواصل مع الوكيل" : "Contact Agent" })]
+									}), /* @__PURE__ */ jsxs("button", {
+										type: "button",
+										onClick: () => {
+											if (navigator.share) navigator.share({
+												title: project.name,
+												url: window.location.href
+											}).catch(() => {});
+											else {
+												navigator.clipboard.writeText(window.location.href);
+												alert(isRtl ? "تم نسخ رابط الصفحة" : "Link copied");
+											}
+										},
+										className: "w-full py-3 px-4 bg-white border border-secondary-200 hover:bg-surface text-secondary-800 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-98",
+										children: [/* @__PURE__ */ jsx("svg", {
+											className: "w-4 h-4 text-secondary-600",
+											fill: "none",
+											viewBox: "0 0 24 24",
+											stroke: "currentColor",
+											strokeWidth: 2,
+											children: /* @__PURE__ */ jsx("path", {
+												strokeLinecap: "round",
+												strokeLinejoin: "round",
+												d: "M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0-10.5a2.25 2.25 0 100-4.5 2.25 2.25 0 000 4.5zm0 10.5a2.25 2.25 0 100-4.5 2.25 2.25 0 000 4.5z"
+											})
+										}), /* @__PURE__ */ jsx("span", { children: isRtl ? "مشاركة" : "Share" })]
+									})]
+								}),
+								/* @__PURE__ */ jsxs("div", {
+									className: "grid grid-cols-2 gap-3 pt-2",
+									children: [/* @__PURE__ */ jsxs("div", {
+										className: "p-3 bg-surface rounded-xl border border-secondary-100 text-center",
+										children: [/* @__PURE__ */ jsx("span", {
+											className: "text-secondary-500 text-xs font-semibold block mb-1",
+											children: isRtl ? "عدد الوحدات" : "Units"
+										}), /* @__PURE__ */ jsxs("p", {
+											className: "text-base font-black text-secondary-950",
+											children: [
+												project.units_count ?? units.length,
+												" ",
+												isRtl ? "وحدة" : "Units"
+											]
+										})]
+									}), /* @__PURE__ */ jsxs("div", {
+										className: "p-3 bg-surface rounded-xl border border-secondary-100 text-center",
+										children: [/* @__PURE__ */ jsx("span", {
+											className: "text-secondary-500 text-xs font-semibold block mb-1",
+											children: isRtl ? "نوع التشطيب" : "Finishing"
+										}), /* @__PURE__ */ jsx("p", {
+											className: "text-sm font-black text-secondary-950",
+											children: project.finishingType ? locale === "ar" ? project.finishingType.name_ar : project.finishingType.name_en : isRtl ? "سوبر لوكس" : "Super Lux"
+										})]
+									})]
+								}),
+								/* @__PURE__ */ jsx("div", {
+									className: "pt-4 border-t border-secondary-100",
+									children: /* @__PURE__ */ jsxs("div", {
+										className: "flex items-center justify-between gap-3",
+										children: [/* @__PURE__ */ jsxs("div", {
+											className: "flex items-center gap-3",
+											children: [/* @__PURE__ */ jsx("div", {
+												className: "w-10 h-10 rounded-full bg-primary-100 border border-primary-200 flex items-center justify-center text-primary-900 font-bold text-xs shrink-0",
+												children: project.user?.name ? project.user.name.charAt(0) : isRtl ? "أ" : "A"
+											}), /* @__PURE__ */ jsxs("div", {
+												className: "min-w-0",
+												children: [/* @__PURE__ */ jsx("h4", {
+													className: "text-xs font-bold text-secondary-950 truncate",
+													children: project.user?.name || (isRtl ? "أحمد محمود" : "Ahmed Mahmoud")
+												}), /* @__PURE__ */ jsx("p", {
+													className: "text-[11px] text-secondary-500 font-medium truncate",
+													children: isRtl ? "مستشار عقاري" : "Real Estate Advisor"
+												})]
+											})]
+										}), /* @__PURE__ */ jsxs("div", {
+											className: "flex items-center gap-1.5 shrink-0",
+											children: [/* @__PURE__ */ jsx("a", {
+												href: `https://wa.me/${agentContacts.whatsapp}`,
+												target: "_blank",
+												rel: "noopener noreferrer",
+												className: "w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center hover:bg-emerald-600 hover:text-white transition-colors",
+												title: "WhatsApp",
+												children: /* @__PURE__ */ jsx("svg", {
+													className: "w-4 h-4 fill-current",
+													viewBox: "0 0 24 24",
+													children: /* @__PURE__ */ jsx("path", { d: "M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" })
+												})
+											}), /* @__PURE__ */ jsx("a", {
+												href: `tel:${agentContacts.phone}`,
+												className: "w-8 h-8 rounded-lg bg-surface text-secondary-800 border border-secondary-200 flex items-center justify-center hover:bg-secondary-200 transition-colors",
+												title: "Call",
+												children: /* @__PURE__ */ jsx("svg", {
+													className: "w-4 h-4",
+													fill: "none",
+													viewBox: "0 0 24 24",
+													stroke: "currentColor",
+													strokeWidth: 2,
+													children: /* @__PURE__ */ jsx("path", {
+														strokeLinecap: "round",
+														strokeLinejoin: "round",
+														d: "M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"
+													})
+												})
+											})]
+										})]
+									})
+								})
+							]
+						})]
+					}),
+					/* @__PURE__ */ jsxs("div", {
+						className: "hidden md:flex items-center gap-8 border-b border-secondary-200 mb-8 overflow-x-auto text-xs font-bold text-secondary-600",
+						children: [
+							/* @__PURE__ */ jsx("a", {
+								href: "#overview",
+								className: "py-3 text-[#CC0000] border-b-2 border-[#CC0000] transition-colors",
+								children: isRtl ? "تفاصيل المشروع" : "Overview"
+							}),
+							embedUrl && /* @__PURE__ */ jsx("a", {
+								href: "#video",
+								className: "py-3 hover:text-[#CC0000] transition-colors",
+								children: isRtl ? "الفيديو التعريفي" : "Video"
+							}),
+							/* @__PURE__ */ jsx("a", {
+								href: "#features",
+								className: "py-3 hover:text-[#CC0000] transition-colors",
+								children: isRtl ? "المميزات والمرافق" : "Features"
+							}),
+							/* @__PURE__ */ jsx("a", {
+								href: "#units-list",
+								className: "py-3 hover:text-[#CC0000] transition-colors",
+								children: isRtl ? "الوحدات المتاحة" : "Units"
+							}),
+							/* @__PURE__ */ jsx("a", {
+								href: "#location",
+								className: "py-3 hover:text-[#CC0000] transition-colors",
+								children: isRtl ? "الموقع" : "Location"
+							})
+						]
+					}),
+					/* @__PURE__ */ jsxs("div", {
+						className: "hidden lg:grid grid-cols-12 gap-8 items-start",
+						children: [/* @__PURE__ */ jsxs("div", {
+							className: "col-span-7 space-y-8",
+							children: [
+								/* @__PURE__ */ jsxs("section", {
+									id: "overview",
+									className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6",
+									children: [
 										/* @__PURE__ */ jsx("h2", {
-											className: "text-lg font-semibold text-secondary-950 mb-2",
-											children: trans("location", {}, "projects")
+											className: "text-lg font-black text-secondary-950 mb-3",
+											children: isRtl ? "عن المشروع" : "About Project"
 										}),
-										project.location_address && /* @__PURE__ */ jsx("p", {
-											className: "text-sm text-muted mb-2",
-											children: project.location_address
+										/* @__PURE__ */ jsx("p", {
+											className: "text-sm text-secondary-700 leading-relaxed whitespace-pre-line font-normal",
+											children: project.description || (isRtl ? "مشروع عقاري متميز يضم وحدات سكنية وتجارية مصممة بأعلى معايير الجودة والتصميم العصري مع توفير كافة الخدمات والمرافق الأساسية والترفيهية." : "A premier real estate development with luxury residential and commercial units.")
 										}),
-										/* @__PURE__ */ jsx("iframe", {
-											src: extractEmbedSrc$1(project.map_embed_url),
-											className: "w-full aspect-video rounded-lg",
+										["installment", "both"].includes(project.payment_method) && (project.down_payment || project.installment_years) && /* @__PURE__ */ jsxs("div", {
+											className: "mt-6 pt-4 border-t border-secondary-100",
+											children: [/* @__PURE__ */ jsx("h2", {
+												className: "text-xs font-bold text-secondary-900 mb-3",
+												children: isRtl ? "أنظمة الدفع والتسهيلات" : "Payment Terms"
+											}), /* @__PURE__ */ jsxs("div", {
+												className: "grid grid-cols-2 gap-4 bg-surface p-4 rounded-xl border border-secondary-100 text-xs",
+												children: [project.down_payment && /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("span", {
+													className: "text-secondary-500 font-medium block mb-1",
+													children: isRtl ? "الدفعة الأولى" : "Down Payment"
+												}), /* @__PURE__ */ jsx("span", {
+													className: "font-bold text-secondary-950",
+													children: !isNaN(project.down_payment) && !isNaN(parseFloat(project.down_payment)) ? Number(project.down_payment).toLocaleString(locale === "ar" ? "ar-EG" : "en-US") + " " + trans("currency_egp") : project.down_payment
+												})] }), project.installment_years && /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("span", {
+													className: "text-secondary-500 font-medium block mb-1",
+													children: isRtl ? "سنوات التقسيط" : "Installment Years"
+												}), /* @__PURE__ */ jsxs("span", {
+													className: "font-bold text-secondary-950",
+													children: [
+														project.installment_years,
+														" ",
+														isRtl ? "سنوات" : "Years"
+													]
+												})] })]
+											})]
+										})
+									]
+								}),
+								embedUrl && /* @__PURE__ */ jsxs("section", {
+									id: "video",
+									className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6",
+									children: [/* @__PURE__ */ jsxs("h2", {
+										className: "text-lg font-black text-secondary-950 mb-4 flex items-center gap-2",
+										children: [/* @__PURE__ */ jsxs("svg", {
+											className: "w-5 h-5 text-[#CC0000]",
+											fill: "none",
+											viewBox: "0 0 24 24",
+											stroke: "currentColor",
+											strokeWidth: 2,
+											children: [/* @__PURE__ */ jsx("path", {
+												strokeLinecap: "round",
+												strokeLinejoin: "round",
+												d: "M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+											}), /* @__PURE__ */ jsx("path", {
+												strokeLinecap: "round",
+												strokeLinejoin: "round",
+												d: "M15.91 11.672a.375.375 0 010 .656l-5.603 3.113a.375.375 0 01-.557-.328V8.887c0-.286.307-.466.557-.327l5.603 3.112z"
+											})]
+										}), /* @__PURE__ */ jsx("span", { children: isRtl ? "الفيديو التعريفي للمشروع" : "Project Video Tour" })]
+									}), /* @__PURE__ */ jsx("div", {
+										className: "rounded-xl overflow-hidden aspect-video border border-secondary-200 shadow-sm bg-black",
+										children: /* @__PURE__ */ jsx("iframe", {
+											src: embedUrl,
+											className: "w-full h-full border-0",
+											allow: "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture",
+											allowFullScreen: true,
+											title: "Project Video Tour"
+										})
+									})]
+								}),
+								/* @__PURE__ */ jsxs("section", {
+									id: "features",
+									className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6",
+									children: [/* @__PURE__ */ jsx("h2", {
+										className: "text-lg font-black text-secondary-950 mb-4",
+										children: isRtl ? "المميزات والمرافق" : "Features & Facilities"
+									}), /* @__PURE__ */ jsx("div", {
+										className: "grid grid-cols-2 sm:grid-cols-3 gap-3",
+										children: (project.features?.length > 0 ? project.features : [
+											{
+												id: 1,
+												name_ar: "حمام سباحة",
+												name_en: "Swimming Pool"
+											},
+											{
+												id: 2,
+												name_ar: "مصعد",
+												name_en: "Elevator"
+											},
+											{
+												id: 3,
+												name_ar: "كافيه ورستوران",
+												name_en: "Cafe & Dining"
+											},
+											{
+												id: 4,
+												name_ar: "كاميرات مراقبة",
+												name_en: "CCTV Security"
+											},
+											{
+												id: 5,
+												name_ar: "نادي رياضي",
+												name_en: "Gym & Spa"
+											},
+											{
+												id: 6,
+												name_ar: "موقف سيارات",
+												name_en: "Parking Garage"
+											}
+										]).map((feature) => /* @__PURE__ */ jsxs("div", {
+											className: "flex flex-col items-center justify-center p-3.5 rounded-xl bg-surface border border-secondary-100 text-center gap-2 hover:border-secondary-300 transition-colors",
+											children: [/* @__PURE__ */ jsx("div", {
+												className: "w-8 h-8 rounded-full bg-white shadow-xs border border-secondary-100 flex items-center justify-center text-secondary-700",
+												children: /* @__PURE__ */ jsx("svg", {
+													className: "w-4 h-4 text-[#CC0000]",
+													fill: "none",
+													viewBox: "0 0 24 24",
+													stroke: "currentColor",
+													strokeWidth: 2,
+													children: /* @__PURE__ */ jsx("path", {
+														strokeLinecap: "round",
+														strokeLinejoin: "round",
+														d: "M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+													})
+												})
+											}), /* @__PURE__ */ jsx("span", {
+												className: "text-xs font-semibold text-secondary-800",
+												children: locale === "ar" ? feature.name_ar : feature.name_en
+											})]
+										}, feature.id))
+									})]
+								})
+							]
+						}), /* @__PURE__ */ jsxs("div", {
+							className: "col-span-5 space-y-6 sticky top-24",
+							children: [/* @__PURE__ */ jsxs("div", {
+								className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4",
+								children: [/* @__PURE__ */ jsx("h2", {
+									className: "text-sm font-black text-secondary-950 border-b border-secondary-100 pb-3",
+									children: isRtl ? "معلومات المشروع" : "Project Information"
+								}), /* @__PURE__ */ jsxs("div", {
+									className: "space-y-2.5 text-xs",
+									children: [
+										/* @__PURE__ */ jsxs("div", {
+											className: "flex items-center justify-between py-1.5 border-b border-secondary-100/60",
+											children: [/* @__PURE__ */ jsx("span", {
+												className: "text-secondary-500 font-semibold",
+												children: isRtl ? "اسم المشروع" : "Project Name"
+											}), /* @__PURE__ */ jsx("span", {
+												className: "font-bold text-secondary-950",
+												children: project.name
+											})]
+										}),
+										/* @__PURE__ */ jsxs("div", {
+											className: "flex items-center justify-between py-1.5 border-b border-secondary-100/60",
+											children: [/* @__PURE__ */ jsx("span", {
+												className: "text-secondary-500 font-semibold",
+												children: isRtl ? "المنطقة" : "Area"
+											}), /* @__PURE__ */ jsx("span", {
+												className: "font-bold text-secondary-950",
+												children: project.area?.name || ""
+											})]
+										}),
+										/* @__PURE__ */ jsxs("div", {
+											className: "flex items-center justify-between py-1.5 border-b border-secondary-100/60",
+											children: [/* @__PURE__ */ jsx("span", {
+												className: "text-secondary-500 font-semibold",
+												children: isRtl ? "عدد الوحدات" : "Total Units"
+											}), /* @__PURE__ */ jsxs("span", {
+												className: "font-bold text-secondary-950",
+												children: [
+													units.length,
+													" ",
+													isRtl ? "وحدة" : "Units"
+												]
+											})]
+										}),
+										/* @__PURE__ */ jsxs("div", {
+											className: "flex items-center justify-between py-1.5 border-b border-secondary-100/60",
+											children: [/* @__PURE__ */ jsx("span", {
+												className: "text-secondary-500 font-semibold",
+												children: isRtl ? "سنة التسليم" : "Delivery Year"
+											}), /* @__PURE__ */ jsx("span", {
+												className: "font-bold text-secondary-950",
+												children: "2026"
+											})]
+										}),
+										/* @__PURE__ */ jsxs("div", {
+											className: "flex items-center justify-between py-1.5",
+											children: [/* @__PURE__ */ jsx("span", {
+												className: "text-secondary-500 font-semibold",
+												children: isRtl ? "حالة المشروع" : "Status"
+											}), /* @__PURE__ */ jsxs("span", {
+												className: "inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200",
+												children: [/* @__PURE__ */ jsx("span", { className: "w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" }), isRtl ? "متاح للبيع" : "Available"]
+											})]
+										})
+									]
+								})]
+							}), /* @__PURE__ */ jsxs("div", {
+								id: "location",
+								className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4",
+								children: [
+									/* @__PURE__ */ jsx("h2", {
+										className: "text-sm font-black text-secondary-950",
+										children: isRtl ? "الموقع على الخريطة" : "Location Map"
+									}),
+									/* @__PURE__ */ jsx("div", {
+										className: "rounded-xl overflow-hidden border border-secondary-200 aspect-[16/9]",
+										children: /* @__PURE__ */ jsx("iframe", {
+											src: `https://maps.google.com/maps?q=${project.latitude || "30.0444"},${project.longitude || "31.2357"}&hl=${locale}&z=14&output=embed`,
+											className: "w-full h-full border-0",
 											allowFullScreen: true,
 											loading: "lazy",
 											referrerPolicy: "no-referrer-when-downgrade",
-											title: "Google Maps"
+											title: "Google Map Location"
 										})
-									] })
+									}),
+									/* @__PURE__ */ jsx("div", {
+										className: "text-center pt-1",
+										children: /* @__PURE__ */ jsxs("a", {
+											href: `https://www.google.com/maps/search/?api=1&query=${project.latitude || "30.0444"},${project.longitude || "31.2357"}`,
+											target: "_blank",
+											rel: "noopener noreferrer",
+											className: "inline-flex items-center justify-center gap-1.5 text-xs font-bold text-secondary-800 hover:text-[#CC0000] transition-colors",
+											children: [/* @__PURE__ */ jsxs("svg", {
+												className: "w-4 h-4 text-[#CC0000]",
+												fill: "none",
+												viewBox: "0 0 24 24",
+												stroke: "currentColor",
+												strokeWidth: 2,
+												children: [/* @__PURE__ */ jsx("path", {
+													strokeLinecap: "round",
+													strokeLinejoin: "round",
+													d: "M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"
+												}), /* @__PURE__ */ jsx("path", {
+													strokeLinecap: "round",
+													strokeLinejoin: "round",
+													d: "M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
+												})]
+											}), /* @__PURE__ */ jsx("span", { children: isRtl ? "فتح في خرائط Google" : "Open in Google Maps" })]
+										})
+									})
 								]
+							})]
+						})]
+					}),
+					/* @__PURE__ */ jsxs("div", {
+						className: "lg:hidden flex flex-col gap-6",
+						children: [
+							/* @__PURE__ */ jsxs("section", {
+								className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6",
+								children: [/* @__PURE__ */ jsx("h2", {
+									className: "text-lg font-black text-secondary-950 mb-3",
+									children: isRtl ? "عن المشروع" : "About Project"
+								}), /* @__PURE__ */ jsx("p", {
+									className: "text-sm text-secondary-700 leading-relaxed whitespace-pre-line font-normal",
+									children: project.description || (isRtl ? "مشروع عقاري متميز يضم وحدات سكنية وتجارية مصممة بأعلى معايير الجودة والتصميم العصري مع توفير كافة الخدمات والمرافق الأساسية والترفيهية." : "A premier real estate development with luxury residential and commercial units.")
+								})]
+							}),
+							embedUrl && /* @__PURE__ */ jsxs("section", {
+								id: "video-mob",
+								className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6",
+								children: [/* @__PURE__ */ jsxs("h2", {
+									className: "text-lg font-black text-secondary-950 mb-4 flex items-center gap-2",
+									children: [/* @__PURE__ */ jsxs("svg", {
+										className: "w-5 h-5 text-[#CC0000]",
+										fill: "none",
+										viewBox: "0 0 24 24",
+										stroke: "currentColor",
+										strokeWidth: 2,
+										children: [/* @__PURE__ */ jsx("path", {
+											strokeLinecap: "round",
+											strokeLinejoin: "round",
+											d: "M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+										}), /* @__PURE__ */ jsx("path", {
+											strokeLinecap: "round",
+											strokeLinejoin: "round",
+											d: "M15.91 11.672a.375.375 0 010 .656l-5.603 3.113a.375.375 0 01-.557-.328V8.887c0-.286.307-.466.557-.327l5.603 3.112z"
+										})]
+									}), /* @__PURE__ */ jsx("span", { children: isRtl ? "الفيديو التعريفي للمشروع" : "Project Video Tour" })]
+								}), /* @__PURE__ */ jsx("div", {
+									className: "rounded-xl overflow-hidden aspect-video border border-secondary-200 shadow-sm bg-black",
+									children: /* @__PURE__ */ jsx("iframe", {
+										src: embedUrl,
+										className: "w-full h-full border-0",
+										allow: "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture",
+										allowFullScreen: true,
+										title: "Project Video Tour Mobile"
+									})
+								})]
+							}),
+							/* @__PURE__ */ jsxs("section", {
+								className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6",
+								children: [/* @__PURE__ */ jsx("h2", {
+									className: "text-lg font-black text-secondary-950 mb-4",
+									children: isRtl ? "المميزات والمرافق" : "Features & Facilities"
+								}), /* @__PURE__ */ jsx("div", {
+									className: "grid grid-cols-2 sm:grid-cols-3 gap-3",
+									children: (project.features?.length > 0 ? project.features : [
+										{
+											id: 1,
+											name_ar: "حمام سباحة",
+											name_en: "Swimming Pool"
+										},
+										{
+											id: 2,
+											name_ar: "مصعد",
+											name_en: "Elevator"
+										},
+										{
+											id: 3,
+											name_ar: "كافيه ورستوران",
+											name_en: "Cafe & Dining"
+										},
+										{
+											id: 4,
+											name_ar: "كاميرات مراقبة",
+											name_en: "CCTV Security"
+										},
+										{
+											id: 5,
+											name_ar: "نادي رياضي",
+											name_en: "Gym & Spa"
+										},
+										{
+											id: 6,
+											name_ar: "موقف سيارات",
+											name_en: "Parking Garage"
+										}
+									]).map((feature) => /* @__PURE__ */ jsxs("div", {
+										className: "flex flex-col items-center justify-center p-3.5 rounded-xl bg-surface border border-secondary-100 text-center gap-2",
+										children: [/* @__PURE__ */ jsx("div", {
+											className: "w-8 h-8 rounded-full bg-white shadow-xs border border-secondary-100 flex items-center justify-center text-secondary-700",
+											children: /* @__PURE__ */ jsx("svg", {
+												className: "w-4 h-4 text-[#CC0000]",
+												fill: "none",
+												viewBox: "0 0 24 24",
+												stroke: "currentColor",
+												strokeWidth: 2,
+												children: /* @__PURE__ */ jsx("path", {
+													strokeLinecap: "round",
+													strokeLinejoin: "round",
+													d: "M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+												})
+											})
+										}), /* @__PURE__ */ jsx("span", {
+											className: "text-xs font-semibold text-secondary-800",
+											children: locale === "ar" ? feature.name_ar : feature.name_en
+										})]
+									}, feature.id))
+								})]
+							}),
+							/* @__PURE__ */ jsxs("div", {
+								className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4",
+								children: [/* @__PURE__ */ jsx("h2", {
+									className: "text-sm font-black text-secondary-950 border-b border-secondary-100 pb-3",
+									children: isRtl ? "معلومات المشروع" : "Project Information"
+								}), /* @__PURE__ */ jsxs("div", {
+									className: "space-y-2.5 text-xs",
+									children: [/* @__PURE__ */ jsxs("div", {
+										className: "flex items-center justify-between py-1.5 border-b border-secondary-100/60",
+										children: [/* @__PURE__ */ jsx("span", {
+											className: "text-secondary-500 font-semibold",
+											children: isRtl ? "اسم المشروع" : "Project Name"
+										}), /* @__PURE__ */ jsx("span", {
+											className: "font-bold text-secondary-950",
+											children: project.name
+										})]
+									}), /* @__PURE__ */ jsxs("div", {
+										className: "flex items-center justify-between py-1.5 border-b border-secondary-100/60",
+										children: [/* @__PURE__ */ jsx("span", {
+											className: "text-secondary-500 font-semibold",
+											children: isRtl ? "عدد الوحدات" : "Total Units"
+										}), /* @__PURE__ */ jsxs("span", {
+											className: "font-bold text-secondary-950",
+											children: [
+												project.units_count ?? units.length,
+												" ",
+												isRtl ? "وحدة" : "Units"
+											]
+										})]
+									})]
+								})]
+							}),
+							/* @__PURE__ */ jsxs("div", {
+								className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4",
+								children: [/* @__PURE__ */ jsx("h2", {
+									className: "text-sm font-black text-secondary-950",
+									children: isRtl ? "الموقع على الخريطة" : "Location Map"
+								}), /* @__PURE__ */ jsx("div", {
+									className: "rounded-xl overflow-hidden border border-secondary-200 aspect-[16/9]",
+									children: /* @__PURE__ */ jsx("iframe", {
+										src: `https://maps.google.com/maps?q=${project.latitude || "30.0444"},${project.longitude || "31.2357"}&hl=${locale}&z=14&output=embed`,
+										className: "w-full h-full border-0",
+										allowFullScreen: true,
+										loading: "lazy",
+										referrerPolicy: "no-referrer-when-downgrade",
+										title: "Google Map Location Mobile Project"
+									})
+								})]
 							})
 						]
-					}), /* @__PURE__ */ jsx("div", { children: project.user && /* @__PURE__ */ jsx(AgentCard, { agent: {
-						id: project.user.id,
-						name: project.user.name,
-						avatar: project.user.profile?.avatar,
-						phone: project.user.profile?.phone,
-						whatsapp: project.user.profile?.whatsapp,
-						facebook: project.user.profile?.facebook
-					} }) })]
-				}), units.length > 0 && /* @__PURE__ */ jsxs("section", {
-					className: "bg-white rounded-xl shadow-card p-6 sm:p-8 border-t-4 border-primary-900 mt-12",
-					children: [/* @__PURE__ */ jsxs("div", {
-						className: "flex items-center justify-between mb-8",
-						children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("h2", {
-							className: "text-2xl font-bold text-secondary-950",
-							children: trans("units_in_project", {}, "projects")
-						}), /* @__PURE__ */ jsx("p", {
-							className: "text-sm text-muted mt-1",
-							children: project.name
-						})] }), /* @__PURE__ */ jsxs("span", {
-							className: "px-4 py-1.5 bg-primary-50 text-primary-900 text-sm font-semibold rounded-full border border-primary-100",
-							children: [
-								units.length,
-								" ",
-								trans("units_count")
-							]
+					}),
+					units.length > 0 && /* @__PURE__ */ jsxs("section", {
+						id: "units-list",
+						className: "mt-12 bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 sm:p-8",
+						children: [/* @__PURE__ */ jsxs("div", {
+							className: "flex items-center justify-between mb-6",
+							children: [/* @__PURE__ */ jsxs("div", {
+								className: "flex items-center gap-3",
+								children: [/* @__PURE__ */ jsx("div", { className: "w-1.5 h-6 bg-[#CC0000] rounded-full" }), /* @__PURE__ */ jsx("h2", {
+									className: "text-lg md:text-xl font-black text-secondary-950 tracking-tight",
+									children: trans("units_in_project", {}, "projects")
+								})]
+							}), /* @__PURE__ */ jsxs("span", {
+								className: "px-3.5 py-1 bg-surface border border-secondary-200 text-xs font-bold rounded-full text-secondary-800",
+								children: [
+									project.units_count ?? units.length,
+									" ",
+									trans("units_count")
+								]
+							})]
+						}), /* @__PURE__ */ jsx("div", {
+							className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6",
+							children: units.map((unit) => /* @__PURE__ */ jsx(UnitCard_default, { unit }, unit.id))
 						})]
-					}), /* @__PURE__ */ jsx("div", {
-						className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6",
-						children: units.map((unit) => /* @__PURE__ */ jsx(UnitCard, { unit }, unit.id))
-					})]
+					})
+				]
+			}),
+			project && /* @__PURE__ */ jsxs("div", {
+				className: "fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-xl border-t border-secondary-200 p-3 shadow-lg flex items-center justify-between gap-3 md:hidden",
+				children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("span", {
+					className: "text-[10px] font-bold text-secondary-500 uppercase block",
+					children: isRtl ? "المشروع" : "Project"
+				}), /* @__PURE__ */ jsx("span", {
+					className: "text-sm font-black text-secondary-950 truncate max-w-[150px] block",
+					children: project.name
+				})] }), /* @__PURE__ */ jsxs("a", {
+					href: `https://wa.me/${(page.props.settings?.company_whatsapp || "201000000000").replace(/[^0-9]/g, "")}`,
+					target: "_blank",
+					rel: "noopener noreferrer",
+					className: "px-5 py-2.5 bg-[#CC0000] text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-md hover:bg-[#b30000] transition-colors",
+					children: [/* @__PURE__ */ jsx("svg", {
+						className: "w-4 h-4",
+						fill: "none",
+						viewBox: "0 0 24 24",
+						stroke: "currentColor",
+						strokeWidth: 2,
+						children: /* @__PURE__ */ jsx("path", {
+							strokeLinecap: "round",
+							strokeLinejoin: "round",
+							d: "M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"
+						})
+					}), /* @__PURE__ */ jsx("span", { children: isRtl ? "تواصل مع الوكيل" : "Contact Agent" })]
 				})]
 			}),
 			lightboxIndex !== null && images.length > 0 && /* @__PURE__ */ jsxs("div", {
-				className: "fixed inset-0 z-50 bg-black/80 flex items-center justify-center",
+				className: "fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4",
 				onClick: () => setLightboxIndex(null),
 				children: [
 					/* @__PURE__ */ jsx("button", {
+						type: "button",
 						onClick: () => setLightboxIndex(null),
-						className: "absolute top-4 end-4 text-white text-2xl",
+						className: "absolute top-4 end-4 text-white text-2xl bg-black/50 w-10 h-10 rounded-full flex items-center justify-center hover:bg-black",
 						"aria-label": trans("close"),
 						children: "✕"
 					}),
 					/* @__PURE__ */ jsx("img", {
-						src: images[lightboxIndex]?.url || (images[lightboxIndex]?.path?.startsWith("http") || images[lightboxIndex]?.path?.startsWith("/") ? images[lightboxIndex]?.path : `/storage/${images[lightboxIndex]?.path}`),
+						src: getStorageUrl(images[lightboxIndex]?.url || images[lightboxIndex]?.path, "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 600\"%3E%3Crect fill=\"%23F0F0F0\" width=\"800\" height=\"600\"/%3E%3C/svg%3E"),
 						alt: "",
-						className: "max-w-[90vw] max-h-[90vh] object-contain",
+						className: "max-w-[90vw] max-h-[85vh] object-contain rounded-xl",
 						onClick: (e) => e.stopPropagation()
 					}),
 					images.length > 1 && /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("button", {
@@ -15413,8 +19384,8 @@ function ProjectShow({ project }) {
 							e.stopPropagation();
 							setLightboxIndex((prev) => prev === 0 ? images.length - 1 : prev - 1);
 						},
-						className: `absolute top-1/2 -translate-y-1/2 ${isRtl ? "right-4" : "left-4"} w-10 h-10 bg-black/50 hover:bg-black/80 rounded-full text-white flex items-center justify-center transition-colors`,
-						"aria-label": trans("previous"),
+						className: `absolute top-1/2 -translate-y-1/2 ${isRtl ? "right-4" : "left-4"} w-11 h-11 min-w-[44px] min-h-[44px] bg-black/50 hover:bg-black/80 rounded-full text-white flex items-center justify-center transition-colors`,
+						"aria-label": trans("previous_image") || "Previous image",
 						children: /* @__PURE__ */ jsx("svg", {
 							className: `w-6 h-6 ${isRtl ? "rotate-180" : ""}`,
 							fill: "none",
@@ -15432,8 +19403,8 @@ function ProjectShow({ project }) {
 							e.stopPropagation();
 							setLightboxIndex((prev) => prev === images.length - 1 ? 0 : prev + 1);
 						},
-						className: `absolute top-1/2 -translate-y-1/2 ${isRtl ? "left-4" : "right-4"} w-10 h-10 bg-black/50 hover:bg-black/80 rounded-full text-white flex items-center justify-center transition-colors`,
-						"aria-label": trans("next"),
+						className: `absolute top-1/2 -translate-y-1/2 ${isRtl ? "left-4" : "right-4"} w-11 h-11 min-w-[44px] min-h-[44px] bg-black/50 hover:bg-black/80 rounded-full text-white flex items-center justify-center transition-colors`,
+						"aria-label": trans("next_image") || "Next image",
 						children: /* @__PURE__ */ jsx("svg", {
 							className: `w-6 h-6 ${isRtl ? "rotate-180" : ""}`,
 							fill: "none",
@@ -15446,19 +19417,33 @@ function ProjectShow({ project }) {
 								d: "M9 5l7 7-7 7"
 							})
 						})
-					})] }),
-					images.length > 1 && /* @__PURE__ */ jsx("div", {
-						className: "absolute bottom-4 flex gap-2",
-						children: images.map((_, i) => /* @__PURE__ */ jsx("button", {
-							onClick: (e) => {
-								e.stopPropagation();
-								setLightboxIndex(i);
-							},
-							"aria-label": isRtl ? `صورة ${i + 1}` : `Image ${i + 1}`,
-							className: `w-3 h-3 rounded-full ${i === lightboxIndex ? "bg-white" : "bg-white/40"}`
-						}, i))
-					})
+					})] })
 				]
+			}),
+			/* @__PURE__ */ jsxs("div", {
+				className: "fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-secondary-200 p-3 sm:hidden flex items-center gap-3 shadow-2xl",
+				children: [/* @__PURE__ */ jsxs("a", {
+					href: `https://wa.me/${agentContacts.whatsapp}`,
+					target: "_blank",
+					rel: "noopener noreferrer",
+					className: "flex-1 py-3 px-4 bg-[#16a34a] hover:bg-[#15803d] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-colors active:scale-98 min-h-[44px]",
+					children: [/* @__PURE__ */ jsx(WhatsAppIcon$1, { className: "w-4 h-4 fill-current" }), /* @__PURE__ */ jsx("span", { children: isRtl ? "واتساب" : "WhatsApp" })]
+				}), /* @__PURE__ */ jsxs("a", {
+					href: `tel:${agentContacts.phone}`,
+					className: "flex-1 py-3 px-4 bg-[#CC0000] hover:bg-[#b30000] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-colors active:scale-98 min-h-[44px]",
+					children: [/* @__PURE__ */ jsx("svg", {
+						className: "w-4 h-4",
+						fill: "none",
+						viewBox: "0 0 24 24",
+						stroke: "currentColor",
+						strokeWidth: 2,
+						children: /* @__PURE__ */ jsx("path", {
+							strokeLinecap: "round",
+							strokeLinejoin: "round",
+							d: "M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"
+						})
+					}), /* @__PURE__ */ jsx("span", { children: isRtl ? "اتصال مباشر" : "Call Agent" })]
+				})]
 			}),
 			/* @__PURE__ */ jsx(Footer, {})
 		]
@@ -15487,40 +19472,77 @@ function UnitsDeals({ units, filters, areas, unitTypes, features, finishingTypes
 			}),
 			/* @__PURE__ */ jsx(Header, {}),
 			/* @__PURE__ */ jsxs("main", {
-				className: "flex-1 max-w-container mx-auto px-4 py-8 w-full",
-				children: [
-					/* @__PURE__ */ jsx("h1", {
-						className: "text-2xl font-bold text-secondary-950 mb-6",
-						children: trans("deals_page_title", {}, "common")
-					}),
-					/* @__PURE__ */ jsx("section", {
-						className: "mb-8",
-						children: /* @__PURE__ */ jsx(SearchBar, {
-							areas,
-							unitTypes,
-							features,
-							finishingTypes,
-							filters,
-							onSearch: handleSearch
-						})
-					}),
-					isLoading ? /* @__PURE__ */ jsx("div", {
-						className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4",
-						children: Array.from({ length: 8 }).map((_, i) => /* @__PURE__ */ jsx(UnitCard, { loading: true }, i))
-					}) : hasUnits ? /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("div", {
-						className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4",
-						children: units.data.map((unit) => /* @__PURE__ */ jsx(UnitCard, { unit }, unit.id))
-					}), /* @__PURE__ */ jsx(Pagination, {
-						meta: units,
-						links: units.links
-					})] }) : /* @__PURE__ */ jsx("div", {
-						className: "text-center py-16",
-						children: /* @__PURE__ */ jsx("p", {
-							className: "text-muted text-sm",
-							children: trans("deals_page_empty", {}, "common")
-						})
+				id: "main-content",
+				tabIndex: "-1",
+				className: "flex-1 w-full flex flex-col focus:outline-none",
+				children: [/* @__PURE__ */ jsx("div", {
+					className: "bg-gradient-to-b from-surface-hover to-surface pt-8 pb-10 px-4",
+					children: /* @__PURE__ */ jsxs("div", {
+						className: "max-w-container mx-auto",
+						children: [/* @__PURE__ */ jsx("div", {
+							className: "flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8",
+							children: /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("h1", {
+								className: "text-2xl md:text-3xl font-black text-secondary-950 tracking-tight mb-2",
+								children: trans("deals_page_title", {}, "common")
+							}), /* @__PURE__ */ jsx("p", {
+								className: "text-sm font-medium text-secondary-500",
+								children: hasUnits ? locale === "ar" ? `تم العثور على ${units.meta?.total || units.total || units.data?.length} صفقة` : `Found ${units.meta?.total || units.total || units.data?.length} deals` : locale === "ar" ? "تصفح أحدث وأفضل العروض والصفقات العقارية" : "Discover the latest and best real estate deals"
+							})] })
+						}), /* @__PURE__ */ jsx("div", {
+							className: "w-full relative z-30",
+							children: /* @__PURE__ */ jsx(SearchBar, {
+								areas,
+								unitTypes,
+								features,
+								finishingTypes,
+								filters,
+								onSearch: handleSearch
+							})
+						})]
 					})
-				]
+				}), /* @__PURE__ */ jsx("div", {
+					className: "flex-1 max-w-container mx-auto px-4 py-8 w-full",
+					children: isLoading ? /* @__PURE__ */ jsx("div", {
+						className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6",
+						children: Array.from({ length: 8 }).map((_, i) => /* @__PURE__ */ jsx(UnitCard_default, { loading: true }, i))
+					}) : hasUnits ? /* @__PURE__ */ jsxs("div", {
+						className: "flex flex-col gap-8",
+						children: [/* @__PURE__ */ jsx("div", {
+							className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6",
+							children: units.data.map((unit) => /* @__PURE__ */ jsx(UnitCard_default, { unit }, unit.id))
+						}), /* @__PURE__ */ jsx(Pagination, {
+							meta: units.meta || units,
+							links: units.links
+						})]
+					}) : /* @__PURE__ */ jsxs("div", {
+						className: "text-center py-20 bg-white rounded-[2rem] border border-secondary-100 shadow-sm max-w-2xl mx-auto w-full",
+						children: [
+							/* @__PURE__ */ jsx("div", {
+								className: "w-16 h-16 bg-surface-hover text-secondary-400 rounded-full flex items-center justify-center mx-auto mb-4",
+								children: /* @__PURE__ */ jsx("svg", {
+									className: "w-8 h-8",
+									fill: "none",
+									viewBox: "0 0 24 24",
+									stroke: "currentColor",
+									strokeWidth: 1.5,
+									children: /* @__PURE__ */ jsx("path", {
+										strokeLinecap: "round",
+										strokeLinejoin: "round",
+										d: "M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+									})
+								})
+							}),
+							/* @__PURE__ */ jsx("p", {
+								className: "text-secondary-900 font-bold text-lg mb-2",
+								children: trans("deals_page_empty", {}, "common")
+							}),
+							/* @__PURE__ */ jsx("p", {
+								className: "text-secondary-500 text-sm",
+								children: trans("try_different_filters")
+							})
+						]
+					})
+				})]
 			}),
 			/* @__PURE__ */ jsx(Footer, {})
 		]
@@ -15548,43 +19570,77 @@ function UnitsIndex({ units, filters, areas, unitTypes, features, finishingTypes
 			}),
 			/* @__PURE__ */ jsx(Header, {}),
 			/* @__PURE__ */ jsxs("main", {
-				className: "flex-1 max-w-container mx-auto px-4 py-8 w-full",
-				children: [
-					/* @__PURE__ */ jsx("h1", {
-						className: "text-2xl font-bold text-secondary-950 mb-6",
-						children: trans("page_title", {}, "units")
-					}),
-					/* @__PURE__ */ jsx("section", {
-						className: "mb-8",
-						children: /* @__PURE__ */ jsx(SearchBar, {
-							areas,
-							unitTypes,
-							features,
-							finishingTypes,
-							filters,
-							onSearch: handleSearch
-						})
-					}),
-					isLoading ? /* @__PURE__ */ jsx("div", {
-						className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4",
-						children: Array.from({ length: 8 }).map((_, i) => /* @__PURE__ */ jsx(UnitCard, { loading: true }, i))
-					}) : hasUnits ? /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("div", {
-						className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4",
-						children: units.data.map((unit) => /* @__PURE__ */ jsx(UnitCard, { unit }, unit.id))
-					}), /* @__PURE__ */ jsx(Pagination, {
-						meta: units,
-						links: units.links
-					})] }) : /* @__PURE__ */ jsxs("div", {
-						className: "text-center py-16",
-						children: [/* @__PURE__ */ jsx("p", {
-							className: "text-muted text-sm mb-2",
-							children: trans("no_results")
-						}), /* @__PURE__ */ jsx("p", {
-							className: "text-muted text-xs",
-							children: trans("try_different_filters")
+				id: "main-content",
+				tabIndex: "-1",
+				className: "flex-1 w-full flex flex-col focus:outline-none",
+				children: [/* @__PURE__ */ jsx("div", {
+					className: "bg-gradient-to-b from-surface-hover to-surface pt-8 pb-10 px-4",
+					children: /* @__PURE__ */ jsxs("div", {
+						className: "max-w-container mx-auto",
+						children: [/* @__PURE__ */ jsx("div", {
+							className: "flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8",
+							children: /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("h1", {
+								className: "text-2xl md:text-3xl font-black text-secondary-950 tracking-tight mb-2",
+								children: trans("page_title", {}, "units")
+							}), /* @__PURE__ */ jsx("p", {
+								className: "text-sm font-medium text-secondary-500",
+								children: hasUnits ? locale === "ar" ? `تم العثور على ${units.meta?.total || units.total || units.data?.length} وحدة` : `Found ${units.meta?.total || units.total || units.data?.length} units` : locale === "ar" ? "ابحث عن وحدتك المناسبة" : "Find your perfect unit"
+							})] })
+						}), /* @__PURE__ */ jsx("div", {
+							className: "w-full relative z-30",
+							children: /* @__PURE__ */ jsx(SearchBar, {
+								areas,
+								unitTypes,
+								features,
+								finishingTypes,
+								filters,
+								onSearch: handleSearch
+							})
 						})]
 					})
-				]
+				}), /* @__PURE__ */ jsx("div", {
+					className: "flex-1 max-w-container mx-auto px-4 py-8 w-full",
+					children: isLoading ? /* @__PURE__ */ jsx("div", {
+						className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6",
+						children: Array.from({ length: 8 }).map((_, i) => /* @__PURE__ */ jsx(UnitCard_default, { loading: true }, i))
+					}) : hasUnits ? /* @__PURE__ */ jsxs("div", {
+						className: "flex flex-col gap-8",
+						children: [/* @__PURE__ */ jsx("div", {
+							className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6",
+							children: units.data.map((unit) => /* @__PURE__ */ jsx(UnitCard_default, { unit }, unit.id))
+						}), /* @__PURE__ */ jsx(Pagination, {
+							meta: units.meta || units,
+							links: units.links
+						})]
+					}) : /* @__PURE__ */ jsxs("div", {
+						className: "text-center py-20 bg-white rounded-[2rem] border border-secondary-100 shadow-sm max-w-2xl mx-auto w-full",
+						children: [
+							/* @__PURE__ */ jsx("div", {
+								className: "w-16 h-16 bg-surface-hover text-secondary-400 rounded-full flex items-center justify-center mx-auto mb-4",
+								children: /* @__PURE__ */ jsx("svg", {
+									className: "w-8 h-8",
+									fill: "none",
+									viewBox: "0 0 24 24",
+									stroke: "currentColor",
+									strokeWidth: 1.5,
+									children: /* @__PURE__ */ jsx("path", {
+										strokeLinecap: "round",
+										strokeLinejoin: "round",
+										d: "M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+									})
+								})
+							}),
+							/* @__PURE__ */ jsx("p", {
+								className: "text-secondary-900 font-bold text-lg mb-2",
+								children: trans("no_results")
+							}),
+							/* @__PURE__ */ jsx("p", {
+								className: "text-secondary-500 text-sm",
+								children: trans("try_different_filters")
+							})
+						]
+					})
+				})]
 			}),
 			/* @__PURE__ */ jsx(Footer, {})
 		]
@@ -15593,23 +19649,21 @@ function UnitsIndex({ units, filters, areas, unitTypes, features, finishingTypes
 //#endregion
 //#region resources/js/Pages/Public/Units/Show.jsx
 var Show_exports = /* @__PURE__ */ __exportAll({ default: () => UnitShow });
-var PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 600\"%3E%3Crect fill=\"%23F0F0F0\" width=\"800\" height=\"600\"/%3E%3C/svg%3E";
-function extractEmbedSrc(value) {
-	if (!value) return "";
-	const match = value.match(/src\s*=\s*"([^"]+)"/i) || value.match(/src\s*=\s*'([^']+)'/i);
-	return match ? match[1] : value;
-}
 function UnitShow({ unit, similarUnits }) {
 	const page = usePage();
-	const { locale, flash, appUrl } = page.props;
+	const { locale, flash, appUrl, seo_meta } = page.props;
 	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
 	const [lightboxIndex, setLightboxIndex] = useState(null);
 	const [activeImageIndex, setActiveImageIndex] = useState(0);
 	const [sentSuccess, setSentSuccess] = useState(false);
+	const agentContacts = getAgentContacts(unit?.user || unit?.project?.user, page.props.settings);
 	const jsonLd = useMemo(() => {
 		if (!unit) return null;
-		const image = unit.images?.[0]?.url || (unit.images?.[0]?.path ? `/storage/${unit.images[0].path}` : null);
+		const image = getStorageUrl(unit.images?.[0]?.url || unit.images?.[0]?.path, null);
+		const lat = unit.latitude;
+		const lng = unit.longitude;
+		const hasValidCoords = lat && lng && parseFloat(lat) !== 0 && parseFloat(lng) !== 0 && isFinite(parseFloat(lat)) && isFinite(parseFloat(lng));
 		return {
 			"@context": "https://schema.org",
 			"@type": "RealEstateListing",
@@ -15631,9 +19685,18 @@ function UnitShow({ unit, similarUnits }) {
 			...unit.rooms != null ? { numberOfRooms: unit.rooms } : {},
 			...unit.bathrooms != null ? { numberOfBathroomsTotal: unit.bathrooms } : {},
 			...unit.floor != null ? { floorLevel: unit.floor } : {},
-			...unit.location_address ? { address: {
-				"@type": "PostalAddress",
-				addressLocality: unit.location_address
+			...hasValidCoords || unit.location_address ? { contentLocation: {
+				"@type": "Place",
+				...unit.name ? { name: unit.name } : {},
+				...unit.location_address ? { address: {
+					"@type": "PostalAddress",
+					addressLocality: unit.location_address
+				} } : {},
+				...hasValidCoords ? { geo: {
+					"@type": "GeoCoordinates",
+					latitude: lat,
+					longitude: lng
+				} } : {}
 			} } : {}
 		};
 	}, [
@@ -15649,7 +19712,7 @@ function UnitShow({ unit, similarUnits }) {
 	});
 	const images = unit?.images ?? [];
 	const selectedImage = images[activeImageIndex] || images[0];
-	const thumbnail = selectedImage?.url || (selectedImage?.path ? selectedImage.path.startsWith("http") || selectedImage.path.startsWith("/") ? selectedImage.path : `/storage/${selectedImage.path}` : PLACEHOLDER);
+	const thumbnail = getStorageUrl(selectedImage?.url || selectedImage?.path, PLACEHOLDER$2);
 	function handleSubmit(e) {
 		e.preventDefault();
 		const submitUrl = localizedPath(`/units/${unit.slug}/contact`, locale);
@@ -15675,269 +19738,93 @@ function UnitShow({ unit, similarUnits }) {
 			/* @__PURE__ */ jsx(SeoHead, {
 				title: `${unit?.name || ""} - ${trans("site_title")}`,
 				description: unit?.meta_description || unit?.description || "",
-				keywords: unit?.keywords || "",
+				keywords: isRtl ? unit?.keywords_ar || unit?.keywords : unit?.keywords_en || unit?.keywords || unit?.keywords_ar,
 				ogImage: unit?.images?.find((img) => img.is_main || img.is_primary)?.url || unit?.images?.[0]?.url || null,
-				ogType: "website"
-			}),
-			jsonLd && /* @__PURE__ */ jsx("script", {
-				type: "application/ld+json",
-				dangerouslySetInnerHTML: { __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }
+				ogType: seo_meta?.og_type || "article",
+				jsonLd
 			}),
 			/* @__PURE__ */ jsx(Header, {}),
 			/* @__PURE__ */ jsxs("main", {
 				id: "main-content",
-				className: "flex-1 max-w-container mx-auto px-4 py-8 w-full",
+				className: "flex-1 max-w-container mx-auto px-4 py-6 md:py-8 w-full pb-28 md:pb-12",
 				children: [!unit ? /* @__PURE__ */ jsx("div", {
 					className: "text-center py-16",
 					children: /* @__PURE__ */ jsx("p", {
 						className: "text-muted text-sm",
 						children: trans("no_results")
 					})
-				}) : /* @__PURE__ */ jsxs("div", {
-					className: "grid grid-cols-1 lg:grid-cols-3 gap-8",
-					children: [/* @__PURE__ */ jsxs("div", {
-						className: "lg:col-span-2 space-y-6",
+				}) : /* @__PURE__ */ jsxs(Fragment, { children: [
+					/* @__PURE__ */ jsxs("nav", {
+						className: "flex items-center gap-2 text-xs font-medium text-secondary-500 mb-5 overflow-x-auto pb-1",
+						"aria-label": "Breadcrumb",
 						children: [
-							/* @__PURE__ */ jsxs("div", {
-								className: "bg-white rounded-xl shadow-card overflow-hidden relative group",
+							/* @__PURE__ */ jsx(Link, {
+								href: localizedPath("/", locale),
+								className: "hover:text-primary-900 transition-colors shrink-0",
+								children: trans("home")
+							}),
+							/* @__PURE__ */ jsx("span", { children: "/" }),
+							/* @__PURE__ */ jsx(Link, {
+								href: localizedPath("/units", locale),
+								className: "hover:text-primary-900 transition-colors shrink-0",
+								children: trans("units")
+							}),
+							unit.area?.name && /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("span", { children: "/" }), /* @__PURE__ */ jsx(Link, {
+								href: localizedPath(`/areas/${unit.area.slug || unit.area.id}`, locale),
+								className: "hover:text-primary-900 transition-colors shrink-0",
+								children: unit.area.name
+							})] }),
+							/* @__PURE__ */ jsx("span", { children: "/" }),
+							/* @__PURE__ */ jsx("span", {
+								className: "text-secondary-900 font-bold truncate max-w-[200px] sm:max-w-xs",
+								children: unit.name
+							})
+						]
+					}),
+					/* @__PURE__ */ jsxs("div", {
+						className: "grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8 items-start mb-8",
+						children: [/* @__PURE__ */ jsx("div", {
+							className: "lg:col-span-7 space-y-4",
+							children: /* @__PURE__ */ jsxs("div", {
+								className: "bg-white rounded-2xl shadow-sm border border-secondary-100 overflow-hidden relative group",
 								children: [/* @__PURE__ */ jsxs("div", {
-									className: "relative overflow-hidden",
+									className: "relative overflow-hidden aspect-[16/10] sm:aspect-[16/9]",
 									children: [
 										/* @__PURE__ */ jsx("img", {
 											src: thumbnail,
 											alt: unit.alt_text || unit.name,
 											width: 1200,
 											height: 900,
-											className: "w-full h-64 sm:h-80 lg:h-96 object-cover",
+											className: "w-full h-full object-cover",
 											fetchPriority: "high",
 											loading: "eager",
 											decoding: "sync"
 										}),
-										/* @__PURE__ */ jsxs("button", {
-											type: "button",
-											onClick: () => setLightboxIndex(activeImageIndex),
-											className: "absolute top-4 end-4 bg-black/60 hover:bg-black/85 text-white p-2.5 rounded-xl shadow-lg backdrop-blur-md transition-all flex items-center gap-1.5 text-xs font-medium hover:scale-105 z-10",
-											title: trans("zoom") || "تكبير الصورة",
-											"aria-label": "Zoom image",
-											children: [/* @__PURE__ */ jsx("svg", {
-												className: "w-4 h-4",
-												fill: "none",
-												viewBox: "0 0 24 24",
-												stroke: "currentColor",
-												strokeWidth: 2,
-												children: /* @__PURE__ */ jsx("path", {
-													strokeLinecap: "round",
-													strokeLinejoin: "round",
-													d: "M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6"
-												})
-											}), /* @__PURE__ */ jsx("span", { children: trans("zoom") })]
+										/* @__PURE__ */ jsx("div", {
+											className: "absolute top-4 start-4 z-10",
+											children: /* @__PURE__ */ jsx("span", {
+												className: "bg-[#CC0000] text-white text-xs font-bold px-3.5 py-1.5 rounded-full shadow-md",
+												children: trans(unit.transaction === "rent" ? "rent" : "sale")
+											})
 										}),
-										images.length > 1 && /* @__PURE__ */ jsxs(Fragment, { children: [
-											/* @__PURE__ */ jsx("button", {
+										/* @__PURE__ */ jsx("div", {
+											className: "absolute top-4 end-4 flex items-center gap-2 z-10",
+											children: /* @__PURE__ */ jsx("button", {
 												type: "button",
-												onClick: (e) => {
-													e.stopPropagation();
-													setActiveImageIndex((prev) => prev === 0 ? images.length - 1 : prev - 1);
+												onClick: () => {
+													if (navigator.share) navigator.share({
+														title: unit.name,
+														url: window.location.href
+													}).catch(() => {});
+													else {
+														navigator.clipboard.writeText(window.location.href);
+														alert(isRtl ? "تم نسخ رابط الصفحة" : "Link copied to clipboard");
+													}
 												},
-												className: "absolute start-3 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/75 text-white p-2.5 rounded-full shadow-lg backdrop-blur-sm transition-all hover:scale-110 z-10",
-												"aria-label": "Previous image",
+												className: "w-9 h-9 bg-white/90 hover:bg-white text-secondary-800 rounded-full shadow-md backdrop-blur-md flex items-center justify-center transition-all hover:scale-105",
+												title: isRtl ? "مشاركة" : "Share",
 												children: /* @__PURE__ */ jsx("svg", {
-													className: `w-5 h-5 ${isRtl ? "rotate-180" : ""}`,
-													fill: "none",
-													viewBox: "0 0 24 24",
-													stroke: "currentColor",
-													strokeWidth: 2.5,
-													children: /* @__PURE__ */ jsx("path", {
-														strokeLinecap: "round",
-														strokeLinejoin: "round",
-														d: "M15.75 19.5L8.25 12l7.5-7.5"
-													})
-												})
-											}),
-											/* @__PURE__ */ jsx("button", {
-												type: "button",
-												onClick: (e) => {
-													e.stopPropagation();
-													setActiveImageIndex((prev) => prev === images.length - 1 ? 0 : prev + 1);
-												},
-												className: "absolute end-3 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/75 text-white p-2.5 rounded-full shadow-lg backdrop-blur-sm transition-all hover:scale-110 z-10",
-												"aria-label": "Next image",
-												children: /* @__PURE__ */ jsx("svg", {
-													className: `w-5 h-5 ${isRtl ? "rotate-180" : ""}`,
-													fill: "none",
-													viewBox: "0 0 24 24",
-													stroke: "currentColor",
-													strokeWidth: 2.5,
-													children: /* @__PURE__ */ jsx("path", {
-														strokeLinecap: "round",
-														strokeLinejoin: "round",
-														d: "M8.25 4.5l7.5 7.5-7.5 7.5"
-													})
-												})
-											}),
-											/* @__PURE__ */ jsxs("div", {
-												className: "absolute bottom-4 start-4 bg-black/60 text-white text-xs px-3 py-1 rounded-full backdrop-blur-sm font-medium z-10",
-												children: [
-													activeImageIndex + 1,
-													" / ",
-													images.length
-												]
-											})
-										] })
-									]
-								}), images.length > 1 && /* @__PURE__ */ jsx("div", {
-									className: "flex gap-2 p-3 overflow-x-auto bg-slate-50 border-t border-secondary-100",
-									children: images.map((img, i) => /* @__PURE__ */ jsx("img", {
-										src: img.thumb_url || img.url || (img.path?.startsWith("http") || img.path?.startsWith("/") ? img.path : `/storage/${img.path}`),
-										alt: img.alt_text || "",
-										width: 80,
-										height: 64,
-										className: `w-20 h-16 object-cover rounded-lg cursor-pointer border-2 transition-all shrink-0 ${i === activeImageIndex ? "border-primary-900 ring-2 ring-primary-900/30 scale-105" : "border-transparent opacity-70 hover:opacity-100 hover:border-secondary-300"}`,
-										loading: "lazy",
-										onClick: () => setActiveImageIndex(i)
-									}, i))
-								})]
-							}),
-							unit.video_url && /* @__PURE__ */ jsx("div", {
-								className: "bg-white rounded-xl shadow-card overflow-hidden aspect-video",
-								children: embedUrl ? /* @__PURE__ */ jsx("iframe", {
-									src: embedUrl,
-									title: unit.name,
-									className: "w-full h-full",
-									loading: "lazy",
-									allow: "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture",
-									allowFullScreen: true
-								}) : unit.video_path ? /* @__PURE__ */ jsx("video", {
-									controls: true,
-									className: "w-full h-full",
-									children: /* @__PURE__ */ jsx("source", { src: unit.video_path })
-								}) : /* @__PURE__ */ jsx("a", {
-									href: unit.video_url,
-									target: "_blank",
-									rel: "noopener noreferrer",
-									className: "flex items-center justify-center h-full text-primary-900",
-									children: trans("watch_video")
-								})
-							}),
-							/* @__PURE__ */ jsxs("div", {
-								className: "bg-white rounded-xl shadow-card p-6",
-								children: [
-									/* @__PURE__ */ jsx("h1", {
-										className: "text-2xl font-bold text-secondary-950 mb-2",
-										children: unit.name
-									}),
-									/* @__PURE__ */ jsxs("p", {
-										className: "text-sm text-muted mb-4",
-										children: [(locale === "ar" ? unit.area?.name_ar : unit.area?.name_en) || "", unit.type ? ` · ${locale === "ar" ? unit.type.name_ar : unit.type.name_en}` : ""]
-									}),
-									/* @__PURE__ */ jsxs("p", {
-										className: "text-3xl font-bold text-primary-900 mb-6",
-										children: [Number(unit.price).toLocaleString(locale === "ar" ? "ar-SA" : "en-US"), /* @__PURE__ */ jsx("span", {
-											className: "text-base text-muted font-normal me-2",
-											children: trans(unit.transaction === "rent" ? "rent" : "sale", {}, "units")
-										})]
-									}),
-									/* @__PURE__ */ jsxs("div", {
-										className: "flex flex-wrap gap-2 mb-6",
-										children: [unit.payment_method && /* @__PURE__ */ jsx("span", {
-											className: "px-3 py-1 bg-surface rounded-full text-sm font-medium text-secondary-800 border border-secondary-200",
-											children: trans(unit.payment_method)
-										}), unit.finishingType && /* @__PURE__ */ jsx("span", {
-											className: "px-3 py-1 bg-surface rounded-full text-sm font-medium text-secondary-800 border border-secondary-200",
-											children: locale === "ar" ? unit.finishingType.name_ar : unit.finishingType.name_en
-										})]
-									}),
-									/* @__PURE__ */ jsxs("div", {
-										className: "grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6",
-										children: [
-											unit.area_sqm && /* @__PURE__ */ jsxs("div", {
-												className: "text-center p-3 bg-surface rounded-lg",
-												children: [/* @__PURE__ */ jsx("p", {
-													className: "text-lg font-bold text-secondary-950",
-													children: unit.area_sqm
-												}), /* @__PURE__ */ jsx("p", {
-													className: "text-xs text-muted",
-													children: trans("area_sqm", {}, "units")
-												})]
-											}),
-											unit.rooms && /* @__PURE__ */ jsxs("div", {
-												className: "text-center p-3 bg-surface rounded-lg",
-												children: [/* @__PURE__ */ jsx("p", {
-													className: "text-lg font-bold text-secondary-950",
-													children: unit.rooms
-												}), /* @__PURE__ */ jsx("p", {
-													className: "text-xs text-muted",
-													children: trans("rooms", {}, "units")
-												})]
-											}),
-											unit.bathrooms && /* @__PURE__ */ jsxs("div", {
-												className: "text-center p-3 bg-surface rounded-lg",
-												children: [/* @__PURE__ */ jsx("p", {
-													className: "text-lg font-bold text-secondary-950",
-													children: unit.bathrooms
-												}), /* @__PURE__ */ jsx("p", {
-													className: "text-xs text-muted",
-													children: trans("bathrooms", {}, "units")
-												})]
-											}),
-											unit.floor !== null && unit.floor !== void 0 && /* @__PURE__ */ jsxs("div", {
-												className: "text-center p-3 bg-surface rounded-lg",
-												children: [/* @__PURE__ */ jsx("p", {
-													className: "text-lg font-bold text-secondary-950",
-													children: unit.floor
-												}), /* @__PURE__ */ jsx("p", {
-													className: "text-xs text-muted",
-													children: trans("floor", {}, "units")
-												})]
-											})
-										]
-									}),
-									(() => {
-										const desc = locale === "ar" ? unit.description_ar || unit.description : unit.description_en || unit.description;
-										return desc ? /* @__PURE__ */ jsxs("div", {
-											className: "mb-6",
-											children: [/* @__PURE__ */ jsx("h2", {
-												className: "text-lg font-semibold text-secondary-950 mb-2",
-												children: trans("description", {}, "units")
-											}), /* @__PURE__ */ jsx("p", {
-												className: "text-sm text-secondary-800 leading-relaxed whitespace-pre-line",
-												children: desc
-											})]
-										}) : null;
-									})(),
-									["installment", "both"].includes(unit.payment_method) && (unit.down_payment || unit.installment_years) && /* @__PURE__ */ jsxs("div", {
-										className: "mb-6 bg-surface p-4 rounded-xl border border-secondary-100",
-										children: [/* @__PURE__ */ jsx("h2", {
-											className: "text-lg font-semibold text-secondary-950 mb-3",
-											children: trans("payment_details") || "Payment Details"
-										}), /* @__PURE__ */ jsxs("div", {
-											className: "grid grid-cols-2 gap-4",
-											children: [unit.down_payment && /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("p", {
-												className: "text-xs text-muted mb-1",
-												children: trans("down_payment") || "Down Payment"
-											}), /* @__PURE__ */ jsx("p", {
-												className: "text-sm font-bold text-secondary-950",
-												children: !isNaN(unit.down_payment) && !isNaN(parseFloat(unit.down_payment)) ? Number(unit.down_payment).toLocaleString(locale === "ar" ? "ar-SA" : "en-US") : unit.down_payment
-											})] }), unit.installment_years && /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("p", {
-												className: "text-xs text-muted mb-1",
-												children: trans("installment_years") || "Installment Years"
-											}), /* @__PURE__ */ jsx("p", {
-												className: "text-sm font-bold text-secondary-950",
-												children: unit.installment_years
-											})] })]
-										})]
-									}),
-									unit.features?.length > 0 && /* @__PURE__ */ jsxs("div", {
-										className: "mb-6",
-										children: [/* @__PURE__ */ jsx("h2", {
-											className: "text-lg font-semibold text-secondary-950 mb-3",
-											children: trans("features") || "Features"
-										}), /* @__PURE__ */ jsx("div", {
-											className: "grid grid-cols-2 sm:grid-cols-3 gap-3",
-											children: unit.features.map((feature) => /* @__PURE__ */ jsxs("div", {
-												className: "flex items-center gap-2",
-												children: [/* @__PURE__ */ jsx("svg", {
-													className: "w-5 h-5 text-primary-900 shrink-0",
+													className: "w-4 h-4",
 													fill: "none",
 													viewBox: "0 0 24 24",
 													stroke: "currentColor",
@@ -15945,177 +19832,1038 @@ function UnitShow({ unit, similarUnits }) {
 													children: /* @__PURE__ */ jsx("path", {
 														strokeLinecap: "round",
 														strokeLinejoin: "round",
-														d: "M5 13l4 4L19 7"
+														d: "M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0-10.5a2.25 2.25 0 100-4.5 2.25 2.25 0 000 4.5zm0 10.5a2.25 2.25 0 100-4.5 2.25 2.25 0 000 4.5z"
 													})
-												}), /* @__PURE__ */ jsx("span", {
-													className: "text-sm text-secondary-800",
-													children: locale === "ar" ? feature.name_ar : feature.name_en
-												})]
-											}, feature.id))
-										})]
+												})
+											})
+										}),
+										/* @__PURE__ */ jsxs("div", {
+											className: "absolute bottom-4 start-4 flex items-center gap-2 z-10 flex-wrap",
+											children: [
+												/* @__PURE__ */ jsxs("span", {
+													className: "bg-black/60 text-white px-3 py-1.5 rounded-xl text-xs font-bold backdrop-blur-md border border-white/20",
+													children: [
+														activeImageIndex + 1,
+														" / ",
+														images.length || 1
+													]
+												}),
+												/* @__PURE__ */ jsxs("button", {
+													type: "button",
+													onClick: () => setLightboxIndex(activeImageIndex),
+													className: "bg-white/90 hover:bg-white text-secondary-950 px-3.5 py-1.5 rounded-xl shadow-md backdrop-blur-md transition-all flex items-center gap-1.5 text-xs font-bold border border-secondary-200",
+													children: [/* @__PURE__ */ jsx("svg", {
+														className: "w-4 h-4 text-secondary-700",
+														fill: "none",
+														viewBox: "0 0 24 24",
+														stroke: "currentColor",
+														strokeWidth: 2,
+														children: /* @__PURE__ */ jsx("path", {
+															strokeLinecap: "round",
+															strokeLinejoin: "round",
+															d: "M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15"
+														})
+													}), /* @__PURE__ */ jsx("span", { children: isRtl ? "عرض جميع الصور" : "View All Photos" })]
+												}),
+												embedUrl && /* @__PURE__ */ jsxs("a", {
+													href: "#video",
+													className: "bg-[#CC0000] hover:bg-[#b30000] text-white px-3.5 py-1.5 rounded-xl shadow-md transition-all flex items-center gap-1.5 text-xs font-bold border border-red-700",
+													children: [/* @__PURE__ */ jsx("svg", {
+														className: "w-4 h-4 fill-current",
+														viewBox: "0 0 24 24",
+														children: /* @__PURE__ */ jsx("path", { d: "M8 5v14l11-7z" })
+													}), /* @__PURE__ */ jsx("span", { children: isRtl ? "فيديو الوحدة" : "Watch Video" })]
+												})
+											]
+										}),
+										images.length > 1 && /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("button", {
+											type: "button",
+											onClick: (e) => {
+												e.stopPropagation();
+												setActiveImageIndex(activeImageIndex === 0 ? images.length - 1 : activeImageIndex - 1);
+											},
+											className: "absolute start-3 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/75 text-white p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full shadow-lg backdrop-blur-sm transition-colors z-10",
+											"aria-label": trans("previous_image") || "Previous image",
+											children: /* @__PURE__ */ jsx("svg", {
+												className: `w-4 h-4 ${isRtl ? "rotate-180" : ""}`,
+												fill: "none",
+												viewBox: "0 0 24 24",
+												stroke: "currentColor",
+												strokeWidth: 2.5,
+												children: /* @__PURE__ */ jsx("path", {
+													strokeLinecap: "round",
+													strokeLinejoin: "round",
+													d: "M15.75 19.5L8.25 12l7.5-7.5"
+												})
+											})
+										}), /* @__PURE__ */ jsx("button", {
+											type: "button",
+											onClick: (e) => {
+												e.stopPropagation();
+												setActiveImageIndex(activeImageIndex === images.length - 1 ? 0 : activeImageIndex + 1);
+											},
+											className: "absolute end-3 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/75 text-white p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full shadow-lg backdrop-blur-sm transition-colors z-10",
+											"aria-label": trans("next_image") || "Next image",
+											children: /* @__PURE__ */ jsx("svg", {
+												className: `w-4 h-4 ${isRtl ? "rotate-180" : ""}`,
+												fill: "none",
+												viewBox: "0 0 24 24",
+												stroke: "currentColor",
+												strokeWidth: 2.5,
+												children: /* @__PURE__ */ jsx("path", {
+													strokeLinecap: "round",
+													strokeLinejoin: "round",
+													d: "M8.25 4.5l7.5 7.5-7.5 7.5"
+												})
+											})
+										})] })
+									]
+								}), images.length > 1 && /* @__PURE__ */ jsx("div", {
+									className: "grid grid-cols-5 gap-2 p-3 bg-surface border-t border-secondary-100",
+									children: images.slice(0, 5).map((img, i) => {
+										const isLastAndMore = i === 4 && images.length > 5;
+										const remainingCount = images.length - 4;
+										return /* @__PURE__ */ jsxs("div", {
+											onClick: () => {
+												if (isLastAndMore) setLightboxIndex(4);
+												else setActiveImageIndex(i);
+											},
+											className: "relative rounded-xl overflow-hidden cursor-pointer aspect-[4/3] border border-secondary-200",
+											children: [/* @__PURE__ */ jsx("img", {
+												src: img.thumb_url || img.url || (img.path?.startsWith("http") || img.path?.startsWith("/") ? img.path : `/storage/${img.path}`),
+												alt: img.alt_text || "",
+												className: `w-full h-full object-cover transition-transform ${i === activeImageIndex ? "ring-2 ring-[#CC0000]" : "opacity-80 hover:opacity-100"}`,
+												loading: "lazy"
+											}), isLastAndMore && /* @__PURE__ */ jsxs("div", {
+												className: "absolute inset-0 bg-black/60 flex items-center justify-center text-white font-bold text-sm",
+												children: ["+", remainingCount]
+											})]
+										}, i);
+									})
+								})]
+							})
+						}), /* @__PURE__ */ jsxs("div", {
+							className: "lg:col-span-5 bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-6",
+							children: [
+								/* @__PURE__ */ jsxs("div", { children: [
+									/* @__PURE__ */ jsx("div", {
+										className: "inline-block px-3 py-1 bg-surface rounded-full border border-secondary-200 text-xs font-bold text-secondary-700 mb-3",
+										children: unit.type ? locale === "ar" ? unit.type.name_ar : unit.type.name_en : isRtl ? "شقة" : "Apartment"
 									}),
-									unit.map_embed_url && /* @__PURE__ */ jsxs("div", { children: [
-										/* @__PURE__ */ jsx("h2", {
-											className: "text-lg font-semibold text-secondary-950 mb-2",
-											children: trans("location", {}, "units")
+									/* @__PURE__ */ jsx("h1", {
+										className: "text-2xl font-black text-secondary-950 leading-snug mb-2",
+										children: unit.name
+									}),
+									/* @__PURE__ */ jsxs("p", {
+										className: "text-xs font-semibold text-secondary-500 flex items-center gap-1.5",
+										children: [/* @__PURE__ */ jsxs("svg", {
+											className: "w-4 h-4 text-secondary-400 shrink-0",
+											fill: "none",
+											viewBox: "0 0 24 24",
+											stroke: "currentColor",
+											strokeWidth: 2,
+											children: [/* @__PURE__ */ jsx("path", {
+												strokeLinecap: "round",
+												strokeLinejoin: "round",
+												d: "M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"
+											}), /* @__PURE__ */ jsx("path", {
+												strokeLinecap: "round",
+												strokeLinejoin: "round",
+												d: "M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
+											})]
+										}), /* @__PURE__ */ jsx("span", { children: (locale === "ar" ? unit.area?.name_ar : unit.area?.name_en) || unit.area?.name || unit.location_address || "" })]
+									})
+								] }),
+								/* @__PURE__ */ jsx("div", { children: /* @__PURE__ */ jsxs("p", {
+									className: "text-3xl font-black text-[#CC0000] tracking-tight flex items-baseline gap-1.5",
+									children: [Number(unit.price).toLocaleString(locale === "ar" ? "ar-EG" : "en-US"), /* @__PURE__ */ jsx("span", {
+										className: "text-sm font-bold text-[#CC0000]",
+										children: trans("currency_egp")
+									})]
+								}) }),
+								/* @__PURE__ */ jsxs("div", {
+									className: "grid grid-cols-2 gap-3 pt-2",
+									children: [/* @__PURE__ */ jsxs("a", {
+										href: "#contact-form",
+										className: "w-full py-3 px-4 bg-[#CC0000] hover:bg-[#b30000] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-all active:scale-98",
+										children: [/* @__PURE__ */ jsx("svg", {
+											className: "w-4 h-4",
+											fill: "none",
+											viewBox: "0 0 24 24",
+											stroke: "currentColor",
+											strokeWidth: 2,
+											children: /* @__PURE__ */ jsx("path", {
+												strokeLinecap: "round",
+												strokeLinejoin: "round",
+												d: "M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"
+											})
+										}), /* @__PURE__ */ jsx("span", { children: isRtl ? "تواصل مع الوكيل" : "Contact Agent" })]
+									}), /* @__PURE__ */ jsxs("button", {
+										type: "button",
+										onClick: () => {
+											if (navigator.share) navigator.share({
+												title: unit.name,
+												url: window.location.href
+											}).catch(() => {});
+											else {
+												navigator.clipboard.writeText(window.location.href);
+												alert(isRtl ? "تم نسخ رابط الصفحة" : "Link copied");
+											}
+										},
+										className: "w-full py-3 px-4 bg-white border border-secondary-200 hover:bg-surface text-secondary-800 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-98",
+										children: [/* @__PURE__ */ jsx("svg", {
+											className: "w-4 h-4 text-secondary-600",
+											fill: "none",
+											viewBox: "0 0 24 24",
+											stroke: "currentColor",
+											strokeWidth: 2,
+											children: /* @__PURE__ */ jsx("path", {
+												strokeLinecap: "round",
+												strokeLinejoin: "round",
+												d: "M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0-10.5a2.25 2.25 0 100-4.5 2.25 2.25 0 000 4.5zm0 10.5a2.25 2.25 0 100-4.5 2.25 2.25 0 000 4.5z"
+											})
+										}), /* @__PURE__ */ jsx("span", { children: isRtl ? "مشاركة" : "Share" })]
+									})]
+								}),
+								/* @__PURE__ */ jsxs("div", {
+									className: "grid grid-cols-3 gap-3 pt-2",
+									children: [
+										unit.area_sqm && /* @__PURE__ */ jsxs("div", {
+											className: "p-3 bg-surface rounded-xl border border-secondary-100 text-center",
+											children: [/* @__PURE__ */ jsxs("div", {
+												className: "flex items-center justify-center gap-1 text-secondary-600 text-xs font-medium mb-1",
+												children: [/* @__PURE__ */ jsx("svg", {
+													className: "w-4 h-4 text-secondary-500",
+													fill: "none",
+													viewBox: "0 0 24 24",
+													stroke: "currentColor",
+													strokeWidth: 1.75,
+													children: /* @__PURE__ */ jsx("path", {
+														strokeLinecap: "round",
+														strokeLinejoin: "round",
+														d: "M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15"
+													})
+												}), /* @__PURE__ */ jsx("span", { children: isRtl ? "المساحة" : "Area" })]
+											}), /* @__PURE__ */ jsxs("p", {
+												className: "text-sm font-black text-secondary-950",
+												children: [
+													unit.area_sqm,
+													" ",
+													/* @__PURE__ */ jsx("span", {
+														className: "text-[10px] font-semibold text-secondary-500",
+														children: trans("unit_sqm")
+													})
+												]
+											})]
 										}),
-										unit.location_address && /* @__PURE__ */ jsx("p", {
-											className: "text-sm text-muted mb-2",
-											children: unit.location_address
+										unit.rooms && /* @__PURE__ */ jsxs("div", {
+											className: "p-3 bg-surface rounded-xl border border-secondary-100 text-center",
+											children: [/* @__PURE__ */ jsxs("div", {
+												className: "flex items-center justify-center gap-1 text-secondary-600 text-xs font-medium mb-1",
+												children: [/* @__PURE__ */ jsx("svg", {
+													className: "w-4 h-4 text-secondary-500",
+													fill: "none",
+													viewBox: "0 0 24 24",
+													stroke: "currentColor",
+													strokeWidth: 1.75,
+													children: /* @__PURE__ */ jsx("path", {
+														strokeLinecap: "round",
+														strokeLinejoin: "round",
+														d: "M2.25 12l8.954-8.955a1.126 1.126 0 011.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"
+													})
+												}), /* @__PURE__ */ jsx("span", { children: isRtl ? "غرف النوم" : "Bedrooms" })]
+											}), /* @__PURE__ */ jsx("p", {
+												className: "text-sm font-black text-secondary-950",
+												children: unit.rooms
+											})]
 										}),
-										/* @__PURE__ */ jsx("iframe", {
-											src: extractEmbedSrc(unit.map_embed_url),
-											className: "w-full aspect-video rounded-lg",
-											allowFullScreen: true,
-											loading: "lazy",
-											referrerPolicy: "no-referrer-when-downgrade",
-											title: "Google Maps"
+										unit.bathrooms && /* @__PURE__ */ jsxs("div", {
+											className: "p-3 bg-surface rounded-xl border border-secondary-100 text-center",
+											children: [/* @__PURE__ */ jsxs("div", {
+												className: "flex items-center justify-center gap-1 text-secondary-600 text-xs font-medium mb-1",
+												children: [/* @__PURE__ */ jsx("svg", {
+													className: "w-4 h-4 text-secondary-500",
+													fill: "none",
+													viewBox: "0 0 24 24",
+													stroke: "currentColor",
+													strokeWidth: 1.75,
+													children: /* @__PURE__ */ jsx("path", {
+														strokeLinecap: "round",
+														strokeLinejoin: "round",
+														d: "M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z"
+													})
+												}), /* @__PURE__ */ jsx("span", { children: isRtl ? "الحمامات" : "Baths" })]
+											}), /* @__PURE__ */ jsx("p", {
+												className: "text-sm font-black text-secondary-950",
+												children: unit.bathrooms
+											})]
 										})
-									] })
-								]
+									]
+								}),
+								/* @__PURE__ */ jsx("div", {
+									className: "pt-4 border-t border-secondary-100",
+									children: /* @__PURE__ */ jsxs("div", {
+										className: "flex items-center justify-between gap-3",
+										children: [/* @__PURE__ */ jsxs("div", {
+											className: "flex items-center gap-3",
+											children: [/* @__PURE__ */ jsx("div", {
+												className: "w-10 h-10 rounded-full bg-primary-100 border border-primary-200 flex items-center justify-center text-primary-900 font-bold text-xs shrink-0",
+												children: unit.user?.name ? unit.user.name.charAt(0) : isRtl ? "أ" : "A"
+											}), /* @__PURE__ */ jsxs("div", {
+												className: "min-w-0",
+												children: [/* @__PURE__ */ jsx("h4", {
+													className: "text-xs font-bold text-secondary-950 truncate",
+													children: unit.user?.name || (isRtl ? "أحمد محمود" : "Ahmed Mahmoud")
+												}), /* @__PURE__ */ jsx("p", {
+													className: "text-[11px] text-secondary-500 font-medium truncate",
+													children: isRtl ? "مستشار عقاري" : "Real Estate Advisor"
+												})]
+											})]
+										}), /* @__PURE__ */ jsxs("div", {
+											className: "flex items-center gap-1.5 shrink-0",
+											children: [/* @__PURE__ */ jsx("a", {
+												href: `https://wa.me/${agentContacts.whatsapp}`,
+												target: "_blank",
+												rel: "noopener noreferrer",
+												className: "w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center hover:bg-emerald-600 hover:text-white transition-colors",
+												title: "WhatsApp",
+												children: /* @__PURE__ */ jsx("svg", {
+													className: "w-4 h-4 fill-current",
+													viewBox: "0 0 24 24",
+													children: /* @__PURE__ */ jsx("path", { d: "M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" })
+												})
+											}), /* @__PURE__ */ jsx("a", {
+												href: `tel:${agentContacts.phone}`,
+												className: "w-8 h-8 rounded-lg bg-surface text-secondary-800 border border-secondary-200 flex items-center justify-center hover:bg-secondary-200 transition-colors",
+												title: "Call",
+												children: /* @__PURE__ */ jsx("svg", {
+													className: "w-4 h-4",
+													fill: "none",
+													viewBox: "0 0 24 24",
+													stroke: "currentColor",
+													strokeWidth: 2,
+													children: /* @__PURE__ */ jsx("path", {
+														strokeLinecap: "round",
+														strokeLinejoin: "round",
+														d: "M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"
+													})
+												})
+											})]
+										})]
+									})
+								})
+							]
+						})]
+					}),
+					/* @__PURE__ */ jsxs("div", {
+						className: "hidden md:flex items-center gap-8 border-b border-secondary-200 mb-8 overflow-x-auto text-xs font-bold text-secondary-600",
+						children: [
+							/* @__PURE__ */ jsx("a", {
+								href: "#overview",
+								className: "py-3 text-[#CC0000] border-b-2 border-[#CC0000] transition-colors",
+								children: isRtl ? "نبذة عن الوحدة" : "Overview"
+							}),
+							embedUrl && /* @__PURE__ */ jsx("a", {
+								href: "#video",
+								className: "py-3 hover:text-[#CC0000] transition-colors",
+								children: isRtl ? "الفيديو التعريفي" : "Video"
+							}),
+							/* @__PURE__ */ jsx("a", {
+								href: "#features",
+								className: "py-3 hover:text-[#CC0000] transition-colors",
+								children: isRtl ? "المميزات" : "Features"
+							}),
+							/* @__PURE__ */ jsx("a", {
+								href: "#location",
+								className: "py-3 hover:text-[#CC0000] transition-colors",
+								children: isRtl ? "الموقع" : "Location"
+							}),
+							/* @__PURE__ */ jsx("a", {
+								href: "#contact-form",
+								className: "py-3 hover:text-[#CC0000] transition-colors",
+								children: isRtl ? "تواصل معنا" : "Contact Us"
 							})
 						]
-					}), /* @__PURE__ */ jsxs("div", {
-						className: "space-y-6",
-						children: [unit.user && /* @__PURE__ */ jsx(AgentCard, { agent: {
-							id: unit.user.id,
-							name: unit.user.name,
-							avatar: unit.user.profile?.avatar,
-							phone: unit.user.profile?.phone,
-							whatsapp: unit.user.profile?.whatsapp,
-							facebook: unit.user.profile?.facebook
-						} }), /* @__PURE__ */ jsxs("div", {
-							className: "bg-white rounded-xl shadow-card p-6",
+					}),
+					/* @__PURE__ */ jsxs("div", {
+						className: "hidden lg:grid grid-cols-12 gap-8 items-start",
+						children: [/* @__PURE__ */ jsxs("div", {
+							className: "col-span-7 space-y-8",
 							children: [
-								/* @__PURE__ */ jsx("h3", {
-									className: "text-lg font-semibold text-secondary-950 mb-4",
-									children: trans("contact_agent", {}, "units")
-								}),
-								(sentSuccess || flash?.success) && /* @__PURE__ */ jsx("div", {
-									className: "mb-4 p-4 bg-green-50 border border-green-200 text-green-800 rounded-xl text-sm font-medium transition-all",
-									children: flash?.success || trans("unit_message_sent_success")
-								}),
-								/* @__PURE__ */ jsxs("form", {
-									onSubmit: handleSubmit,
-									noValidate: true,
+								/* @__PURE__ */ jsxs("section", {
+									id: "overview",
+									className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6",
 									children: [
-										/* @__PURE__ */ jsxs("div", {
-											className: "mb-3",
+										/* @__PURE__ */ jsx("h2", {
+											className: "text-lg font-black text-secondary-950 mb-3",
+											children: isRtl ? "نبذة عن الوحدة" : "Unit Overview"
+										}),
+										/* @__PURE__ */ jsx("p", {
+											className: "text-sm text-secondary-700 leading-relaxed whitespace-pre-line font-normal",
+											children: (locale === "ar" ? unit.description_ar || unit.description : unit.description_en || unit.description) || (isRtl ? "شقة فاخرة بمساحة واسعة في موقع متميز تتميز بتصميم عصري وتقسيم ممتاز ومساحات تتيح أقصى درجات الراحة والتطشيبات عالية الجودة في واحدة من أفضل المناطق السكنية." : "Luxury spacious unit in a prime location with modern architecture, premium finishings, and optimal layout.")
+										}),
+										["installment", "both"].includes(unit.payment_method) && (unit.down_payment || unit.installment_years) && /* @__PURE__ */ jsxs("div", {
+											className: "mt-6 pt-4 border-t border-secondary-100",
+											children: [/* @__PURE__ */ jsx("h2", {
+												className: "text-xs font-bold text-secondary-900 mb-3",
+												children: isRtl ? "أنظمة الدفع والتسهيلات" : "Payment Details"
+											}), /* @__PURE__ */ jsxs("div", {
+												className: "grid grid-cols-2 gap-4 bg-surface p-4 rounded-xl border border-secondary-100 text-xs",
+												children: [unit.down_payment && /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("span", {
+													className: "text-secondary-500 font-medium block mb-1",
+													children: isRtl ? "الدفعة الأولى" : "Down Payment"
+												}), /* @__PURE__ */ jsx("span", {
+													className: "font-bold text-secondary-950",
+													children: !isNaN(unit.down_payment) && !isNaN(parseFloat(unit.down_payment)) ? Number(unit.down_payment).toLocaleString(locale === "ar" ? "ar-EG" : "en-US") + " " + trans("currency_egp") : unit.down_payment
+												})] }), unit.installment_years && /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("span", {
+													className: "text-secondary-500 font-medium block mb-1",
+													children: isRtl ? "سنوات التقسيط" : "Installment Years"
+												}), /* @__PURE__ */ jsxs("span", {
+													className: "font-bold text-secondary-950",
+													children: [
+														unit.installment_years,
+														" ",
+														isRtl ? "سنوات" : "Years"
+													]
+												})] })]
+											})]
+										})
+									]
+								}),
+								embedUrl && /* @__PURE__ */ jsxs("section", {
+									id: "video",
+									className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6",
+									children: [/* @__PURE__ */ jsxs("h2", {
+										className: "text-lg font-black text-secondary-950 mb-4 flex items-center gap-2",
+										children: [/* @__PURE__ */ jsxs("svg", {
+											className: "w-5 h-5 text-[#CC0000]",
+											fill: "none",
+											viewBox: "0 0 24 24",
+											stroke: "currentColor",
+											strokeWidth: 2,
+											children: [/* @__PURE__ */ jsx("path", {
+												strokeLinecap: "round",
+												strokeLinejoin: "round",
+												d: "M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+											}), /* @__PURE__ */ jsx("path", {
+												strokeLinecap: "round",
+												strokeLinejoin: "round",
+												d: "M15.91 11.672a.375.375 0 010 .656l-5.603 3.113a.375.375 0 01-.557-.328V8.887c0-.286.307-.466.557-.327l5.603 3.112z"
+											})]
+										}), /* @__PURE__ */ jsx("span", { children: isRtl ? "الفيديو التعريفي للوحدة" : "Property Video Tour" })]
+									}), /* @__PURE__ */ jsx("div", {
+										className: "rounded-xl overflow-hidden aspect-video border border-secondary-200 shadow-sm bg-black",
+										children: /* @__PURE__ */ jsx("iframe", {
+											src: embedUrl,
+											className: "w-full h-full border-0",
+											allow: "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture",
+											allowFullScreen: true,
+											title: "Property Video Tour"
+										})
+									})]
+								}),
+								/* @__PURE__ */ jsxs("section", {
+									id: "features",
+									className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6",
+									children: [/* @__PURE__ */ jsx("h2", {
+										className: "text-lg font-black text-secondary-950 mb-4",
+										children: isRtl ? "المميزات" : "Features & Amenities"
+									}), /* @__PURE__ */ jsx("div", {
+										className: "grid grid-cols-2 sm:grid-cols-3 gap-3",
+										children: (unit.features?.length > 0 ? unit.features : [
+											{
+												id: 1,
+												name_ar: "حمام سباحة",
+												name_en: "Swimming Pool",
+												icon: "pool"
+											},
+											{
+												id: 2,
+												name_ar: "مصعد",
+												name_en: "Elevator",
+												icon: "elevator"
+											},
+											{
+												id: 3,
+												name_ar: "كافيه",
+												name_en: "Cafe",
+												icon: "cafe"
+											},
+											{
+												id: 4,
+												name_ar: "كاميرات مراقبة",
+												name_en: "CCTV Security",
+												icon: "cctv"
+											},
+											{
+												id: 5,
+												name_ar: "نادي رياضي",
+												name_en: "Gym & Fitness",
+												icon: "gym"
+											},
+											{
+												id: 6,
+												name_ar: "موقف سيارات",
+												name_en: "Parking Garage",
+												icon: "parking"
+											},
+											{
+												id: 7,
+												name_ar: "أمن وحراسة 24",
+												name_en: "24/7 Security",
+												icon: "security"
+											}
+										]).map((feature) => /* @__PURE__ */ jsxs("div", {
+											className: "flex flex-col items-center justify-center p-3.5 rounded-xl bg-surface border border-secondary-100 text-center gap-2 hover:border-secondary-300 transition-colors",
+											children: [/* @__PURE__ */ jsx("div", {
+												className: "w-8 h-8 rounded-full bg-white shadow-xs border border-secondary-100 flex items-center justify-center text-secondary-700",
+												children: /* @__PURE__ */ jsx("svg", {
+													className: "w-4 h-4 text-[#CC0000]",
+													fill: "none",
+													viewBox: "0 0 24 24",
+													stroke: "currentColor",
+													strokeWidth: 2,
+													children: /* @__PURE__ */ jsx("path", {
+														strokeLinecap: "round",
+														strokeLinejoin: "round",
+														d: "M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+													})
+												})
+											}), /* @__PURE__ */ jsx("span", {
+												className: "text-xs font-semibold text-secondary-800",
+												children: locale === "ar" ? feature.name_ar : feature.name_en
+											})]
+										}, feature.id))
+									})]
+								}),
+								/* @__PURE__ */ jsxs("section", {
+									id: "contact-form",
+									className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6",
+									children: [
+										/* @__PURE__ */ jsx("h2", {
+											className: "text-lg font-black text-secondary-950 mb-1",
+											children: isRtl ? "تواصل معنا" : "Contact Us"
+										}),
+										/* @__PURE__ */ jsx("p", {
+											className: "text-xs text-secondary-500 font-medium mb-5",
+											children: isRtl ? "يرجى ملء النموذج وسيتواصل معك أحد مستشارينا في أقرب وقت" : "Please fill out the form and our advisor will get in touch shortly."
+										}),
+										(sentSuccess || flash?.success) && /* @__PURE__ */ jsx("div", {
+											className: "mb-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold",
+											children: flash?.success || trans("unit_message_sent_success")
+										}),
+										/* @__PURE__ */ jsxs("form", {
+											onSubmit: handleSubmit,
+											noValidate: true,
+											className: "space-y-4",
 											children: [
-												/* @__PURE__ */ jsx("label", {
-													htmlFor: "client_name",
-													className: "block text-xs font-medium text-secondary-950 mb-1",
-													children: trans("your_name", {}, "messages")
+												/* @__PURE__ */ jsxs("div", {
+													className: "grid grid-cols-1 sm:grid-cols-3 gap-3",
+													children: [
+														/* @__PURE__ */ jsxs("div", { children: [
+															/* @__PURE__ */ jsx("label", {
+																htmlFor: "client_name_dt",
+																className: "block text-xs font-semibold text-secondary-900 mb-1",
+																children: isRtl ? "الاسم الكامل" : "Full Name"
+															}),
+															/* @__PURE__ */ jsx("input", {
+																id: "client_name_dt",
+																type: "text",
+																value: data.client_name,
+																onChange: (e) => setData("client_name", e.target.value),
+																required: true,
+																className: "w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none transition-all"
+															}),
+															errors.client_name && /* @__PURE__ */ jsx("p", {
+																className: "text-xs text-error mt-1",
+																children: errors.client_name
+															})
+														] }),
+														/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+															htmlFor: "client_phone_dt",
+															className: "block text-xs font-semibold text-secondary-900 mb-1",
+															children: isRtl ? "رقم الهاتف" : "Phone Number"
+														}), /* @__PURE__ */ jsx("input", {
+															id: "client_phone_dt",
+															type: "tel",
+															value: data.client_phone,
+															onChange: (e) => setData("client_phone", e.target.value),
+															className: "w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none transition-all"
+														})] }),
+														/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+															htmlFor: "client_email_dt",
+															className: "block text-xs font-semibold text-secondary-900 mb-1",
+															children: isRtl ? "البريد الإلكتروني" : "Email"
+														}), /* @__PURE__ */ jsx("input", {
+															id: "client_email_dt",
+															type: "email",
+															value: data.client_email,
+															onChange: (e) => setData("client_email", e.target.value),
+															className: "w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none transition-all"
+														})] })
+													]
 												}),
-												/* @__PURE__ */ jsx("input", {
-													id: "client_name",
-													type: "text",
-													value: data.client_name,
-													onChange: (e) => setData("client_name", e.target.value),
-													required: true,
-													className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
-												}),
-												errors.client_name && /* @__PURE__ */ jsx("p", {
-													className: "text-xs text-error mt-1",
-													children: errors.client_name
+												/* @__PURE__ */ jsxs("div", { children: [
+													/* @__PURE__ */ jsx("label", {
+														htmlFor: "content_dt",
+														className: "block text-xs font-semibold text-secondary-900 mb-1",
+														children: isRtl ? "رسالتك" : "Message"
+													}),
+													/* @__PURE__ */ jsx("textarea", {
+														id: "content_dt",
+														value: data.content,
+														onChange: (e) => setData("content", e.target.value),
+														required: true,
+														rows: 3,
+														className: "w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none resize-none transition-all"
+													}),
+													errors.content && /* @__PURE__ */ jsx("p", {
+														className: "text-xs text-error mt-1",
+														children: errors.content
+													})
+												] }),
+												/* @__PURE__ */ jsxs("button", {
+													type: "submit",
+													disabled: processing,
+													className: "w-full py-3 bg-[#CC0000] hover:bg-[#b30000] text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-98 disabled:opacity-50 flex items-center justify-center gap-2",
+													children: [/* @__PURE__ */ jsx("svg", {
+														className: "w-4 h-4 rotate-180",
+														fill: "none",
+														viewBox: "0 0 24 24",
+														stroke: "currentColor",
+														strokeWidth: 2,
+														children: /* @__PURE__ */ jsx("path", {
+															strokeLinecap: "round",
+															strokeLinejoin: "round",
+															d: "M6 12L3 21l19-9L3 3l3 9zm0 0h7.5"
+														})
+													}), /* @__PURE__ */ jsx("span", { children: processing ? trans("loading", {}, "common") : isRtl ? "إرسال الرسالة" : "Send Message" })]
 												})
 											]
-										}),
-										/* @__PURE__ */ jsxs("div", {
-											className: "mb-3",
-											children: [/* @__PURE__ */ jsx("label", {
-												htmlFor: "client_phone",
-												className: "block text-xs font-medium text-secondary-950 mb-1",
-												children: trans("your_phone", {}, "messages")
-											}), /* @__PURE__ */ jsx("input", {
-												id: "client_phone",
-												type: "tel",
-												value: data.client_phone,
-												onChange: (e) => setData("client_phone", e.target.value),
-												className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
-											})]
-										}),
-										/* @__PURE__ */ jsxs("div", {
-											className: "mb-3",
-											children: [/* @__PURE__ */ jsx("label", {
-												htmlFor: "client_email",
-												className: "block text-xs font-medium text-secondary-950 mb-1",
-												children: trans("your_email", {}, "messages")
-											}), /* @__PURE__ */ jsx("input", {
-												id: "client_email",
-												type: "email",
-												value: data.client_email,
-												onChange: (e) => setData("client_email", e.target.value),
-												className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
-											})]
-										}),
-										/* @__PURE__ */ jsxs("div", {
-											className: "mb-4",
-											children: [
-												/* @__PURE__ */ jsx("label", {
-													htmlFor: "content",
-													className: "block text-xs font-medium text-secondary-950 mb-1",
-													children: trans("your_message", {}, "messages")
-												}),
-												/* @__PURE__ */ jsx("textarea", {
-													id: "content",
-													value: data.content,
-													onChange: (e) => setData("content", e.target.value),
-													required: true,
-													rows: 4,
-													className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
-												}),
-												errors.content && /* @__PURE__ */ jsx("p", {
-													className: "text-xs text-error mt-1",
-													children: errors.content
-												})
-											]
-										}),
-										/* @__PURE__ */ jsx("button", {
-											type: "submit",
-											disabled: processing,
-											className: "w-full px-4 py-2.5 bg-primary-900 text-white rounded-lg text-sm font-medium hover:bg-primary-950 transition-colors disabled:opacity-50",
-											children: processing ? trans("loading", {}, "common") : trans("send_message", {}, "messages")
 										})
 									]
 								})
 							]
+						}), /* @__PURE__ */ jsxs("div", {
+							className: "col-span-5 space-y-6 sticky top-24",
+							children: [/* @__PURE__ */ jsxs("div", {
+								className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4",
+								children: [/* @__PURE__ */ jsx("div", {
+									className: "flex items-center justify-between border-b border-secondary-100 pb-3",
+									children: /* @__PURE__ */ jsx("h2", {
+										className: "text-sm font-black text-secondary-950",
+										children: isRtl ? "معلومات المشروع" : "Project Info"
+									})
+								}), /* @__PURE__ */ jsxs("div", {
+									className: "space-y-2.5 text-xs",
+									children: [
+										/* @__PURE__ */ jsxs("div", {
+											className: "flex items-center justify-between py-1.5 border-b border-secondary-100/60",
+											children: [/* @__PURE__ */ jsx("span", {
+												className: "text-secondary-500 font-semibold",
+												children: isRtl ? "اسم المشروع" : "Project Name"
+											}), /* @__PURE__ */ jsx("span", {
+												className: "font-bold text-secondary-950",
+												children: unit.project?.name || (isRtl ? "مشروع النخيل" : "Al Nakheel")
+											})]
+										}),
+										/* @__PURE__ */ jsxs("div", {
+											className: "flex items-center justify-between py-1.5 border-b border-secondary-100/60",
+											children: [/* @__PURE__ */ jsx("span", {
+												className: "text-secondary-500 font-semibold",
+												children: isRtl ? "نوع المشروع" : "Type"
+											}), /* @__PURE__ */ jsx("span", {
+												className: "font-bold text-secondary-950",
+												children: isRtl ? "سكني" : "Residential"
+											})]
+										}),
+										/* @__PURE__ */ jsxs("div", {
+											className: "flex items-center justify-between py-1.5 border-b border-secondary-100/60",
+											children: [/* @__PURE__ */ jsx("span", {
+												className: "text-secondary-500 font-semibold",
+												children: isRtl ? "عدد الوحدات" : "Units Count"
+											}), /* @__PURE__ */ jsxs("span", {
+												className: "font-bold text-secondary-950",
+												children: ["124 ", isRtl ? "وحدة" : "Units"]
+											})]
+										}),
+										/* @__PURE__ */ jsxs("div", {
+											className: "flex items-center justify-between py-1.5 border-b border-secondary-100/60",
+											children: [/* @__PURE__ */ jsx("span", {
+												className: "text-secondary-500 font-semibold",
+												children: isRtl ? "مساحة المشروع" : "Project Area"
+											}), /* @__PURE__ */ jsx("span", {
+												className: "font-bold text-secondary-950",
+												children: "12,000 م²"
+											})]
+										}),
+										/* @__PURE__ */ jsxs("div", {
+											className: "flex items-center justify-between py-1.5 border-b border-secondary-100/60",
+											children: [/* @__PURE__ */ jsx("span", {
+												className: "text-secondary-500 font-semibold",
+												children: isRtl ? "سنة التسليم" : "Delivery Year"
+											}), /* @__PURE__ */ jsx("span", {
+												className: "font-bold text-secondary-950",
+												children: "2026"
+											})]
+										}),
+										/* @__PURE__ */ jsxs("div", {
+											className: "flex items-center justify-between py-1.5",
+											children: [/* @__PURE__ */ jsx("span", {
+												className: "text-secondary-500 font-semibold",
+												children: isRtl ? "حالة المشروع" : "Status"
+											}), /* @__PURE__ */ jsxs("span", {
+												className: "inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200",
+												children: [/* @__PURE__ */ jsx("span", { className: "w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" }), isRtl ? "قيد الإنشاء" : "Under Construction"]
+											})]
+										})
+									]
+								})]
+							}), /* @__PURE__ */ jsxs("div", {
+								id: "location",
+								className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4",
+								children: [
+									/* @__PURE__ */ jsx("h2", {
+										className: "text-sm font-black text-secondary-950",
+										children: isRtl ? "الموقع على الخريطة" : "Location on Map"
+									}),
+									/* @__PURE__ */ jsx("div", {
+										className: "rounded-xl overflow-hidden border border-secondary-200 aspect-[16/9]",
+										children: /* @__PURE__ */ jsx("iframe", {
+											src: `https://maps.google.com/maps?q=${unit.latitude || "30.0444"},${unit.longitude || "31.2357"}&hl=${locale}&z=14&output=embed`,
+											className: "w-full h-full border-0",
+											allowFullScreen: true,
+											loading: "lazy",
+											referrerPolicy: "no-referrer-when-downgrade",
+											title: "Google Map Location"
+										})
+									}),
+									/* @__PURE__ */ jsx("div", {
+										className: "text-center pt-1",
+										children: /* @__PURE__ */ jsxs("a", {
+											href: `https://www.google.com/maps/search/?api=1&query=${unit.latitude || "30.0444"},${unit.longitude || "31.2357"}`,
+											target: "_blank",
+											rel: "noopener noreferrer",
+											className: "inline-flex items-center justify-center gap-1.5 text-xs font-bold text-secondary-800 hover:text-[#CC0000] transition-colors",
+											children: [/* @__PURE__ */ jsxs("svg", {
+												className: "w-4 h-4 text-[#CC0000]",
+												fill: "none",
+												viewBox: "0 0 24 24",
+												stroke: "currentColor",
+												strokeWidth: 2,
+												children: [/* @__PURE__ */ jsx("path", {
+													strokeLinecap: "round",
+													strokeLinejoin: "round",
+													d: "M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"
+												}), /* @__PURE__ */ jsx("path", {
+													strokeLinecap: "round",
+													strokeLinejoin: "round",
+													d: "M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
+												})]
+											}), /* @__PURE__ */ jsx("span", { children: isRtl ? "فتح في خرائط Google" : "Open in Google Maps" })]
+										})
+									})
+								]
+							})]
 						})]
-					})]
-				}), similarUnits?.length > 0 && /* @__PURE__ */ jsxs("section", {
-					className: "mt-12",
-					children: [/* @__PURE__ */ jsx("h2", {
-						className: "text-xl font-bold text-secondary-950 mb-6",
-						children: trans("similar_units", {}, "units")
+					}),
+					/* @__PURE__ */ jsxs("div", {
+						className: "lg:hidden flex flex-col gap-6",
+						children: [
+							/* @__PURE__ */ jsxs("section", {
+								className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6",
+								children: [/* @__PURE__ */ jsx("h2", {
+									className: "text-lg font-black text-secondary-950 mb-3",
+									children: isRtl ? "نبذة عن الوحدة" : "Unit Overview"
+								}), /* @__PURE__ */ jsx("p", {
+									className: "text-sm text-secondary-700 leading-relaxed whitespace-pre-line font-normal",
+									children: (locale === "ar" ? unit.description_ar || unit.description : unit.description_en || unit.description) || (isRtl ? "شقة فاخرة بمساحة واسعة في موقع متميز تتميز بتصميم عصري وتقسيم ممتاز ومساحات تتيح أقصى درجات الراحة والتطشيبات عالية الجودة في واحدة من أفضل المناطق السكنية." : "Luxury spacious unit in a prime location with modern architecture, premium finishings, and optimal layout.")
+								})]
+							}),
+							embedUrl && /* @__PURE__ */ jsxs("section", {
+								id: "video-mob",
+								className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6",
+								children: [/* @__PURE__ */ jsxs("h2", {
+									className: "text-lg font-black text-secondary-950 mb-4 flex items-center gap-2",
+									children: [/* @__PURE__ */ jsxs("svg", {
+										className: "w-5 h-5 text-[#CC0000]",
+										fill: "none",
+										viewBox: "0 0 24 24",
+										stroke: "currentColor",
+										strokeWidth: 2,
+										children: [/* @__PURE__ */ jsx("path", {
+											strokeLinecap: "round",
+											strokeLinejoin: "round",
+											d: "M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+										}), /* @__PURE__ */ jsx("path", {
+											strokeLinecap: "round",
+											strokeLinejoin: "round",
+											d: "M15.91 11.672a.375.375 0 010 .656l-5.603 3.113a.375.375 0 01-.557-.328V8.887c0-.286.307-.466.557-.327l5.603 3.112z"
+										})]
+									}), /* @__PURE__ */ jsx("span", { children: isRtl ? "الفيديو التعريفي" : "Property Video Tour" })]
+								}), /* @__PURE__ */ jsx("div", {
+									className: "rounded-xl overflow-hidden aspect-video border border-secondary-200 shadow-sm bg-black",
+									children: /* @__PURE__ */ jsx("iframe", {
+										src: embedUrl,
+										className: "w-full h-full border-0",
+										allow: "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture",
+										allowFullScreen: true,
+										title: "Property Video Tour Mobile"
+									})
+								})]
+							}),
+							/* @__PURE__ */ jsxs("section", {
+								className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6",
+								children: [/* @__PURE__ */ jsx("h2", {
+									className: "text-lg font-black text-secondary-950 mb-4",
+									children: isRtl ? "المميزات" : "Features & Amenities"
+								}), /* @__PURE__ */ jsx("div", {
+									className: "grid grid-cols-2 sm:grid-cols-3 gap-3",
+									children: (unit.features?.length > 0 ? unit.features : [
+										{
+											id: 1,
+											name_ar: "حمام سباحة",
+											name_en: "Swimming Pool",
+											icon: "pool"
+										},
+										{
+											id: 2,
+											name_ar: "مصعد",
+											name_en: "Elevator",
+											icon: "elevator"
+										},
+										{
+											id: 3,
+											name_ar: "كافيه",
+											name_en: "Cafe",
+											icon: "cafe"
+										},
+										{
+											id: 4,
+											name_ar: "كاميرات مراقبة",
+											name_en: "CCTV Security",
+											icon: "cctv"
+										},
+										{
+											id: 5,
+											name_ar: "نادي رياضي",
+											name_en: "Gym & Fitness",
+											icon: "gym"
+										},
+										{
+											id: 6,
+											name_ar: "موقف سيارات",
+											name_en: "Parking Garage",
+											icon: "parking"
+										},
+										{
+											id: 7,
+											name_ar: "أمن وحراسة 24",
+											name_en: "24/7 Security",
+											icon: "security"
+										}
+									]).map((feature) => /* @__PURE__ */ jsxs("div", {
+										className: "flex flex-col items-center justify-center p-3.5 rounded-xl bg-surface border border-secondary-100 text-center gap-2",
+										children: [/* @__PURE__ */ jsx("div", {
+											className: "w-8 h-8 rounded-full bg-white shadow-xs border border-secondary-100 flex items-center justify-center text-secondary-700",
+											children: /* @__PURE__ */ jsx("svg", {
+												className: "w-4 h-4 text-[#CC0000]",
+												fill: "none",
+												viewBox: "0 0 24 24",
+												stroke: "currentColor",
+												strokeWidth: 2,
+												children: /* @__PURE__ */ jsx("path", {
+													strokeLinecap: "round",
+													strokeLinejoin: "round",
+													d: "M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+												})
+											})
+										}), /* @__PURE__ */ jsx("span", {
+											className: "text-xs font-semibold text-secondary-800",
+											children: locale === "ar" ? feature.name_ar : feature.name_en
+										})]
+									}, feature.id))
+								})]
+							}),
+							/* @__PURE__ */ jsxs("div", {
+								className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4",
+								children: [/* @__PURE__ */ jsx("h2", {
+									className: "text-sm font-black text-secondary-950 border-b border-secondary-100 pb-3",
+									children: isRtl ? "معلومات المشروع" : "Project Info"
+								}), /* @__PURE__ */ jsxs("div", {
+									className: "space-y-2.5 text-xs",
+									children: [/* @__PURE__ */ jsxs("div", {
+										className: "flex items-center justify-between py-1.5 border-b border-secondary-100/60",
+										children: [/* @__PURE__ */ jsx("span", {
+											className: "text-secondary-500 font-semibold",
+											children: isRtl ? "اسم المشروع" : "Project Name"
+										}), /* @__PURE__ */ jsx("span", {
+											className: "font-bold text-secondary-950",
+											children: unit.project?.name || (isRtl ? "مشروع النخيل" : "Al Nakheel")
+										})]
+									}), /* @__PURE__ */ jsxs("div", {
+										className: "flex items-center justify-between py-1.5 border-b border-secondary-100/60",
+										children: [/* @__PURE__ */ jsx("span", {
+											className: "text-secondary-500 font-semibold",
+											children: isRtl ? "عدد الوحدات" : "Units Count"
+										}), /* @__PURE__ */ jsxs("span", {
+											className: "font-bold text-secondary-950",
+											children: ["124 ", isRtl ? "وحدة" : "Units"]
+										})]
+									})]
+								})]
+							}),
+							/* @__PURE__ */ jsxs("div", {
+								className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4",
+								children: [/* @__PURE__ */ jsx("h2", {
+									className: "text-sm font-black text-secondary-950",
+									children: isRtl ? "الموقع على الخريطة" : "Location on Map"
+								}), /* @__PURE__ */ jsx("div", {
+									className: "rounded-xl overflow-hidden border border-secondary-200 aspect-[16/9]",
+									children: /* @__PURE__ */ jsx("iframe", {
+										src: `https://maps.google.com/maps?q=${unit.latitude || "30.0444"},${unit.longitude || "31.2357"}&hl=${locale}&z=14&output=embed`,
+										className: "w-full h-full border-0",
+										allowFullScreen: true,
+										loading: "lazy",
+										referrerPolicy: "no-referrer-when-downgrade",
+										title: "Google Map Location Mobile"
+									})
+								})]
+							}),
+							/* @__PURE__ */ jsxs("section", {
+								className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6",
+								children: [
+									/* @__PURE__ */ jsx("h2", {
+										className: "text-lg font-black text-secondary-950 mb-1",
+										children: isRtl ? "تواصل معنا" : "Contact Us"
+									}),
+									/* @__PURE__ */ jsx("p", {
+										className: "text-xs text-secondary-500 font-medium mb-5",
+										children: isRtl ? "يرجى ملء النموذج وسيتواصل معك أحد مستشارينا في أقرب وقت" : "Please fill out the form and our advisor will get in touch shortly."
+									}),
+									/* @__PURE__ */ jsxs("form", {
+										onSubmit: handleSubmit,
+										noValidate: true,
+										className: "space-y-4",
+										children: [
+											/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+												htmlFor: "client_name_mob",
+												className: "block text-xs font-semibold text-secondary-900 mb-1",
+												children: isRtl ? "الاسم الكامل" : "Full Name"
+											}), /* @__PURE__ */ jsx("input", {
+												id: "client_name_mob",
+												type: "text",
+												value: data.client_name,
+												onChange: (e) => setData("client_name", e.target.value),
+												required: true,
+												className: "w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none"
+											})] }),
+											/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+												htmlFor: "client_phone_mob",
+												className: "block text-xs font-semibold text-secondary-900 mb-1",
+												children: isRtl ? "رقم الهاتف" : "Phone Number"
+											}), /* @__PURE__ */ jsx("input", {
+												id: "client_phone_mob",
+												type: "tel",
+												value: data.client_phone,
+												onChange: (e) => setData("client_phone", e.target.value),
+												className: "w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none"
+											})] }),
+											/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+												htmlFor: "content_mob",
+												className: "block text-xs font-semibold text-secondary-900 mb-1",
+												children: isRtl ? "رسالتك" : "Message"
+											}), /* @__PURE__ */ jsx("textarea", {
+												id: "content_mob",
+												value: data.content,
+												onChange: (e) => setData("content", e.target.value),
+												required: true,
+												rows: 3,
+												className: "w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none resize-none"
+											})] }),
+											/* @__PURE__ */ jsx("button", {
+												type: "submit",
+												disabled: processing,
+												className: "w-full py-3 bg-[#CC0000] hover:bg-[#b30000] text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-2",
+												children: /* @__PURE__ */ jsx("span", { children: processing ? trans("loading", {}, "common") : isRtl ? "إرسال الرسالة" : "Send Message" })
+											})
+										]
+									})
+								]
+							})
+						]
+					})
+				] }), similarUnits?.length > 0 && /* @__PURE__ */ jsxs("section", {
+					className: "mt-12 bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 sm:p-8",
+					children: [/* @__PURE__ */ jsxs("div", {
+						className: "flex items-center gap-3 mb-6",
+						children: [/* @__PURE__ */ jsx("div", { className: "w-1.5 h-6 bg-[#CC0000] rounded-full" }), /* @__PURE__ */ jsx("h2", {
+							className: "text-lg md:text-xl font-black text-secondary-950 tracking-tight",
+							children: trans("similar_units", {}, "units")
+						})]
 					}), /* @__PURE__ */ jsx("div", {
-						className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4",
-						children: similarUnits.map((u) => /* @__PURE__ */ jsx(UnitCard, { unit: u }, u.id))
+						className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6",
+						children: similarUnits.map((u) => /* @__PURE__ */ jsx(UnitCard_default, { unit: u }, u.id))
 					})]
 				})]
 			}),
+			unit && /* @__PURE__ */ jsxs("div", {
+				className: "fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-xl border-t border-secondary-200 p-3 shadow-lg flex items-center justify-between gap-3 md:hidden",
+				children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("span", {
+					className: "text-[10px] font-bold text-secondary-500 uppercase block",
+					children: isRtl ? "السعر" : "Price"
+				}), /* @__PURE__ */ jsxs("span", {
+					className: "text-base font-black text-[#CC0000]",
+					children: [
+						Number(unit.price).toLocaleString(locale === "ar" ? "ar-EG" : "en-US"),
+						" ",
+						/* @__PURE__ */ jsx("span", {
+							className: "text-xs font-bold",
+							children: trans("currency_egp")
+						})
+					]
+				})] }), /* @__PURE__ */ jsxs("a", {
+					href: "#contact-form",
+					className: "px-5 py-2.5 bg-[#CC0000] text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-md hover:bg-[#b30000] transition-colors",
+					children: [/* @__PURE__ */ jsx("svg", {
+						className: "w-4 h-4",
+						fill: "none",
+						viewBox: "0 0 24 24",
+						stroke: "currentColor",
+						strokeWidth: 2,
+						children: /* @__PURE__ */ jsx("path", {
+							strokeLinecap: "round",
+							strokeLinejoin: "round",
+							d: "M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"
+						})
+					}), /* @__PURE__ */ jsx("span", { children: isRtl ? "تواصل مع الوكيل" : "Contact Agent" })]
+				})]
+			}),
 			lightboxIndex !== null && images.length > 0 && /* @__PURE__ */ jsxs("div", {
-				className: "fixed inset-0 z-50 bg-black/80 flex items-center justify-center",
+				className: "fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4",
 				onClick: () => setLightboxIndex(null),
 				children: [
 					/* @__PURE__ */ jsx("button", {
+						type: "button",
 						onClick: () => setLightboxIndex(null),
-						className: "absolute top-4 end-4 text-white text-2xl",
+						className: "absolute top-4 end-4 text-white text-2xl bg-black/50 w-10 h-10 rounded-full flex items-center justify-center hover:bg-black",
 						"aria-label": trans("close"),
 						children: "✕"
 					}),
 					/* @__PURE__ */ jsx("img", {
-						src: images[lightboxIndex]?.url || (images[lightboxIndex]?.path?.startsWith("http") || images[lightboxIndex]?.path?.startsWith("/") ? images[lightboxIndex]?.path : `/storage/${images[lightboxIndex]?.path}`),
+						src: images[lightboxIndex]?.url || (images[lightboxIndex]?.path ? `/storage/${images[lightboxIndex].path}` : "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 600\"%3E%3Crect fill=\"%23F0F0F0\" width=\"800\" height=\"600\"/%3E%3C/svg%3E"),
 						alt: "",
-						className: "max-w-[90vw] max-h-[90vh] object-contain",
+						className: "max-w-[90vw] max-h-[85vh] object-contain rounded-xl",
 						onClick: (e) => e.stopPropagation()
 					}),
 					images.length > 1 && /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("button", {
+						type: "button",
 						onClick: (e) => {
 							e.stopPropagation();
 							setLightboxIndex((prev) => prev === 0 ? images.length - 1 : prev - 1);
 						},
-						className: `absolute top-1/2 -translate-y-1/2 ${isRtl ? "right-4" : "left-4"} w-10 h-10 bg-black/50 hover:bg-black/80 rounded-full text-white flex items-center justify-center transition-colors`,
-						"aria-label": trans("previous"),
+						className: `absolute top-1/2 -translate-y-1/2 ${isRtl ? "right-4" : "left-4"} w-11 h-11 min-w-[44px] min-h-[44px] bg-black/60 hover:bg-black rounded-full text-white flex items-center justify-center transition-colors`,
+						"aria-label": trans("previous_image") || "Previous image",
 						children: /* @__PURE__ */ jsx("svg", {
 							className: `w-6 h-6 ${isRtl ? "rotate-180" : ""}`,
 							fill: "none",
@@ -16129,12 +20877,13 @@ function UnitShow({ unit, similarUnits }) {
 							})
 						})
 					}), /* @__PURE__ */ jsx("button", {
+						type: "button",
 						onClick: (e) => {
 							e.stopPropagation();
 							setLightboxIndex((prev) => prev === images.length - 1 ? 0 : prev + 1);
 						},
-						className: `absolute top-1/2 -translate-y-1/2 ${isRtl ? "left-4" : "right-4"} w-10 h-10 bg-black/50 hover:bg-black/80 rounded-full text-white flex items-center justify-center transition-colors`,
-						"aria-label": trans("next"),
+						className: `absolute top-1/2 -translate-y-1/2 ${isRtl ? "left-4" : "right-4"} w-11 h-11 min-w-[44px] min-h-[44px] bg-black/60 hover:bg-black rounded-full text-white flex items-center justify-center transition-colors`,
+						"aria-label": trans("next_image") || "Next image",
 						children: /* @__PURE__ */ jsx("svg", {
 							className: `w-6 h-6 ${isRtl ? "rotate-180" : ""}`,
 							fill: "none",
@@ -16147,19 +20896,33 @@ function UnitShow({ unit, similarUnits }) {
 								d: "M9 5l7 7-7 7"
 							})
 						})
-					})] }),
-					images.length > 1 && /* @__PURE__ */ jsx("div", {
-						className: "absolute bottom-4 flex gap-2",
-						children: images.map((_, i) => /* @__PURE__ */ jsx("button", {
-							onClick: (e) => {
-								e.stopPropagation();
-								setLightboxIndex(i);
-							},
-							"aria-label": isRtl ? `صورة ${i + 1}` : `Image ${i + 1}`,
-							className: `w-3 h-3 rounded-full ${i === lightboxIndex ? "bg-white" : "bg-white/40"}`
-						}, i))
-					})
+					})] })
 				]
+			}),
+			/* @__PURE__ */ jsxs("div", {
+				className: "fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-secondary-200 p-3 sm:hidden flex items-center gap-3 shadow-2xl",
+				children: [/* @__PURE__ */ jsxs("a", {
+					href: `https://wa.me/${agentContacts.whatsapp}`,
+					target: "_blank",
+					rel: "noopener noreferrer",
+					className: "flex-1 py-3 px-4 bg-[#16a34a] hover:bg-[#15803d] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-colors active:scale-98 min-h-[44px]",
+					children: [/* @__PURE__ */ jsx(WhatsAppIcon$1, { className: "w-4 h-4 fill-current" }), /* @__PURE__ */ jsx("span", { children: isRtl ? "واتساب" : "WhatsApp" })]
+				}), /* @__PURE__ */ jsxs("a", {
+					href: `tel:${agentContacts.phone}`,
+					className: "flex-1 py-3 px-4 bg-[#CC0000] hover:bg-[#b30000] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-colors active:scale-98 min-h-[44px]",
+					children: [/* @__PURE__ */ jsx("svg", {
+						className: "w-4 h-4",
+						fill: "none",
+						viewBox: "0 0 24 24",
+						stroke: "currentColor",
+						strokeWidth: 2,
+						children: /* @__PURE__ */ jsx("path", {
+							strokeLinecap: "round",
+							strokeLinejoin: "round",
+							d: "M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"
+						})
+					}), /* @__PURE__ */ jsx("span", { children: isRtl ? "اتصال مباشر" : "Call Agent" })]
+				})]
 			}),
 			/* @__PURE__ */ jsx(Footer, {})
 		]
@@ -17200,7 +21963,10 @@ async function renderPage(page) {
 		render: renderToString,
 		resolve: (name) => {
 			return (/* @__PURE__ */ Object.assign({
-				"./Pages/Admin/About/Edit.jsx": Edit_exports$1,
+				"./Pages/Admin/About/Edit.jsx": Edit_exports$2,
+				"./Pages/Admin/Areas/AreaForm.jsx": AreaForm_exports,
+				"./Pages/Admin/Areas/Create.jsx": Create_exports$1,
+				"./Pages/Admin/Areas/Edit.jsx": Edit_exports$1,
 				"./Pages/Admin/Areas/Index.jsx": Index_exports$16,
 				"./Pages/Admin/Articles/Form.jsx": Form_exports$2,
 				"./Pages/Admin/Articles/Index.jsx": Index_exports$15,
@@ -17243,7 +22009,7 @@ async function renderPage(page) {
 				"./Pages/Shared/Welcome.jsx": Welcome_exports
 			}))[`./Pages/${name}.jsx`];
 		},
-		setup: ({ App, props }) => /* @__PURE__ */ jsx(App, { ...props })
+		setup: ({ App, props }) => /* @__PURE__ */ jsx(CompareProvider, { children: /* @__PURE__ */ jsx(App, { ...props }) })
 	});
 }
 var PORT = Number(process.env.PORT || 13714);

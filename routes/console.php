@@ -8,6 +8,10 @@ use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 
+Artisan::command('prerender:data', function () {
+    return $this->call(\App\Console\Commands\ExportPrerenderData::class);
+})->purpose('Export all public page route HTML templates and Inertia page objects for static prerendering');
+
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');

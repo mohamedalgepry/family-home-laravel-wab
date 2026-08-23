@@ -7,6 +7,7 @@ const PRERENDER_DIR = path.join(process.cwd(), 'storage', 'app', 'prerendered')
 const STAGING_DIR = path.join(process.cwd(), 'storage', 'app', 'prerendered.new')
 const BACKUP_DIR = path.join(process.cwd(), 'storage', 'app', 'prerendered.old')
 const BUILD_DIR = path.join(process.cwd(), 'public', 'build')
+const MANIFEST_PATH = path.join(BUILD_DIR, 'manifest.json')
 const SSR_PORT = 13714
 const ALLOW_FAILURES = process.env.PRERENDER_ALLOW_FAILURES === '1'
 
@@ -19,7 +20,7 @@ async function main() {
         process.exit(1)
     }
 
-    if (!fs.existsSync(path.join(BUILD_DIR, 'manifest.json'))) {
+    if (!fs.existsSync(MANIFEST_PATH)) {
         console.error('[Prerender] Error: Vite build manifest not found at public/build/manifest.json. Run "vite build" first.')
         process.exit(1)
     }
@@ -64,7 +65,6 @@ async function main() {
                 const ssrResult = await renderPage(item.page)
                 const fullHtml = mergeHtml(item.htmlTemplate, ssrResult, item.baseUrl)
 
-                validateAssets(fullHtml, item.url)
                 assertCleanEncoding(fullHtml, item.url)
 
                 const targetFile = path.join(STAGING_DIR, item.output)
@@ -77,7 +77,7 @@ async function main() {
             }
         }
 
-        console.log(`[Prerender] Successfully generated ${count}/${pages.length} static HTML pages in storage/app/prerendered/`)
+        console.log(`[Prerender] Generated ${count}/${pages.length} static HTML pages in staging.`)
 
         if (failures.length > 0) {
             const summary = failures.map(({ url }) => url).join(', ')
@@ -88,8 +88,12 @@ async function main() {
             }
         }
 
+        // Strict post-generation verification across ALL generated files
+        console.log('[Prerender] Verifying all generated files for localhost leakage, stale hashes, and missing assets...')
+        validateAllStagingFiles(STAGING_DIR)
+
         swapDirectories()
-        console.log('[Prerender] Done — new prerendered pages are live.')
+        console.log('[Prerender] Done — all prerendered pages verified and live.')
     } catch (err) {
         console.error('[Prerender] Error during prerender process:', err.message ?? err)
         fs.rmSync(STAGING_DIR, { recursive: true, force: true })
@@ -127,9 +131,6 @@ function renderPage(pageObject) {
                     },
                 },
                 res => {
-                    // NOTE: never do `data += chunk` here — decoding each TCP chunk as UTF-8
-                    // independently corrupts multi-byte characters split across chunk
-                    // boundaries (a real source of the garbled-Arabic bug).
                     const chunks = []
                     res.on('data', chunk => chunks.push(Buffer.from(chunk)))
                     res.on('end', () => {
@@ -163,7 +164,7 @@ function renderPage(pageObject) {
     })
 }
 
-function mergeHtml(templateHtml, ssrResult, baseUrl) {
+function mergeHtml(templateHtml, ssrResult, rawBaseUrl) {
     let finalHtml = templateHtml
 
     if (ssrResult?.body) {
@@ -182,48 +183,108 @@ function mergeHtml(templateHtml, ssrResult, baseUrl) {
         }
     }
 
-    // Final safety net: never let dev-host URLs leak into the static HTML.
-    // Handles both raw (http://127.0.0.1:8000) and JSON-escaped (http:\/\/127.0.0.1:8000)
-    // forms, with optional port numbers, and always strips the port.
-    if (baseUrl) {
-        finalHtml = finalHtml
-            .replace(/https?:\\\/\\\/(?:localhost|127\.0\.0\.1)(?::\d+)?/g, baseUrl)
-            .replace(/https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?/g, baseUrl)
+    // Determine clean production base URL
+    let targetBaseUrl = (rawBaseUrl || '').trim()
+    if (!targetBaseUrl || targetBaseUrl.includes('127.0.0.1') || targetBaseUrl.includes('localhost')) {
+        targetBaseUrl = 'https://familyhome-co.com'
     }
+    targetBaseUrl = targetBaseUrl.replace(/\/+$/, '')
+
+    // 1. Strip dev host prefix from static assets and fonts/images, making them clean root-relative
+    finalHtml = finalHtml
+        .replace(/https?:\\\/\\\/(?:localhost|127\.0\.0\.1)(?::\d+)?(\\\/build\\\/[^\s"'>]+|\\\/images\\\/[^\s"'>]+|\\\/fonts\\\/[^\s"'>]+|\\\/storage\\\/[^\s"'>]+|\\\/(?:favicon\.ico|icon\.(?:png|webp)|site\.webmanifest))/gi, '$1')
+        .replace(/https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?(\/build\/[^\s"'>]+|\/images\/[^\s"'>]+|\/fonts\/[^\s"'>]+|\/storage\/[^\s"'>]+|\/(?:favicon\.ico|icon\.(?:png|webp)|site\.webmanifest))/gi, '$1')
+
+    // 2. Replace any remaining dev-host URLs in canonical, og:url, og:image, schema with clean targetBaseUrl
+    const escapedBase = targetBaseUrl.replace(/\//g, '\\/')
+    finalHtml = finalHtml
+        .replace(/https?:\\\/\\\/(?:localhost|127\.0\.0\.1)(?::\d+)?/gi, escapedBase)
+        .replace(/https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?/gi, targetBaseUrl)
 
     return finalHtml
 }
 
-function validateAssets(html, url) {
-    const missing = new Set()
-    for (const match of html.matchAll(/([^"'\s()]+\.(?:js|css))(?=["')\s<])/g)) {
-        const ref = match[1].split('?')[0].split('#')[0]
-        if (!ref.includes('/assets/')) {
-            continue
+function validateAllStagingFiles(dir) {
+    const manifestRaw = fs.readFileSync(MANIFEST_PATH, 'utf-8')
+    const manifest = JSON.parse(manifestRaw)
+
+    const validAssetFiles = new Set()
+    for (const entry of Object.values(manifest)) {
+        if (entry.file) {
+            validAssetFiles.add(path.basename(entry.file))
         }
-        const filename = ref.substring(ref.lastIndexOf('/') + 1)
-        if (!fs.existsSync(path.join(BUILD_DIR, 'assets', filename))) {
-            missing.add(ref)
+        if (Array.isArray(entry.assets)) {
+            for (const a of entry.assets) {
+                validAssetFiles.add(path.basename(a))
+            }
         }
     }
-    if (missing.size > 0) {
-        throw new Error(
-            `Stale/missing build assets referenced by ${url}: ${[...missing].join(', ')}. ` +
-            'Run a fresh "vite build" and re-run prerender.'
-        )
+
+    const htmlFiles = getHtmlFilesRecursive(dir)
+    if (htmlFiles.length === 0) {
+        throw new Error('No HTML files were generated in staging directory.')
     }
+
+    let localhostViolations = []
+    let assetViolations = []
+
+    for (const file of htmlFiles) {
+        const relativePath = path.relative(dir, file)
+        const html = fs.readFileSync(file, 'utf-8')
+
+        // 1. Check for localhost / 127.0.0.1
+        if (/127\.0\.0\.1|localhost|:8000/i.test(html)) {
+            const matches = html.match(/https?:\/\/(?:127\.0\.0\.1|localhost)[^\s"'>]*/gi) || ['localhost reference']
+            localhostViolations.push({ file: relativePath, matches })
+        }
+
+        // 2. Extract referenced assets
+        const assetMatches = Array.from(html.matchAll(/\/assets\/([a-zA-Z0-9_\-\.]+\.(?:js|css|woff2))/gi)).map(m => m[1])
+        for (const filename of assetMatches) {
+            if (!validAssetFiles.has(filename)) {
+                assetViolations.push({ file: relativePath, asset: filename, reason: 'Not in manifest.json' })
+            } else if (!fs.existsSync(path.join(BUILD_DIR, 'assets', filename))) {
+                assetViolations.push({ file: relativePath, asset: filename, reason: 'File missing from public/build/assets' })
+            }
+        }
+    }
+
+    if (localhostViolations.length > 0) {
+        const details = localhostViolations.map(v => `${v.file}: ${v.matches.join(', ')}`).join('\n')
+        throw new Error(`[Prerender Verification Failed] Localhost/127.0.0.1 found in ${localhostViolations.length} file(s):\n${details}`)
+    }
+
+    if (assetViolations.length > 0) {
+        const details = assetViolations.map(v => `${v.file}: ${v.asset} (${v.reason})`).join('\n')
+        throw new Error(`[Prerender Verification Failed] Stale or missing assets found in ${assetViolations.length} reference(s):\n${details}`)
+    }
+
+    console.log(`[Prerender] Verification Passed: 0 localhost links, 0 stale hashes across ${htmlFiles.length} files.`)
+}
+
+function getHtmlFilesRecursive(dir) {
+    let results = []
+    if (!fs.existsSync(dir)) return results
+    const list = fs.readdirSync(dir)
+    for (const file of list) {
+        const full = path.join(dir, file)
+        const stat = fs.statSync(full)
+        if (stat && stat.isDirectory()) {
+            results = results.concat(getHtmlFilesRecursive(full))
+        } else if (file.endsWith('.html')) {
+            results.push(full)
+        }
+    }
+    return results
 }
 
 function assertCleanEncoding(html, url) {
     if (html.includes('\uFFFD')) {
         throw new Error(`Replacement character (U+FFFD) found in prerendered HTML for ${url} — encoding corruption.`)
     }
-    // Double-encoded UTF-8 (e.g. Arabic) appears as runs of Latin-1 supplement chars like ØÙ…Ø±ÙƒØ².
-    // A run of 3+ such chars in a row is essentially always mojibake, never legit text.
     if (/(?:[\u00C0-\u00FF]{3,})/.test(html)) {
         throw new Error(`Double-encoded (mojibake) text detected in prerendered HTML for ${url}. Aborting to avoid serving corrupted content.`)
     }
 }
 
 main()
-

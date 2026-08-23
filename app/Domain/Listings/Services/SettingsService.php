@@ -34,9 +34,13 @@ class SettingsService
 
     public function getAll(): array
     {
-        return Cache::remember(self::CACHE_KEY, self::CACHE_TTL, function () {
-            return Setting::pluck('value', 'key')->toArray();
-        });
+        try {
+            return Cache::remember(self::CACHE_KEY, self::CACHE_TTL, function () {
+                return Setting::pluck('value', 'key')->toArray();
+            });
+        } catch (\Throwable $e) {
+            return [];
+        }
     }
 
     public function updateMany(array $settings): void

@@ -27,24 +27,41 @@ class HomeController
         $featuredPage = (int) request()->input('featured_page', 1);
         $latestUnitsPage = (int) request()->input('latest_units_page', 1);
         $latestProjectsPage = (int) request()->input('latest_projects_page', 1);
-        $version = Cache::get(ListingService::CACHE_VERSION_KEY, 1);
+        $version = 1;
+        try {
+            $version = Cache::get(ListingService::CACHE_VERSION_KEY, 1);
+        } catch (\Throwable $e) {
+        }
 
-        $homeData = Cache::remember(
-            "home_page_data_f{$featuredPage}_u{$latestUnitsPage}_p{$latestProjectsPage}_v{$version}",
-            300,
-            function () {
-                return [
-                    'featuredUnits' => $this->listingService->getFeaturedUnits(8, 'featured_page'),
-                    'latestUnits' => $this->listingService->getLatestUnits(12, 'latest_units_page'),
-                    'latestProjects' => $this->listingService->getLatestProjects(8, 'latest_projects_page'),
-                    'popularSearches' => $this->searchService->getPopularSearches(),
-                    'areas' => $this->lookupService->areas(),
-                    'unitTypes' => $this->lookupService->unitTypes(),
-                    'features' => $this->lookupService->features(),
-                    'finishingTypes' => $this->lookupService->finishingTypes(),
-                ];
-            }
-        );
+        try {
+            $homeData = Cache::remember(
+                "home_page_data_f{$featuredPage}_u{$latestUnitsPage}_p{$latestProjectsPage}_v{$version}",
+                300,
+                function () {
+                    return [
+                        'featuredUnits' => $this->listingService->getFeaturedUnits(8, 'featured_page'),
+                        'latestUnits' => $this->listingService->getLatestUnits(12, 'latest_units_page'),
+                        'latestProjects' => $this->listingService->getLatestProjects(8, 'latest_projects_page'),
+                        'popularSearches' => $this->searchService->getPopularSearches(),
+                        'areas' => $this->lookupService->areas(),
+                        'unitTypes' => $this->lookupService->unitTypes(),
+                        'features' => $this->lookupService->features(),
+                        'finishingTypes' => $this->lookupService->finishingTypes(),
+                    ];
+                }
+            );
+        } catch (\Throwable $e) {
+            $homeData = [
+                'featuredUnits' => new \Illuminate\Pagination\LengthAwarePaginator([], 0, 8),
+                'latestUnits' => new \Illuminate\Pagination\LengthAwarePaginator([], 0, 12),
+                'latestProjects' => new \Illuminate\Pagination\LengthAwarePaginator([], 0, 8),
+                'popularSearches' => [],
+                'areas' => [],
+                'unitTypes' => [],
+                'features' => [],
+                'finishingTypes' => [],
+            ];
+        }
 
         $homeData['featuredUnits'] = UnitPublicResource::collection($homeData['featuredUnits']);
         $homeData['latestUnits'] = UnitPublicResource::collection($homeData['latestUnits']);

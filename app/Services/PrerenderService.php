@@ -25,16 +25,20 @@ class PrerenderService
                 return;
             }
 
-            $desktopUrl = str_starts_with($heroImage, 'http') || str_starts_with($heroImage, '/storage')
+            $cleanDesktop = str_starts_with($heroImage, '/storage') || str_starts_with($heroImage, '/images')
                 ? $heroImage
-                : asset('storage/'.$heroImage);
+                : '/storage/'.ltrim($heroImage, '/');
+            $cleanDesktop = preg_replace('#^https?://(?:localhost|127\.0\.0\.1)(?::\d+)?#i', '', $cleanDesktop);
 
-            $mobileUrl = $heroMobile
-                ? (str_starts_with($heroMobile, 'http') || str_starts_with($heroMobile, '/storage') ? $heroMobile : asset('storage/'.$heroMobile))
-                : $desktopUrl;
+            $cleanMobile = $heroMobile
+                ? (str_starts_with($heroMobile, '/storage') || str_starts_with($heroMobile, '/images') ? $heroMobile : '/storage/'.ltrim($heroMobile, '/'))
+                : $cleanDesktop;
+            $cleanMobile = preg_replace('#^https?://(?:localhost|127\.0\.0\.1)(?::\d+)?#i', '', $cleanMobile);
 
-            $desktopRelative = str_starts_with($heroImage, '/storage') ? $heroImage : '/storage/'.$heroImage;
-            $mobileRelative = $heroMobile ? (str_starts_with($heroMobile, '/storage') ? $heroMobile : '/storage/'.$heroMobile) : $desktopRelative;
+            $desktopRelative = $cleanDesktop;
+            $mobileRelative = $cleanMobile;
+            $desktopUrl = $cleanDesktop;
+            $mobileUrl = $cleanMobile;
 
             $locales = ['ar', 'en'];
             foreach ($locales as $locale) {

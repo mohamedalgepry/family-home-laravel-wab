@@ -3,6 +3,8 @@ import { renderToString } from 'react-dom/server'
 import http from 'node:http'
 import { loadLocale } from './Utils/trans'
 
+import { CompareProvider } from './Contexts/CompareContext'
+
 async function renderPage(page) {
     await loadLocale(page.props?.locale)
 
@@ -13,7 +15,11 @@ async function renderPage(page) {
             const pages = import.meta.glob('./Pages/**/*.jsx', { eager: true })
             return pages[`./Pages/${name}.jsx`]
         },
-        setup: ({ App, props }) => <App {...props} />,
+        setup: ({ App, props }) => (
+            <CompareProvider>
+                <App {...props} />
+            </CompareProvider>
+        ),
     })
 }
 
