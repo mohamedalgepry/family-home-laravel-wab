@@ -4,6 +4,8 @@ import { useTrans } from '../../../Utils/trans'
 import Header from '../../../Components/Layout/Header'
 import Footer from '../../../Components/Layout/Footer'
 import UnitCard from '../../../Components/UI/UnitCard'
+import ProjectCard from '../../../Components/UI/ProjectCard'
+import ArticleCard from '../../../Components/UI/ArticleCard'
 import AgentCard from '../../../Components/Features/AgentCard'
 import SeoHead from '../../../Components/UI/SeoHead'
 import { getYouTubeEmbedUrl } from '../../../Utils/youtube'
@@ -12,7 +14,7 @@ import { getAgentContacts } from '../../../Utils/contact'
 import { WhatsAppIcon } from '../../../Components/UI'
 import { useState, useMemo } from 'react'
 
-export default function UnitShow({ unit, similarUnits }) {
+export default function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
     const page = usePage()
     const { locale, flash, appUrl, seo_meta } = page.props
     const trans = useTrans(locale)
@@ -639,42 +641,72 @@ export default function UnitShow({ unit, similarUnits }) {
 
                             {/* Right Sidebar Column (5 cols desktop, continuous & sticky) */}
                             <div className="col-span-5 space-y-6 sticky top-24">
-                                {/* Card 1: معلومات المشروع */}
-                                <div className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4">
-                                    <div className="flex items-center justify-between border-b border-secondary-100 pb-3">
-                                        <h2 className="text-sm font-black text-secondary-950">{isRtl ? 'معلومات المشروع' : 'Project Info'}</h2>
-                                    </div>
+                                {/* Card 1: معلومات المشروع أو المنطقة */}
+                                {unit.project ? (
+                                    <div className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4">
+                                        <div className="flex items-center justify-between border-b border-secondary-100 pb-3">
+                                            <h2 className="text-sm font-black text-secondary-950">{isRtl ? 'مشروع الوحدة' : 'Project Info'}</h2>
+                                            <span className="text-[11px] font-bold text-primary-900 bg-primary-50 px-2 py-0.5 rounded-full">{isRtl ? 'مشروع عقاري' : 'Project'}</span>
+                                        </div>
 
-                                    <div className="space-y-2.5 text-xs">
-                                        <div className="flex items-center justify-between py-1.5 border-b border-secondary-100/60">
-                                            <span className="text-secondary-500 font-semibold">{isRtl ? 'اسم المشروع' : 'Project Name'}</span>
-                                            <span className="font-bold text-secondary-950">{unit.project?.name || (isRtl ? 'مشروع النخيل' : 'Al Nakheel')}</span>
+                                        <div className="space-y-2.5 text-xs">
+                                            <div className="flex items-center justify-between py-1.5 border-b border-secondary-100/60">
+                                                <span className="text-secondary-500 font-semibold">{isRtl ? 'اسم المشروع' : 'Project Name'}</span>
+                                                <span className="font-bold text-secondary-950">{unit.project.name}</span>
+                                            </div>
+                                            {unit.project.area?.name && (
+                                                <div className="flex items-center justify-between py-1.5 border-b border-secondary-100/60">
+                                                    <span className="text-secondary-500 font-semibold">{isRtl ? 'المنطقة' : 'Area'}</span>
+                                                    <span className="font-bold text-secondary-950">{unit.project.area.name}</span>
+                                                </div>
+                                            )}
+                                            {unit.project.installment_years > 0 && (
+                                                <div className="flex items-center justify-between py-1.5 border-b border-secondary-100/60">
+                                                    <span className="text-secondary-500 font-semibold">{isRtl ? 'سنوات التقسيط' : 'Installment Years'}</span>
+                                                    <span className="font-bold text-secondary-950">{unit.project.installment_years} {isRtl ? 'سنوات' : 'Years'}</span>
+                                                </div>
+                                            )}
+                                            <div className="flex items-center justify-between py-1.5">
+                                                <span className="text-secondary-500 font-semibold">{isRtl ? 'حالة المشروع' : 'Status'}</span>
+                                                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                                                    {isRtl ? 'متاح للبيع' : 'Available'}
+                                                </span>
+                                            </div>
                                         </div>
-                                        <div className="flex items-center justify-between py-1.5 border-b border-secondary-100/60">
-                                            <span className="text-secondary-500 font-semibold">{isRtl ? 'نوع المشروع' : 'Type'}</span>
-                                            <span className="font-bold text-secondary-950">{isRtl ? 'سكني' : 'Residential'}</span>
-                                        </div>
-                                        <div className="flex items-center justify-between py-1.5 border-b border-secondary-100/60">
-                                            <span className="text-secondary-500 font-semibold">{isRtl ? 'عدد الوحدات' : 'Units Count'}</span>
-                                            <span className="font-bold text-secondary-950">124 {isRtl ? 'وحدة' : 'Units'}</span>
-                                        </div>
-                                        <div className="flex items-center justify-between py-1.5 border-b border-secondary-100/60">
-                                            <span className="text-secondary-500 font-semibold">{isRtl ? 'مساحة المشروع' : 'Project Area'}</span>
-                                            <span className="font-bold text-secondary-950">12,000 م²</span>
-                                        </div>
-                                        <div className="flex items-center justify-between py-1.5 border-b border-secondary-100/60">
-                                            <span className="text-secondary-500 font-semibold">{isRtl ? 'سنة التسليم' : 'Delivery Year'}</span>
-                                            <span className="font-bold text-secondary-950">2026</span>
-                                        </div>
-                                        <div className="flex items-center justify-between py-1.5">
-                                            <span className="text-secondary-500 font-semibold">{isRtl ? 'حالة المشروع' : 'Status'}</span>
-                                            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
-                                                {isRtl ? 'قيد الإنشاء' : 'Under Construction'}
-                                            </span>
-                                        </div>
+
+                                        <Link
+                                            href={localizedPath(`/projects/${unit.project.slug_ar || unit.project.slug_en || unit.project.slug || unit.project.id}`, locale)}
+                                            className="w-full py-2.5 px-4 bg-[#CC0000] hover:bg-[#b30000] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-sm transition-colors"
+                                        >
+                                            <span>{isRtl ? 'عرض المشروع وجميع وحداته' : 'View Project & All Units'}</span>
+                                            <svg className="w-3.5 h-3.5 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                                            </svg>
+                                        </Link>
                                     </div>
-                                </div>
+                                ) : unit.area ? (
+                                    <div className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4">
+                                        <div className="flex items-center justify-between border-b border-secondary-100 pb-3">
+                                            <h2 className="text-sm font-black text-secondary-950">{isRtl ? 'معلومات المنطقة' : 'Area Info'}</h2>
+                                        </div>
+                                        <div className="space-y-2.5 text-xs">
+                                            <div className="flex items-center justify-between py-1.5">
+                                                <span className="text-secondary-500 font-semibold">{isRtl ? 'المنطقة' : 'Area'}</span>
+                                                <span className="font-bold text-secondary-950">{unit.area.name}</span>
+                                            </div>
+                                        </div>
+                                        <Link
+                                            href={localizedPath(`/areas/${unit.area.slug || unit.area.id}`, locale)}
+                                            className="w-full py-2.5 px-4 bg-surface hover:bg-secondary-100 text-secondary-800 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors border border-secondary-200"
+                                        >
+                                            <span>{isRtl ? 'استكشف عقارات هذه المنطقة' : 'Explore Properties in this Area'}</span>
+                                            <svg className="w-3.5 h-3.5 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                                            </svg>
+                                        </Link>
+                                    </div>
+                                ) : null}
 
                                 {/* Card 2: الموقع على الخريطة */}
                                 <div id="location" className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4">
@@ -769,20 +801,36 @@ export default function UnitShow({ unit, similarUnits }) {
                                 </div>
                             </section>
 
-                            {/* 3. Project Info Card */}
-                            <div className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4">
-                                <h2 className="text-sm font-black text-secondary-950 border-b border-secondary-100 pb-3">{isRtl ? 'معلومات المشروع' : 'Project Info'}</h2>
-                                <div className="space-y-2.5 text-xs">
-                                    <div className="flex items-center justify-between py-1.5 border-b border-secondary-100/60">
-                                        <span className="text-secondary-500 font-semibold">{isRtl ? 'اسم المشروع' : 'Project Name'}</span>
-                                        <span className="font-bold text-secondary-950">{unit.project?.name || (isRtl ? 'مشروع النخيل' : 'Al Nakheel')}</span>
+                            {/* 3. Project / Area Info Card (Mobile) */}
+                            {unit.project ? (
+                                <div className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4">
+                                    <div className="flex items-center justify-between border-b border-secondary-100 pb-3">
+                                        <h2 className="text-sm font-black text-secondary-950">{isRtl ? 'مشروع الوحدة' : 'Project Info'}</h2>
+                                        <span className="text-[11px] font-bold text-primary-900 bg-primary-50 px-2 py-0.5 rounded-full">{isRtl ? 'مشروع عقاري' : 'Project'}</span>
                                     </div>
-                                    <div className="flex items-center justify-between py-1.5 border-b border-secondary-100/60">
-                                        <span className="text-secondary-500 font-semibold">{isRtl ? 'عدد الوحدات' : 'Units Count'}</span>
-                                        <span className="font-bold text-secondary-950">124 {isRtl ? 'وحدة' : 'Units'}</span>
+                                    <div className="space-y-2.5 text-xs">
+                                        <div className="flex items-center justify-between py-1.5 border-b border-secondary-100/60">
+                                            <span className="text-secondary-500 font-semibold">{isRtl ? 'اسم المشروع' : 'Project Name'}</span>
+                                            <span className="font-bold text-secondary-950">{unit.project.name}</span>
+                                        </div>
+                                        {unit.project.area?.name && (
+                                            <div className="flex items-center justify-between py-1.5 border-b border-secondary-100/60">
+                                                <span className="text-secondary-500 font-semibold">{isRtl ? 'المنطقة' : 'Area'}</span>
+                                                <span className="font-bold text-secondary-950">{unit.project.area.name}</span>
+                                            </div>
+                                        )}
                                     </div>
+                                    <Link
+                                        href={localizedPath(`/projects/${unit.project.slug_ar || unit.project.slug_en || unit.project.slug || unit.project.id}`, locale)}
+                                        className="w-full py-2.5 px-4 bg-[#CC0000] hover:bg-[#b30000] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-sm transition-colors"
+                                    >
+                                        <span>{isRtl ? 'عرض المشروع وجميع وحداته' : 'View Project & All Units'}</span>
+                                        <svg className="w-3.5 h-3.5 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                                        </svg>
+                                    </Link>
                                 </div>
-                            </div>
+                            ) : null}
 
                             {/* 4. Location Map */}
                             <div className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4">
@@ -849,16 +897,68 @@ export default function UnitShow({ unit, similarUnits }) {
                     </>
                 )}
 
-                {/* Similar Units */}
+                {/* 1. Similar Units */}
                 {similarUnits?.length > 0 && (
                     <section className="mt-12 bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 sm:p-8">
                         <div className="flex items-center gap-3 mb-6">
                             <div className="w-1.5 h-6 bg-[#CC0000] rounded-full"></div>
-                            <h2 className="text-lg md:text-xl font-black text-secondary-950 tracking-tight">{trans('similar_units', {}, 'units')}</h2>
+                            <h2 className="text-lg md:text-xl font-black text-secondary-950 tracking-tight">{trans('similar_units', {}, 'units') || (isRtl ? 'وحدات مشابهة قد تهمك' : 'Similar Units You May Like')}</h2>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                             {similarUnits.map(u => (
                                 <UnitCard key={u.id} unit={u} />
+                            ))}
+                        </div>
+                    </section>
+                )}
+
+                {/* 2. Related Projects */}
+                {relatedProjects?.length > 0 && (
+                    <section className="mt-12 bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 sm:p-8">
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-3">
+                                <div className="w-1.5 h-6 bg-[#CC0000] rounded-full"></div>
+                                <h2 className="text-lg md:text-xl font-black text-secondary-950 tracking-tight">{isRtl ? 'مشاريع عقارية مميزة' : 'Featured Real Estate Projects'}</h2>
+                            </div>
+                            <Link
+                                href={localizedPath('/projects', locale)}
+                                className="text-xs font-bold text-primary-900 hover:text-primary-700 flex items-center gap-1 transition-colors"
+                            >
+                                <span>{trans('view_all') || (isRtl ? 'عرض كل المشاريع' : 'View All Projects')}</span>
+                                <svg className="w-3.5 h-3.5 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                                </svg>
+                            </Link>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                            {relatedProjects.map(proj => (
+                                <ProjectCard key={proj.id} project={proj} />
+                            ))}
+                        </div>
+                    </section>
+                )}
+
+                {/* 3. Related Articles */}
+                {relatedArticles?.length > 0 && (
+                    <section className="mt-12 bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 sm:p-8">
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-3">
+                                <div className="w-1.5 h-6 bg-[#CC0000] rounded-full"></div>
+                                <h2 className="text-lg md:text-xl font-black text-secondary-950 tracking-tight">{isRtl ? 'مقالات ودليل المشتري' : 'Real Estate Articles & Guides'}</h2>
+                            </div>
+                            <Link
+                                href={localizedPath('/articles', locale)}
+                                className="text-xs font-bold text-primary-900 hover:text-primary-700 flex items-center gap-1 transition-colors"
+                            >
+                                <span>{trans('view_all') || (isRtl ? 'عرض كل المقالات' : 'View All Articles')}</span>
+                                <svg className="w-3.5 h-3.5 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                                </svg>
+                            </Link>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                            {relatedArticles.map(article => (
+                                <ArticleCard key={article.id} article={article} />
                             ))}
                         </div>
                     </section>

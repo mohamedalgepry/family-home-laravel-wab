@@ -4,8 +4,8 @@ import { useTrans } from '../../../Utils/trans'
 import Header from '../../../Components/Layout/Header'
 import Footer from '../../../Components/Layout/Footer'
 import UnitCard from '../../../Components/UI/UnitCard'
-
-
+import ProjectCard from '../../../Components/UI/ProjectCard'
+import ArticleCard from '../../../Components/UI/ArticleCard'
 import AgentCard from '../../../Components/Features/AgentCard'
 import SeoHead from '../../../Components/UI/SeoHead'
 import { getYouTubeEmbedUrl } from '../../../Utils/youtube'
@@ -14,7 +14,7 @@ import { getAgentContacts } from '../../../Utils/contact'
 import { WhatsAppIcon } from '../../../Components/UI'
 import { useState, useMemo } from 'react'
 
-export default function ProjectShow({ project }) {
+export default function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }) {
     const page = usePage()
     const { locale, appUrl } = page.props
     const trans = useTrans(locale)
@@ -25,7 +25,7 @@ export default function ProjectShow({ project }) {
     const agentContacts = getAgentContacts(project?.user, page.props.settings)
 
     const images = project?.images ?? []
-    const units = project?.units ?? []
+    const units = projectUnits?.length ? projectUnits : (project?.units ?? [])
     const mainImage = images.find(img => img.is_main || img.is_primary) || images[0]
     const mainImageIndex = Math.max(images.indexOf(mainImage), 0)
     const selectedImageIndex = activeImageIndex ?? mainImageIndex
@@ -632,21 +632,79 @@ export default function ProjectShow({ project }) {
                     </div>
                 </div>
 
-                {/* Units inside project grid */}
+                {/* 1. Units inside project grid */}
                 {units.length > 0 && (
                     <section id="units-list" className="mt-12 bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 sm:p-8">
                         <div className="flex items-center justify-between mb-6">
                             <div className="flex items-center gap-3">
                                 <div className="w-1.5 h-6 bg-[#CC0000] rounded-full"></div>
-                                <h2 className="text-lg md:text-xl font-black text-secondary-950 tracking-tight">{trans('units_in_project', {}, 'projects')}</h2>
+                                <h2 className="text-lg md:text-xl font-black text-secondary-950 tracking-tight">
+                                    {trans('units_in_project', {}, 'projects') || (isRtl ? 'الوحدات المتاحة بالمشروع' : 'Units in this Project')}
+                                </h2>
                             </div>
                             <span className="px-3.5 py-1 bg-surface border border-secondary-200 text-xs font-bold rounded-full text-secondary-800">
-                                {project.units_count ?? units.length} {trans('units_count')}
+                                {project.units_count ?? units.length} {trans('units_count') || (isRtl ? 'وحدة' : 'Units')}
                             </span>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                             {units.map(unit => (
                                 <UnitCard key={unit.id} unit={unit} />
+                            ))}
+                        </div>
+                    </section>
+                )}
+
+                {/* 2. Similar Projects */}
+                {similarProjects?.length > 0 && (
+                    <section className="mt-12 bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 sm:p-8">
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-3">
+                                <div className="w-1.5 h-6 bg-[#CC0000] rounded-full"></div>
+                                <h2 className="text-lg md:text-xl font-black text-secondary-950 tracking-tight">
+                                    {isRtl ? 'مشاريع مشابهة قد تهمك' : 'Similar Projects You May Like'}
+                                </h2>
+                            </div>
+                            <Link
+                                href={localizedPath('/projects', locale)}
+                                className="text-xs font-bold text-primary-900 hover:text-primary-700 flex items-center gap-1 transition-colors"
+                            >
+                                <span>{trans('view_all') || (isRtl ? 'عرض كل المشاريع' : 'View All Projects')}</span>
+                                <svg className="w-3.5 h-3.5 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                                </svg>
+                            </Link>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                            {similarProjects.map(proj => (
+                                <ProjectCard key={proj.id} project={proj} />
+                            ))}
+                        </div>
+                    </section>
+                )}
+
+                {/* 3. Related Articles */}
+                {relatedArticles?.length > 0 && (
+                    <section className="mt-12 bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 sm:p-8">
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-3">
+                                <div className="w-1.5 h-6 bg-[#CC0000] rounded-full"></div>
+                                <h2 className="text-lg md:text-xl font-black text-secondary-950 tracking-tight">
+                                    {isRtl ? 'مقالات ودليل المشتري' : 'Real Estate Articles & Guides'}
+                                </h2>
+                            </div>
+                            <Link
+                                href={localizedPath('/articles', locale)}
+                                className="text-xs font-bold text-primary-900 hover:text-primary-700 flex items-center gap-1 transition-colors"
+                            >
+                                <span>{trans('view_all') || (isRtl ? 'عرض كل المقالات' : 'View All Articles')}</span>
+                                <svg className="w-3.5 h-3.5 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                                </svg>
+                            </Link>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                            {relatedArticles.map(article => (
+                                <ArticleCard key={article.id} article={article} />
                             ))}
                         </div>
                     </section>

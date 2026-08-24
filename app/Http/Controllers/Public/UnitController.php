@@ -3,11 +3,15 @@
 namespace App\Http\Controllers\Public;
 
 use App\Domain\Common\Services\SeoMetaService;
+use App\Domain\Listings\Models\Article;
+use App\Domain\Listings\Models\Project;
 use App\Domain\Listings\Models\Unit;
 use App\Domain\Listings\Services\ListingLookupService;
 use App\Domain\Listings\Services\ListingService;
 use App\Domain\Listings\Services\PageViewService;
 use App\Domain\Listings\Services\SearchService;
+use App\Http\Resources\Public\ArticlePublicResource;
+use App\Http\Resources\Public\ProjectPublicResource;
 use App\Http\Resources\Public\UnitPublicResource;
 use App\Services\SeoService;
 use Inertia\Inertia;
@@ -86,6 +90,33 @@ class UnitController
 
         $similarUnits = $this->listingService->getSimilarUnits($unit);
 
+        $relatedArticles = Article::where('is_published', true)
+            ->with(['images', 'category'])
+            ->orderByDesc('published_at')
+            ->limit(4)
+            ->get();
+
+        $relatedProjects = Project::where('is_active', true)
+            ->when($unit->project_id, fn ($q) => $q->where('id', '!=', $unit->project_id))
+            ->when($unit->area_id, fn ($q) => $q->where('area_id', $unit->area_id))
+            ->with(['area', 'images', 'user.profile'])
+            ->withCount(['units' => fn ($q) => $q->active()])
+            ->orderByDesc('created_at')
+            ->limit(4)
+            ->get();
+
+        if ($relatedProjects->count() < 4) {
+            $fallbackProjects = Project::where('is_active', true)
+                ->when($unit->project_id, fn ($q) => $q->where('id', '!=', $unit->project_id))
+                ->whereNotIn('id', $relatedProjects->pluck('id'))
+                ->with(['area', 'images', 'user.profile'])
+                ->withCount(['units' => fn ($q) => $q->active()])
+                ->orderByDesc('created_at')
+                ->limit(4 - $relatedProjects->count())
+                ->get();
+            $relatedProjects = $relatedProjects->concat($fallbackProjects);
+        }
+
         $meta = $this->seoMetaService->forListing($unit, 'units');
 
         $mainImage = $unit->images->firstWhere('is_primary', true)
@@ -96,6 +127,8 @@ class UnitController
         return Inertia::render('Public/Units/Show', [
             'unit' => UnitPublicResource::make($unit)->resolve(),
             'similarUnits' => UnitPublicResource::collection($similarUnits),
+            'relatedProjects' => ProjectPublicResource::collection($relatedProjects),
+            'relatedArticles' => ArticlePublicResource::collection($relatedArticles),
             'seo_meta' => $meta,
         ])->withViewData(['meta' => $meta, 'lcpImage' => $lcpImage]);
     }

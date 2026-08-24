@@ -94,6 +94,11 @@ Schedule::command('notifications:cleanup')
     ->timezone('Africa/Cairo')
     ->withoutOverlapping(10);
 
+Schedule::command('points:cleanup')
+    ->dailyAt('03:30')
+    ->timezone('Africa/Cairo')
+    ->withoutOverlapping(10);
+
 Schedule::command('app:backup-db')
     ->hourly()
     ->withoutOverlapping(10);

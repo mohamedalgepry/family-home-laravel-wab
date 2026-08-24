@@ -3,12 +3,16 @@
 namespace App\Http\Controllers\Public;
 
 use App\Domain\Common\Services\SeoMetaService;
+use App\Domain\Listings\Models\Article;
 use App\Domain\Listings\Models\Project;
+use App\Domain\Listings\Models\Unit;
 use App\Domain\Listings\Services\ListingLookupService;
 use App\Domain\Listings\Services\ListingService;
 use App\Domain\Listings\Services\PageViewService;
 use App\Domain\Listings\Services\SearchService;
+use App\Http\Resources\Public\ArticlePublicResource;
 use App\Http\Resources\Public\ProjectPublicResource;
+use App\Http\Resources\Public\UnitPublicResource;
 use App\Services\SeoService;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -71,6 +75,39 @@ class ProjectController
             request()->userAgent(),
         );
 
+        $projectUnits = Unit::where('project_id', $project->id)
+            ->where('is_active', true)
+            ->with(['type', 'area', 'images', 'user.profile', 'finishingType'])
+            ->orderByFeatured()
+            ->get();
+
+        $similarProjects = Project::where('is_active', true)
+            ->where('id', '!=', $project->id)
+            ->when($project->area_id, fn ($q) => $q->where('area_id', $project->area_id))
+            ->with(['area', 'images', 'user.profile'])
+            ->withCount(['units' => fn ($q) => $q->active()])
+            ->orderByDesc('created_at')
+            ->limit(4)
+            ->get();
+
+        if ($similarProjects->count() < 4) {
+            $moreProjects = Project::where('is_active', true)
+                ->where('id', '!=', $project->id)
+                ->whereNotIn('id', $similarProjects->pluck('id'))
+                ->with(['area', 'images', 'user.profile'])
+                ->withCount(['units' => fn ($q) => $q->active()])
+                ->orderByDesc('created_at')
+                ->limit(4 - $similarProjects->count())
+                ->get();
+            $similarProjects = $similarProjects->concat($moreProjects);
+        }
+
+        $relatedArticles = Article::where('is_published', true)
+            ->with(['images', 'category'])
+            ->orderByDesc('published_at')
+            ->limit(4)
+            ->get();
+
         $meta = $this->seoMetaService->forListing($project, 'projects');
 
         $mainImage = $project->images->firstWhere('is_primary', true)
@@ -80,6 +117,9 @@ class ProjectController
 
         return Inertia::render('Public/Projects/Show', [
             'project' => ProjectPublicResource::make($project)->resolve(),
+            'projectUnits' => UnitPublicResource::collection($projectUnits),
+            'similarProjects' => ProjectPublicResource::collection($similarProjects),
+            'relatedArticles' => ArticlePublicResource::collection($relatedArticles),
             'seo_meta' => $meta,
         ])->withViewData(['meta' => $meta, 'lcpImage' => $lcpImage]);
     }
