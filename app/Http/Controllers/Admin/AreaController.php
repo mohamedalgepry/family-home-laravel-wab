@@ -277,18 +277,21 @@ class AreaController extends Controller
         $existingIds = $area->{$relation}()->pluck('id')->toArray();
         $newIds = [];
 
-    foreach ($items as $item) {
+        foreach ($items as $item) {
+            // Never trust timestamps/ids coming from the frontend payload —
+            // they arrive as ISO 8601 strings (e.g. 2026-08-15T18:50:50.000000Z)
+            // which MySQL's DATETIME columns reject, causing the whole row
+            // update to fail silently (caught by the Inertia exception handler).
             $payload = collect($item)->except(['id', 'created_at', 'updated_at', 'area_id'])->toArray();
 
-                if (isset($item['id']) && in_array($item['id'], $existingIds)) {
-                        $area->{$relation}()->where('id', $item['id'])->update($payload);
-                                $newIds[] = $item['id'];
-                                    } else {
-                                            $created = $area->{$relation}()->create($payload);
-                                                    $newIds[] = $created->id;
-                                                        }
-                                                        }
-    }
+            if (isset($item['id']) && in_array($item['id'], $existingIds)) {
+                $area->{$relation}()->where('id', $item['id'])->update($payload);
+                $newIds[] = $item['id'];
+            } else {
+                $created = $area->{$relation}()->create($payload);
+                $newIds[] = $created->id;
+            }
+        }
 
         $idsToDelete = array_diff($existingIds, $newIds);
         if (count($idsToDelete) > 0) {
