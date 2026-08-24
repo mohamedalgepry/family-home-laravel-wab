@@ -60,7 +60,7 @@ class UnitPublicResource extends JsonResource
             'type' => $this->whenLoaded('type', function () {
                 return [
                     'id' => $this->type->id,
-                    'name' => $this->type->name,
+                    'name' => $this->type->name ?: (app()->getLocale() === 'ar' ? $this->type->name_ar : $this->type->name_en),
                     'name_ar' => $this->type->name_ar,
                     'name_en' => $this->type->name_en,
                 ];
@@ -68,7 +68,7 @@ class UnitPublicResource extends JsonResource
             'finishingType' => $this->whenLoaded('finishingType', function () {
                 return [
                     'id' => $this->finishingType->id,
-                    'name' => $this->finishingType->name,
+                    'name' => $this->finishingType->name ?: (app()->getLocale() === 'ar' ? $this->finishingType->name_ar : $this->finishingType->name_en),
                     'name_ar' => $this->finishingType->name_ar,
                     'name_en' => $this->finishingType->name_en,
                 ];
@@ -76,7 +76,7 @@ class UnitPublicResource extends JsonResource
             'finishing_type' => $this->whenLoaded('finishingType', function () {
                 return [
                     'id' => $this->finishingType->id,
-                    'name' => $this->finishingType->name,
+                    'name' => $this->finishingType->name ?: (app()->getLocale() === 'ar' ? $this->finishingType->name_ar : $this->finishingType->name_en),
                     'name_ar' => $this->finishingType->name_ar,
                     'name_en' => $this->finishingType->name_en,
                 ];

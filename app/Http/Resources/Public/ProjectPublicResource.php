@@ -65,7 +65,7 @@ class ProjectPublicResource extends JsonResource
             'finishingType' => $this->whenLoaded('finishingType', function () {
                 return [
                     'id' => $this->finishingType->id,
-                    'name' => $this->finishingType->name,
+                    'name' => $this->finishingType->name ?: (app()->getLocale() === 'ar' ? $this->finishingType->name_ar : $this->finishingType->name_en),
                     'name_ar' => $this->finishingType->name_ar,
                     'name_en' => $this->finishingType->name_en,
                 ];

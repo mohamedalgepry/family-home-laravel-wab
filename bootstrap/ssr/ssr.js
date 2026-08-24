@@ -14480,13 +14480,13 @@ function UnitCard({ unit, loading = false, priority = false }) {
 				}),
 				/* @__PURE__ */ jsxs("p", {
 					className: "text-xs font-medium text-secondary-700 mb-3 flex items-center gap-1.5",
-					children: [/* @__PURE__ */ jsx("span", { children: unit.type?.name || unit.type_name || "" }), unit.finishing_type && /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("span", {
+					children: [/* @__PURE__ */ jsx("span", { children: typeof unit.type === "object" ? unit.type?.name || (locale === "ar" ? unit.type?.name_ar : unit.type?.name_en) || "" : unit.type_name || unit.type || "" }), unit.finishing_type && /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("span", {
 						className: "text-secondary-400",
 						"aria-hidden": "true",
 						children: "•"
 					}), /* @__PURE__ */ jsx("span", {
 						className: "text-secondary-700",
-						children: unit.finishing_type.name || unit.finishing_type
+						children: typeof unit.finishing_type === "object" ? unit.finishing_type?.name || (locale === "ar" ? unit.finishing_type?.name_ar : unit.finishing_type?.name_en) || "" : unit.finishing_type
 					})] })]
 				}),
 				/* @__PURE__ */ jsxs("div", {
@@ -18553,7 +18553,10 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 	const embedUrl = getYouTubeEmbedUrl(project?.video_url);
 	const agentContacts = getAgentContacts(project?.user, page.props.settings);
 	const images = project?.images ?? [];
-	const units = projectUnits?.length ? projectUnits : project?.units ?? [];
+	const projectUnitsList = Array.isArray(projectUnits) ? projectUnits : Array.isArray(projectUnits?.data) ? projectUnits.data : Array.isArray(project?.units) ? project.units : Array.isArray(project?.units?.data) ? project.units.data : [];
+	const units = projectUnitsList;
+	const similarProjectsList = Array.isArray(similarProjects) ? similarProjects : Array.isArray(similarProjects?.data) ? similarProjects.data : [];
+	const relatedArticlesList = Array.isArray(relatedArticles) ? relatedArticles : Array.isArray(relatedArticles?.data) ? relatedArticles.data : [];
 	const mainImage = images.find((img) => img.is_main || img.is_primary) || images[0];
 	const mainImageIndex = Math.max(images.indexOf(mainImage), 0);
 	const selectedImageIndex = activeImageIndex ?? mainImageIndex;
@@ -19189,7 +19192,7 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 											}), /* @__PURE__ */ jsxs("span", {
 												className: "font-bold text-secondary-950",
 												children: [
-													units.length,
+													project.units_count ?? units.length,
 													" ",
 													isRtl ? "وحدة" : "Units"
 												]
@@ -19422,7 +19425,7 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 							})
 						]
 					}),
-					units.length > 0 && /* @__PURE__ */ jsxs("section", {
+					projectUnitsList.length > 0 && /* @__PURE__ */ jsxs("section", {
 						id: "units-list",
 						className: "mt-12 bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 sm:p-8",
 						children: [/* @__PURE__ */ jsxs("div", {
@@ -19436,17 +19439,17 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 							}), /* @__PURE__ */ jsxs("span", {
 								className: "px-3.5 py-1 bg-surface border border-secondary-200 text-xs font-bold rounded-full text-secondary-800",
 								children: [
-									project.units_count ?? units.length,
+									project.units_count ?? projectUnitsList.length,
 									" ",
 									trans("units_count") || (isRtl ? "وحدة" : "Units")
 								]
 							})]
 						}), /* @__PURE__ */ jsx("div", {
 							className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6",
-							children: units.map((unit) => /* @__PURE__ */ jsx(UnitCard_default, { unit }, unit.id))
+							children: projectUnitsList.map((unit) => /* @__PURE__ */ jsx(UnitCard_default, { unit }, unit.id))
 						})]
 					}),
-					similarProjects?.length > 0 && /* @__PURE__ */ jsxs("section", {
+					similarProjectsList.length > 0 && /* @__PURE__ */ jsxs("section", {
 						className: "mt-12 bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 sm:p-8",
 						children: [/* @__PURE__ */ jsxs("div", {
 							className: "flex items-center justify-between mb-6",
@@ -19474,10 +19477,10 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 							})]
 						}), /* @__PURE__ */ jsx("div", {
 							className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6",
-							children: similarProjects.map((proj) => /* @__PURE__ */ jsx(ProjectCard_default, { project: proj }, proj.id))
+							children: similarProjectsList.map((proj) => /* @__PURE__ */ jsx(ProjectCard_default, { project: proj }, proj.id))
 						})]
 					}),
-					relatedArticles?.length > 0 && /* @__PURE__ */ jsxs("section", {
+					relatedArticlesList.length > 0 && /* @__PURE__ */ jsxs("section", {
 						className: "mt-12 bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 sm:p-8",
 						children: [/* @__PURE__ */ jsxs("div", {
 							className: "flex items-center justify-between mb-6",
@@ -19505,7 +19508,7 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 							})]
 						}), /* @__PURE__ */ jsx("div", {
 							className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6",
-							children: relatedArticles.map((article) => /* @__PURE__ */ jsx(ArticleCard_default, { article }, article.id))
+							children: relatedArticlesList.map((article) => /* @__PURE__ */ jsx(ArticleCard_default, { article }, article.id))
 						})]
 					})
 				]
@@ -19833,6 +19836,9 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 	const [activeImageIndex, setActiveImageIndex] = useState(0);
 	const [sentSuccess, setSentSuccess] = useState(false);
 	const agentContacts = getAgentContacts(unit?.user || unit?.project?.user, page.props.settings);
+	const similarUnitsList = Array.isArray(similarUnits) ? similarUnits : similarUnits?.data ?? [];
+	const relatedProjectsList = Array.isArray(relatedProjects) ? relatedProjects : relatedProjects?.data ?? [];
+	const relatedArticlesList = Array.isArray(relatedArticles) ? relatedArticles : relatedArticles?.data ?? [];
 	const jsonLd = useMemo(() => {
 		if (!unit) return null;
 		const image = getStorageUrl(unit.images?.[0]?.url || unit.images?.[0]?.path, null);
@@ -21065,7 +21071,7 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 							]
 						})
 					] }),
-					similarUnits?.length > 0 && /* @__PURE__ */ jsxs("section", {
+					similarUnitsList.length > 0 && /* @__PURE__ */ jsxs("section", {
 						className: "mt-12 bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 sm:p-8",
 						children: [/* @__PURE__ */ jsxs("div", {
 							className: "flex items-center gap-3 mb-6",
@@ -21075,10 +21081,10 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 							})]
 						}), /* @__PURE__ */ jsx("div", {
 							className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6",
-							children: similarUnits.map((u) => /* @__PURE__ */ jsx(UnitCard_default, { unit: u }, u.id))
+							children: similarUnitsList.map((u) => /* @__PURE__ */ jsx(UnitCard_default, { unit: u }, u.id))
 						})]
 					}),
-					relatedProjects?.length > 0 && /* @__PURE__ */ jsxs("section", {
+					relatedProjectsList.length > 0 && /* @__PURE__ */ jsxs("section", {
 						className: "mt-12 bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 sm:p-8",
 						children: [/* @__PURE__ */ jsxs("div", {
 							className: "flex items-center justify-between mb-6",
@@ -21106,10 +21112,10 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 							})]
 						}), /* @__PURE__ */ jsx("div", {
 							className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6",
-							children: relatedProjects.map((proj) => /* @__PURE__ */ jsx(ProjectCard_default, { project: proj }, proj.id))
+							children: relatedProjectsList.map((proj) => /* @__PURE__ */ jsx(ProjectCard_default, { project: proj }, proj.id))
 						})]
 					}),
-					relatedArticles?.length > 0 && /* @__PURE__ */ jsxs("section", {
+					relatedArticlesList.length > 0 && /* @__PURE__ */ jsxs("section", {
 						className: "mt-12 bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 sm:p-8",
 						children: [/* @__PURE__ */ jsxs("div", {
 							className: "flex items-center justify-between mb-6",
@@ -21137,7 +21143,7 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 							})]
 						}), /* @__PURE__ */ jsx("div", {
 							className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6",
-							children: relatedArticles.map((article) => /* @__PURE__ */ jsx(ArticleCard_default, { article }, article.id))
+							children: relatedArticlesList.map((article) => /* @__PURE__ */ jsx(ArticleCard_default, { article }, article.id))
 						})]
 					})
 				]

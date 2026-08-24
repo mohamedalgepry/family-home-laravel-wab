@@ -94,11 +94,15 @@ function UnitCard({ unit, loading = false, priority = false }) {
                     </Link>
 
                     <p className="text-xs font-medium text-secondary-700 mb-3 flex items-center gap-1.5">
-                        <span>{unit.type?.name || unit.type_name || ''}</span>
+                        <span>{typeof unit.type === 'object' ? (unit.type?.name || (locale === 'ar' ? unit.type?.name_ar : unit.type?.name_en) || '') : (unit.type_name || unit.type || '')}</span>
                         {unit.finishing_type && (
                             <>
                                 <span className="text-secondary-400" aria-hidden="true">•</span>
-                                <span className="text-secondary-700">{unit.finishing_type.name || unit.finishing_type}</span>
+                                <span className="text-secondary-700">
+                                    {typeof unit.finishing_type === 'object'
+                                        ? (unit.finishing_type?.name || (locale === 'ar' ? unit.finishing_type?.name_ar : unit.finishing_type?.name_en) || '')
+                                        : unit.finishing_type}
+                                </span>
                             </>
                         )}
                     </p>
