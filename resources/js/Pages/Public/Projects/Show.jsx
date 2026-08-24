@@ -25,7 +25,12 @@ export default function ProjectShow({ project, projectUnits, similarProjects, re
     const agentContacts = getAgentContacts(project?.user, page.props.settings)
 
     const images = project?.images ?? []
-    const units = projectUnits?.length ? projectUnits : (project?.units ?? [])
+    const projectUnitsList = Array.isArray(projectUnits)
+        ? projectUnits
+        : (Array.isArray(projectUnits?.data) ? projectUnits.data : (Array.isArray(project?.units) ? project.units : (Array.isArray(project?.units?.data) ? project.units.data : [])))
+    const similarProjectsList = Array.isArray(similarProjects) ? similarProjects : (Array.isArray(similarProjects?.data) ? similarProjects.data : [])
+    const relatedArticlesList = Array.isArray(relatedArticles) ? relatedArticles : (Array.isArray(relatedArticles?.data) ? relatedArticles.data : [])
+
     const mainImage = images.find(img => img.is_main || img.is_primary) || images[0]
     const mainImageIndex = Math.max(images.indexOf(mainImage), 0)
     const selectedImageIndex = activeImageIndex ?? mainImageIndex
@@ -633,7 +638,7 @@ export default function ProjectShow({ project, projectUnits, similarProjects, re
                 </div>
 
                 {/* 1. Units inside project grid */}
-                {units.length > 0 && (
+                {projectUnitsList.length > 0 && (
                     <section id="units-list" className="mt-12 bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 sm:p-8">
                         <div className="flex items-center justify-between mb-6">
                             <div className="flex items-center gap-3">
@@ -643,11 +648,11 @@ export default function ProjectShow({ project, projectUnits, similarProjects, re
                                 </h2>
                             </div>
                             <span className="px-3.5 py-1 bg-surface border border-secondary-200 text-xs font-bold rounded-full text-secondary-800">
-                                {project.units_count ?? units.length} {trans('units_count') || (isRtl ? 'وحدة' : 'Units')}
+                                {project.units_count ?? projectUnitsList.length} {trans('units_count') || (isRtl ? 'وحدة' : 'Units')}
                             </span>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                            {units.map(unit => (
+                            {projectUnitsList.map(unit => (
                                 <UnitCard key={unit.id} unit={unit} />
                             ))}
                         </div>
@@ -655,7 +660,7 @@ export default function ProjectShow({ project, projectUnits, similarProjects, re
                 )}
 
                 {/* 2. Similar Projects */}
-                {similarProjects?.length > 0 && (
+                {similarProjectsList.length > 0 && (
                     <section className="mt-12 bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 sm:p-8">
                         <div className="flex items-center justify-between mb-6">
                             <div className="flex items-center gap-3">
@@ -675,7 +680,7 @@ export default function ProjectShow({ project, projectUnits, similarProjects, re
                             </Link>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                            {similarProjects.map(proj => (
+                            {similarProjectsList.map(proj => (
                                 <ProjectCard key={proj.id} project={proj} />
                             ))}
                         </div>
@@ -683,7 +688,7 @@ export default function ProjectShow({ project, projectUnits, similarProjects, re
                 )}
 
                 {/* 3. Related Articles */}
-                {relatedArticles?.length > 0 && (
+                {relatedArticlesList.length > 0 && (
                     <section className="mt-12 bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 sm:p-8">
                         <div className="flex items-center justify-between mb-6">
                             <div className="flex items-center gap-3">
@@ -703,7 +708,7 @@ export default function ProjectShow({ project, projectUnits, similarProjects, re
                             </Link>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                            {relatedArticles.map(article => (
+                            {relatedArticlesList.map(article => (
                                 <ArticleCard key={article.id} article={article} />
                             ))}
                         </div>

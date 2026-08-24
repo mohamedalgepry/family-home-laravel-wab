@@ -83,7 +83,7 @@ class ProjectPublicResource extends JsonResource
                 });
             }),
             'units' => $this->whenLoaded('units', function () {
-                return UnitPublicResource::collection($this->units);
+                return UnitPublicResource::collection($this->units)->resolve();
             }),
             'user' => $this->whenLoaded('user', function () {
                 return AgentPublicResource::make($this->user)->resolve();

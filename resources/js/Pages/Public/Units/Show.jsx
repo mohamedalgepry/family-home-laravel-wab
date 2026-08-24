@@ -24,6 +24,10 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
     const [sentSuccess, setSentSuccess] = useState(false)
     const agentContacts = getAgentContacts(unit?.user || unit?.project?.user, page.props.settings)
 
+    const similarUnitsList = Array.isArray(similarUnits) ? similarUnits : (similarUnits?.data ?? [])
+    const relatedProjectsList = Array.isArray(relatedProjects) ? relatedProjects : (relatedProjects?.data ?? [])
+    const relatedArticlesList = Array.isArray(relatedArticles) ? relatedArticles : (relatedArticles?.data ?? [])
+
     const jsonLd = useMemo(() => {
         if (!unit) return null
         
@@ -898,14 +902,14 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                 )}
 
                 {/* 1. Similar Units */}
-                {similarUnits?.length > 0 && (
+                {similarUnitsList.length > 0 && (
                     <section className="mt-12 bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 sm:p-8">
                         <div className="flex items-center gap-3 mb-6">
                             <div className="w-1.5 h-6 bg-[#CC0000] rounded-full"></div>
                             <h2 className="text-lg md:text-xl font-black text-secondary-950 tracking-tight">{trans('similar_units', {}, 'units') || (isRtl ? 'وحدات مشابهة قد تهمك' : 'Similar Units You May Like')}</h2>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                            {similarUnits.map(u => (
+                            {similarUnitsList.map(u => (
                                 <UnitCard key={u.id} unit={u} />
                             ))}
                         </div>
@@ -913,7 +917,7 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                 )}
 
                 {/* 2. Related Projects */}
-                {relatedProjects?.length > 0 && (
+                {relatedProjectsList.length > 0 && (
                     <section className="mt-12 bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 sm:p-8">
                         <div className="flex items-center justify-between mb-6">
                             <div className="flex items-center gap-3">
@@ -931,7 +935,7 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                             </Link>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                            {relatedProjects.map(proj => (
+                            {relatedProjectsList.map(proj => (
                                 <ProjectCard key={proj.id} project={proj} />
                             ))}
                         </div>
@@ -939,7 +943,7 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                 )}
 
                 {/* 3. Related Articles */}
-                {relatedArticles?.length > 0 && (
+                {relatedArticlesList.length > 0 && (
                     <section className="mt-12 bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 sm:p-8">
                         <div className="flex items-center justify-between mb-6">
                             <div className="flex items-center gap-3">
@@ -957,7 +961,7 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                             </Link>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                            {relatedArticles.map(article => (
+                            {relatedArticlesList.map(article => (
                                 <ArticleCard key={article.id} article={article} />
                             ))}
                         </div>

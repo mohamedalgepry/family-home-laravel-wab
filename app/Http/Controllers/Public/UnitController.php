@@ -126,9 +126,9 @@ class UnitController
 
         return Inertia::render('Public/Units/Show', [
             'unit' => UnitPublicResource::make($unit)->resolve(),
-            'similarUnits' => UnitPublicResource::collection($similarUnits),
-            'relatedProjects' => ProjectPublicResource::collection($relatedProjects),
-            'relatedArticles' => ArticlePublicResource::collection($relatedArticles),
+            'similarUnits' => UnitPublicResource::collection($similarUnits)->resolve(),
+            'relatedProjects' => ProjectPublicResource::collection($relatedProjects)->resolve(),
+            'relatedArticles' => ArticlePublicResource::collection($relatedArticles)->resolve(),
             'seo_meta' => $meta,
         ])->withViewData(['meta' => $meta, 'lcpImage' => $lcpImage]);
     }

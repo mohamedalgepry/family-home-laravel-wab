@@ -117,9 +117,9 @@ class ProjectController
 
         return Inertia::render('Public/Projects/Show', [
             'project' => ProjectPublicResource::make($project)->resolve(),
-            'projectUnits' => UnitPublicResource::collection($projectUnits),
-            'similarProjects' => ProjectPublicResource::collection($similarProjects),
-            'relatedArticles' => ArticlePublicResource::collection($relatedArticles),
+            'projectUnits' => UnitPublicResource::collection($projectUnits)->resolve(),
+            'similarProjects' => ProjectPublicResource::collection($similarProjects)->resolve(),
+            'relatedArticles' => ArticlePublicResource::collection($relatedArticles)->resolve(),
             'seo_meta' => $meta,
         ])->withViewData(['meta' => $meta, 'lcpImage' => $lcpImage]);
     }
