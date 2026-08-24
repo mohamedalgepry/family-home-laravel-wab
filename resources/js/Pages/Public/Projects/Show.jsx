@@ -28,6 +28,7 @@ export default function ProjectShow({ project, projectUnits, similarProjects, re
     const projectUnitsList = Array.isArray(projectUnits)
         ? projectUnits
         : (Array.isArray(projectUnits?.data) ? projectUnits.data : (Array.isArray(project?.units) ? project.units : (Array.isArray(project?.units?.data) ? project.units.data : [])))
+    const units = projectUnitsList
     const similarProjectsList = Array.isArray(similarProjects) ? similarProjects : (Array.isArray(similarProjects?.data) ? similarProjects.data : [])
     const relatedArticlesList = Array.isArray(relatedArticles) ? relatedArticles : (Array.isArray(relatedArticles?.data) ? relatedArticles.data : [])
 
@@ -501,7 +502,7 @@ export default function ProjectShow({ project, projectUnits, similarProjects, re
                                 </div>
                                 <div className="flex items-center justify-between py-1.5 border-b border-secondary-100/60">
                                     <span className="text-secondary-500 font-semibold">{isRtl ? 'عدد الوحدات' : 'Total Units'}</span>
-                                    <span className="font-bold text-secondary-950">{units.length} {isRtl ? 'وحدة' : 'Units'}</span>
+                                    <span className="font-bold text-secondary-950">{project.units_count ?? units.length} {isRtl ? 'وحدة' : 'Units'}</span>
                                 </div>
                                 <div className="flex items-center justify-between py-1.5 border-b border-secondary-100/60">
                                     <span className="text-secondary-500 font-semibold">{isRtl ? 'سنة التسليم' : 'Delivery Year'}</span>
