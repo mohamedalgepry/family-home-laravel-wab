@@ -74,6 +74,9 @@
     <link rel="apple-touch-icon" href="{{ $faviconUrl }}">
     <link rel="manifest" href="/site.webmanifest">
 
+    {{-- Canonical SEO source for the initial HTML (bots, link unfurlers, no-JS crawlers).
+         React <SeoHead> owns client-side navigation updates; SSR must stay disabled so
+         @inertiaHead never duplicates these tags. --}}
     <x-seo.meta :meta="$currentMeta" />
 
     @vite(['resources/js/app.jsx', 'resources/css/app.css'])

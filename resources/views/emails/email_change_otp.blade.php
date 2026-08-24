@@ -1,150 +1,59 @@
-<!DOCTYPE html>
-<html lang="{{ $locale ?? 'ar' }}" dir="{{ ($locale ?? 'ar') === 'en' ? 'ltr' : 'rtl' }}">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $isEnglish ? 'Email Address Verification Code' : 'رمز تأكيد البريد الإلكتروني' }}</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f8fafc;
-            color: #1e293b;
-            margin: 0;
-            padding: 20px 0;
-            -webkit-text-size-adjust: 100%;
-        }
-        .email-container {
-            max-width: 560px;
-            margin: 0 auto;
-            background: #ffffff;
-            border-radius: 16px;
-            border: 1px solid #e2e8f0;
-            overflow: hidden;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-        }
-        .header {
-            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
-            padding: 32px 20px;
-            text-align: center;
-        }
-        .logo-box {
-            width: 80px;
-            height: 80px;
-            margin: 0 auto 16px auto;
-            background-color: #ffffff;
-            border-radius: 50%;
-            padding: 10px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            display: inline-block;
-            box-sizing: border-box;
-        }
-        .logo-img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
-        .brand-name {
-            color: #ffffff;
-            font-size: 20px;
-            font-weight: 700;
-            margin: 0;
-            letter-spacing: 0.5px;
-        }
-        .body-content {
-            padding: 32px 28px;
-            line-height: 1.6;
-        }
-        .greeting {
-            font-size: 18px;
-            font-weight: 700;
-            color: #0f172a;
-            margin-bottom: 12px;
-        }
-        .text {
-            font-size: 14px;
-            color: #475569;
-            margin-bottom: 20px;
-        }
-        .otp-container {
-            background-color: #fef2f2;
-            border: 2px dashed #fca5a5;
-            border-radius: 12px;
-            padding: 20px;
-            text-align: center;
-            margin: 24px 0;
-        }
-        .otp-label {
-            font-size: 12px;
-            font-weight: 600;
-            color: #991b1b;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 8px;
-        }
-        .otp-code {
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 32px;
-            font-weight: 800;
-            color: #dc2626;
-            letter-spacing: 8px;
-            margin: 0;
-        }
-        .expiry-note {
-            font-size: 12px;
-            color: #ef4444;
-            font-weight: 600;
-            margin-top: 8px;
-        }
-        .footer {
-            background-color: #f8fafc;
-            border-top: 1px solid #e2e8f0;
-            padding: 20px;
-            text-align: center;
-            font-size: 12px;
-            color: #94a3b8;
-        }
-    </style>
-</head>
-<body>
-    <div class="email-container">
-        <div class="header">
-            <div style="text-align: center;">
-                <div class="logo-box" style="width: 80px; height: 80px; margin: 0 auto 16px auto; background-color: #ffffff; border-radius: 50%; padding: 10px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); display: inline-block; box-sizing: border-box;">
-                    <img src="{{ $logoUrl }}" alt="Logo" class="logo-img" style="width: 100%; height: 100%; object-fit: contain;">
-                </div>
-            </div>
-            <h1 class="brand-name">Family Home</h1>
+<x-emails.layout
+    :subject="$isEnglish ? 'Email Address Verification Code - Family Home' : 'رمز تأكيد تغيير البريد الإلكتروني - Family Home'"
+    :isEnglish="$isEnglish"
+    :locale="$locale"
+    :logoUrl="$logoUrl">
+
+    <h1 class="fh-h1" style="margin:0 0 16px; font-size:26px; font-weight:900; color:#292524; line-height:1.5;">
+        @if ($isEnglish)
+            Confirm your new email
+        @else
+            تأكيد بريدك الإلكتروني الجديد
+        @endif
+    </h1>
+
+    <p style="margin:0; font-size:15.5px; color:#6B6560; line-height:1.95;">
+        @if ($isEnglish)
+            Hello {{ $userName }}, you requested changing your account email to this address. Use the code below to confirm the change.
+        @else
+            مرحباً {{ $userName }}، طلبتَ تغيير البريد الإلكتروني لحسابك إلى هذا العنوان. استخدم الرمز أدناه لتأكيد التغيير.
+        @endif
+    </p>
+
+    {{-- 🔐 العنصر المميز: لوحة أرقام الباب --}}
+    <div style="background-color:#FAF7F2; border:1px solid #EBE4D9; border-radius:14px; padding:26px 20px; text-align:center; margin-top:24px;">
+        <div style="font-size:11.5px; font-weight:700; color:#98908A; letter-spacing:1.2px; margin-bottom:14px;">
+            {{ $isEnglish ? 'YOUR VERIFICATION CODE' : 'رمز التحقق الخاص بك' }}
         </div>
 
-        <div class="body-content">
-            @if($isEnglish)
-                <div class="greeting">Hello {{ $userName }}!</div>
-                <p class="text">We received a request to verify this email address for your Family Home account.</p>
+        <x-emails.otp-display :code="$otpCode" :isEnglish="$isEnglish" />
 
-                <div class="otp-container">
-                    <div class="otp-label">Your Verification Code</div>
-                    <div class="otp-code">{{ $otpCode }}</div>
-                    <div class="expiry-note">⏰ Valid for 5 minutes only</div>
-                </div>
-
-                <p class="text">If you did not request to change your email address, no further action is required.</p>
-            @else
-                <div class="greeting">مرحباً {{ $userName }}!</div>
-                <p class="text">لقد طلبنا التأكد من صحة هذا البريد الإلكتروني ليتم ربطه بحسابك في منصة Family Home.</p>
-
-                <div class="otp-container">
-                    <div class="otp-label">رمز تأكيد البريد الإلكتروني</div>
-                    <div class="otp-code">{{ $otpCode }}</div>
-                    <div class="expiry-note">⏰ هذا الرمز صالـح لمدة 5 دقائق فقط</div>
-                </div>
-
-                <p class="text">إذا لم تقم بطلب تغيير البريد الإلكتروني بنفسك، فيمكنك تجاهل هذه الرسالة بأمان.</p>
-            @endif
-        </div>
-
-        <div class="footer">
-            &copy; {{ date('Y') }} Family Home. All rights reserved.
+        <div style="font-size:13px; font-weight:700; color:#9C403C; margin-top:16px;">
+            ⏰ {{ $isEnglish ? 'Valid for 5 minutes only' : 'هذا الرمز صالح لمدة 5 دقائق فقط' }}
         </div>
     </div>
-</body>
-</html>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+           style="border:1px dashed #E3DBCF; border-radius:12px; background-color:#FBF9F5; margin-top:22px;">
+        <tr>
+            <td style="padding:16px 20px; font-size:13.5px; color:#847C74; line-height:2.1;">
+                @if ($isEnglish)
+                    1️⃣ Copy the code above<br>
+                    2️⃣ Paste it into the email change page in your profile
+                @else
+                    1️⃣ انسخ الرمز من الخانات أعلاه<br>
+                    2️⃣ أدخله في صفحة تغيير البريد داخل ملفك الشخصي
+                @endif
+            </td>
+        </tr>
+    </table>
+
+    <p style="margin:24px 0 0; font-size:14.5px; color:#847C74; line-height:1.9;">
+        @if ($isEnglish)
+            If you didn't request this change, please ignore this email — your current email will remain unchanged.
+        @else
+            إذا لم تطلب هذا التغيير بنفسك، تجاهل هذه الرسالة — سيبقى بريدك الحالي كما هو دون أي تعديل.
+        @endif
+    </p>
+
+</x-emails.layout>

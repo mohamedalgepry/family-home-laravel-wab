@@ -1,176 +1,97 @@
-<!DOCTYPE html>
-<html lang="{{ $locale ?? 'ar' }}" dir="{{ ($locale ?? 'ar') === 'en' ? 'ltr' : 'rtl' }}">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $isEnglish ? 'Welcome to Family Home' : 'مرحباً بك في Family Home' }}</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f8fafc;
-            color: #1e293b;
-            margin: 0;
-            padding: 20px 0;
-            -webkit-text-size-adjust: 100%;
-        }
-        .email-container {
-            max-width: 560px;
-            margin: 0 auto;
-            background: #ffffff;
-            border-radius: 16px;
-            border: 1px solid #e2e8f0;
-            overflow: hidden;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-        }
-        .header {
-            background: linear-gradient(135deg, #991b1b 0%, #450a0a 100%);
-            padding: 32px 20px;
-            text-align: center;
-        }
-        .logo-box {
-            width: 72px;
-            height: 72px;
-            margin: 0 auto 12px auto;
-            background: #ffffff;
-            border-radius: 50%;
-            padding: 6px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            display: inline-block;
-        }
-        .logo-img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            border-radius: 50%;
-        }
-        .brand-name {
-            color: #ffffff;
-            font-size: 20px;
-            font-weight: 700;
-            margin: 0;
-            letter-spacing: 0.5px;
-        }
-        .body-content {
-            padding: 32px 28px;
-            line-height: 1.6;
-        }
-        .greeting {
-            font-size: 18px;
-            font-weight: 700;
-            color: #0f172a;
-            margin-bottom: 12px;
-        }
-        .text {
-            font-size: 14px;
-            color: #475569;
-            margin-bottom: 20px;
-        }
-        .credentials-box {
-            background-color: #fef2f2;
-            border: 1px solid #fecaca;
-            border-radius: 12px;
-            padding: 20px;
-            margin: 24px 0;
-        }
-        .credential-row {
-            margin-bottom: 12px;
-        }
-        .credential-row:last-child {
-            margin-bottom: 0;
-        }
-        .credential-label {
-            font-size: 12px;
-            font-weight: 600;
-            color: #991b1b;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 4px;
-        }
-        .credential-value {
-            font-size: 15px;
-            font-weight: 700;
-            color: #0f172a;
-            word-break: break-all;
-        }
-        .login-btn {
-            display: inline-block;
-            background: #991b1b;
-            color: #ffffff !important;
-            text-decoration: none;
-            padding: 12px 28px;
-            border-radius: 10px;
-            font-weight: 700;
-            font-size: 14px;
-            margin-top: 8px;
-        }
-        .security-note {
-            font-size: 12px;
-            color: #ef4444;
-            font-weight: 600;
-            margin-top: 16px;
-        }
-        .footer {
-            background-color: #f8fafc;
-            border-top: 1px solid #e2e8f0;
-            padding: 20px;
-            text-align: center;
-            font-size: 12px;
-            color: #94a3b8;
-        }
-    </style>
-</head>
-<body>
-    <div class="email-container">
-        <div class="header">
-            <div class="logo-box" style="width: 72px; height: 72px; margin: 0 auto 12px auto; background-color: #ffffff !important; background: #ffffff !important; border-radius: 50%; padding: 6px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); display: inline-block;">
-                <img src="{{ $logoUrl }}" alt="Logo" class="logo-img" style="width: 100%; height: 100%; object-fit: contain; border-radius: 50%; background-color: #ffffff !important; background: #ffffff !important;">
-            </div>
-            <h1 class="brand-name">Family Home</h1>
-        </div>
+<x-emails.layout
+    :subject="$isEnglish ? 'Welcome to Family Home - Your Account Details' : 'مرحباً بك في Family Home - بيانات حسابك'"
+    :isEnglish="$isEnglish"
+    :locale="$locale"
+    :logoUrl="$logoUrl">
 
-        <div class="body-content">
-            @if($isEnglish)
-                <div class="greeting">Welcome, {{ $userName }}!</div>
-                <p class="text">Your account has been created on the Family Home platform. Below are your login credentials:</p>
-
-                <div class="credentials-box">
-                    <div class="credential-row">
-                        <div class="credential-label">Email</div>
-                        <div class="credential-value">{{ $userEmail }}</div>
-                    </div>
-                    <div class="credential-row">
-                        <div class="credential-label">Password</div>
-                        <div class="credential-value">{{ $plainPassword }}</div>
-                    </div>
-                </div>
-
-                <a href="{{ $loginUrl }}" class="login-btn">Sign In Now</a>
-
-                <p class="security-note">⚠️ For your security, please change your password after your first login.</p>
-            @else
-                <div class="greeting">مرحباً {{ $userName }}!</div>
-                <p class="text">تم إنشاء حسابك بنجاح على منصة Family Home. فيما يلي بيانات تسجيل الدخول الخاصة بك:</p>
-
-                <div class="credentials-box">
-                    <div class="credential-row">
-                        <div class="credential-label">البريد الإلكتروني</div>
-                        <div class="credential-value">{{ $userEmail }}</div>
-                    </div>
-                    <div class="credential-row">
-                        <div class="credential-label">كلمة المرور</div>
-                        <div class="credential-value">{{ $plainPassword }}</div>
-                    </div>
-                </div>
-
-                <a href="{{ $loginUrl }}" class="login-btn">تسجيل الدخول الآن</a>
-
-                <p class="security-note">⚠️ لأمان حسابك، يرجى تغيير كلمة المرور بعد أول تسجيل دخول.</p>
-            @endif
-        </div>
-
-        <div class="footer">
-            &copy; {{ date('Y') }} Family Home. All rights reserved.
-        </div>
+    {{-- شارة صغيرة هادئة --}}
+    <div style="margin:0 0 18px;">
+        <span style="display:inline-block; background-color:#FBF1EE; color:#9C403C; font-size:12px; font-weight:700; padding:5px 14px; border-radius:999px; letter-spacing:.4px;">
+            {{ $isEnglish ? 'Your account is ready ✓' : 'تم إنشاء حسابك بنجاح ✓' }}
+        </span>
     </div>
-</body>
-</html>
+
+    <h1 class="fh-h1" style="margin:0 0 16px; font-size:28px; font-weight:900; color:#292524; line-height:1.5;">
+        @if ($isEnglish)
+            Welcome to the Family Home<br>family, {{ $userName }} 👋
+        @else
+            أهلاً بك في عائلة<br>Family Home، {{ $userName }} 👋
+        @endif
+    </h1>
+
+    <p style="margin:0; font-size:15.5px; color:#6B6560; line-height:1.95;">
+        @if ($isEnglish)
+            We're glad to have you on board. Below are your login credentials for the admin dashboard — keep them private.
+        @else
+            يسعدنا انضمامك إلى فريق العمل. تجد في الأسفل بيانات الدخول إلى لوحة التحكم — احتفظ بها ولا تشاركها مع أحد.
+        @endif
+    </p>
+
+    {{-- صندوق بيانات الدخول --}}
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+           style="background-color:#FAF7F2; border:1px solid #EBE4D9; border-radius:14px; margin:26px 0 0;">
+        <tr>
+            <td style="padding:20px 24px 5px;">
+                <span style="font-size:11.5px; font-weight:700; color:#98908A; letter-spacing:1.2px;">{{ $isEnglish ? 'EMAIL' : 'البريد الإلكتروني' }}</span>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding:0 24px 18px;" dir="ltr" align="{{ $isEnglish ? 'left' : 'right' }}">
+                <span dir="ltr" style="font-size:17px; font-weight:700; color:#292524; letter-spacing:.3px;">{{ $userEmail }}</span>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding:0 24px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr><td height="1" style="background-color:#EBE4D9; font-size:0; line-height:0;">&nbsp;</td></tr>
+                </table>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding:18px 24px 5px;">
+                <span style="font-size:11.5px; font-weight:700; color:#98908A; letter-spacing:1.2px;">{{ $isEnglish ? 'TEMPORARY PASSWORD' : 'كلمة المرور المؤقتة' }}</span>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding:0 24px 22px;" dir="ltr" align="{{ $isEnglish ? 'left' : 'right' }}">
+                <span dir="ltr" style="font-family:'Courier New',monospace; font-size:19px; font-weight:700; color:#7A3B36; letter-spacing:3px;">{{ $plainPassword }}</span>
+            </td>
+        </tr>
+    </table>
+
+    {{-- زر تسجيل الدخول --}}
+    <div style="text-align:center; margin-top:32px;">
+        <a href="{{ $loginUrl }}"
+           style="display:inline-block; background-color:#B3372F; color:#FFFFFF !important; padding:15px 52px; border-radius:14px; font-size:15.5px; font-weight:700; letter-spacing:.4px;">
+            {{ $isEnglish ? 'Sign In Now →' : 'تسجيل الدخول الآن ←' }}
+        </a>
+    </div>
+
+    {{-- تنبيه الأمان --}}
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+           style="border:1px dashed #E3DBCF; border-radius:12px; background-color:#FBF9F5; margin-top:22px;">
+        <tr>
+            <td style="padding:16px 20px; font-size:13.5px; color:#847C74; line-height:1.9;">
+                🔐 <strong style="color:#4B4642;">{{ $isEnglish ? 'For your security:' : 'لحمايتك:' }}</strong>
+                @if ($isEnglish)
+                    The password above is temporary. Please change it after your first sign-in from your profile page.
+                @else
+                    كلمة المرور أعلاه مؤقتة. يُرجى تغييرها بعد أول تسجيل دخول من صفحة «الملف الشخصي».
+                @endif
+            </td>
+        </tr>
+    </table>
+
+    {{-- سطر ختامي --}}
+    <p style="margin:26px 0 0; font-size:14.5px; color:#847C74; line-height:1.9;">
+        @if ($isEnglish)
+            If you weren't expecting this email, you can safely ignore it or <a href="{{ url('/contact') }}" style="color:#B3372F; font-weight:600;">contact the administration</a>.
+        @else
+            إذا لم تتوقع هذه الرسالة، يمكنك تجاهلها بأمان أو <a href="{{ url('/contact') }}" style="color:#B3372F; font-weight:600;">التواصل مع الإدارة</a>.
+        @endif
+    </p>
+    <p style="margin:14px 0 0; font-size:15px; font-weight:700; color:#292524;">
+        {{ $isEnglish ? 'Best regards, the Family Home team 🤝' : 'تحياتنا، فريق Family Home 🤝' }}
+    </p>
+
+</x-emails.layout>

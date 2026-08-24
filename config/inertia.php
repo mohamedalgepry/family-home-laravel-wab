@@ -3,7 +3,12 @@
 return [
 
     'ssr' => [
-        'enabled' => (bool) env('INERTIA_SSR_ENABLED', true),
+        // Must stay disabled: SEO meta tags are rendered server-side by the
+        // x-seo.meta Blade component. When SSR is enabled, @inertiaHead also
+        // emits a React-rendered <title> and duplicates every tag. The prerender
+        // pipeline (scripts/prerender.js) invokes the SSR bundle directly and
+        // does not depend on this flag.
+        'enabled' => (bool) env('INERTIA_SSR_ENABLED', false),
         'runtime' => env('INERTIA_SSR_RUNTIME', 'node'),
         'ensure_runtime_exists' => (bool) env('INERTIA_SSR_ENSURE_RUNTIME_EXISTS', false),
         'url' => env('INERTIA_SSR_URL', 'http://127.0.0.1:13714'),

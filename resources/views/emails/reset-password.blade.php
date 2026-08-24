@@ -1,140 +1,63 @@
-<!DOCTYPE html>
-<html lang="{{ $locale ?? 'ar' }}" dir="{{ ($locale ?? 'ar') === 'en' ? 'ltr' : 'rtl' }}">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $isEnglish ? 'Reset Your Password - Family Home' : 'إعادة ضبط كلمة السر - Family Home' }}</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f8fafc;
-            color: #1e293b;
-            margin: 0;
-            padding: 20px 0;
-            -webkit-text-size-adjust: 100%;
-        }
-        .email-container {
-            max-width: 560px;
-            margin: 0 auto;
-            background: #ffffff;
-            border-radius: 16px;
-            border: 1px solid #e2e8f0;
-            overflow: hidden;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-        }
-        .header {
-            background: linear-gradient(135deg, #991b1b 0%, #450a0a 100%);
-            padding: 32px 20px;
-            text-align: center;
-        }
-        .logo-box {
-            width: 72px;
-            height: 72px;
-            margin: 0 auto 12px auto;
-            background: #ffffff;
-            border-radius: 50%;
-            padding: 6px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            display: inline-block;
-        }
-        .logo-img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            border-radius: 50%;
-        }
-        .brand-name {
-            color: #ffffff;
-            font-size: 20px;
-            font-weight: 700;
-            margin: 0;
-            letter-spacing: 0.5px;
-        }
-        .body-content {
-            padding: 32px 28px;
-            line-height: 1.6;
-        }
-        .greeting {
-            font-size: 18px;
-            font-weight: 700;
-            color: #0f172a;
-            margin-bottom: 12px;
-        }
-        .text {
-            font-size: 14px;
-            color: #475569;
-            margin-bottom: 20px;
-        }
-        .reset-btn {
-            display: inline-block;
-            background: #991b1b;
-            color: #ffffff !important;
-            text-decoration: none;
-            padding: 12px 28px;
-            border-radius: 10px;
-            font-weight: 700;
-            font-size: 14px;
-            margin: 8px 0 4px 0;
-        }
-        .expiry-note {
-            font-size: 12px;
-            color: #ef4444;
-            font-weight: 600;
-            margin-top: 16px;
-        }
-        .ignore-note {
-            font-size: 12px;
-            color: #64748b;
-            margin-top: 16px;
-        }
-        .footer {
-            background-color: #f8fafc;
-            border-top: 1px solid #e2e8f0;
-            padding: 20px;
-            text-align: center;
-            font-size: 12px;
-            color: #94a3b8;
-        }
-        @media only screen and (max-width: 480px) {
-            .body-content { padding: 24px 18px; }
-            .reset-btn { display: block; text-align: center; }
-        }
-    </style>
-</head>
-<body>
-    <div class="email-container">
-        <div class="header">
-            <div class="logo-box" style="width: 72px; height: 72px; margin: 0 auto 12px auto; background-color: #ffffff !important; background: #ffffff !important; border-radius: 50%; padding: 6px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); display: inline-block;">
-                <img src="{{ $logoUrl }}" alt="Logo" class="logo-img" style="width: 100%; height: 100%; object-fit: contain; border-radius: 50%; background-color: #ffffff !important; background: #ffffff !important;">
-            </div>
-            <h1 class="brand-name">Family Home</h1>
-        </div>
+<x-emails.layout
+    :subject="$isEnglish ? 'Reset Your Password - Family Home' : 'إعادة ضبط كلمة السر - Family Home'"
+    :isEnglish="$isEnglish"
+    :locale="$locale"
+    :logoUrl="$logoUrl">
 
-        <div class="body-content">
-            @if($isEnglish)
-                <div class="greeting">Hello, {{ $userName }}!</div>
-                <p class="text">We received a request to reset the password for your Family Home account.</p>
-
-                <a href="{{ $resetUrl }}" class="reset-btn" style="display: inline-block; background-color: #991b1b !important; color: #ffffff !important; text-decoration: none; padding: 12px 28px; border-radius: 10px; font-weight: 700; font-size: 14px;">Reset Your Password Now</a>
-
-                <p class="expiry-note">This link is valid for {{ $expireMinutes }} minutes only.</p>
-
-                <p class="ignore-note">If you did not request a password reset, you can safely ignore this email.</p>
-            @else
-                <div class="greeting">مرحباً {{ $userName }}!</div>
-                <p class="text">لقد تلقينا طلباً لإعادة ضبط كلمة السر الخاصة بحسابك في منصة Family Home.</p>
-
-                <a href="{{ $resetUrl }}" class="reset-btn" style="display: inline-block; background-color: #991b1b !important; color: #ffffff !important; text-decoration: none; padding: 12px 28px; border-radius: 10px; font-weight: 700; font-size: 14px;">إعادة ضبط كلمة السر الآن</a>
-
-                <p class="expiry-note">هذا الرابط صالح لمدة {{ $expireMinutes }} دقيقة فقط.</p>
-
-                <p class="ignore-note">إذا لم تقم بطلب إعادة ضبط كلمة السر بنفسك، فيمكنك تجاهل هذه الرسالة بأمان.</p>
-            @endif
-        </div>
-
-        <div class="footer">
-            &copy; {{ date('Y') }} Family Home. All rights reserved.
-        </div>
+    <div style="margin:0 0 18px;">
+        <span style="display:inline-block; background-color:#FBF1EE; color:#9C403C; font-size:12px; font-weight:700; padding:5px 14px; border-radius:999px; letter-spacing:.4px;">
+            {{ $isEnglish ? 'Password reset request' : 'طلب إعادة ضبط كلمة السر' }}
+        </span>
     </div>
-</body>
-</html>
+
+    <h1 class="fh-h1" style="margin:0 0 16px; font-size:26px; font-weight:900; color:#292524; line-height:1.5;">
+        @if ($isEnglish)
+            Reset your password
+        @else
+            إعادة ضبط كلمة السر
+        @endif
+    </h1>
+
+    <p style="margin:0; font-size:15.5px; color:#6B6560; line-height:1.95;">
+        @if ($isEnglish)
+            Hello {{ $userName }}, we received a request to reset the password of your Family Home account. Click the button below to choose a new password.
+        @else
+            مرحباً {{ $userName }}، تلقينا طلباً لإعادة ضبط كلمة السر الخاصة بحسابك. اضغط الزر أدناه لاختيار كلمة مرور جديدة.
+        @endif
+    </p>
+
+    {{-- زر إعادة الضبط --}}
+    <div style="text-align:center; margin-top:32px;">
+        <a href="{{ $resetUrl }}"
+           style="display:inline-block; background-color:#B3372F; color:#FFFFFF !important; padding:15px 48px; border-radius:14px; font-size:15.5px; font-weight:700; letter-spacing:.4px;">
+            {{ $isEnglish ? 'Reset Your Password Now →' : 'إعادة ضبط كلمة السر الآن ←' }}
+        </a>
+    </div>
+
+    {{-- صلاحية الرابط --}}
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+           style="border:1px dashed #E3DBCF; border-radius:12px; background-color:#FBF9F5; margin-top:22px;">
+        <tr>
+            <td style="padding:16px 20px; font-size:13.5px; color:#847C74; line-height:1.9;">
+                ⏰ {{ $isEnglish ? 'This link is valid for '.$expireMinutes.' minutes only.' : 'هذا الرابط صالح لمدة '.$expireMinutes.' دقيقة فقط.' }}
+            </td>
+        </tr>
+    </table>
+
+    {{-- رابط احتياطي نصي --}}
+    <p style="margin:24px 0 6px; font-size:13.5px; color:#847C74; line-height:1.9;">
+        {{ $isEnglish ? 'Button not working? Copy the link below into your browser:' : 'الزر لا يعمل؟ انسخ الرابط التالي والصقه في المتصفح:' }}
+    </p>
+    <p dir="ltr" align="{{ $isEnglish ? 'left' : 'right' }}" style="margin:0; font-size:12px; color:#A39B90; word-break:break-all; line-height:1.8;">
+        {{ $resetUrl }}
+    </p>
+
+    <p style="margin:22px 0 0; font-size:14.5px; color:#847C74; line-height:1.9;">
+        @if ($isEnglish)
+            If you didn't request this, you can safely ignore this email — your password won't change.
+        @else
+            إذا لم تطلب هذا بنفسك، يمكنك تجاهل هذه الرسالة بأمان — لن تتغير كلمة السر.
+        @endif
+    </p>
+
+</x-emails.layout>
