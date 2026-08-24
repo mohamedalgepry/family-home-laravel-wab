@@ -278,9 +278,15 @@ class AreaController extends Controller
         $newIds = [];
 
         foreach ($items as $item) {
-            if (isset($item['id']) && in_array($item['id'], $existingIds)) {
-                $area->{$relation}()->where('id', $item['id'])->update($item);
-                $newIds[] = $item['id'];
+            // Query-builder updates bypass $fillable, so system-managed fields
+            // (ISO-8601 timestamps from the frontend) must be stripped manually
+            // or MySQL strict mode rejects them (Invalid datetime format).
+            $id = $item['id'] ?? null;
+            unset($item['id'], $item['area_id'], $item['created_at'], $item['updated_at']);
+
+            if ($id !== null && in_array($id, $existingIds)) {
+                $area->{$relation}()->where('id', $id)->update($item);
+                $newIds[] = $id;
             } else {
                 $created = $area->{$relation}()->create($item);
                 $newIds[] = $created->id;

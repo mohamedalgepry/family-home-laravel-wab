@@ -94,23 +94,46 @@ php artisan sitemap:generate
 
 ## المهام المجدولة والطوابير
 
-### Cron Job (مرة كل دقيقة)
+### Cron Job (مرة كل دقيقة) — كرون واحد فقط
+
+> **مهم:** على Hostinger استخدم مسار PHP الكامل لأن `php` الافتراضي في بيئة
+> الكرون غالباً نسخة قديمة (المشروع يتطلب 8.3). تحقق من المسار المتاح:
+> `ls /opt/alt/ | grep php`
 
 ```cron
-* * * * * cd /absolute/path/to/application && php artisan schedule:run >> /dev/null 2>&1
+* * * * * cd /home/u388444874/domains/familyhome-co.com/public_html && /opt/alt/php83/usr/bin/php artisan schedule:run >> /dev/null 2>&1
+```
+
+لأغراض التشخيص يمكن توجيه الإخراج إلى ملف لوج بدلاً من إخفائه:
+
+```cron
+* * * * * cd /home/u388444874/domains/familyhome-co.com/public_html && /opt/alt/php83/usr/bin/php artisan schedule:run -v >> storage/logs/scheduler.log 2>&1
 ```
 
 ### Queue Worker
 
-على الاستضافة المشتركة (Hostinger) لا يوجد Process Manager دائم، لذلك يُشغَّل الـ worker عبر
-**Cron Job إضافي كل دقيقة** ينفّذ أي مهام معلّقة ثم يتوقف:
+**لا تضف كرون ثانٍ للـ worker.** الجدول الداخلي (`routes/console.php`) يشغّل
+`queue:work --stop-when-empty --max-time=50` كل دقيقة عبر `runInBackground()`،
+وإضافة كرون خارجي آخر يُنشئ عاملين متعارضين.
 
-```cron
-* * * * * cd /absolute/path/to/application && php artisan queue:work --stop-when-empty --tries=3 --timeout=60 >> /dev/null 2>&1
-```
-
-هذا أمر ضروري: **المصغرات WebP للصور لا تُولَّد إلا عبر الـ queue**، فبدونه تبقى الصور المرفوعة
+هذا ضروري: **المصغرات WebP للصور لا تُولَّد إلا عبر الـ queue**، فبدونه تبقى الصور المرفوعة
 غير محسّنة وتؤثر على PageSpeed و LCP.
+
+### تصميم المهام المرن ضد تقطّع الكرون
+
+الاستضافة المشتركة قد تتقطع في تنفيذ الكرون، لذلك المهام اليومية مصممة بحيث
+تعمل على **أول ضربة ناجحة** بدلاً من انتظار دقيقة محددة:
+
+| Task | Schedule | الحماية |
+|---|---|---|
+| `queue:work` | كل دقيقة + runInBackground | withoutOverlapping(10) — القفل يتحرر بعد 10 دقائق لو قُتلت العملية |
+| `points:daily-deduct` | كل ساعة | Idempotent على مستوى قاعدة البيانات (خصم واحد/وحدة/يوم) |
+| `points:monthly-reset` | كل ساعة | مفتاح شهر في الكاش (Cache::add ذري) |
+| `units:check-expiry` | كل ساعة | مفتاح يوم في الكاش (Cache::add ذري) |
+| `app:backup-db` | كل ساعة | مفتاح يوم في الكاش + خيار `--force` للتشغيل اليدوي |
+| `notifications:cleanup` | يومياً 03:00 بتوقيت القاهرة | withoutOverlapping(10) |
+| `backup:clean` | يومياً 04:30 بتوقيت القاهرة | withoutOverlapping(10) |
+| `sitemap:generate` | كل ساعة | بدون حماية (التوليد idempotent بطبيعته) |
 
 إذا كانت خطة الاستضافة تدعم عملية دائمة، يمكن تشغيل الـ worker الدائم بدلاً من cron:
 

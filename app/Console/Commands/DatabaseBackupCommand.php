@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -13,12 +14,20 @@ class DatabaseBackupCommand extends Command
     protected $signature = 'app:backup-db 
                             {--disk=local : Storage disk to save backup to} 
                             {--keep=7 : Number of days to retain backups}
-                            {--database= : Specify database connection to backup}';
+                            {--database= : Specify database connection to backup}
+                            {--force : Run even if a backup was already taken today}';
 
     protected $description = 'Perform a streamed, atomic, memory-safe pure-PHP database backup with UTF-8mb4 preservation';
 
     public function handle(): int
     {
+        $claimKey = 'db_backup_done_'.now()->toDateString();
+        if (! $this->option('force') && ! Cache::add($claimKey, true, 60 * 60 * 25)) {
+            $this->info('A backup has already been completed today. Use --force to override.');
+
+            return self::SUCCESS;
+        }
+
         $this->info('Starting database backup (Streamed PDO engine)...');
         $startTime = microtime(true);
 
@@ -188,6 +197,9 @@ class DatabaseBackupCommand extends Command
 
             return self::SUCCESS;
         } catch (\Throwable $e) {
+            // Release the daily claim so the next scheduled tick can retry today
+            Cache::forget($claimKey);
+
             // Clean up temporary file on failure
             if ($tempPath && file_exists($tempPath)) {
                 @unlink($tempPath);
