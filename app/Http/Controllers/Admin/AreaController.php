@@ -277,15 +277,18 @@ class AreaController extends Controller
         $existingIds = $area->{$relation}()->pluck('id')->toArray();
         $newIds = [];
 
-        foreach ($items as $item) {
-            if (isset($item['id']) && in_array($item['id'], $existingIds)) {
-                $area->{$relation}()->where('id', $item['id'])->update($item);
-                $newIds[] = $item['id'];
-            } else {
-                $created = $area->{$relation}()->create($item);
-                $newIds[] = $created->id;
-            }
-        }
+    foreach ($items as $item) {
+            $payload = collect($item)->except(['id', 'created_at', 'updated_at', 'area_id'])->toArray();
+
+                if (isset($item['id']) && in_array($item['id'], $existingIds)) {
+                        $area->{$relation}()->where('id', $item['id'])->update($payload);
+                                $newIds[] = $item['id'];
+                                    } else {
+                                            $created = $area->{$relation}()->create($payload);
+                                                    $newIds[] = $created->id;
+                                                        }
+                                                        }
+    }
 
         $idsToDelete = array_diff($existingIds, $newIds);
         if (count($idsToDelete) > 0) {
