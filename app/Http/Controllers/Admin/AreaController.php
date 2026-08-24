@@ -29,8 +29,10 @@ class AreaController extends Controller
 
         $areas = Area::withCount(['projects', 'units'])
             ->when(request('search'), function ($query, $search) {
-                $query->where('name_ar', 'like', "%{$search}%")
-                    ->orWhere('name_en', 'like', "%{$search}%");
+                $query->where(function ($q) use ($search) {
+                    $q->where('name_ar', 'like', "%{$search}%")
+                        ->orWhere('name_en', 'like', "%{$search}%");
+                });
             })
             ->when(request('status') !== null, function ($query) {
                 $query->where('is_active', request('status') === 'active');
@@ -214,7 +216,7 @@ class AreaController extends Controller
 
     public function destroy(Area $area): RedirectResponse
     {
-        $this->authorize('delete', Area::class);
+        $this->authorize('delete', $area);
 
         if ($area->image_path && Storage::disk('public')->exists($area->image_path)) {
             $this->deleteImageAndThumbnail($area->image_path);
@@ -278,17 +280,17 @@ class AreaController extends Controller
         $newIds = [];
 
         foreach ($items as $item) {
-            // Query-builder updates bypass $fillable, so system-managed fields
-            // (ISO-8601 timestamps from the frontend) must be stripped manually
-            // or MySQL strict mode rejects them (Invalid datetime format).
-            $id = $item['id'] ?? null;
-            unset($item['id'], $item['area_id'], $item['created_at'], $item['updated_at']);
+            // Never trust timestamps/ids coming from the frontend payload —
+            // they arrive as ISO 8601 strings (e.g. 2026-08-15T18:50:50.000000Z)
+            // which MySQL's DATETIME columns reject, causing the whole row
+            // update to fail silently (caught by the Inertia exception handler).
+            $payload = collect($item)->except(['id', 'created_at', 'updated_at', 'area_id'])->toArray();
 
-            if ($id !== null && in_array($id, $existingIds)) {
-                $area->{$relation}()->where('id', $id)->update($item);
-                $newIds[] = $id;
+            if (isset($item['id']) && in_array($item['id'], $existingIds)) {
+                $area->{$relation}()->where('id', $item['id'])->update($payload);
+                $newIds[] = $item['id'];
             } else {
-                $created = $area->{$relation}()->create($item);
+                $created = $area->{$relation}()->create($payload);
                 $newIds[] = $created->id;
             }
         }
