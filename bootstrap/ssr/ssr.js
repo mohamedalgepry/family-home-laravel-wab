@@ -14723,13 +14723,10 @@ function Show({ agent, units, locale }) {
 							}),
 							/* @__PURE__ */ jsxs("div", {
 								className: "flex-1 text-center sm:text-start space-y-4 relative z-10",
-								children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("h1", {
+								children: [/* @__PURE__ */ jsx("div", { children: /* @__PURE__ */ jsx("h1", {
 									className: "text-3xl sm:text-4xl font-black text-secondary-950 tracking-tight",
 									children: agent.name
-								}), /* @__PURE__ */ jsx("p", {
-									className: "text-secondary-500 font-medium mt-2 text-lg",
-									children: trans(agent.role || "agent")
-								})] }), /* @__PURE__ */ jsx("div", {
+								}) }), /* @__PURE__ */ jsx("div", {
 									className: "flex flex-wrap items-center justify-center sm:justify-start gap-3 pt-2",
 									children: channels.map((ch) => /* @__PURE__ */ jsxs("a", {
 										href: ch.url,
@@ -18923,30 +18920,24 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 											}) : /* @__PURE__ */ jsx("div", {
 												className: "w-10 h-10 rounded-full bg-primary-100 border border-primary-200 flex items-center justify-center text-primary-900 font-bold text-xs shrink-0 group-hover:bg-primary-200 transition-colors",
 												children: project.user.name ? project.user.name.charAt(0).toUpperCase() : isRtl ? "أ" : "A"
-											}), /* @__PURE__ */ jsxs("div", {
+											}), /* @__PURE__ */ jsx("div", {
 												className: "min-w-0",
-												children: [/* @__PURE__ */ jsx("h4", {
+												children: /* @__PURE__ */ jsx("h4", {
 													className: "text-xs font-bold text-secondary-950 truncate group-hover:text-primary-900 transition-colors",
 													children: project.user.name
-												}), /* @__PURE__ */ jsx("p", {
-													className: "text-[11px] text-secondary-500 font-medium truncate",
-													children: isRtl ? "مستشار عقاري" : "Real Estate Advisor"
-												})]
+												})
 											})]
 										}) : /* @__PURE__ */ jsxs("div", {
 											className: "flex items-center gap-3",
 											children: [/* @__PURE__ */ jsx("div", {
 												className: "w-10 h-10 rounded-full bg-primary-100 border border-primary-200 flex items-center justify-center text-primary-900 font-bold text-xs shrink-0",
 												children: isRtl ? "ف" : "F"
-											}), /* @__PURE__ */ jsxs("div", {
+											}), /* @__PURE__ */ jsx("div", {
 												className: "min-w-0",
-												children: [/* @__PURE__ */ jsx("h4", {
+												children: /* @__PURE__ */ jsx("h4", {
 													className: "text-xs font-bold text-secondary-950 truncate",
 													children: trans("company_name") || (isRtl ? "فاميلي هوم" : "Family Home")
-												}), /* @__PURE__ */ jsx("p", {
-													className: "text-[11px] text-secondary-500 font-medium truncate",
-													children: isRtl ? "مستشار عقاري" : "Real Estate Advisor"
-												})]
+												})
 											})]
 										}), /* @__PURE__ */ jsxs("div", {
 											className: "flex items-center gap-1.5 shrink-0",
@@ -20299,15 +20290,12 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 													}) : /* @__PURE__ */ jsx("div", {
 														className: "w-10 h-10 rounded-full bg-primary-100 border border-primary-200 flex items-center justify-center text-primary-900 font-bold text-xs shrink-0 group-hover:bg-primary-200 transition-colors",
 														children: agentUser.name ? agentUser.name.charAt(0).toUpperCase() : isRtl ? "أ" : "A"
-													}), /* @__PURE__ */ jsxs("div", {
+													}), /* @__PURE__ */ jsx("div", {
 														className: "min-w-0",
-														children: [/* @__PURE__ */ jsx("h4", {
+														children: /* @__PURE__ */ jsx("h4", {
 															className: "text-xs font-bold text-secondary-950 truncate group-hover:text-primary-900 transition-colors",
 															children: agentUser.name
-														}), /* @__PURE__ */ jsx("p", {
-															className: "text-[11px] text-secondary-500 font-medium truncate",
-															children: isRtl ? "مستشار عقاري" : "Real Estate Advisor"
-														})]
+														})
 													})]
 												});
 											})() : /* @__PURE__ */ jsxs("div", {
@@ -20315,15 +20303,12 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 												children: [/* @__PURE__ */ jsx("div", {
 													className: "w-10 h-10 rounded-full bg-primary-100 border border-primary-200 flex items-center justify-center text-primary-900 font-bold text-xs shrink-0",
 													children: isRtl ? "ف" : "F"
-												}), /* @__PURE__ */ jsxs("div", {
+												}), /* @__PURE__ */ jsx("div", {
 													className: "min-w-0",
-													children: [/* @__PURE__ */ jsx("h4", {
+													children: /* @__PURE__ */ jsx("h4", {
 														className: "text-xs font-bold text-secondary-950 truncate",
 														children: trans("company_name") || (isRtl ? "فاميلي هوم" : "Family Home")
-													}), /* @__PURE__ */ jsx("p", {
-														className: "text-[11px] text-secondary-500 font-medium truncate",
-														children: isRtl ? "مستشار عقاري" : "Real Estate Advisor"
-													})]
+													})
 												})]
 											}), /* @__PURE__ */ jsxs("div", {
 												className: "flex items-center gap-1.5 shrink-0",

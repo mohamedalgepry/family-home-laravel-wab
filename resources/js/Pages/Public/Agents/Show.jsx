@@ -51,7 +51,6 @@ export default function Show({ agent, units, locale }) {
                     <div className="flex-1 text-center sm:text-start space-y-4 relative z-10">
                         <div>
                             <h1 className="text-3xl sm:text-4xl font-black text-secondary-950 tracking-tight">{agent.name}</h1>
-                            <p className="text-secondary-500 font-medium mt-2 text-lg">{trans(agent.role || 'agent')}</p>
                         </div>
                         
                         <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 pt-2">

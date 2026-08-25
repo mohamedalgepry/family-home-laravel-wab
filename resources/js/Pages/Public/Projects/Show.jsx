@@ -346,9 +346,6 @@ export default function ProjectShow({ project, projectUnits, similarProjects, re
                                             <h4 className="text-xs font-bold text-secondary-950 truncate group-hover:text-primary-900 transition-colors">
                                                 {project.user.name}
                                             </h4>
-                                            <p className="text-[11px] text-secondary-500 font-medium truncate">
-                                                {isRtl ? 'مستشار عقاري' : 'Real Estate Advisor'}
-                                            </p>
                                         </div>
                                     </Link>
                                 ) : (
@@ -360,9 +357,6 @@ export default function ProjectShow({ project, projectUnits, similarProjects, re
                                             <h4 className="text-xs font-bold text-secondary-950 truncate">
                                                 {trans('company_name') || (isRtl ? 'فاميلي هوم' : 'Family Home')}
                                             </h4>
-                                            <p className="text-[11px] text-secondary-500 font-medium truncate">
-                                                {isRtl ? 'مستشار عقاري' : 'Real Estate Advisor'}
-                                            </p>
                                         </div>
                                     </div>
                                 )}

@@ -43,7 +43,6 @@ export default function AgentCard({ agent }) {
                 )}
                 <div>
                     <h3 className="text-sm font-semibold text-secondary-950">{agent.name}</h3>
-                    <p className="text-xs text-muted">{trans('agent', {}, 'units')}</p>
                 </div>
             </Link>
             <div className="space-y-2">
