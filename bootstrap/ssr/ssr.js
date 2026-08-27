@@ -3486,7 +3486,7 @@ function Select({ value, onChange, children, className = "", disabled = false, r
 }
 //#endregion
 //#region resources/js/Components/UI/WhatsAppIcon.jsx
-function WhatsAppIcon$1({ className = "w-5 h-5", "aria-hidden": ariaHidden = true, ...props }) {
+function WhatsAppIcon({ className = "w-5 h-5", "aria-hidden": ariaHidden = true, ...props }) {
 	return /* @__PURE__ */ jsx("svg", {
 		className,
 		fill: "currentColor",
@@ -14079,7 +14079,7 @@ function Footer() {
 									rel: "noopener noreferrer",
 									className: "flex items-center gap-2 hover:text-green-400 transition-colors w-fit",
 									title: trans("whatsapp_chat"),
-									children: [/* @__PURE__ */ jsx(WhatsAppIcon$1, { className: "w-4 h-4 shrink-0 text-green-500 fill-current" }), /* @__PURE__ */ jsx("span", {
+									children: [/* @__PURE__ */ jsx(WhatsAppIcon, { className: "w-4 h-4 shrink-0 text-green-500 fill-current" }), /* @__PURE__ */ jsx("span", {
 										dir: "ltr",
 										children: settings.company_whatsapp
 									})]
@@ -14577,7 +14577,7 @@ function UnitCard({ unit, loading = false, priority = false }) {
 				"aria-label": `${trans("inquire")} ${unit.name} ${trans("contact_via_whatsapp")}`,
 				className: "flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-600 hover:text-white rounded-xl transition-colors duration-200 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500",
 				title: trans("contact_via_whatsapp"),
-				children: [/* @__PURE__ */ jsx(WhatsAppIcon$1, { className: "w-4 h-4" }), trans("inquire")]
+				children: [/* @__PURE__ */ jsx(WhatsAppIcon, { className: "w-4 h-4" }), trans("inquire")]
 			})]
 		})]
 	});
@@ -19596,7 +19596,7 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 					target: "_blank",
 					rel: "noopener noreferrer",
 					className: "flex-1 py-3 px-4 bg-[#16a34a] hover:bg-[#15803d] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-colors active:scale-98 min-h-[44px]",
-					children: [/* @__PURE__ */ jsx(WhatsAppIcon$1, { className: "w-4 h-4 fill-current" }), /* @__PURE__ */ jsx("span", { children: isRtl ? "واتساب" : "WhatsApp" })]
+					children: [/* @__PURE__ */ jsx(WhatsAppIcon, { className: "w-4 h-4 fill-current" }), /* @__PURE__ */ jsx("span", { children: isRtl ? "واتساب" : "WhatsApp" })]
 				}), /* @__PURE__ */ jsxs("a", {
 					href: `tel:${agentContacts.phone}`,
 					className: "flex-1 py-3 px-4 bg-[#CC0000] hover:bg-[#b30000] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-colors active:scale-98 min-h-[44px]",
@@ -21232,7 +21232,7 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 					target: "_blank",
 					rel: "noopener noreferrer",
 					className: "flex-1 py-3 px-4 bg-[#16a34a] hover:bg-[#15803d] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-colors active:scale-98 min-h-[44px]",
-					children: [/* @__PURE__ */ jsx(WhatsAppIcon$1, { className: "w-4 h-4 fill-current" }), /* @__PURE__ */ jsx("span", { children: isRtl ? "واتساب" : "WhatsApp" })]
+					children: [/* @__PURE__ */ jsx(WhatsAppIcon, { className: "w-4 h-4 fill-current" }), /* @__PURE__ */ jsx("span", { children: isRtl ? "واتساب" : "WhatsApp" })]
 				}), /* @__PURE__ */ jsxs("a", {
 					href: `tel:${agentContacts.phone}`,
 					className: "flex-1 py-3 px-4 bg-[#CC0000] hover:bg-[#b30000] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-colors active:scale-98 min-h-[44px]",

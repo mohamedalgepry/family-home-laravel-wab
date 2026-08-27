@@ -13,6 +13,7 @@ import Header from '../../../Components/Layout/Header'
 import Footer from '../../../Components/Layout/Footer'
 import SeoHead from '../../../Components/UI/SeoHead'
 import ArticleCard from '../../../Components/UI/ArticleCard'
+import { WhatsAppIcon } from '../../../Components/UI'
 import { useState, useMemo } from 'react'
 
 export default function ArticleShow({ article, relatedArticles, suggestedUnits }) {
