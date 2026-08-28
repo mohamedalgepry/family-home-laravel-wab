@@ -32,10 +32,10 @@ async function loadLocale(locale) {
 	const lang = locale === "ar" ? "ar" : "en";
 	if (!dictionaries[lang]) try {
 		if (lang === "ar") {
-			const mod = await import("./assets/ar-L-F5Zbyh.js");
+			const mod = await import("./assets/ar-CIY7tJ2p.js");
 			dictionaries.ar = mod.default || mod;
 		} else {
-			const mod = await import("./assets/en-CXP7sJfa.js");
+			const mod = await import("./assets/en-CLTie7xc.js");
 			dictionaries.en = mod.default || mod;
 		}
 	} catch (e) {
