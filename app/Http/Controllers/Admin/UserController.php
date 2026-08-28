@@ -139,11 +139,21 @@ class UserController extends Controller
     {
         $this->authorize('delete', $user);
 
-        $transferToId = $request->input('transfer_to_id');
-        $this->userService->destroyUser($user->id, $transferToId ? (int) $transferToId : null);
+        try {
+            $transferToId = $request->input('transfer_to_id');
+            $this->userService->destroyUser($user->id, $transferToId ? (int) $transferToId : null);
 
-        return redirect()->route('admin.users.index')
-            ->with('success', __('users.user_deleted'));
+            return redirect()->route('admin.users.index')
+                ->with('success', __('users.user_deleted'));
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('User deletion failed', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return redirect()->back()
+                ->with('error', __('users.deletion_failed'));
+        }
     }
 
     public function changePassword(User $user, ChangeUserPasswordRequest $request): RedirectResponse

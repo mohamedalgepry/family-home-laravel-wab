@@ -32,10 +32,10 @@ async function loadLocale(locale) {
 	const lang = locale === "ar" ? "ar" : "en";
 	if (!dictionaries[lang]) try {
 		if (lang === "ar") {
-			const mod = await import("./assets/ar-BS1e7N5b.js");
+			const mod = await import("./assets/ar-_A6Rgu3T.js");
 			dictionaries.ar = mod.default || mod;
 		} else {
-			const mod = await import("./assets/en-CzvXTPB9.js");
+			const mod = await import("./assets/en-PWZcM7Vo.js");
 			dictionaries.en = mod.default || mod;
 		}
 	} catch (e) {
@@ -630,7 +630,7 @@ function AdminSidebar({ children }) {
 								className: "text-xs font-medium text-secondary-700 hover:text-primary-900 border border-secondary-200 rounded px-2.5 py-1 transition-colors focus-visible:ring-2 focus-visible:ring-primary-900 focus-visible:outline-none min-h-[36px] flex items-center",
 								children: isRtl ? trans("lang_en") : trans("lang_ar")
 							}), /* @__PURE__ */ jsxs("div", {
-								className: "flex items-center gap-3 border-s border-secondary-200 ps-4 rtl:border-s-0 rtl:border-r rtl:pr-4 rtl:ps-0",
+								className: "flex items-center gap-3 border-s border-secondary-200 ps-4",
 								children: [
 									/* @__PURE__ */ jsx("button", {
 										onClick: toggleSound,
@@ -685,7 +685,7 @@ function AdminSidebar({ children }) {
 												children: liveNotifCount > 99 ? "99+" : liveNotifCount
 											})]
 										}), notifOpen && /* @__PURE__ */ jsxs("div", {
-											className: `absolute ${isRtl ? "left-0" : "right-0"} top-full mt-2 w-80 bg-white rounded-2xl shadow-xl border border-secondary-200 z-50 overflow-hidden animate-fade-in`,
+											className: "absolute end-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-xl border border-secondary-200 z-50 overflow-hidden animate-fade-in",
 											children: [
 												/* @__PURE__ */ jsxs("div", {
 													className: "p-3 border-b border-secondary-100 flex items-center justify-between",
@@ -723,7 +723,7 @@ function AdminSidebar({ children }) {
 													className: "max-h-80 overflow-y-auto",
 													children: loadingNotifs ? /* @__PURE__ */ jsx("div", {
 														className: "p-6 text-center text-sm text-muted",
-														children: isRtl ? "جاري التحميل..." : "Loading..."
+														children: trans("common.loading")
 													}) : recentNotifs.length === 0 ? /* @__PURE__ */ jsx("div", {
 														className: "p-6 text-center text-sm text-muted",
 														children: isRtl ? "لا توجد إشعارات" : "No notifications"
@@ -3180,7 +3180,7 @@ function AdminAreasIndex({ areas, filters }) {
 				children: areas.links.map((link, i) => /* @__PURE__ */ jsx(Link, {
 					href: link.url || "#",
 					className: `px-4 py-2 rounded-xl text-sm font-bold transition-all ${link.active ? "bg-[#CC0000] text-white" : !link.url ? "bg-transparent text-secondary-300 cursor-not-allowed" : "bg-white text-secondary-700 hover:bg-secondary-50 border border-secondary-200"}`,
-					dangerouslySetInnerHTML: { __html: link.label }
+					children: link.label.replace(/&laquo;|&lsaquo;/g, "«").replace(/&raquo;|&rsaquo;/g, "»")
 				}, i))
 			})
 		]
@@ -3415,7 +3415,7 @@ function Select({ value, onChange, children, className = "", disabled = false, r
 					children: /* @__PURE__ */ jsxs("div", {
 						className: "relative",
 						children: [/* @__PURE__ */ jsx("svg", {
-							className: "w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-secondary-400 pointer-events-none rtl:right-3 rtl:left-auto",
+							className: "w-4 h-4 absolute start-3 top-1/2 -translate-y-1/2 text-secondary-400 pointer-events-none",
 							fill: "none",
 							viewBox: "0 0 24 24",
 							stroke: "currentColor",
@@ -3433,7 +3433,7 @@ function Select({ value, onChange, children, className = "", disabled = false, r
 							onChange: (e) => setSearch(e.target.value),
 							placeholder: trans("search") || "Search...",
 							"aria-label": trans("filter_options") || "Filter options",
-							className: "w-full pl-9 rtl:pr-9 rtl:pl-3 py-2.5 bg-surface border border-border rounded-xl text-sm text-secondary-900 focus:ring-2 focus:ring-primary-900/10 focus:bg-white focus:border-primary-900 transition-colors outline-none",
+							className: "w-full ps-9 pe-3 py-2.5 bg-surface border border-border rounded-xl text-sm text-secondary-900 focus:ring-2 focus:ring-primary-900/10 focus:bg-white focus:border-primary-900 transition-colors outline-none",
 							onClick: (e) => e.stopPropagation()
 						})]
 					})
@@ -15654,7 +15654,7 @@ function SearchBar({ areas: rawAreas = [], unitTypes: rawUnitTypes = [], feature
 							children: [
 								/* @__PURE__ */ jsx("option", {
 									value: "",
-									children: locale === "ar" ? "الكل" : "All"
+									children: trans("search_bar.all")
 								}),
 								/* @__PURE__ */ jsx("option", {
 									value: "sale",
@@ -17051,7 +17051,7 @@ function ArticleCard({ article, loading = false }) {
 				className: "pt-3 border-t border-secondary-100/70 mt-auto flex items-center justify-between",
 				children: /* @__PURE__ */ jsxs("span", {
 					className: "text-xs font-bold text-primary-900 group-hover:text-primary-700 flex items-center gap-1 transition-colors",
-					children: [/* @__PURE__ */ jsx("span", { children: isRtl ? "اقرأ المقال" : "Read Article" }), /* @__PURE__ */ jsx("svg", {
+					children: [/* @__PURE__ */ jsx("span", { children: trans("articles.read_article") }), /* @__PURE__ */ jsx("svg", {
 						className: "w-3.5 h-3.5 rtl:rotate-180 group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5 transition-transform",
 						fill: "none",
 						viewBox: "0 0 24 24",
@@ -20294,7 +20294,7 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 							e.stopPropagation();
 							setLightboxIndex((prev) => prev === 0 ? images.length - 1 : prev - 1);
 						},
-						className: `absolute top-1/2 -translate-y-1/2 ${isRtl ? "right-4" : "left-4"} w-11 h-11 min-w-[44px] min-h-[44px] bg-black/50 hover:bg-black/80 rounded-full text-white flex items-center justify-center transition-colors`,
+						className: "absolute top-1/2 -translate-y-1/2 start-4 w-11 h-11 min-w-[44px] min-h-[44px] bg-black/50 hover:bg-black/80 rounded-full text-white flex items-center justify-center transition-colors",
 						"aria-label": trans("previous_image") || "Previous image",
 						children: /* @__PURE__ */ jsx("svg", {
 							className: `w-6 h-6 ${isRtl ? "rotate-180" : ""}`,
@@ -20313,7 +20313,7 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 							e.stopPropagation();
 							setLightboxIndex((prev) => prev === images.length - 1 ? 0 : prev + 1);
 						},
-						className: `absolute top-1/2 -translate-y-1/2 ${isRtl ? "left-4" : "right-4"} w-11 h-11 min-w-[44px] min-h-[44px] bg-black/50 hover:bg-black/80 rounded-full text-white flex items-center justify-center transition-colors`,
+						className: "absolute top-1/2 -translate-y-1/2 end-4 w-11 h-11 min-w-[44px] min-h-[44px] bg-black/50 hover:bg-black/80 rounded-full text-white flex items-center justify-center transition-colors",
 						"aria-label": trans("next_image") || "Next image",
 						children: /* @__PURE__ */ jsx("svg", {
 							className: `w-6 h-6 ${isRtl ? "rotate-180" : ""}`,

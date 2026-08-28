@@ -19,7 +19,8 @@ class ProjectPolicy
         }
 
         if ($user->isManager()) {
-            return $this->isOwnedBy($user, $project);
+            return $this->isOwnedBy($user, $project)
+                || ($project->user && $project->user->isAdmin());
         }
 
         if ($user->isAgent()) {

@@ -217,7 +217,7 @@ export function Select({
                 {showSearch && (
                     <div className="p-3 border-b border-secondary-100 shrink-0 bg-white rounded-t-2xl">
                         <div className="relative">
-                            <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-secondary-400 pointer-events-none rtl:right-3 rtl:left-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <svg className="w-4 h-4 absolute start-3 top-1/2 -translate-y-1/2 text-secondary-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
                             <input
@@ -227,7 +227,7 @@ export function Select({
                                 onChange={(e) => setSearch(e.target.value)}
                                 placeholder={trans('search') || 'Search...'}
                                 aria-label={trans('filter_options') || 'Filter options'}
-                                className="w-full pl-9 rtl:pr-9 rtl:pl-3 py-2.5 bg-surface border border-border rounded-xl text-sm text-secondary-900 focus:ring-2 focus:ring-primary-900/10 focus:bg-white focus:border-primary-900 transition-colors outline-none"
+                                className="w-full ps-9 pe-3 py-2.5 bg-surface border border-border rounded-xl text-sm text-secondary-900 focus:ring-2 focus:ring-primary-900/10 focus:bg-white focus:border-primary-900 transition-colors outline-none"
                                 onClick={(e) => e.stopPropagation()} 
                             />
                         </div>

@@ -6,6 +6,7 @@ use App\Domain\Listings\Models\Article;
 use App\Domain\Listings\Models\PageSeo;
 use App\Domain\Listings\Services\SettingsService;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class SeoService
 {
@@ -257,6 +258,7 @@ class SeoService
                 ];
             }
         } catch (\Throwable $e) {
+            Log::error('Failed to load page SEO from database', ['error' => $e->getMessage()]);
         }
 
         return [];

@@ -40,7 +40,7 @@ class ProjectController extends Controller
         $stats = [
             'total' => Project::count(),
             'active' => Project::where('is_active', true)->count(),
-            'total_units' => Project::withCount('units')->get()->sum('units_count') ?? 0,
+            'total_units' => \App\Domain\Listings\Models\Unit::whereNotNull('project_id')->count(),
         ];
 
         $areas = Area::select('id', 'name_ar', 'name_en')->orderBy('name_ar')->get();

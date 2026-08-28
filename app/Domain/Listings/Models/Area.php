@@ -67,10 +67,8 @@ class Area extends Model
         return $query->where('is_active', true);
     }
 
-    public function scopeSorted($query)
-    {
-        return $query->orderBy('sort_order')->orderBy('name_en');
-    }
+
+
 
     public function units()
     {

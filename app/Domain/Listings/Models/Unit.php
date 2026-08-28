@@ -168,21 +168,12 @@ class Unit extends Model
         return $this->belongsTo(FinishingType::class, 'finishing_type_id');
     }
 
-    public function scopeFeatured(Builder $query): Builder
-    {
-        return $query->where('is_active', true)->orderByFeatured();
-    }
 
     public function scopeOrderByFeatured(Builder $query): Builder
     {
         return $query->orderByDesc('priority_points')
             ->orderByDesc('is_pinned')
             ->orderByDesc('created_at');
-    }
-
-    public function scopeDeals(Builder $query): Builder
-    {
-        return $query->where('is_active', true)->where('is_deal', true);
     }
 
     public function scopeActive(Builder $query): Builder

@@ -3,7 +3,9 @@
 namespace App\Domain\Listings\Notifications;
 
 use App\Domain\Listings\Models\Unit;
+use App\Domain\Listings\Services\SettingsService;
 use Illuminate\Bus\Queueable;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 class UnitExpiryNotification extends Notification
@@ -18,7 +20,31 @@ class UnitExpiryNotification extends Notification
 
     public function via($notifiable): array
     {
-        return ['database'];
+        return ['database', 'mail'];
+    }
+
+    public function toMail($notifiable): MailMessage
+    {
+        $unitName = $this->unit->name_ar ?: $this->unit->name;
+        $isWarning = $this->type === 'warning';
+        $recipientName = $notifiable->name ?? 'مدير النظام';
+
+        $subject = $isWarning
+            ? "تنبيه: الوحدة \"{$unitName}\" على وشك الانتهاء"
+            : "انتهت صلاحية الوحدة: {$unitName}";
+
+        $settingsService = app(SettingsService::class);
+        $siteLogo = $settingsService->get('site_logo');
+        $logoUrl = $siteLogo ? asset('storage/'.$siteLogo) : asset('icon.png');
+
+        return (new MailMessage)
+            ->subject($subject)
+            ->greeting("مرحباً {$recipientName}")
+            ->line($isWarning
+                ? "الوحدة \"{$unitName}\" على وشك الانتهاء خلال {$this->daysRemaining} أيام."
+                : "انتهت صلاحية الوحدة \"{$unitName}\". تم إخفاؤها عن الزوار.")
+            ->action('إدارة الوحدات', url('/admin/units'))
+            ->line('يرجى اتخاذ الإجراء المناسب.');
     }
 
     public function toArray($notifiable): array
@@ -42,3 +68,4 @@ class UnitExpiryNotification extends Notification
         ];
     }
 }
+

@@ -133,7 +133,7 @@ export default function SearchBar({
                             onChange={e => update('transaction', e.target.value)}
                             className="w-full text-secondary-800 outline-none cursor-pointer p-0"
                         >
-                            <option value="">{locale === 'ar' ? 'الكل' : 'All'}</option>
+                            <option value="">{trans('search_bar.all')}</option>
                             <option value="sale">{trans('sale')}</option>
                             <option value="rent">{trans('rent')}</option>
                             <option value="new_project">{locale === 'ar' ? 'مشروع جديد' : 'New Project'}</option>

@@ -441,7 +441,7 @@ export default function AdminSidebar({ children }) {
                             {isRtl ? trans('lang_en') : trans('lang_ar')}
                         </Link>
 
-                        <div className="flex items-center gap-3 border-s border-secondary-200 ps-4 rtl:border-s-0 rtl:border-r rtl:pr-4 rtl:ps-0">
+                        <div className="flex items-center gap-3 border-s border-secondary-200 ps-4">
                             <button
                                 onClick={toggleSound}
                                 className="w-9 h-9 rounded-full flex items-center justify-center text-secondary-500 hover:bg-secondary-100 hover:text-secondary-950 transition-colors"
@@ -477,7 +477,7 @@ export default function AdminSidebar({ children }) {
                                 </button>
 
                                 {notifOpen && (
-                                    <div className={`absolute ${isRtl ? 'left-0' : 'right-0'} top-full mt-2 w-80 bg-white rounded-2xl shadow-xl border border-secondary-200 z-50 overflow-hidden animate-fade-in`}>
+                                    <div className="absolute end-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-xl border border-secondary-200 z-50 overflow-hidden animate-fade-in">
                                         <div className="p-3 border-b border-secondary-100 flex items-center justify-between">
                                             <div className="flex items-center gap-2">
                                                 <span className="text-sm font-bold text-secondary-950">{trans('sidebar_notifications')}</span>
@@ -511,7 +511,7 @@ export default function AdminSidebar({ children }) {
 
                                         <div className="max-h-80 overflow-y-auto">
                                             {loadingNotifs ? (
-                                                <div className="p-6 text-center text-sm text-muted">{isRtl ? 'جاري التحميل...' : 'Loading...'}</div>
+                                                <div className="p-6 text-center text-sm text-muted">{trans('common.loading')}</div>
                                             ) : recentNotifs.length === 0 ? (
                                                 <div className="p-6 text-center text-sm text-muted">{isRtl ? 'لا توجد إشعارات' : 'No notifications'}</div>
                                             ) : (

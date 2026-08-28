@@ -30,13 +30,36 @@ class AllocatePointsAction
                 ]);
             }
 
-            $newBalance = $manager->points_balance - $data->points;
-            $manager->points_balance = $newBalance;
-            $manager->save();
+            $newBalance = $manager->points_balance;
 
             if ($data->unit_id) {
                 $unit = Unit::where('id', $data->unit_id)->lockForUpdate()->firstOrFail();
-                $unit->increment('priority_points', $data->points);
+
+                // تصفير النقاط الحالية للوحدة واسترداد الرصيد للمدير
+                $previousPoints = (int) $unit->priority_points;
+                if ($previousPoints > 0) {
+                    $newBalance += $previousPoints;
+                }
+
+                // خصم النقاط الجديدة من الرصيد (بعد الاسترداد)
+                $newBalance -= $data->points;
+
+                if ($newBalance < 0) {
+                    throw ValidationException::withMessages([
+                        'points' => __('Insufficient points balance.'),
+                    ]);
+                }
+
+                $manager->points_balance = $newBalance;
+                $manager->save();
+
+                // تعيين النقاط الجديدة (ليس increment بل تعيين مباشر)
+                $unit->priority_points = $data->points;
+                $unit->save();
+            } else {
+                $newBalance -= $data->points;
+                $manager->points_balance = $newBalance;
+                $manager->save();
             }
 
             return PointsTransaction::create([

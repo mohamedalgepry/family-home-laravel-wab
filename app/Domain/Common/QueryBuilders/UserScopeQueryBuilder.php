@@ -47,7 +47,10 @@ class UserScopeQueryBuilder
         }
 
         if ($user->isManager()) {
-            return $query->where($ownerColumn, $user->id);
+            return $query->where(function (Builder $q) use ($user, $ownerColumn) {
+                $q->where($ownerColumn, $user->id)
+                    ->orWhereHas('user', fn (Builder $sub) => $sub->where('role', 'admin'));
+            });
         }
 
         if ($user->isAgent()) {

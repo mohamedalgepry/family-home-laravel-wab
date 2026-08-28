@@ -777,7 +777,7 @@ export default function ProjectShow({ project, projectUnits, similarProjects, re
                                     e.stopPropagation();
                                     setLightboxIndex(prev => prev === 0 ? images.length - 1 : prev - 1);
                                 }}
-                                className={`absolute top-1/2 -translate-y-1/2 ${isRtl ? 'right-4' : 'left-4'} w-11 h-11 min-w-[44px] min-h-[44px] bg-black/50 hover:bg-black/80 rounded-full text-white flex items-center justify-center transition-colors`}
+                                className="absolute top-1/2 -translate-y-1/2 start-4 w-11 h-11 min-w-[44px] min-h-[44px] bg-black/50 hover:bg-black/80 rounded-full text-white flex items-center justify-center transition-colors"
                                 aria-label={trans('previous_image') || 'Previous image'}
                             >
                                 <svg className={`w-6 h-6 ${isRtl ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
@@ -787,7 +787,7 @@ export default function ProjectShow({ project, projectUnits, similarProjects, re
                                     e.stopPropagation();
                                     setLightboxIndex(prev => prev === images.length - 1 ? 0 : prev + 1);
                                 }}
-                                className={`absolute top-1/2 -translate-y-1/2 ${isRtl ? 'left-4' : 'right-4'} w-11 h-11 min-w-[44px] min-h-[44px] bg-black/50 hover:bg-black/80 rounded-full text-white flex items-center justify-center transition-colors`}
+                                className="absolute top-1/2 -translate-y-1/2 end-4 w-11 h-11 min-w-[44px] min-h-[44px] bg-black/50 hover:bg-black/80 rounded-full text-white flex items-center justify-center transition-colors"
                                 aria-label={trans('next_image') || 'Next image'}
                             >
                                 <svg className={`w-6 h-6 ${isRtl ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>

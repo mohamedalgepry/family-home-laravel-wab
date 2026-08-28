@@ -17,13 +17,30 @@ class MediaController
         ]);
 
         $file = $request->file('image');
-        $extension = $file->extension();
+        $extension = $file->guessExtension() ?: $file->extension();
         $filename = Str::random(40).'.'.$extension;
 
-        $path = $file->storeAs('editor/'.date('Y/m'), $filename, 'public');
+        try {
+            $path = $file->storeAs('editor/'.date('Y/m'), $filename, 'public');
 
-        return response()->json([
-            'url' => Storage::url($path),
-        ]);
+            if (! $path) {
+                return response()->json([
+                    'error' => __('common.upload_failed'),
+                ], 422);
+            }
+
+            return response()->json([
+                'url' => Storage::url($path),
+            ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Media upload failed', [
+                'error' => $e->getMessage(),
+                'user_id' => $request->user()?->id,
+            ]);
+
+            return response()->json([
+                'error' => __('common.upload_failed'),
+            ], 500);
+        }
     }
 }
