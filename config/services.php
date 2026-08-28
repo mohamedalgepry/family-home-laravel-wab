@@ -37,8 +37,8 @@ return [
 
     'openrouter' => [
         'api_key' => env('OPENROUTER_API_KEY'),
-        'model' => env('OPENROUTER_MODEL', 'z-ai/glm-5.2:free'),
-        'fallback_model' => env('OPENROUTER_FALLBACK_MODEL', 'openrouter/free'),
+        'model' => env('OPENROUTER_MODEL', 'openrouter/free'),
+        'fallback_model' => env('OPENROUTER_FALLBACK_MODEL', 'minimax/minimax-m3:free'),
         'base_url' => env('OPENROUTER_BASE_URL', 'https://openrouter.ai/api/v1'),
     ],
 

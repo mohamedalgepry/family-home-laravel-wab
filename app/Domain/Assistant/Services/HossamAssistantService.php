@@ -63,11 +63,12 @@ class HossamAssistantService
 
         // 4. Request completion from OpenRouter with multi-model fallback cascade
         $candidateModels = array_values(array_unique(array_filter([
-            $this->model,
-            $this->fallbackModel,
             'openrouter/free',
             'minimax/minimax-m3:free',
+            $this->model,
+            $this->fallbackModel,
             'google/gemma-4-31b-it:free',
+            'nvidia/nemotron-3.5-lightning:free',
         ])));
 
         $reply = null;
@@ -225,7 +226,7 @@ class HossamAssistantService
                 'Content-Type' => 'application/json',
             ])
                 ->withoutVerifying()
-                ->timeout(20)
+                ->timeout(12)
                 ->post($this->baseUrl . '/chat/completions', [
                     'model' => $model,
                     'messages' => $messages,

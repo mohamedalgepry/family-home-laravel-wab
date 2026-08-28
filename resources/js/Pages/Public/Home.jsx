@@ -30,11 +30,10 @@ export default function Home({ featuredUnits, latestUnits, latestProjects, popul
     const heroImage = settings?.hero_image ? getStorageUrl(settings.hero_image, HERO_BG) : HERO_BG
     const heroImageMobile = settings?.hero_image_mobile ? getStorageUrl(settings.hero_image_mobile, HERO_BG_MOBILE) : (settings?.hero_image ? getStorageUrl(settings.hero_image, HERO_BG_MOBILE) : HERO_BG_MOBILE)
 
-    const firstFeaturedImg = featuredUnits?.data?.[0]?.images?.[0]
-    const homeOgImage = getStorageUrl(firstFeaturedImg?.url || firstFeaturedImg?.path, null)
+    const firstUnitImg = latestUnits?.data?.[0]?.images?.[0]
+    const homeOgImage = getStorageUrl(firstUnitImg?.url || firstUnitImg?.path, null)
 
-    const isLoading = !featuredUnits && !latestUnits && !latestProjects
-    const hasFeatured = featuredUnits?.data?.length > 0
+    const isLoading = !latestUnits && !latestProjects
     const hasLatest = latestUnits?.data?.length > 0
     const hasProjects = latestProjects?.data?.length > 0
 
@@ -170,27 +169,6 @@ export default function Home({ featuredUnits, latestUnits, latestProjects, popul
                                 )
                             })}
                         </div>
-                    </section>
-                )}
-
-                {/* Featured Units Section */}
-                {hasFeatured && Array.isArray(featuredUnits?.data) && (
-                    <section className="bg-transparent py-8 max-w-container mx-auto px-4 mb-4">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-xl sm:text-2xl font-black text-secondary-950 tracking-tight">
-                                {trans('featured_units') || (isRtl ? 'وحدات مميزة' : 'Featured Properties')}
-                            </h2>
-                            <Link href={localizedPath('/units?is_featured=1', locale)} className="px-4 py-1.5 bg-white text-secondary-800 border border-border rounded-full text-xs font-bold hover:bg-surface-hover hover:text-primary-900 transition-colors shadow-sm">
-                                {trans('view_all') || 'عرض الكل'}
-                            </Link>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                            {featuredUnits.data.map(unit => (
-                                <UnitCard key={unit.id} unit={unit} />
-                            ))}
-                        </div>
-                        <Pagination meta={featuredUnits} links={featuredUnits?.links} pageParam="featured_page" />
                     </section>
                 )}
 

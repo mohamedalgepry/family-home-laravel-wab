@@ -19036,10 +19036,9 @@ function Home({ featuredUnits, latestUnits, latestProjects, popularSearches, are
 	const heroSubtitle = isRtl ? settings?.hero_subtitle_ar || trans("hero_subtitle") : settings?.hero_subtitle_en || settings?.hero_subtitle_ar || trans("hero_subtitle");
 	const heroImage = settings?.hero_image ? getStorageUrl(settings.hero_image, HERO_BG) : HERO_BG;
 	const heroImageMobile = settings?.hero_image_mobile ? getStorageUrl(settings.hero_image_mobile, HERO_BG_MOBILE) : settings?.hero_image ? getStorageUrl(settings.hero_image, HERO_BG_MOBILE) : HERO_BG_MOBILE;
-	const firstFeaturedImg = featuredUnits?.data?.[0]?.images?.[0];
-	const homeOgImage = getStorageUrl(firstFeaturedImg?.url || firstFeaturedImg?.path, null);
-	const isLoading = !featuredUnits && !latestUnits && !latestProjects;
-	const hasFeatured = featuredUnits?.data?.length > 0;
+	const firstUnitImg = latestUnits?.data?.[0]?.images?.[0];
+	const homeOgImage = getStorageUrl(firstUnitImg?.url || firstUnitImg?.path, null);
+	const isLoading = !latestUnits && !latestProjects;
 	const hasLatest = latestUnits?.data?.length > 0;
 	const hasProjects = latestProjects?.data?.length > 0;
 	return /* @__PURE__ */ jsxs("div", {
@@ -19271,31 +19270,6 @@ function Home({ featuredUnits, latestUnits, latestProjects, popularSearches, are
 								}, area.id);
 							})
 						})]
-					}),
-					hasFeatured && Array.isArray(featuredUnits?.data) && /* @__PURE__ */ jsxs("section", {
-						className: "bg-transparent py-8 max-w-container mx-auto px-4 mb-4",
-						children: [
-							/* @__PURE__ */ jsxs("div", {
-								className: "flex items-center justify-between mb-4",
-								children: [/* @__PURE__ */ jsx("h2", {
-									className: "text-xl sm:text-2xl font-black text-secondary-950 tracking-tight",
-									children: trans("featured_units") || (isRtl ? "وحدات مميزة" : "Featured Properties")
-								}), /* @__PURE__ */ jsx(Link, {
-									href: localizedPath("/units?is_featured=1", locale),
-									className: "px-4 py-1.5 bg-white text-secondary-800 border border-border rounded-full text-xs font-bold hover:bg-surface-hover hover:text-primary-900 transition-colors shadow-sm",
-									children: trans("view_all") || "عرض الكل"
-								})]
-							}),
-							/* @__PURE__ */ jsx("div", {
-								className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5",
-								children: featuredUnits.data.map((unit) => /* @__PURE__ */ jsx(UnitCard_default, { unit }, unit.id))
-							}),
-							/* @__PURE__ */ jsx(Pagination, {
-								meta: featuredUnits,
-								links: featuredUnits?.links,
-								pageParam: "featured_page"
-							})
-						]
 					}),
 					/* @__PURE__ */ jsxs("section", {
 						className: "bg-transparent py-8 max-w-container mx-auto px-4",
