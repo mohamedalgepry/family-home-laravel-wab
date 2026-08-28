@@ -9,6 +9,7 @@
   "resources/js/Components/OptimizedImage.jsx": [],
   "resources/js/Components/UI/ArticleCard.jsx": [],
   "resources/js/Components/UI/Button.jsx": [],
+  "resources/js/Components/UI/HossamChatWidget.jsx": [],
   "resources/js/Components/UI/IconByName.jsx": [],
   "resources/js/Components/UI/InputField.jsx": [],
   "resources/js/Components/UI/Pagination.jsx": [],
@@ -71,10 +72,10 @@
   "resources/js/Utils/contact.js": [],
   "resources/js/Utils/image.js": [],
   "resources/js/Utils/locales/ar.js": [
-    "/build/assets/ar-_A6Rgu3T.js"
+    "/build/assets/ar-L-F5Zbyh.js"
   ],
   "resources/js/Utils/locales/en.js": [
-    "/build/assets/en-PWZcM7Vo.js"
+    "/build/assets/en-CXP7sJfa.js"
   ],
   "resources/js/Utils/location.js": [],
   "resources/js/Utils/route.js": [],

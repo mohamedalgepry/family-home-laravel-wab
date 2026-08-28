@@ -2,6 +2,7 @@ import { usePage, Link } from '@inertiajs/react'
 import { useTrans } from '../../Utils/trans'
 import { localizedPath } from '../../Utils/route'
 import CompareBar from '../Features/CompareBar'
+import HossamChatWidget from '../UI/HossamChatWidget'
 import { WhatsAppIcon } from '../UI'
 
 const QUICK_LINKS = [
@@ -162,6 +163,7 @@ export default function Footer() {
                 </p>
             </div>
             <CompareBar />
+            <HossamChatWidget />
         </footer>
     )
 }

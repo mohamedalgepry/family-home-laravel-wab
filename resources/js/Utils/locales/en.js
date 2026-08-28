@@ -599,6 +599,20 @@ const en = {
         remove_image: 'Remove image',
         filter_options: 'Filter options',
         options: 'Options',
+        assistant_name: 'Hossam',
+        assistant_title: 'Economic & Investment Advisor',
+        assistant_status: 'Ready for Financial & Real Estate Analysis',
+        assistant_welcome: 'Welcome. I am Hossam, Senior Economic and Investment Advisor at Family Home. I provide financial feasibility studies, installment schedule analysis, and strategic property evaluations.',
+        assistant_placeholder: 'Type your financial or real estate query here...',
+        assistant_typing: 'Conducting financial analysis and reviewing inventory...',
+        assistant_quick_1: 'Installment Apartments & Payment Schedules',
+        assistant_quick_2: 'Highest ROI & Investment Potential Analysis',
+        assistant_quick_3: 'Cash vs. Installments Financial Evaluation',
+        assistant_quick_4: 'Investment Overview of High-Growth Areas',
+        assistant_view_unit: 'View Property Details',
+        assistant_whatsapp: 'Direct WhatsApp Contact',
+        assistant_clear: 'New Session',
+        assistant_close: 'Close',
 }
 
 export default en

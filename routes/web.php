@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\ProfileController;
+use App\Http\Controllers\Public\AiAssistantController;
 use App\Http\Controllers\Public\AreaController as PublicAreaController;
 use App\Http\Controllers\Public\ArticleController;
 use App\Http\Controllers\Public\ComparisonController;
@@ -172,8 +173,14 @@ Route::prefix('{locale}')->whereIn('locale', ['ar', 'en'])->middleware(SetLocale
 
     Route::post('/units/{unit:slug}/contact', [MessageController::class, 'store'])
         ->middleware('throttle:contact-form');
+
+    Route::post('/assistant/chat', [AiAssistantController::class, 'chat'])
+        ->middleware('throttle:30,1')
+        ->name('assistant.chat');
 });
 
+Route::post('/assistant/chat', [AiAssistantController::class, 'chat'])
+    ->middleware('throttle:30,1');
 Route::post('/contact', [MessageController::class, 'storeContact'])
     ->middleware('throttle:contact-form');
 Route::post('/units/{unit:slug}/contact', [MessageController::class, 'store'])
