@@ -9374,24 +9374,109 @@ function AdminProjectForm({ project, areas, features, finishingTypes, managers }
 	})] });
 }
 //#endregion
+//#region resources/js/Components/UI/Pagination.jsx
+function Pagination({ meta, links: routeLinks, pageParam = "page" }) {
+	const { locale } = usePage().props;
+	const trans = useTrans(locale);
+	const isRtl = locale === "ar";
+	const pageMeta = meta?.meta || meta;
+	if (!pageMeta || typeof pageMeta.last_page !== "number" || pageMeta.last_page <= 1) return null;
+	const { current_page = 1, last_page = 1 } = pageMeta;
+	const preserveState = {
+		preserveState: true,
+		preserveScroll: true
+	};
+	const range = 2;
+	const pages = [];
+	const start = Math.max(1, current_page - range);
+	const end = Math.min(last_page, current_page + range);
+	for (let i = start; i <= end; i++) pages.push(i);
+	function buildUrl(page) {
+		if (typeof window === "undefined") return "#";
+		const params = new URLSearchParams(window.location.search);
+		params.set(pageParam, page);
+		return window.location.pathname + "?" + params.toString();
+	}
+	return /* @__PURE__ */ jsxs("nav", {
+		dir: isRtl ? "rtl" : "ltr",
+		className: "flex items-center justify-center gap-1.5 mt-8 flex-wrap",
+		"aria-label": isRtl ? "صفحات النتائج" : "Pagination",
+		children: [
+			current_page > 1 ? /* @__PURE__ */ jsx(Link, {
+				href: buildUrl(current_page - 1),
+				className: "min-w-[44px] min-h-[44px] px-3.5 flex items-center justify-center text-sm font-semibold text-secondary-700 hover:bg-surface-hover rounded-xl transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
+				...preserveState,
+				children: trans("previous")
+			}) : /* @__PURE__ */ jsx("span", {
+				className: "min-w-[44px] min-h-[44px] px-3.5 flex items-center justify-center text-sm font-semibold text-secondary-300 cursor-not-allowed",
+				children: trans("previous")
+			}),
+			start > 1 && /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx(Link, {
+				href: buildUrl(1),
+				className: "min-w-[44px] min-h-[44px] px-3.5 flex items-center justify-center text-sm font-semibold text-secondary-700 hover:bg-surface-hover rounded-xl transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
+				...preserveState,
+				children: "1"
+			}), start > 2 && /* @__PURE__ */ jsx("span", {
+				className: "min-w-[36px] min-h-[44px] px-1 flex items-center justify-center text-secondary-400 text-sm",
+				children: "..."
+			})] }),
+			pages.map((page) => /* @__PURE__ */ jsx(Link, {
+				href: buildUrl(page),
+				className: `min-w-[44px] min-h-[44px] px-3.5 flex items-center justify-center text-sm font-semibold rounded-xl transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${page === current_page ? "bg-primary-900 text-white shadow-sm" : "text-secondary-700 hover:bg-surface-hover"}`,
+				...preserveState,
+				children: page
+			}, page)),
+			end < last_page && /* @__PURE__ */ jsxs(Fragment, { children: [end < last_page - 1 && /* @__PURE__ */ jsx("span", {
+				className: "min-w-[36px] min-h-[44px] px-1 flex items-center justify-center text-secondary-400 text-sm",
+				children: "..."
+			}), /* @__PURE__ */ jsx(Link, {
+				href: buildUrl(last_page),
+				className: "min-w-[44px] min-h-[44px] px-3.5 flex items-center justify-center text-sm font-semibold text-secondary-700 hover:bg-surface-hover rounded-xl transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
+				...preserveState,
+				children: last_page
+			})] }),
+			current_page < last_page ? /* @__PURE__ */ jsx(Link, {
+				href: buildUrl(current_page + 1),
+				className: "min-w-[44px] min-h-[44px] px-3.5 flex items-center justify-center text-sm font-semibold text-secondary-700 hover:bg-surface-hover rounded-xl transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
+				...preserveState,
+				children: trans("next")
+			}) : /* @__PURE__ */ jsx("span", {
+				className: "min-w-[44px] min-h-[44px] px-3.5 flex items-center justify-center text-sm font-semibold text-secondary-300 cursor-not-allowed",
+				children: trans("next")
+			})
+		]
+	});
+}
+//#endregion
 //#region resources/js/Pages/Admin/Projects/Index.jsx
 var Index_exports$8 = /* @__PURE__ */ __exportAll({ default: () => AdminProjectsIndex });
-function AdminProjectsIndex({ projects, areas, filters }) {
+function AdminProjectsIndex({ projects, stats, areas, filters }) {
 	const { locale, auth } = usePage().props;
 	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
 	const isAdminOrManager = auth?.user?.role === "admin" || auth?.user?.role === "manager";
 	const [search, setSearch] = useState(filters?.search || "");
 	const [areaFilter, setAreaFilter] = useState(filters?.area_id || "");
+	const [perPage, setPerPage] = useState(filters?.per_page || "15");
 	function applyFilters() {
 		const params = {};
 		if (search) params.search = search;
 		if (areaFilter) params.area_id = areaFilter;
+		if (perPage && perPage !== "15") params.per_page = perPage;
+		router.get("/admin/projects", params, { preserveState: true });
+	}
+	function handlePerPageChange(newVal) {
+		setPerPage(newVal);
+		const params = {};
+		if (search) params.search = search;
+		if (areaFilter) params.area_id = areaFilter;
+		if (newVal) params.per_page = newVal;
 		router.get("/admin/projects", params, { preserveState: true });
 	}
 	function resetFilters() {
 		setSearch("");
 		setAreaFilter("");
+		setPerPage("15");
 		router.get("/admin/projects", {}, { preserveState: true });
 	}
 	function deleteProject(project) {
@@ -9399,21 +9484,33 @@ function AdminProjectsIndex({ projects, areas, filters }) {
 	}
 	const loading = !projects;
 	const hasProjects = projects?.data?.length > 0;
+	const inputClasses = "w-full px-3.5 py-2.5 bg-surface border border-secondary-200 rounded-xl text-xs font-semibold text-secondary-900 transition-all duration-150 hover:border-secondary-300 focus:bg-white focus:border-[#CC0000] focus:ring-2 focus:ring-red-100 focus:outline-none";
+	const totalCount = stats?.total ?? projects?.total ?? 0;
+	const activeCount = stats?.active ?? 0;
+	const totalUnitsInProjects = stats?.total_units ?? 0;
+	const paginationFrom = projects?.from ?? (projects?.current_page ? (projects.current_page - 1) * (projects.per_page || 15) + 1 : 1);
+	const paginationTo = projects?.to ?? (projects?.data ? paginationFrom + projects.data.length - 1 : 0);
 	return /* @__PURE__ */ jsxs(AdminSidebar, { children: [/* @__PURE__ */ jsx(Head, { title: trans("sidebar_projects") + " — " + trans("app_name") }), /* @__PURE__ */ jsxs("div", {
 		dir: isRtl ? "rtl" : "ltr",
-		className: "p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto",
+		className: "p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto min-h-screen",
 		children: [
 			/* @__PURE__ */ jsxs("div", {
-				className: "flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-secondary-200/70 shadow-sm",
-				children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("h1", {
-					className: "text-2xl font-black text-secondary-950",
-					children: trans("sidebar_projects")
+				className: "flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-2xl border border-secondary-200/80 shadow-xs",
+				children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsxs("div", {
+					className: "flex items-center gap-2.5 mb-1",
+					children: [/* @__PURE__ */ jsx("h1", {
+						className: "text-2xl sm:text-3xl font-black text-secondary-950 tracking-tight",
+						children: trans("sidebar_projects")
+					}), /* @__PURE__ */ jsx("span", {
+						className: "px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-red-50 text-[#CC0000] border border-red-100 tabular-nums",
+						children: totalCount
+					})]
 				}), /* @__PURE__ */ jsx("p", {
-					className: "text-xs text-muted mt-0.5",
-					children: isRtl ? "إدارة وتحديث الكمبوندات والمشاريع العقارية على الموقع" : "Manage and update real estate compounds and major projects"
+					className: "text-secondary-500 text-xs sm:text-sm font-medium",
+					children: isRtl ? "إدارة وتحديث الكمبوندات والمشاريع العقارية الكبرى وتفاصيلها" : "Manage and update real estate compounds and major development projects"
 				})] }), isAdminOrManager && /* @__PURE__ */ jsxs(Link, {
 					href: "/admin/projects/create",
-					className: "px-4 py-2.5 bg-primary-900 hover:bg-primary-950 text-white rounded-xl text-xs sm:text-sm font-bold shadow-sm transition-all flex items-center justify-center gap-2 active:scale-95 shrink-0",
+					className: "inline-flex items-center justify-center px-5 py-2.5 bg-[#CC0000] hover:bg-[#b00000] text-white rounded-xl text-xs sm:text-sm font-bold shadow-xs hover:shadow-md transition-all active:scale-[0.98] shrink-0 gap-2",
 					children: [/* @__PURE__ */ jsx("svg", {
 						className: "w-4 h-4",
 						fill: "none",
@@ -9428,20 +9525,97 @@ function AdminProjectsIndex({ projects, areas, filters }) {
 					}), /* @__PURE__ */ jsx("span", { children: trans("add_project", {}, "projects") })]
 				})]
 			}),
+			/* @__PURE__ */ jsxs("div", {
+				className: "grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4",
+				children: [
+					/* @__PURE__ */ jsxs("div", {
+						className: "bg-white p-4 rounded-2xl border border-secondary-200/80 shadow-xs flex items-center gap-3.5",
+						children: [/* @__PURE__ */ jsx("div", {
+							className: "w-10 h-10 rounded-xl bg-slate-100 text-secondary-800 flex items-center justify-center shrink-0 border border-slate-200/70",
+							children: /* @__PURE__ */ jsx("svg", {
+								className: "w-5 h-5",
+								fill: "none",
+								viewBox: "0 0 24 24",
+								stroke: "currentColor",
+								strokeWidth: 1.75,
+								children: /* @__PURE__ */ jsx("path", {
+									strokeLinecap: "round",
+									strokeLinejoin: "round",
+									d: "M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21"
+								})
+							})
+						}), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("span", {
+							className: "text-[11px] font-bold text-secondary-500 block uppercase tracking-wider",
+							children: isRtl ? "إجمالي المشاريع" : "Total Projects"
+						}), /* @__PURE__ */ jsx("span", {
+							className: "text-lg font-black text-secondary-950 tabular-nums",
+							children: totalCount
+						})] })]
+					}),
+					/* @__PURE__ */ jsxs("div", {
+						className: "bg-white p-4 rounded-2xl border border-secondary-200/80 shadow-xs flex items-center gap-3.5",
+						children: [/* @__PURE__ */ jsx("div", {
+							className: "w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-100",
+							children: /* @__PURE__ */ jsx("svg", {
+								className: "w-5 h-5",
+								fill: "none",
+								viewBox: "0 0 24 24",
+								stroke: "currentColor",
+								strokeWidth: 2,
+								children: /* @__PURE__ */ jsx("path", {
+									strokeLinecap: "round",
+									strokeLinejoin: "round",
+									d: "M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+								})
+							})
+						}), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("span", {
+							className: "text-[11px] font-bold text-emerald-700 block uppercase tracking-wider",
+							children: isRtl ? "المشاريع النشطة" : "Active Projects"
+						}), /* @__PURE__ */ jsx("span", {
+							className: "text-lg font-black text-secondary-950 tabular-nums",
+							children: activeCount
+						})] })]
+					}),
+					/* @__PURE__ */ jsxs("div", {
+						className: "bg-white p-4 rounded-2xl border border-secondary-200/80 shadow-xs flex items-center gap-3.5",
+						children: [/* @__PURE__ */ jsx("div", {
+							className: "w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0 border border-blue-100",
+							children: /* @__PURE__ */ jsx("svg", {
+								className: "w-5 h-5",
+								fill: "none",
+								viewBox: "0 0 24 24",
+								stroke: "currentColor",
+								strokeWidth: 1.75,
+								children: /* @__PURE__ */ jsx("path", {
+									strokeLinecap: "round",
+									strokeLinejoin: "round",
+									d: "M8.25 21v-4.875c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125V21m0 0h4.5V3.75a1.125 1.125 0 00-1.125-1.125H4.875C4.254 2.625 3.75 3.129 3.75 3.75V21h4.5z"
+								})
+							})
+						}), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("span", {
+							className: "text-[11px] font-bold text-blue-700 block uppercase tracking-wider",
+							children: isRtl ? "إجمالي الوحدات بالمشاريع" : "Units in Projects"
+						}), /* @__PURE__ */ jsx("span", {
+							className: "text-lg font-black text-secondary-950 tabular-nums",
+							children: totalUnitsInProjects
+						})] })]
+					})
+				]
+			}),
 			/* @__PURE__ */ jsx("div", {
-				className: "bg-white rounded-2xl border border-secondary-200/70 shadow-sm p-4 sm:p-5",
+				className: "bg-white rounded-2xl border border-secondary-200/80 shadow-xs p-4 sm:p-5",
 				children: /* @__PURE__ */ jsxs("form", {
 					onSubmit: (e) => {
 						e.preventDefault();
 						applyFilters();
 					},
-					className: "grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-3 items-end",
+					className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3.5 items-end",
 					children: [
 						/* @__PURE__ */ jsxs("div", {
-							className: "sm:col-span-2",
+							className: "lg:col-span-5",
 							children: [/* @__PURE__ */ jsx("label", {
 								htmlFor: "search-input",
-								className: "block text-xs font-bold text-secondary-700 mb-1",
+								className: "block text-xs font-bold text-secondary-700 mb-1.5",
 								children: trans("search")
 							}), /* @__PURE__ */ jsxs("div", {
 								className: "relative",
@@ -9450,8 +9624,8 @@ function AdminProjectsIndex({ projects, areas, filters }) {
 									type: "text",
 									value: search,
 									onChange: (e) => setSearch(e.target.value),
-									placeholder: isRtl ? "اسم المشروع، التفاصيل..." : "Project title, search...",
-									className: "w-full ps-9 pe-3 py-2 bg-surface border border-secondary-200 rounded-xl text-xs font-medium focus-visible:ring-2 focus-visible:ring-primary-900/20 focus-visible:border-primary-900 focus-visible:outline-none"
+									placeholder: isRtl ? "البحث باسم المشروع، المعرف، الكلمات..." : "Search by project name, ID, keywords...",
+									className: `${inputClasses} ps-9`
 								}), /* @__PURE__ */ jsx("svg", {
 									className: "w-4 h-4 text-secondary-400 absolute start-3 top-1/2 -translate-y-1/2 pointer-events-none",
 									fill: "none",
@@ -9466,28 +9640,63 @@ function AdminProjectsIndex({ projects, areas, filters }) {
 								})]
 							})]
 						}),
-						/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
-							htmlFor: "area-filter",
-							className: "block text-xs font-bold text-secondary-700 mb-1",
-							children: trans("area")
-						}), /* @__PURE__ */ jsxs(Select, {
-							id: "area-filter",
-							value: areaFilter,
-							onChange: (e) => setAreaFilter(e.target.value),
-							className: "w-full px-3 py-2 bg-surface border border-secondary-200 rounded-xl text-xs font-medium focus-visible:ring-2 focus-visible:ring-primary-900/20 focus-visible:border-primary-900 focus-visible:outline-none",
-							children: [/* @__PURE__ */ jsx("option", {
-								value: "",
-								children: isRtl ? "كل المناطق" : "All Areas"
-							}), areas?.map((a) => /* @__PURE__ */ jsx("option", {
-								value: a.id,
-								children: locale === "ar" ? a.name_ar : a.name_en
-							}, a.id))]
-						})] }),
 						/* @__PURE__ */ jsxs("div", {
-							className: "flex items-center gap-2",
+							className: "lg:col-span-4",
+							children: [/* @__PURE__ */ jsx("label", {
+								htmlFor: "area-filter",
+								className: "block text-xs font-bold text-secondary-700 mb-1.5",
+								children: trans("area")
+							}), /* @__PURE__ */ jsxs(Select, {
+								id: "area-filter",
+								value: areaFilter,
+								onChange: (e) => setAreaFilter(e.target.value),
+								className: inputClasses,
+								children: [/* @__PURE__ */ jsx("option", {
+									value: "",
+									children: isRtl ? "كل المناطق" : "All Areas"
+								}), areas?.map((a) => /* @__PURE__ */ jsx("option", {
+									value: a.id,
+									children: locale === "ar" ? a.name_ar : a.name_en
+								}, a.id))]
+							})]
+						}),
+						/* @__PURE__ */ jsxs("div", {
+							className: "lg:col-span-1",
+							children: [/* @__PURE__ */ jsx("label", {
+								htmlFor: "per-page-select",
+								className: "block text-xs font-bold text-secondary-700 mb-1.5",
+								title: isRtl ? "عدد العناصر بالصفحة" : "Per Page",
+								children: isRtl ? "العرض" : "Per page"
+							}), /* @__PURE__ */ jsxs("select", {
+								id: "per-page-select",
+								value: perPage,
+								onChange: (e) => handlePerPageChange(e.target.value),
+								className: inputClasses,
+								children: [
+									/* @__PURE__ */ jsx("option", {
+										value: "10",
+										children: "10"
+									}),
+									/* @__PURE__ */ jsx("option", {
+										value: "15",
+										children: "15"
+									}),
+									/* @__PURE__ */ jsx("option", {
+										value: "25",
+										children: "25"
+									}),
+									/* @__PURE__ */ jsx("option", {
+										value: "50",
+										children: "50"
+									})
+								]
+							})]
+						}),
+						/* @__PURE__ */ jsxs("div", {
+							className: "lg:col-span-2 flex items-center gap-2",
 							children: [/* @__PURE__ */ jsxs("button", {
 								type: "submit",
-								className: "flex-1 py-2 bg-primary-900 hover:bg-primary-950 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5",
+								className: "flex-1 py-2.5 px-4 bg-secondary-950 hover:bg-black text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 active:scale-[0.98]",
 								children: [/* @__PURE__ */ jsx("svg", {
 									className: "w-3.5 h-3.5",
 									fill: "none",
@@ -9500,25 +9709,36 @@ function AdminProjectsIndex({ projects, areas, filters }) {
 										d: "M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
 									})
 								}), /* @__PURE__ */ jsx("span", { children: trans("search") })]
-							}), (search || areaFilter) && /* @__PURE__ */ jsx("button", {
+							}), (search || areaFilter || perPage !== "15") && /* @__PURE__ */ jsx("button", {
 								type: "button",
 								onClick: resetFilters,
-								className: "px-3 py-2 bg-surface hover:bg-secondary-200 text-secondary-700 rounded-xl text-xs font-bold transition-all border border-secondary-200",
+								className: "p-2.5 bg-surface hover:bg-secondary-200 text-secondary-700 rounded-xl text-xs font-bold transition-all border border-secondary-200 shrink-0",
 								title: isRtl ? "إعادة ضبط" : "Reset",
-								children: "✕"
+								children: /* @__PURE__ */ jsx("svg", {
+									className: "w-4 h-4",
+									fill: "none",
+									viewBox: "0 0 24 24",
+									stroke: "currentColor",
+									strokeWidth: 2,
+									children: /* @__PURE__ */ jsx("path", {
+										strokeLinecap: "round",
+										strokeLinejoin: "round",
+										d: "M6 18L18 6M6 6l12 12"
+									})
+								})
 							})]
 						})
 					]
 				})
 			}),
 			/* @__PURE__ */ jsx("div", {
-				className: "bg-white rounded-2xl border border-secondary-200/70 shadow-sm overflow-hidden",
+				className: "hidden md:block bg-white rounded-2xl border border-secondary-200/80 shadow-xs overflow-hidden",
 				children: /* @__PURE__ */ jsx("div", {
 					className: "overflow-x-auto",
 					children: /* @__PURE__ */ jsxs("table", {
 						className: "w-full text-xs text-start rtl:text-right border-collapse",
 						children: [/* @__PURE__ */ jsx("thead", { children: /* @__PURE__ */ jsxs("tr", {
-							className: "bg-slate-50/80 border-b border-secondary-200/80 text-secondary-600 font-bold uppercase tracking-wider",
+							className: "bg-slate-50/80 border-b border-secondary-200/90 text-secondary-600 font-extrabold uppercase tracking-wider text-[11px]",
 							children: [
 								/* @__PURE__ */ jsx("th", {
 									className: "px-4 py-3.5 text-start",
@@ -9552,18 +9772,18 @@ function AdminProjectsIndex({ projects, areas, filters }) {
 								const projectName = (locale === "ar" ? project.name_ar : project.name_en) || project.name_ar || project.name_en || project.name;
 								const projectAreaName = project.area ? (locale === "ar" ? project.area.name_ar : project.area.name_en) || project.area.name_ar || project.area.name_en : "—";
 								return /* @__PURE__ */ jsxs("tr", {
-									className: "hover:bg-slate-50/70 transition-colors",
+									className: "hover:bg-slate-50/60 transition-colors group",
 									children: [
 										/* @__PURE__ */ jsx("td", {
-											className: "px-4 py-3 min-w-[200px]",
+											className: "px-4 py-3 min-w-[240px]",
 											children: /* @__PURE__ */ jsxs("div", {
 												className: "flex items-center gap-3",
 												children: [thumb ? /* @__PURE__ */ jsx("img", {
 													src: thumb,
 													alt: "",
-													className: "w-10 h-10 rounded-xl object-cover shrink-0 border border-secondary-200 shadow-xs"
+													className: "w-11 h-11 rounded-xl object-cover shrink-0 border border-secondary-200/80 shadow-2xs"
 												}) : /* @__PURE__ */ jsx("div", {
-													className: "w-10 h-10 rounded-xl bg-surface border border-secondary-200 shrink-0 flex items-center justify-center text-secondary-400",
+													className: "w-11 h-11 rounded-xl bg-slate-100 border border-secondary-200/80 shrink-0 flex items-center justify-center text-secondary-400",
 													children: /* @__PURE__ */ jsx("svg", {
 														className: "w-5 h-5",
 														fill: "none",
@@ -9573,20 +9793,20 @@ function AdminProjectsIndex({ projects, areas, filters }) {
 															strokeLinecap: "round",
 															strokeLinejoin: "round",
 															strokeWidth: 1.5,
-															d: "M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21"
+															d: "M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21"
 														})
 													})
 												}), /* @__PURE__ */ jsxs("div", {
 													className: "min-w-0",
 													children: [isAdminOrManager ? /* @__PURE__ */ jsx(Link, {
 														href: `/admin/projects/${project.id}/edit`,
-														className: "text-secondary-950 hover:text-primary-900 font-bold block truncate max-w-[220px]",
+														className: "text-secondary-950 hover:text-[#CC0000] font-bold text-xs block truncate max-w-[220px] transition-colors",
 														children: projectName
 													}) : /* @__PURE__ */ jsx("span", {
-														className: "text-secondary-950 font-bold block truncate max-w-[220px]",
+														className: "text-secondary-950 font-bold text-xs block truncate max-w-[220px]",
 														children: projectName
 													}), /* @__PURE__ */ jsxs("span", {
-														className: "text-[11px] text-muted block truncate",
+														className: "text-[10px] text-secondary-400 font-mono block mt-0.5",
 														children: ["#", project.id]
 													})]
 												})]
@@ -9599,7 +9819,7 @@ function AdminProjectsIndex({ projects, areas, filters }) {
 										/* @__PURE__ */ jsx("td", {
 											className: "px-3 py-3 text-center whitespace-nowrap",
 											children: /* @__PURE__ */ jsxs("span", {
-												className: "px-2.5 py-1 bg-surface text-secondary-900 rounded-lg border border-secondary-200 text-xs font-bold",
+												className: "inline-flex items-center gap-1 px-2.5 py-1 bg-surface text-secondary-900 rounded-md border border-secondary-200 text-xs font-bold font-mono",
 												children: [
 													project.units_count ?? 0,
 													" ",
@@ -9610,9 +9830,9 @@ function AdminProjectsIndex({ projects, areas, filters }) {
 										/* @__PURE__ */ jsx("td", {
 											className: "px-3 py-3 text-center whitespace-nowrap",
 											children: /* @__PURE__ */ jsxs("span", {
-												className: "inline-flex items-center gap-1 px-2.5 py-1 bg-surface rounded-lg text-xs font-bold text-secondary-800 border border-secondary-200",
+												className: "inline-flex items-center gap-1 px-2.5 py-1 bg-surface rounded-md text-xs font-bold text-secondary-800 border border-secondary-200 font-mono",
 												children: [/* @__PURE__ */ jsx("svg", {
-													className: "w-3.5 h-3.5 text-primary-900",
+													className: "w-3.5 h-3.5 text-secondary-400",
 													fill: "none",
 													viewBox: "0 0 24 24",
 													stroke: "currentColor",
@@ -9628,7 +9848,7 @@ function AdminProjectsIndex({ projects, areas, filters }) {
 										/* @__PURE__ */ jsx("td", {
 											className: "px-3 py-3 text-center whitespace-nowrap",
 											children: /* @__PURE__ */ jsx("span", {
-												className: `px-2.5 py-1 text-xs rounded-full font-bold ${project.is_active ? "bg-emerald-600 text-white shadow-xs" : "bg-red-50 text-red-600 border border-red-200"}`,
+												className: `px-2.5 py-1 text-xs rounded-md font-bold border ${project.is_active ? "bg-emerald-600 text-white border-emerald-600 shadow-2xs" : "bg-red-50 text-red-700 border-red-200"}`,
 												children: project.is_active ? isRtl ? "مفعل" : "Active" : isRtl ? "معطل" : "Inactive"
 											})
 										}),
@@ -9637,13 +9857,13 @@ function AdminProjectsIndex({ projects, areas, filters }) {
 											children: isAdminOrManager ? /* @__PURE__ */ jsxs("div", {
 												className: "flex items-center justify-center gap-1.5",
 												children: [
-													/* @__PURE__ */ jsxs("a", {
+													/* @__PURE__ */ jsx("a", {
 														href: `/${locale}/projects/${project.slug || project.id}`,
 														target: "_blank",
 														rel: "noreferrer",
-														className: "px-2.5 py-1.5 text-xs font-bold text-primary-900 bg-primary-50 hover:bg-primary-100 rounded-xl transition-all border border-primary-200/70 flex items-center gap-1 active:scale-95 shadow-xs",
+														className: "p-1.5 text-secondary-700 bg-surface hover:bg-secondary-200 hover:text-secondary-950 rounded-lg transition-all border border-secondary-200 active:scale-95 shadow-2xs",
 														title: isRtl ? "معاينة على الموقع" : "Preview",
-														children: [/* @__PURE__ */ jsx("svg", {
+														children: /* @__PURE__ */ jsx("svg", {
 															className: "w-3.5 h-3.5",
 															fill: "none",
 															viewBox: "0 0 24 24",
@@ -9652,15 +9872,15 @@ function AdminProjectsIndex({ projects, areas, filters }) {
 															children: /* @__PURE__ */ jsx("path", {
 																strokeLinecap: "round",
 																strokeLinejoin: "round",
-																d: "M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.573 16.49 16.638 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+																d: "M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"
 															})
-														}), /* @__PURE__ */ jsx("span", { children: isRtl ? "معاينة" : "Preview" })]
+														})
 													}),
-													/* @__PURE__ */ jsxs(Link, {
+													/* @__PURE__ */ jsx(Link, {
 														href: `/admin/projects/${project.id}/edit`,
-														className: "px-2.5 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl transition-all border border-blue-200/70 flex items-center gap-1 active:scale-95 shadow-xs",
+														className: "p-1.5 text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all border border-blue-200 active:scale-95 shadow-2xs",
 														title: trans("edit"),
-														children: [/* @__PURE__ */ jsx("svg", {
+														children: /* @__PURE__ */ jsx("svg", {
 															className: "w-3.5 h-3.5",
 															fill: "none",
 															viewBox: "0 0 24 24",
@@ -9671,14 +9891,14 @@ function AdminProjectsIndex({ projects, areas, filters }) {
 																strokeLinejoin: "round",
 																d: "M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"
 															})
-														}), /* @__PURE__ */ jsx("span", { children: trans("edit") })]
+														})
 													}),
-													/* @__PURE__ */ jsxs("button", {
+													/* @__PURE__ */ jsx("button", {
 														type: "button",
 														onClick: () => deleteProject(project),
-														className: "px-2.5 py-1.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 rounded-xl transition-all border border-red-200/70 flex items-center gap-1 active:scale-95 shadow-xs",
+														className: "p-1.5 text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-all border border-red-200 active:scale-95 shadow-2xs",
 														title: trans("delete"),
-														children: [/* @__PURE__ */ jsx("svg", {
+														children: /* @__PURE__ */ jsx("svg", {
 															className: "w-3.5 h-3.5",
 															fill: "none",
 															viewBox: "0 0 24 24",
@@ -9689,11 +9909,11 @@ function AdminProjectsIndex({ projects, areas, filters }) {
 																strokeLinejoin: "round",
 																d: "M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
 															})
-														}), /* @__PURE__ */ jsx("span", { children: trans("delete") })]
+														})
 													})
 												]
 											}) : /* @__PURE__ */ jsx("span", {
-												className: "text-xs text-muted font-normal",
+												className: "text-xs text-secondary-400 font-normal",
 												children: "—"
 											})
 										})
@@ -9701,12 +9921,206 @@ function AdminProjectsIndex({ projects, areas, filters }) {
 								}, project.id);
 							}) : /* @__PURE__ */ jsx("tr", { children: /* @__PURE__ */ jsx("td", {
 								colSpan: 6,
-								className: "px-4 py-12 text-center text-muted",
-								children: trans("no_data")
+								className: "px-6 py-16 text-center",
+								children: /* @__PURE__ */ jsxs("div", {
+									className: "flex flex-col items-center justify-center text-secondary-400",
+									children: [
+										/* @__PURE__ */ jsx("svg", {
+											className: "w-12 h-12 mb-3 text-secondary-300",
+											fill: "none",
+											viewBox: "0 0 24 24",
+											stroke: "currentColor",
+											strokeWidth: 1,
+											children: /* @__PURE__ */ jsx("path", {
+												strokeLinecap: "round",
+												strokeLinejoin: "round",
+												d: "M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
+											})
+										}),
+										/* @__PURE__ */ jsx("p", {
+											className: "text-sm font-bold text-secondary-700",
+											children: trans("no_data")
+										}),
+										/* @__PURE__ */ jsx("p", {
+											className: "text-xs text-secondary-500 mt-0.5",
+											children: isRtl ? "لا توجد مشاريع مطابقة لمعايير البحث الحالية." : "No projects matching the current filter criteria."
+										})
+									]
+								})
 							}) })
 						})]
 					})
 				})
+			}),
+			/* @__PURE__ */ jsx("div", {
+				className: "md:hidden space-y-3",
+				children: loading ? Array.from({ length: 3 }).map((_, i) => /* @__PURE__ */ jsx("div", { className: "bg-white p-4 rounded-2xl border border-secondary-200/80 animate-pulse h-28" }, i)) : hasProjects ? projects.data.map((project) => {
+					const thumb = project.images?.[0]?.url || (project.images?.[0]?.path ? `/storage/${project.images[0].path}` : null);
+					const projectName = (locale === "ar" ? project.name_ar : project.name_en) || project.name_ar || project.name_en || project.name;
+					const projectAreaName = project.area ? (locale === "ar" ? project.area.name_ar : project.area.name_en) || project.area.name_ar || project.area.name_en : "—";
+					return /* @__PURE__ */ jsxs("div", {
+						className: "bg-white p-4 rounded-2xl border border-secondary-200/80 shadow-xs space-y-3",
+						children: [/* @__PURE__ */ jsxs("div", {
+							className: "flex items-start gap-3",
+							children: [thumb ? /* @__PURE__ */ jsx("img", {
+								src: thumb,
+								alt: "",
+								className: "w-12 h-12 rounded-xl object-cover shrink-0 border border-secondary-200/80"
+							}) : /* @__PURE__ */ jsx("div", {
+								className: "w-12 h-12 rounded-xl bg-slate-100 border border-secondary-200/80 shrink-0 flex items-center justify-center text-secondary-400",
+								children: /* @__PURE__ */ jsx("svg", {
+									className: "w-6 h-6",
+									fill: "none",
+									viewBox: "0 0 24 24",
+									stroke: "currentColor",
+									children: /* @__PURE__ */ jsx("path", {
+										strokeLinecap: "round",
+										strokeLinejoin: "round",
+										strokeWidth: 1.5,
+										d: "M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21"
+									})
+								})
+							}), /* @__PURE__ */ jsxs("div", {
+								className: "min-w-0 flex-1",
+								children: [
+									/* @__PURE__ */ jsxs("div", {
+										className: "flex items-center justify-between gap-2 mb-1",
+										children: [/* @__PURE__ */ jsxs("span", {
+											className: "text-[10px] font-mono text-secondary-400",
+											children: ["#", project.id]
+										}), /* @__PURE__ */ jsx("span", {
+											className: `px-2 py-0.5 text-[10px] rounded font-bold border ${project.is_active ? "bg-emerald-600 text-white border-emerald-600" : "bg-red-50 text-red-700 border-red-200"}`,
+											children: project.is_active ? isRtl ? "مفعل" : "Active" : isRtl ? "معطل" : "Inactive"
+										})]
+									}),
+									isAdminOrManager ? /* @__PURE__ */ jsx(Link, {
+										href: `/admin/projects/${project.id}/edit`,
+										className: "text-secondary-950 font-bold text-xs block truncate",
+										children: projectName
+									}) : /* @__PURE__ */ jsx("span", {
+										className: "text-secondary-950 font-bold text-xs block truncate",
+										children: projectName
+									}),
+									/* @__PURE__ */ jsxs("p", {
+										className: "text-[11px] text-secondary-500 mt-0.5",
+										children: [
+											projectAreaName,
+											" • ",
+											project.units_count ?? 0,
+											" ",
+											isRtl ? "وحدة" : "units"
+										]
+									})
+								]
+							})]
+						}), isAdminOrManager && /* @__PURE__ */ jsxs("div", {
+							className: "flex items-center justify-end gap-1.5 pt-2 border-t border-secondary-100",
+							children: [
+								/* @__PURE__ */ jsx("a", {
+									href: `/${locale}/projects/${project.slug || project.id}`,
+									target: "_blank",
+									rel: "noreferrer",
+									className: "p-1.5 text-secondary-700 bg-surface border border-secondary-200 rounded-lg",
+									children: /* @__PURE__ */ jsx("svg", {
+										className: "w-3.5 h-3.5",
+										fill: "none",
+										viewBox: "0 0 24 24",
+										stroke: "currentColor",
+										strokeWidth: 2,
+										children: /* @__PURE__ */ jsx("path", {
+											strokeLinecap: "round",
+											strokeLinejoin: "round",
+											d: "M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"
+										})
+									})
+								}),
+								/* @__PURE__ */ jsx(Link, {
+									href: `/admin/projects/${project.id}/edit`,
+									className: "p-1.5 text-blue-700 bg-blue-50 border border-blue-200 rounded-lg",
+									children: /* @__PURE__ */ jsx("svg", {
+										className: "w-3.5 h-3.5",
+										fill: "none",
+										viewBox: "0 0 24 24",
+										stroke: "currentColor",
+										strokeWidth: 2,
+										children: /* @__PURE__ */ jsx("path", {
+											strokeLinecap: "round",
+											strokeLinejoin: "round",
+											d: "M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"
+										})
+									})
+								}),
+								/* @__PURE__ */ jsx("button", {
+									type: "button",
+									onClick: () => deleteProject(project),
+									className: "p-1.5 text-red-700 bg-red-50 border border-red-200 rounded-lg",
+									children: /* @__PURE__ */ jsx("svg", {
+										className: "w-3.5 h-3.5",
+										fill: "none",
+										viewBox: "0 0 24 24",
+										stroke: "currentColor",
+										strokeWidth: 2,
+										children: /* @__PURE__ */ jsx("path", {
+											strokeLinecap: "round",
+											strokeLinejoin: "round",
+											d: "M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
+										})
+									})
+								})
+							]
+						})]
+					}, project.id);
+				}) : /* @__PURE__ */ jsx("div", {
+					className: "bg-white p-8 rounded-2xl border border-secondary-200/80 text-center text-secondary-500 text-xs",
+					children: trans("no_data")
+				})
+			}),
+			hasProjects && /* @__PURE__ */ jsxs("div", {
+				className: "flex flex-col sm:flex-row items-center justify-between gap-4 pt-2",
+				children: [/* @__PURE__ */ jsx("div", {
+					className: "text-xs font-bold text-secondary-600 order-2 sm:order-1",
+					children: isRtl ? /* @__PURE__ */ jsxs("span", { children: [
+						"عرض ",
+						/* @__PURE__ */ jsx("strong", {
+							className: "text-secondary-950 font-mono",
+							children: paginationFrom
+						}),
+						" - ",
+						/* @__PURE__ */ jsx("strong", {
+							className: "text-secondary-950 font-mono",
+							children: paginationTo
+						}),
+						" من أصل ",
+						/* @__PURE__ */ jsx("strong", {
+							className: "text-secondary-950 font-mono",
+							children: totalCount
+						}),
+						" مشروع"
+					] }) : /* @__PURE__ */ jsxs("span", { children: [
+						"Showing ",
+						/* @__PURE__ */ jsx("strong", {
+							className: "text-secondary-950 font-mono",
+							children: paginationFrom
+						}),
+						" to ",
+						/* @__PURE__ */ jsx("strong", {
+							className: "text-secondary-950 font-mono",
+							children: paginationTo
+						}),
+						" of ",
+						/* @__PURE__ */ jsx("strong", {
+							className: "text-secondary-950 font-mono",
+							children: totalCount
+						}),
+						" projects"
+					] })
+				}), /* @__PURE__ */ jsx("div", {
+					className: "order-1 sm:order-2",
+					children: /* @__PURE__ */ jsx(Pagination, {
+						meta: projects.meta || projects,
+						links: projects.links
+					})
+				})]
 			})
 		]
 	})] });
@@ -12136,7 +12550,7 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 //#endregion
 //#region resources/js/Pages/Admin/Units/Index.jsx
 var Index_exports$4 = /* @__PURE__ */ __exportAll({ default: () => AdminUnitsIndex });
-function AdminUnitsIndex({ units, areas, unitTypes, filters }) {
+function AdminUnitsIndex({ units, stats, areas, unitTypes, filters }) {
 	const { locale, auth } = usePage().props;
 	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
@@ -12144,6 +12558,7 @@ function AdminUnitsIndex({ units, areas, unitTypes, filters }) {
 	const [search, setSearch] = useState(filters?.search || "");
 	const [areaFilter, setAreaFilter] = useState(filters?.area_id || "");
 	const [typeFilter, setTypeFilter] = useState(filters?.type_id || "");
+	const [perPage, setPerPage] = useState(filters?.per_page || "15");
 	const [showAdjustPointsModal, setShowAdjustPointsModal] = useState(false);
 	const [unitToAdjust, setUnitToAdjust] = useState(null);
 	const { data: pointsData, setData: setPointsData, post: postPoints, processing: pointsProcessing, reset: resetPoints, errors: pointsErrors } = useForm({ points: "" });
@@ -12168,12 +12583,23 @@ function AdminUnitsIndex({ units, areas, unitTypes, filters }) {
 		if (search) params.search = search;
 		if (areaFilter) params.area_id = areaFilter;
 		if (typeFilter) params.type_id = typeFilter;
+		if (perPage && perPage !== "15") params.per_page = perPage;
+		router.get("/admin/units", params, { preserveState: true });
+	}
+	function handlePerPageChange(newVal) {
+		setPerPage(newVal);
+		const params = {};
+		if (search) params.search = search;
+		if (areaFilter) params.area_id = areaFilter;
+		if (typeFilter) params.type_id = typeFilter;
+		if (newVal) params.per_page = newVal;
 		router.get("/admin/units", params, { preserveState: true });
 	}
 	function resetFilters() {
 		setSearch("");
 		setAreaFilter("");
 		setTypeFilter("");
+		setPerPage("15");
 		router.get("/admin/units", {}, { preserveState: true });
 	}
 	function togglePin(unit) {
@@ -12191,60 +12617,81 @@ function AdminUnitsIndex({ units, areas, unitTypes, filters }) {
 	const loading = !units;
 	const hasUnits = units?.data?.length > 0;
 	const colCount = role === "agent" ? 10 : 11;
-	const inputClasses = "w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none";
+	const inputClasses = "w-full px-3.5 py-2.5 bg-surface border border-secondary-200 rounded-xl text-xs font-semibold text-secondary-900 transition-all duration-150 hover:border-secondary-300 focus:bg-white focus:border-[#CC0000] focus:ring-2 focus:ring-red-100 focus:outline-none";
+	const totalCount = stats?.total ?? units?.total ?? 0;
+	const activeCount = stats?.active ?? 0;
+	const dealsCount = stats?.deals ?? 0;
+	const pinnedCount = stats?.pinned ?? 0;
+	const paginationFrom = units?.from ?? (units?.current_page ? (units.current_page - 1) * (units.per_page || 15) + 1 : 1);
+	const paginationTo = units?.to ?? (units?.data ? paginationFrom + units.data.length - 1 : 0);
 	return /* @__PURE__ */ jsxs(AdminSidebar, { children: [/* @__PURE__ */ jsx(Head, { title: trans("sidebar_units") + " — " + trans("app_name") }), /* @__PURE__ */ jsxs("div", {
 		dir: isRtl ? "rtl" : "ltr",
-		className: "p-4 md:p-8 max-w-7xl mx-auto min-h-screen",
+		className: "p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 min-h-screen",
 		children: [
 			/* @__PURE__ */ jsxs("div", {
-				className: "flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 bg-white p-6 md:p-8 rounded-3xl border border-secondary-100 shadow-sm transition-all duration-300",
-				children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("h1", {
-					className: "text-3xl font-black text-secondary-950 mb-2",
-					children: trans("sidebar_units")
+				className: "flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-2xl border border-secondary-200/80 shadow-xs",
+				children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsxs("div", {
+					className: "flex items-center gap-2.5 mb-1",
+					children: [/* @__PURE__ */ jsx("h1", {
+						className: "text-2xl sm:text-3xl font-black text-secondary-950 tracking-tight",
+						children: trans("sidebar_units")
+					}), /* @__PURE__ */ jsx("span", {
+						className: "px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-red-50 text-[#CC0000] border border-red-100 tabular-nums",
+						children: totalCount
+					})]
 				}), /* @__PURE__ */ jsx("p", {
-					className: "text-secondary-500 text-sm",
-					children: isRtl ? "إدارة وتحديث العقارات والوحدات المتاحة على الموقع" : "Manage and update real estate listings"
+					className: "text-secondary-500 text-xs sm:text-sm font-medium",
+					children: isRtl ? "إدارة وتحديث العقارات والوحدات المتاحة مع التحكم في الأولوية والحالة" : "Manage and update real estate listings with priority and visibility controls"
 				})] }), /* @__PURE__ */ jsxs(Link, {
 					href: "/admin/units/create",
-					className: "inline-flex items-center justify-center px-6 py-3 bg-[#CC0000] text-white rounded-xl text-sm font-bold transition-all duration-200 hover:bg-[#B00000] hover:shadow-lg active:scale-[0.97] focus:outline-none focus:ring-4 focus:ring-[#FFE3E3]",
+					className: "inline-flex items-center justify-center px-5 py-2.5 bg-[#CC0000] hover:bg-[#b00000] text-white rounded-xl text-xs sm:text-sm font-bold shadow-xs hover:shadow-md transition-all active:scale-[0.98] shrink-0 gap-2",
 					children: [/* @__PURE__ */ jsx("svg", {
-						className: "w-5 h-5 me-2",
+						className: "w-4 h-4",
 						fill: "none",
 						viewBox: "0 0 24 24",
 						stroke: "currentColor",
-						strokeWidth: 2,
+						strokeWidth: 2.5,
 						children: /* @__PURE__ */ jsx("path", {
 							strokeLinecap: "round",
 							strokeLinejoin: "round",
-							d: "M12 4v16m8-8H4"
+							d: "M12 4.5v15m7.5-7.5h-15"
 						})
 					}), /* @__PURE__ */ jsx("span", { children: trans("add_unit", {}, "units") })]
 				})]
 			}),
-			/* @__PURE__ */ jsx("div", {
-				className: "bg-white rounded-3xl border border-secondary-100 shadow-sm p-6 mb-8 transition-all duration-300",
-				children: /* @__PURE__ */ jsxs("form", {
-					onSubmit: (e) => {
-						e.preventDefault();
-						applyFilters();
-					},
-					className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 items-end",
-					children: [
-						/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
-							htmlFor: "search-input",
-							className: "block text-sm font-bold text-secondary-900 mb-2",
-							children: trans("search")
-						}), /* @__PURE__ */ jsxs("div", {
-							className: "relative",
-							children: [/* @__PURE__ */ jsx("input", {
-								id: "search-input",
-								type: "text",
-								value: search,
-								onChange: (e) => setSearch(e.target.value),
-								placeholder: isRtl ? "اسم العقار، العريضة..." : "Unit title, search...",
-								className: `${inputClasses} ps-11`
-							}), /* @__PURE__ */ jsx("svg", {
-								className: "w-5 h-5 text-secondary-400 absolute start-4 top-1/2 -translate-y-1/2 pointer-events-none",
+			/* @__PURE__ */ jsxs("div", {
+				className: "grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4",
+				children: [
+					/* @__PURE__ */ jsxs("div", {
+						className: "bg-white p-4 rounded-2xl border border-secondary-200/80 shadow-xs flex items-center gap-3.5",
+						children: [/* @__PURE__ */ jsx("div", {
+							className: "w-10 h-10 rounded-xl bg-slate-100 text-secondary-800 flex items-center justify-center shrink-0 border border-slate-200/70",
+							children: /* @__PURE__ */ jsx("svg", {
+								className: "w-5 h-5",
+								fill: "none",
+								viewBox: "0 0 24 24",
+								stroke: "currentColor",
+								strokeWidth: 1.75,
+								children: /* @__PURE__ */ jsx("path", {
+									strokeLinecap: "round",
+									strokeLinejoin: "round",
+									d: "M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21"
+								})
+							})
+						}), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("span", {
+							className: "text-[11px] font-bold text-secondary-500 block uppercase tracking-wider",
+							children: isRtl ? "إجمالي الوحدات" : "Total Units"
+						}), /* @__PURE__ */ jsx("span", {
+							className: "text-lg font-black text-secondary-950 tabular-nums",
+							children: totalCount
+						})] })]
+					}),
+					/* @__PURE__ */ jsxs("div", {
+						className: "bg-white p-4 rounded-2xl border border-secondary-200/80 shadow-xs flex items-center gap-3.5",
+						children: [/* @__PURE__ */ jsx("div", {
+							className: "w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-100",
+							children: /* @__PURE__ */ jsx("svg", {
+								className: "w-5 h-5",
 								fill: "none",
 								viewBox: "0 0 24 24",
 								stroke: "currentColor",
@@ -12252,51 +12699,93 @@ function AdminUnitsIndex({ units, areas, unitTypes, filters }) {
 								children: /* @__PURE__ */ jsx("path", {
 									strokeLinecap: "round",
 									strokeLinejoin: "round",
-									d: "M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+									d: "M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
 								})
-							})]
-						})] }),
-						/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
-							htmlFor: "area-filter",
-							className: "block text-sm font-bold text-secondary-900 mb-2",
-							children: trans("area")
-						}), /* @__PURE__ */ jsxs(Select, {
-							id: "area-filter",
-							value: areaFilter,
-							onChange: (e) => setAreaFilter(e.target.value),
-							className: inputClasses,
-							children: [/* @__PURE__ */ jsx("option", {
-								value: "",
-								children: isRtl ? "كل المناطق" : "All Areas"
-							}), areas?.map((a) => /* @__PURE__ */ jsx("option", {
-								value: a.id,
-								children: locale === "ar" ? a.name_ar : a.name_en
-							}, a.id))]
-						})] }),
-						/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
-							htmlFor: "type-filter",
-							className: "block text-sm font-bold text-secondary-900 mb-2",
-							children: trans("type")
-						}), /* @__PURE__ */ jsxs(Select, {
-							id: "type-filter",
-							value: typeFilter,
-							onChange: (e) => setTypeFilter(e.target.value),
-							className: inputClasses,
-							children: [/* @__PURE__ */ jsx("option", {
-								value: "",
-								children: isRtl ? "كل الأنواع" : "All Types"
-							}), unitTypes?.map((t) => /* @__PURE__ */ jsx("option", {
-								value: t.id,
-								children: locale === "ar" ? t.name_ar : t.name_en
-							}, t.id))]
-						})] }),
+							})
+						}), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("span", {
+							className: "text-[11px] font-bold text-emerald-700 block uppercase tracking-wider",
+							children: isRtl ? "الوحدات النشطة" : "Active Units"
+						}), /* @__PURE__ */ jsx("span", {
+							className: "text-lg font-black text-secondary-950 tabular-nums",
+							children: activeCount
+						})] })]
+					}),
+					/* @__PURE__ */ jsxs("div", {
+						className: "bg-white p-4 rounded-2xl border border-secondary-200/80 shadow-xs flex items-center gap-3.5",
+						children: [/* @__PURE__ */ jsx("div", {
+							className: "w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0 border border-amber-100",
+							children: /* @__PURE__ */ jsx("svg", {
+								className: "w-5 h-5",
+								fill: "none",
+								viewBox: "0 0 24 24",
+								stroke: "currentColor",
+								strokeWidth: 2,
+								children: /* @__PURE__ */ jsx("path", {
+									strokeLinecap: "round",
+									strokeLinejoin: "round",
+									d: "M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z"
+								})
+							})
+						}), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("span", {
+							className: "text-[11px] font-bold text-amber-700 block uppercase tracking-wider",
+							children: isRtl ? "الصفقات المميزة" : "Deals"
+						}), /* @__PURE__ */ jsx("span", {
+							className: "text-lg font-black text-secondary-950 tabular-nums",
+							children: dealsCount
+						})] })]
+					}),
+					/* @__PURE__ */ jsxs("div", {
+						className: "bg-white p-4 rounded-2xl border border-secondary-200/80 shadow-xs flex items-center gap-3.5",
+						children: [/* @__PURE__ */ jsx("div", {
+							className: "w-10 h-10 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center shrink-0 border border-indigo-100",
+							children: /* @__PURE__ */ jsx("svg", {
+								className: "w-5 h-5",
+								fill: "none",
+								viewBox: "0 0 24 24",
+								stroke: "currentColor",
+								strokeWidth: 2,
+								children: /* @__PURE__ */ jsx("path", {
+									strokeLinecap: "round",
+									strokeLinejoin: "round",
+									d: "M16.5 3.75V16.5L12 14.25 7.5 16.5V3.75m9 0H7.5"
+								})
+							})
+						}), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("span", {
+							className: "text-[11px] font-bold text-indigo-700 block uppercase tracking-wider",
+							children: isRtl ? "الوحدات المثبتة" : "Pinned"
+						}), /* @__PURE__ */ jsx("span", {
+							className: "text-lg font-black text-secondary-950 tabular-nums",
+							children: pinnedCount
+						})] })]
+					})
+				]
+			}),
+			/* @__PURE__ */ jsx("div", {
+				className: "bg-white rounded-2xl border border-secondary-200/80 shadow-xs p-4 sm:p-5",
+				children: /* @__PURE__ */ jsxs("form", {
+					onSubmit: (e) => {
+						e.preventDefault();
+						applyFilters();
+					},
+					className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3.5 items-end",
+					children: [
 						/* @__PURE__ */ jsxs("div", {
-							className: "flex items-center gap-3",
-							children: [/* @__PURE__ */ jsxs("button", {
-								type: "submit",
-								className: "flex-1 px-6 py-3 bg-secondary-950 text-white rounded-xl text-sm font-bold transition-all duration-200 hover:bg-black hover:shadow-lg active:scale-[0.97] flex items-center justify-center gap-2",
-								children: [/* @__PURE__ */ jsx("svg", {
-									className: "w-5 h-5",
+							className: "lg:col-span-4",
+							children: [/* @__PURE__ */ jsx("label", {
+								htmlFor: "search-input",
+								className: "block text-xs font-bold text-secondary-700 mb-1.5",
+								children: trans("search")
+							}), /* @__PURE__ */ jsxs("div", {
+								className: "relative",
+								children: [/* @__PURE__ */ jsx("input", {
+									id: "search-input",
+									type: "text",
+									value: search,
+									onChange: (e) => setSearch(e.target.value),
+									placeholder: isRtl ? "البحث بالاسم، المعرف، الكلمات..." : "Search by title, ID, keywords...",
+									className: `${inputClasses} ps-9`
+								}), /* @__PURE__ */ jsx("svg", {
+									className: "w-4 h-4 text-secondary-400 absolute start-3 top-1/2 -translate-y-1/2 pointer-events-none",
 									fill: "none",
 									viewBox: "0 0 24 24",
 									stroke: "currentColor",
@@ -12306,93 +12795,195 @@ function AdminUnitsIndex({ units, areas, unitTypes, filters }) {
 										strokeLinejoin: "round",
 										d: "M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
 									})
+								})]
+							})]
+						}),
+						/* @__PURE__ */ jsxs("div", {
+							className: "lg:col-span-3",
+							children: [/* @__PURE__ */ jsx("label", {
+								htmlFor: "area-filter",
+								className: "block text-xs font-bold text-secondary-700 mb-1.5",
+								children: trans("area")
+							}), /* @__PURE__ */ jsxs(Select, {
+								id: "area-filter",
+								value: areaFilter,
+								onChange: (e) => setAreaFilter(e.target.value),
+								className: inputClasses,
+								children: [/* @__PURE__ */ jsx("option", {
+									value: "",
+									children: isRtl ? "كل المناطق" : "All Areas"
+								}), areas?.map((a) => /* @__PURE__ */ jsx("option", {
+									value: a.id,
+									children: locale === "ar" ? a.name_ar : a.name_en
+								}, a.id))]
+							})]
+						}),
+						/* @__PURE__ */ jsxs("div", {
+							className: "lg:col-span-2",
+							children: [/* @__PURE__ */ jsx("label", {
+								htmlFor: "type-filter",
+								className: "block text-xs font-bold text-secondary-700 mb-1.5",
+								children: trans("type")
+							}), /* @__PURE__ */ jsxs(Select, {
+								id: "type-filter",
+								value: typeFilter,
+								onChange: (e) => setTypeFilter(e.target.value),
+								className: inputClasses,
+								children: [/* @__PURE__ */ jsx("option", {
+									value: "",
+									children: isRtl ? "كل الأنواع" : "All Types"
+								}), unitTypes?.map((t) => /* @__PURE__ */ jsx("option", {
+									value: t.id,
+									children: locale === "ar" ? t.name_ar : t.name_en
+								}, t.id))]
+							})]
+						}),
+						/* @__PURE__ */ jsxs("div", {
+							className: "lg:col-span-1",
+							children: [/* @__PURE__ */ jsx("label", {
+								htmlFor: "per-page-select",
+								className: "block text-xs font-bold text-secondary-700 mb-1.5",
+								title: isRtl ? "عدد العناصر بالصفحة" : "Per Page",
+								children: isRtl ? "العرض" : "Per page"
+							}), /* @__PURE__ */ jsxs("select", {
+								id: "per-page-select",
+								value: perPage,
+								onChange: (e) => handlePerPageChange(e.target.value),
+								className: inputClasses,
+								children: [
+									/* @__PURE__ */ jsx("option", {
+										value: "10",
+										children: "10"
+									}),
+									/* @__PURE__ */ jsx("option", {
+										value: "15",
+										children: "15"
+									}),
+									/* @__PURE__ */ jsx("option", {
+										value: "25",
+										children: "25"
+									}),
+									/* @__PURE__ */ jsx("option", {
+										value: "50",
+										children: "50"
+									})
+								]
+							})]
+						}),
+						/* @__PURE__ */ jsxs("div", {
+							className: "lg:col-span-2 flex items-center gap-2",
+							children: [/* @__PURE__ */ jsxs("button", {
+								type: "submit",
+								className: "flex-1 py-2.5 px-4 bg-secondary-950 hover:bg-black text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 active:scale-[0.98]",
+								children: [/* @__PURE__ */ jsx("svg", {
+									className: "w-3.5 h-3.5",
+									fill: "none",
+									viewBox: "0 0 24 24",
+									stroke: "currentColor",
+									strokeWidth: 2.5,
+									children: /* @__PURE__ */ jsx("path", {
+										strokeLinecap: "round",
+										strokeLinejoin: "round",
+										d: "M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+									})
 								}), /* @__PURE__ */ jsx("span", { children: trans("search") })]
-							}), (search || areaFilter || typeFilter) && /* @__PURE__ */ jsx("button", {
+							}), (search || areaFilter || typeFilter || perPage !== "15") && /* @__PURE__ */ jsx("button", {
 								type: "button",
 								onClick: resetFilters,
-								className: "px-4 py-3 bg-[#F5F5F5] text-[#1A1A1A] rounded-xl text-sm font-bold transition-all duration-200 hover:bg-[#E4E4E4] active:scale-[0.97]",
+								className: "p-2.5 bg-surface hover:bg-secondary-200 text-secondary-700 rounded-xl text-xs font-bold transition-all border border-secondary-200 shrink-0",
 								title: isRtl ? "إعادة ضبط" : "Reset",
-								children: "✕"
+								children: /* @__PURE__ */ jsx("svg", {
+									className: "w-4 h-4",
+									fill: "none",
+									viewBox: "0 0 24 24",
+									stroke: "currentColor",
+									strokeWidth: 2,
+									children: /* @__PURE__ */ jsx("path", {
+										strokeLinecap: "round",
+										strokeLinejoin: "round",
+										d: "M6 18L18 6M6 6l12 12"
+									})
+								})
 							})]
 						})
 					]
 				})
 			}),
 			/* @__PURE__ */ jsx("div", {
-				className: "bg-white rounded-3xl border border-secondary-100 shadow-sm overflow-hidden transition-all duration-300",
+				className: "hidden md:block bg-white rounded-2xl border border-secondary-200/80 shadow-xs overflow-hidden",
 				children: /* @__PURE__ */ jsx("div", {
 					className: "overflow-x-auto",
 					children: /* @__PURE__ */ jsxs("table", {
-						className: "w-full text-sm text-start rtl:text-right border-collapse",
+						className: "w-full text-xs text-start rtl:text-right border-collapse",
 						children: [/* @__PURE__ */ jsx("thead", { children: /* @__PURE__ */ jsxs("tr", {
-							className: "bg-surface border-b border-secondary-100 text-secondary-600 font-bold uppercase tracking-wider text-xs",
+							className: "bg-slate-50/80 border-b border-secondary-200/90 text-secondary-600 font-extrabold uppercase tracking-wider text-[11px]",
 							children: [
 								/* @__PURE__ */ jsx("th", {
-									className: "px-6 py-5 text-start",
+									className: "px-4 py-3.5 text-start",
 									children: trans("name")
 								}),
 								/* @__PURE__ */ jsx("th", {
-									className: "px-4 py-5 text-start",
+									className: "px-3 py-3.5 text-start",
 									children: trans("type", {}, "units")
 								}),
 								/* @__PURE__ */ jsx("th", {
-									className: "px-4 py-5 text-start",
+									className: "px-3 py-3.5 text-start",
 									children: trans("area")
 								}),
 								/* @__PURE__ */ jsx("th", {
-									className: "px-4 py-5 text-start",
+									className: "px-3 py-3.5 text-start",
 									children: trans("price", {}, "units")
 								}),
 								/* @__PURE__ */ jsx("th", {
-									className: "px-4 py-5 text-center",
+									className: "px-3 py-3.5 text-center",
 									children: trans("transaction", {}, "units")
 								}),
 								/* @__PURE__ */ jsx("th", {
-									className: "px-4 py-5 text-center",
+									className: "px-3 py-3.5 text-center",
 									children: isRtl ? "الزيارات" : "Views"
 								}),
 								/* @__PURE__ */ jsx("th", {
-									className: "px-4 py-5 text-center",
+									className: "px-3 py-3.5 text-center",
 									children: trans("priority_points")
 								}),
 								/* @__PURE__ */ jsx("th", {
-									className: "px-4 py-5 text-center",
+									className: "px-3 py-3.5 text-center",
 									children: trans("pinned")
 								}),
 								/* @__PURE__ */ jsx("th", {
-									className: "px-4 py-5 text-center",
+									className: "px-3 py-3.5 text-center",
 									children: trans("is_deal")
 								}),
 								role !== "agent" && /* @__PURE__ */ jsx("th", {
-									className: "px-4 py-5 text-center",
+									className: "px-3 py-3.5 text-center",
 									children: trans("active")
 								}),
 								/* @__PURE__ */ jsx("th", {
-									className: "px-6 py-5 text-center",
+									className: "px-4 py-3.5 text-center",
 									children: trans("actions")
 								})
 							]
 						}) }), /* @__PURE__ */ jsx("tbody", {
-							className: "divide-y divide-secondary-50 font-medium",
+							className: "divide-y divide-secondary-100 font-medium",
 							children: loading ? Array.from({ length: 5 }).map((_, i) => /* @__PURE__ */ jsx(SkeletonRow, { cols: colCount }, i)) : hasUnits ? units.data.map((unit) => {
 								const thumb = unit.images?.[0]?.url || (unit.images?.[0]?.path ? `/storage/${unit.images[0].path}` : null);
 								const unitTypeName = (locale === "ar" ? unit.type?.name_ar : unit.type?.name_en) || unit.type?.name_ar || unit.type?.name_en || "—";
 								const unitAreaName = (locale === "ar" ? unit.area?.name_ar : unit.area?.name_en) || unit.area?.name_ar || unit.area?.name_en || "—";
 								return /* @__PURE__ */ jsxs("tr", {
-									className: "hover:bg-surface/60 transition-colors group",
+									className: "hover:bg-slate-50/60 transition-colors group",
 									children: [
 										/* @__PURE__ */ jsx("td", {
-											className: "px-6 py-4 min-w-[220px]",
+											className: "px-4 py-3 min-w-[220px]",
 											children: /* @__PURE__ */ jsxs("div", {
-												className: "flex items-center gap-4",
+												className: "flex items-center gap-3",
 												children: [thumb ? /* @__PURE__ */ jsx("img", {
 													src: thumb,
 													alt: "",
-													className: "w-14 h-14 rounded-2xl object-cover shrink-0 border border-secondary-100 shadow-sm"
+													className: "w-11 h-11 rounded-xl object-cover shrink-0 border border-secondary-200/80 shadow-2xs"
 												}) : /* @__PURE__ */ jsx("div", {
-													className: "w-14 h-14 rounded-2xl bg-[#F5F5F5] border border-transparent shrink-0 flex items-center justify-center text-secondary-400",
+													className: "w-11 h-11 rounded-xl bg-slate-100 border border-secondary-200/80 shrink-0 flex items-center justify-center text-secondary-400",
 													children: /* @__PURE__ */ jsx("svg", {
-														className: "w-6 h-6",
+														className: "w-5 h-5",
 														fill: "none",
 														viewBox: "0 0 24 24",
 														stroke: "currentColor",
@@ -12407,46 +12998,46 @@ function AdminUnitsIndex({ units, areas, unitTypes, filters }) {
 													className: "min-w-0",
 													children: [/* @__PURE__ */ jsx(Link, {
 														href: `/admin/units/${unit.id}/edit`,
-														className: "text-secondary-950 hover:text-[#CC0000] font-black text-base block truncate max-w-[250px] transition-colors",
+														className: "text-secondary-950 hover:text-[#CC0000] font-bold text-xs block truncate max-w-[200px] transition-colors",
 														children: unit.name
 													}), /* @__PURE__ */ jsxs("span", {
-														className: "text-xs text-secondary-500 block truncate mt-0.5",
+														className: "text-[10px] text-secondary-400 font-mono block mt-0.5",
 														children: ["#", unit.id]
 													})]
 												})]
 											})
 										}),
 										/* @__PURE__ */ jsx("td", {
-											className: "px-4 py-4 text-secondary-700 whitespace-nowrap",
+											className: "px-3 py-3 text-secondary-700 whitespace-nowrap",
 											children: unitTypeName
 										}),
 										/* @__PURE__ */ jsx("td", {
-											className: "px-4 py-4 text-secondary-700 whitespace-nowrap",
+											className: "px-3 py-3 text-secondary-700 whitespace-nowrap",
 											children: unitAreaName
 										}),
 										/* @__PURE__ */ jsxs("td", {
-											className: "px-4 py-4 whitespace-nowrap",
+											className: "px-3 py-3 whitespace-nowrap",
 											children: [/* @__PURE__ */ jsx("span", {
-												className: "font-black text-[#CC0000] text-base",
+												className: "font-black text-[#CC0000] text-xs font-mono",
 												children: Number(unit.price).toLocaleString()
 											}), /* @__PURE__ */ jsx("span", {
-												className: "text-xs text-secondary-500 ms-1 font-medium",
+												className: "text-[10px] text-secondary-500 ms-1 font-semibold",
 												children: isRtl ? "ج.م" : "EGP"
 											})]
 										}),
 										/* @__PURE__ */ jsx("td", {
-											className: "px-4 py-4 text-center whitespace-nowrap",
+											className: "px-3 py-3 text-center whitespace-nowrap",
 											children: /* @__PURE__ */ jsx("span", {
-												className: `px-3 py-1.5 rounded-full text-xs font-bold ${unit.transaction === "rent" ? "bg-purple-100 text-purple-800" : "bg-blue-100 text-blue-800"}`,
+												className: `px-2.5 py-1 rounded-md text-[11px] font-bold border ${unit.transaction === "rent" ? "bg-purple-50 text-purple-700 border-purple-200" : "bg-sky-50 text-sky-700 border-sky-200"}`,
 												children: trans(unit.transaction === "rent" ? "rent" : "sale", {}, "units")
 											})
 										}),
 										/* @__PURE__ */ jsx("td", {
-											className: "px-4 py-4 text-center whitespace-nowrap",
+											className: "px-3 py-3 text-center whitespace-nowrap",
 											children: /* @__PURE__ */ jsxs("span", {
-												className: "inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#F5F5F5] rounded-full text-xs font-bold text-secondary-800",
+												className: "inline-flex items-center gap-1 px-2.5 py-1 bg-surface border border-secondary-200 rounded-md text-[11px] font-bold text-secondary-800 font-mono",
 												children: [/* @__PURE__ */ jsx("svg", {
-													className: "w-4 h-4 text-secondary-500",
+													className: "w-3.5 h-3.5 text-secondary-400",
 													fill: "none",
 													viewBox: "0 0 24 24",
 													stroke: "currentColor",
@@ -12460,57 +13051,60 @@ function AdminUnitsIndex({ units, areas, unitTypes, filters }) {
 											})
 										}),
 										/* @__PURE__ */ jsx("td", {
-											className: "px-4 py-4 text-center whitespace-nowrap",
+											className: "px-3 py-3 text-center whitespace-nowrap",
 											children: /* @__PURE__ */ jsxs("span", {
-												className: "inline-flex items-center gap-1 px-3 py-1.5 bg-amber-100 text-amber-800 rounded-full font-bold text-xs",
-												children: ["⭐ ", unit.priority_points]
+												className: "inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50/80 text-amber-900 border border-amber-200/90 rounded-md font-mono font-bold text-xs",
+												children: [/* @__PURE__ */ jsx("span", {
+													className: "text-[9px] font-extrabold text-amber-700 tracking-wider",
+													children: "PTS"
+												}), /* @__PURE__ */ jsx("span", { children: unit.priority_points })]
 											})
 										}),
 										/* @__PURE__ */ jsx("td", {
-											className: "px-4 py-4 text-center whitespace-nowrap",
+											className: "px-3 py-3 text-center whitespace-nowrap",
 											children: role !== "agent" ? /* @__PURE__ */ jsx("button", {
 												type: "button",
 												onClick: () => togglePin(unit),
-												className: `px-3 py-1.5 text-xs rounded-full font-bold transition-all active:scale-[0.97] ${unit.is_pinned ? "bg-secondary-950 text-white shadow-sm" : "bg-[#F5F5F5] text-secondary-600 hover:bg-[#E4E4E4]"}`,
-												children: unit.is_pinned ? isRtl ? "📌 مثبت" : "Pinned" : isRtl ? "غير مثبت" : "Unpinned"
+												className: `px-2.5 py-1 text-xs rounded-md font-bold transition-all border active:scale-[0.97] ${unit.is_pinned ? "bg-secondary-950 text-white border-secondary-950 shadow-2xs" : "bg-surface text-secondary-600 border-secondary-200 hover:bg-secondary-100"}`,
+												children: unit.is_pinned ? isRtl ? "مثبت" : "Pinned" : isRtl ? "تثبيت" : "Pin"
 											}) : /* @__PURE__ */ jsx("span", {
-												className: `inline-block px-3 py-1.5 text-xs rounded-full font-bold ${unit.is_pinned ? "bg-secondary-950 text-white" : "bg-[#F5F5F5] text-secondary-600"}`,
-												children: unit.is_pinned ? isRtl ? "📌 مثبت" : "Pinned" : isRtl ? "غير مثبت" : "Unpinned"
+												className: `inline-block px-2.5 py-1 text-xs rounded-md font-bold border ${unit.is_pinned ? "bg-secondary-950 text-white border-secondary-950" : "bg-surface text-secondary-600 border-secondary-200"}`,
+												children: unit.is_pinned ? isRtl ? "مثبت" : "Pinned" : isRtl ? "عادي" : "Normal"
 											})
 										}),
 										/* @__PURE__ */ jsx("td", {
-											className: "px-4 py-4 text-center whitespace-nowrap",
+											className: "px-3 py-3 text-center whitespace-nowrap",
 											children: role !== "agent" ? /* @__PURE__ */ jsx("button", {
 												type: "button",
 												onClick: () => toggleDeal(unit),
-												className: `px-3 py-1.5 text-xs rounded-full font-bold transition-all active:scale-[0.97] ${unit.is_deal ? "bg-amber-500 text-white shadow-sm" : "bg-[#F5F5F5] text-secondary-600 hover:bg-[#E4E4E4]"}`,
-												children: unit.is_deal ? isRtl ? "🔥 صفقة" : "Deal" : isRtl ? "عادي" : "Normal"
+												className: `px-2.5 py-1 text-xs rounded-md font-bold transition-all border active:scale-[0.97] ${unit.is_deal ? "bg-amber-600 text-white border-amber-600 shadow-2xs" : "bg-surface text-secondary-600 border-secondary-200 hover:bg-secondary-100"}`,
+												children: unit.is_deal ? isRtl ? "صفقة" : "Deal" : isRtl ? "عادي" : "Normal"
 											}) : /* @__PURE__ */ jsx("span", {
-												className: `inline-block px-3 py-1.5 text-xs rounded-full font-bold ${unit.is_deal ? "bg-amber-500 text-white" : "bg-[#F5F5F5] text-secondary-600"}`,
-												children: unit.is_deal ? isRtl ? "🔥 صفقة" : "Deal" : isRtl ? "عادي" : "Normal"
+												className: `inline-block px-2.5 py-1 text-xs rounded-md font-bold border ${unit.is_deal ? "bg-amber-600 text-white border-amber-600" : "bg-surface text-secondary-600 border-secondary-200"}`,
+												children: unit.is_deal ? isRtl ? "صفقة" : "Deal" : isRtl ? "عادي" : "Normal"
 											})
 										}),
 										role !== "agent" && /* @__PURE__ */ jsx("td", {
-											className: "px-4 py-4 text-center whitespace-nowrap",
+											className: "px-3 py-3 text-center whitespace-nowrap",
 											children: /* @__PURE__ */ jsx("button", {
 												type: "button",
 												onClick: () => toggleActive(unit),
-												className: `px-3 py-1.5 text-xs rounded-full font-bold transition-all active:scale-[0.97] ${unit.is_active ? "bg-[#16a34a] text-white shadow-sm" : "bg-red-100 text-red-700"}`,
+												className: `px-2.5 py-1 text-xs rounded-md font-bold transition-all border active:scale-[0.97] ${unit.is_active ? "bg-emerald-600 text-white border-emerald-600 shadow-2xs" : "bg-red-50 text-red-700 border-red-200 hover:bg-red-100"}`,
 												children: unit.is_active ? isRtl ? "مفعل" : "Active" : isRtl ? "معطل" : "Inactive"
 											})
 										}),
 										/* @__PURE__ */ jsx("td", {
-											className: "px-6 py-4 text-center whitespace-nowrap",
+											className: "px-4 py-3 text-center whitespace-nowrap",
 											children: /* @__PURE__ */ jsxs("div", {
 												className: "flex items-center justify-center gap-1.5",
 												children: [
-													/* @__PURE__ */ jsxs("a", {
+													/* @__PURE__ */ jsx("a", {
 														href: `/${locale}/units/${unit.slug || unit.id}`,
 														target: "_blank",
 														rel: "noreferrer",
-														className: "px-2.5 py-1.5 text-xs font-bold text-primary-900 bg-primary-50 hover:bg-primary-100 rounded-xl transition-all border border-primary-200/70 flex items-center gap-1 active:scale-95 shadow-xs",
+														className: "p-1.5 text-secondary-700 bg-surface hover:bg-secondary-200 hover:text-secondary-950 rounded-lg transition-all border border-secondary-200 active:scale-95 shadow-2xs",
 														title: isRtl ? "معاينة على الموقع" : "Preview",
-														children: [/* @__PURE__ */ jsx("svg", {
+														children: /* @__PURE__ */ jsx("svg", {
 															className: "w-3.5 h-3.5",
 															fill: "none",
 															viewBox: "0 0 24 24",
@@ -12519,15 +13113,15 @@ function AdminUnitsIndex({ units, areas, unitTypes, filters }) {
 															children: /* @__PURE__ */ jsx("path", {
 																strokeLinecap: "round",
 																strokeLinejoin: "round",
-																d: "M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.573 16.49 16.638 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+																d: "M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"
 															})
-														}), /* @__PURE__ */ jsx("span", { children: isRtl ? "معاينة" : "Preview" })]
+														})
 													}),
-													(role !== "agent" || unit.user_id === auth?.user?.id) && /* @__PURE__ */ jsxs(Link, {
+													(role !== "agent" || unit.user_id === auth?.user?.id) && /* @__PURE__ */ jsx(Link, {
 														href: `/admin/units/${unit.id}/edit`,
-														className: "px-2.5 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl transition-all border border-blue-200/70 flex items-center gap-1 active:scale-95 shadow-xs",
+														className: "p-1.5 text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all border border-blue-200 active:scale-95 shadow-2xs",
 														title: trans("edit"),
-														children: [/* @__PURE__ */ jsx("svg", {
+														children: /* @__PURE__ */ jsx("svg", {
 															className: "w-3.5 h-3.5",
 															fill: "none",
 															viewBox: "0 0 24 24",
@@ -12538,14 +13132,14 @@ function AdminUnitsIndex({ units, areas, unitTypes, filters }) {
 																strokeLinejoin: "round",
 																d: "M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"
 															})
-														}), /* @__PURE__ */ jsx("span", { children: trans("edit") })]
+														})
 													}),
-													role !== "agent" && /* @__PURE__ */ jsxs("button", {
+													role !== "agent" && /* @__PURE__ */ jsx("button", {
 														type: "button",
 														onClick: () => openAdjustPoints(unit),
-														className: "px-2.5 py-1.5 text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-xl transition-all border border-amber-200/70 flex items-center gap-1 active:scale-95 shadow-xs",
+														className: "p-1.5 text-amber-800 bg-amber-50 hover:bg-amber-100 rounded-lg transition-all border border-amber-200 active:scale-95 shadow-2xs",
 														title: trans("adjust_points"),
-														children: [/* @__PURE__ */ jsx("svg", {
+														children: /* @__PURE__ */ jsx("svg", {
 															className: "w-3.5 h-3.5",
 															fill: "none",
 															viewBox: "0 0 24 24",
@@ -12554,16 +13148,16 @@ function AdminUnitsIndex({ units, areas, unitTypes, filters }) {
 															children: /* @__PURE__ */ jsx("path", {
 																strokeLinecap: "round",
 																strokeLinejoin: "round",
-																d: "M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385c.116.486-.411.87-.833.618L12 17.771l-4.665 2.716c-.422.246-.949-.132-.833-.618l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602c-.38-.325-.178-.948.32-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"
+																d: "M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"
 															})
-														}), /* @__PURE__ */ jsx("span", { children: isRtl ? "النقاط" : "Points" })]
+														})
 													}),
-													role !== "agent" && /* @__PURE__ */ jsxs("button", {
+													role !== "agent" && /* @__PURE__ */ jsx("button", {
 														type: "button",
 														onClick: () => deleteUnit(unit),
-														className: "px-2.5 py-1.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 rounded-xl transition-all border border-red-200/70 flex items-center gap-1 active:scale-95 shadow-xs",
+														className: "p-1.5 text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-all border border-red-200 active:scale-95 shadow-2xs",
 														title: trans("delete"),
-														children: [/* @__PURE__ */ jsx("svg", {
+														children: /* @__PURE__ */ jsx("svg", {
 															className: "w-3.5 h-3.5",
 															fill: "none",
 															viewBox: "0 0 24 24",
@@ -12574,7 +13168,7 @@ function AdminUnitsIndex({ units, areas, unitTypes, filters }) {
 																strokeLinejoin: "round",
 																d: "M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
 															})
-														}), /* @__PURE__ */ jsx("span", { children: trans("delete") })]
+														})
 													})
 												]
 											})
@@ -12583,29 +13177,29 @@ function AdminUnitsIndex({ units, areas, unitTypes, filters }) {
 								}, unit.id);
 							}) : /* @__PURE__ */ jsx("tr", { children: /* @__PURE__ */ jsx("td", {
 								colSpan: colCount,
-								className: "px-6 py-20 text-center",
+								className: "px-6 py-16 text-center",
 								children: /* @__PURE__ */ jsxs("div", {
 									className: "flex flex-col items-center justify-center text-secondary-400",
 									children: [
 										/* @__PURE__ */ jsx("svg", {
-											className: "w-16 h-16 mb-4 text-secondary-300",
+											className: "w-12 h-12 mb-3 text-secondary-300",
 											fill: "none",
 											viewBox: "0 0 24 24",
 											stroke: "currentColor",
+											strokeWidth: 1,
 											children: /* @__PURE__ */ jsx("path", {
 												strokeLinecap: "round",
 												strokeLinejoin: "round",
-												strokeWidth: 1,
-												d: "M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+												d: "M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
 											})
 										}),
 										/* @__PURE__ */ jsx("p", {
-											className: "text-base font-bold text-secondary-700",
+											className: "text-sm font-bold text-secondary-700",
 											children: trans("no_data")
 										}),
 										/* @__PURE__ */ jsx("p", {
-											className: "text-sm mt-1",
-											children: isRtl ? "لا توجد وحدات متاحة أو مطابقة لبحثك." : "No units available matching your search."
+											className: "text-xs text-secondary-500 mt-0.5",
+											children: isRtl ? "لا توجد وحدات مطابقة لمعايير البحث الحالية." : "No units matching the current filter criteria."
 										})
 									]
 								})
@@ -12614,22 +13208,197 @@ function AdminUnitsIndex({ units, areas, unitTypes, filters }) {
 					})
 				})
 			}),
+			/* @__PURE__ */ jsx("div", {
+				className: "md:hidden space-y-3",
+				children: loading ? Array.from({ length: 3 }).map((_, i) => /* @__PURE__ */ jsx("div", { className: "bg-white p-4 rounded-2xl border border-secondary-200/80 animate-pulse h-36" }, i)) : hasUnits ? units.data.map((unit) => {
+					const thumb = unit.images?.[0]?.url || (unit.images?.[0]?.path ? `/storage/${unit.images[0].path}` : null);
+					const unitTypeName = (locale === "ar" ? unit.type?.name_ar : unit.type?.name_en) || unit.type?.name_ar || unit.type?.name_en || "—";
+					const unitAreaName = (locale === "ar" ? unit.area?.name_ar : unit.area?.name_en) || unit.area?.name_ar || unit.area?.name_en || "—";
+					return /* @__PURE__ */ jsxs("div", {
+						className: "bg-white p-4 rounded-2xl border border-secondary-200/80 shadow-xs space-y-3",
+						children: [/* @__PURE__ */ jsxs("div", {
+							className: "flex items-start gap-3",
+							children: [thumb ? /* @__PURE__ */ jsx("img", {
+								src: thumb,
+								alt: "",
+								className: "w-14 h-14 rounded-xl object-cover shrink-0 border border-secondary-200/80"
+							}) : /* @__PURE__ */ jsx("div", {
+								className: "w-14 h-14 rounded-xl bg-slate-100 border border-secondary-200/80 shrink-0 flex items-center justify-center text-secondary-400",
+								children: /* @__PURE__ */ jsx("svg", {
+									className: "w-6 h-6",
+									fill: "none",
+									viewBox: "0 0 24 24",
+									stroke: "currentColor",
+									children: /* @__PURE__ */ jsx("path", {
+										strokeLinecap: "round",
+										strokeLinejoin: "round",
+										strokeWidth: 1.5,
+										d: "M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21"
+									})
+								})
+							}), /* @__PURE__ */ jsxs("div", {
+								className: "min-w-0 flex-1",
+								children: [
+									/* @__PURE__ */ jsxs("div", {
+										className: "flex items-center justify-between gap-2 mb-1",
+										children: [/* @__PURE__ */ jsxs("span", {
+											className: "text-[10px] font-mono text-secondary-400",
+											children: ["#", unit.id]
+										}), /* @__PURE__ */ jsxs("span", {
+											className: "font-black text-[#CC0000] text-xs font-mono",
+											children: [
+												Number(unit.price).toLocaleString(),
+												" ",
+												isRtl ? "ج.م" : "EGP"
+											]
+										})]
+									}),
+									/* @__PURE__ */ jsx(Link, {
+										href: `/admin/units/${unit.id}/edit`,
+										className: "text-secondary-950 font-bold text-xs block truncate",
+										children: unit.name
+									}),
+									/* @__PURE__ */ jsxs("p", {
+										className: "text-[11px] text-secondary-500 mt-0.5",
+										children: [
+											unitTypeName,
+											" • ",
+											unitAreaName
+										]
+									})
+								]
+							})]
+						}), /* @__PURE__ */ jsxs("div", {
+							className: "flex items-center justify-between pt-2 border-t border-secondary-100 text-xs",
+							children: [/* @__PURE__ */ jsxs("div", {
+								className: "flex items-center gap-1.5 flex-wrap",
+								children: [
+									/* @__PURE__ */ jsxs("span", {
+										className: "inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 text-amber-900 border border-amber-200 rounded font-mono font-bold text-[11px]",
+										children: ["PTS ", unit.priority_points]
+									}),
+									/* @__PURE__ */ jsx("span", {
+										className: `px-2 py-0.5 rounded text-[11px] font-bold border ${unit.transaction === "rent" ? "bg-purple-50 text-purple-700 border-purple-200" : "bg-sky-50 text-sky-700 border-sky-200"}`,
+										children: trans(unit.transaction === "rent" ? "rent" : "sale", {}, "units")
+									}),
+									unit.is_deal && /* @__PURE__ */ jsx("span", {
+										className: "px-2 py-0.5 bg-amber-600 text-white rounded text-[10px] font-bold",
+										children: isRtl ? "صفقة" : "Deal"
+									}),
+									unit.is_pinned && /* @__PURE__ */ jsx("span", {
+										className: "px-2 py-0.5 bg-secondary-950 text-white rounded text-[10px] font-bold",
+										children: isRtl ? "مثبت" : "Pinned"
+									})
+								]
+							}), /* @__PURE__ */ jsxs("div", {
+								className: "flex items-center gap-1",
+								children: [/* @__PURE__ */ jsx("a", {
+									href: `/${locale}/units/${unit.slug || unit.id}`,
+									target: "_blank",
+									rel: "noreferrer",
+									className: "p-1.5 text-secondary-700 bg-surface border border-secondary-200 rounded-lg",
+									children: /* @__PURE__ */ jsx("svg", {
+										className: "w-3.5 h-3.5",
+										fill: "none",
+										viewBox: "0 0 24 24",
+										stroke: "currentColor",
+										strokeWidth: 2,
+										children: /* @__PURE__ */ jsx("path", {
+											strokeLinecap: "round",
+											strokeLinejoin: "round",
+											d: "M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"
+										})
+									})
+								}), /* @__PURE__ */ jsx(Link, {
+									href: `/admin/units/${unit.id}/edit`,
+									className: "p-1.5 text-blue-700 bg-blue-50 border border-blue-200 rounded-lg",
+									children: /* @__PURE__ */ jsx("svg", {
+										className: "w-3.5 h-3.5",
+										fill: "none",
+										viewBox: "0 0 24 24",
+										stroke: "currentColor",
+										strokeWidth: 2,
+										children: /* @__PURE__ */ jsx("path", {
+											strokeLinecap: "round",
+											strokeLinejoin: "round",
+											d: "M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"
+										})
+									})
+								})]
+							})]
+						})]
+					}, unit.id);
+				}) : /* @__PURE__ */ jsx("div", {
+					className: "bg-white p-8 rounded-2xl border border-secondary-200/80 text-center text-secondary-500 text-xs",
+					children: trans("no_data")
+				})
+			}),
+			hasUnits && /* @__PURE__ */ jsxs("div", {
+				className: "flex flex-col sm:flex-row items-center justify-between gap-4 pt-2",
+				children: [/* @__PURE__ */ jsx("div", {
+					className: "text-xs font-bold text-secondary-600 order-2 sm:order-1",
+					children: isRtl ? /* @__PURE__ */ jsxs("span", { children: [
+						"عرض ",
+						/* @__PURE__ */ jsx("strong", {
+							className: "text-secondary-950 font-mono",
+							children: paginationFrom
+						}),
+						" - ",
+						/* @__PURE__ */ jsx("strong", {
+							className: "text-secondary-950 font-mono",
+							children: paginationTo
+						}),
+						" من أصل ",
+						/* @__PURE__ */ jsx("strong", {
+							className: "text-secondary-950 font-mono",
+							children: totalCount
+						}),
+						" وحدة"
+					] }) : /* @__PURE__ */ jsxs("span", { children: [
+						"Showing ",
+						/* @__PURE__ */ jsx("strong", {
+							className: "text-secondary-950 font-mono",
+							children: paginationFrom
+						}),
+						" to ",
+						/* @__PURE__ */ jsx("strong", {
+							className: "text-secondary-950 font-mono",
+							children: paginationTo
+						}),
+						" of ",
+						/* @__PURE__ */ jsx("strong", {
+							className: "text-secondary-950 font-mono",
+							children: totalCount
+						}),
+						" units"
+					] })
+				}), /* @__PURE__ */ jsx("div", {
+					className: "order-1 sm:order-2",
+					children: /* @__PURE__ */ jsx(Pagination, {
+						meta: units.meta || units,
+						links: units.links
+					})
+				})]
+			}),
 			showAdjustPointsModal && /* @__PURE__ */ jsx("div", {
-				className: "fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 transition-opacity",
+				className: "fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 transition-opacity",
 				onClick: () => setShowAdjustPointsModal(false),
 				children: /* @__PURE__ */ jsxs("div", {
-					className: "bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 border border-secondary-100 transform transition-all scale-100",
+					className: "bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 border border-secondary-200 transform transition-all",
 					onClick: (e) => e.stopPropagation(),
 					children: [/* @__PURE__ */ jsxs("div", {
-						className: "flex items-center justify-between mb-6",
-						children: [/* @__PURE__ */ jsx("h3", {
-							className: "text-xl font-black text-secondary-950",
+						className: "flex items-center justify-between mb-5 border-b border-secondary-100 pb-3",
+						children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("h3", {
+							className: "text-base font-black text-secondary-950",
 							children: trans("adjust_points")
-						}), /* @__PURE__ */ jsx("button", {
+						}), /* @__PURE__ */ jsx("p", {
+							className: "text-[11px] text-secondary-500 mt-0.5",
+							children: unitToAdjust?.name
+						})] }), /* @__PURE__ */ jsx("button", {
 							onClick: () => setShowAdjustPointsModal(false),
-							className: "text-secondary-400 hover:text-secondary-950 p-2 rounded-full hover:bg-[#F5F5F5] transition-colors",
+							className: "text-secondary-400 hover:text-secondary-950 p-1.5 rounded-lg hover:bg-surface transition-colors",
 							children: /* @__PURE__ */ jsx("svg", {
-								className: "w-6 h-6",
+								className: "w-5 h-5",
 								fill: "none",
 								viewBox: "0 0 24 24",
 								stroke: "currentColor",
@@ -12643,10 +13412,10 @@ function AdminUnitsIndex({ units, areas, unitTypes, filters }) {
 						})]
 					}), /* @__PURE__ */ jsxs("form", {
 						onSubmit: handleAdjustPoints,
-						className: "space-y-6",
+						className: "space-y-4",
 						children: [/* @__PURE__ */ jsxs("div", { children: [
 							/* @__PURE__ */ jsxs("label", {
-								className: "block text-sm font-bold text-secondary-900 mb-2",
+								className: "block text-xs font-bold text-secondary-700 mb-1.5",
 								children: [trans("priority_points"), " *"]
 							}),
 							/* @__PURE__ */ jsx("input", {
@@ -12658,20 +13427,20 @@ function AdminUnitsIndex({ units, areas, unitTypes, filters }) {
 								required: true
 							}),
 							pointsErrors.points && /* @__PURE__ */ jsx("p", {
-								className: "text-xs text-red-500 mt-2 font-medium",
+								className: "text-xs text-red-600 mt-1.5 font-medium",
 								children: pointsErrors.points
 							})
 						] }), /* @__PURE__ */ jsxs("div", {
-							className: "flex gap-3 justify-end pt-2",
+							className: "flex gap-2.5 justify-end pt-2",
 							children: [/* @__PURE__ */ jsx("button", {
 								type: "button",
 								onClick: () => setShowAdjustPointsModal(false),
-								className: "px-6 py-3 bg-[#F5F5F5] text-secondary-800 rounded-xl text-sm font-bold hover:bg-[#E4E4E4] transition-colors active:scale-[0.97]",
+								className: "px-4 py-2 bg-surface text-secondary-700 hover:bg-secondary-200 border border-secondary-200 rounded-xl text-xs font-bold transition-colors",
 								children: trans("cancel")
 							}), /* @__PURE__ */ jsx("button", {
 								type: "submit",
 								disabled: pointsProcessing,
-								className: "px-6 py-3 bg-[#CC0000] text-white rounded-xl text-sm font-bold hover:bg-[#B00000] transition-colors disabled:opacity-50 shadow-md active:scale-[0.97]",
+								className: "px-5 py-2 bg-[#CC0000] text-white hover:bg-[#b00000] rounded-xl text-xs font-bold transition-colors disabled:opacity-50 shadow-xs active:scale-[0.98]",
 								children: pointsProcessing ? trans("loading") : trans("save")
 							})]
 						})]
@@ -14583,80 +15352,6 @@ function UnitCard({ unit, loading = false, priority = false }) {
 	});
 }
 var UnitCard_default = memo(UnitCard);
-//#endregion
-//#region resources/js/Components/UI/Pagination.jsx
-function Pagination({ meta, links: routeLinks, pageParam = "page" }) {
-	const { locale } = usePage().props;
-	const trans = useTrans(locale);
-	const isRtl = locale === "ar";
-	const pageMeta = meta?.meta || meta;
-	if (!pageMeta || typeof pageMeta.last_page !== "number" || pageMeta.last_page <= 1) return null;
-	const { current_page = 1, last_page = 1 } = pageMeta;
-	const preserveState = {
-		preserveState: true,
-		preserveScroll: true
-	};
-	const range = 2;
-	const pages = [];
-	const start = Math.max(1, current_page - range);
-	const end = Math.min(last_page, current_page + range);
-	for (let i = start; i <= end; i++) pages.push(i);
-	function buildUrl(page) {
-		if (typeof window === "undefined") return "#";
-		const params = new URLSearchParams(window.location.search);
-		params.set(pageParam, page);
-		return window.location.pathname + "?" + params.toString();
-	}
-	return /* @__PURE__ */ jsxs("nav", {
-		dir: isRtl ? "rtl" : "ltr",
-		className: "flex items-center justify-center gap-1.5 mt-8 flex-wrap",
-		"aria-label": isRtl ? "صفحات النتائج" : "Pagination",
-		children: [
-			current_page > 1 ? /* @__PURE__ */ jsx(Link, {
-				href: buildUrl(current_page - 1),
-				className: "min-w-[44px] min-h-[44px] px-3.5 flex items-center justify-center text-sm font-semibold text-secondary-700 hover:bg-surface-hover rounded-xl transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
-				...preserveState,
-				children: trans("previous")
-			}) : /* @__PURE__ */ jsx("span", {
-				className: "min-w-[44px] min-h-[44px] px-3.5 flex items-center justify-center text-sm font-semibold text-secondary-300 cursor-not-allowed",
-				children: trans("previous")
-			}),
-			start > 1 && /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx(Link, {
-				href: buildUrl(1),
-				className: "min-w-[44px] min-h-[44px] px-3.5 flex items-center justify-center text-sm font-semibold text-secondary-700 hover:bg-surface-hover rounded-xl transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
-				...preserveState,
-				children: "1"
-			}), start > 2 && /* @__PURE__ */ jsx("span", {
-				className: "min-w-[36px] min-h-[44px] px-1 flex items-center justify-center text-secondary-400 text-sm",
-				children: "..."
-			})] }),
-			pages.map((page) => /* @__PURE__ */ jsx(Link, {
-				href: buildUrl(page),
-				className: `min-w-[44px] min-h-[44px] px-3.5 flex items-center justify-center text-sm font-semibold rounded-xl transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${page === current_page ? "bg-primary-900 text-white shadow-sm" : "text-secondary-700 hover:bg-surface-hover"}`,
-				...preserveState,
-				children: page
-			}, page)),
-			end < last_page && /* @__PURE__ */ jsxs(Fragment, { children: [end < last_page - 1 && /* @__PURE__ */ jsx("span", {
-				className: "min-w-[36px] min-h-[44px] px-1 flex items-center justify-center text-secondary-400 text-sm",
-				children: "..."
-			}), /* @__PURE__ */ jsx(Link, {
-				href: buildUrl(last_page),
-				className: "min-w-[44px] min-h-[44px] px-3.5 flex items-center justify-center text-sm font-semibold text-secondary-700 hover:bg-surface-hover rounded-xl transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
-				...preserveState,
-				children: last_page
-			})] }),
-			current_page < last_page ? /* @__PURE__ */ jsx(Link, {
-				href: buildUrl(current_page + 1),
-				className: "min-w-[44px] min-h-[44px] px-3.5 flex items-center justify-center text-sm font-semibold text-secondary-700 hover:bg-surface-hover rounded-xl transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
-				...preserveState,
-				children: trans("next")
-			}) : /* @__PURE__ */ jsx("span", {
-				className: "min-w-[44px] min-h-[44px] px-3.5 flex items-center justify-center text-sm font-semibold text-secondary-300 cursor-not-allowed",
-				children: trans("next")
-			})
-		]
-	});
-}
 //#endregion
 //#region resources/js/Pages/Public/Agents/Show.jsx
 var Show_exports$4 = /* @__PURE__ */ __exportAll({ default: () => Show });

@@ -40,11 +40,19 @@ class UnitController extends Controller
 
         $units = $this->unitService->getPaginatedUnits($filters, $user);
 
+        $stats = [
+            'total' => Unit::when($user && $user->role === 'agent', fn ($q) => $q->where('user_id', $user->id))->count(),
+            'active' => Unit::when($user && $user->role === 'agent', fn ($q) => $q->where('user_id', $user->id))->where('is_active', true)->count(),
+            'deals' => Unit::when($user && $user->role === 'agent', fn ($q) => $q->where('user_id', $user->id))->where('is_deal', true)->count(),
+            'pinned' => Unit::when($user && $user->role === 'agent', fn ($q) => $q->where('user_id', $user->id))->where('is_pinned', true)->count(),
+        ];
+
         $areas = Area::select('id', 'name_ar', 'name_en')->orderBy('name_ar')->get();
         $unitTypes = UnitType::select('id', 'name_ar', 'name_en')->orderBy('name_ar')->get();
 
         return Inertia::render('Admin/Units/Index', [
             'units' => $units,
+            'stats' => $stats,
             'areas' => $areas,
             'unitTypes' => $unitTypes,
             'filters' => $filters,
