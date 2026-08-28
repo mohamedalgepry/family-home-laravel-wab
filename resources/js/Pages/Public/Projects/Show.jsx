@@ -6,11 +6,14 @@ import Footer from '../../../Components/Layout/Footer'
 import UnitCard from '../../../Components/UI/UnitCard'
 import ProjectCard from '../../../Components/UI/ProjectCard'
 import ArticleCard from '../../../Components/UI/ArticleCard'
-import AgentCard from '../../../Components/Features/AgentCard'
+import IconByName from '../../../Components/UI/IconByName'
+import PaymentTerms from '../../../Components/UI/PaymentTerms'
+import VideoPlayer from '../../../Components/UI/VideoPlayer'
 import SeoHead from '../../../Components/UI/SeoHead'
 import { getYouTubeEmbedUrl } from '../../../Utils/youtube'
 import { getStorageUrl, PLACEHOLDER } from '../../../Utils/image'
 import { getAgentContacts } from '../../../Utils/contact'
+import { hasValidCoords } from '../../../Utils/location'
 import { WhatsAppIcon } from '../../../Components/UI'
 import { useState, useMemo } from 'react'
 
@@ -23,6 +26,7 @@ export default function ProjectShow({ project, projectUnits, similarProjects, re
     const [activeImageIndex, setActiveImageIndex] = useState(null)
     const embedUrl = getYouTubeEmbedUrl(project?.video_url)
     const agentContacts = getAgentContacts(project?.user, page.props.settings)
+
 
     const images = project?.images ?? []
     const projectUnitsList = Array.isArray(projectUnits)
@@ -317,7 +321,7 @@ export default function ProjectShow({ project, projectUnits, similarProjects, re
                             <div className="p-3 bg-surface rounded-xl border border-secondary-100 text-center">
                                 <span className="text-secondary-500 text-xs font-semibold block mb-1">{isRtl ? 'نوع التشطيب' : 'Finishing'}</span>
                                 <p className="text-sm font-black text-secondary-950">
-                                    {project.finishingType ? (locale === 'ar' ? project.finishingType.name_ar : project.finishingType.name_en) : (isRtl ? 'سوبر لوكس' : 'Super Lux')}
+                                    {project.finishingType ? (project.finishingType.name || (locale === 'ar' ? project.finishingType.name_ar : project.finishingType.name_en)) : (isRtl ? 'غير محدد' : 'Not specified')}
                                 </p>
                             </div>
                         </div>
@@ -393,9 +397,9 @@ export default function ProjectShow({ project, projectUnits, similarProjects, re
                 <div className="hidden md:flex items-center gap-8 border-b border-secondary-200 mb-8 overflow-x-auto text-xs font-bold text-secondary-600">
                     <a href="#overview" className="py-3 text-[#CC0000] border-b-2 border-[#CC0000] transition-colors">{isRtl ? 'تفاصيل المشروع' : 'Overview'}</a>
                     {embedUrl && <a href="#video" className="py-3 hover:text-[#CC0000] transition-colors">{isRtl ? 'الفيديو التعريفي' : 'Video'}</a>}
-                    <a href="#features" className="py-3 hover:text-[#CC0000] transition-colors">{isRtl ? 'المميزات والمرافق' : 'Features'}</a>
-                    <a href="#units-list" className="py-3 hover:text-[#CC0000] transition-colors">{isRtl ? 'الوحدات المتاحة' : 'Units'}</a>
-                    <a href="#location" className="py-3 hover:text-[#CC0000] transition-colors">{isRtl ? 'الموقع' : 'Location'}</a>
+                    {project.features?.length > 0 && <a href="#features" className="py-3 hover:text-[#CC0000] transition-colors">{isRtl ? 'المميزات والمرافق' : 'Features'}</a>}
+                    {projectUnitsList.length > 0 && <a href="#units-list" className="py-3 hover:text-[#CC0000] transition-colors">{isRtl ? 'الوحدات المتاحة' : 'Units'}</a>}
+                    {hasValidCoords(project) && <a href="#location" className="py-3 hover:text-[#CC0000] transition-colors">{isRtl ? 'الموقع' : 'Location'}</a>}
                 </div>
 
                 {/* DESKTOP 2-COLUMN SIDEBAR LAYOUT (lg:grid) */}
@@ -410,25 +414,7 @@ export default function ProjectShow({ project, projectUnits, similarProjects, re
                             </p>
 
                             {/* Payment details if any */}
-                            {['installment', 'both'].includes(project.payment_method) && (project.down_payment || project.installment_years) && (
-                                <div className="mt-6 pt-4 border-t border-secondary-100">
-                                    <h2 className="text-xs font-bold text-secondary-900 mb-3">{isRtl ? 'أنظمة الدفع والتسهيلات' : 'Payment Terms'}</h2>
-                                    <div className="grid grid-cols-2 gap-4 bg-surface p-4 rounded-xl border border-secondary-100 text-xs">
-                                        {project.down_payment && (
-                                            <div>
-                                                <span className="text-secondary-500 font-medium block mb-1">{isRtl ? 'الدفعة الأولى' : 'Down Payment'}</span>
-                                                <span className="font-bold text-secondary-950">{!isNaN(project.down_payment) && !isNaN(parseFloat(project.down_payment)) ? Number(project.down_payment).toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-US') + ' ' + trans('currency_egp') : project.down_payment}</span>
-                                            </div>
-                                        )}
-                                        {project.installment_years && (
-                                            <div>
-                                                <span className="text-secondary-500 font-medium block mb-1">{isRtl ? 'سنوات التقسيط' : 'Installment Years'}</span>
-                                                <span className="font-bold text-secondary-950">{project.installment_years} {isRtl ? 'سنوات' : 'Years'}</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
+                            <PaymentTerms item={project} />
                         </section>
 
                         {/* Section: الفيديو التعريفي (Desktop) */}
@@ -441,42 +427,27 @@ export default function ProjectShow({ project, projectUnits, similarProjects, re
                                     </svg>
                                     <span>{isRtl ? 'الفيديو التعريفي للمشروع' : 'Project Video Tour'}</span>
                                 </h2>
-                                <div className="rounded-xl overflow-hidden aspect-video border border-secondary-200 shadow-sm bg-black">
-                                    <iframe
-                                        src={embedUrl}
-                                        className="w-full h-full border-0"
-                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                        allowFullScreen
-                                        title="Project Video Tour"
-                                    />
-                                </div>
+                                <VideoPlayer embedUrl={embedUrl} title={project.name} />
                             </section>
                         )}
 
                         {/* Section 2: المميزات والمرافق */}
-                        <section id="features" className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6">
-                            <h2 className="text-lg font-black text-secondary-950 mb-4">{isRtl ? 'المميزات والمرافق' : 'Features & Facilities'}</h2>
-                            
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                {(project.features?.length > 0 ? project.features : [
-                                    { id: 1, name_ar: 'حمام سباحة', name_en: 'Swimming Pool' },
-                                    { id: 2, name_ar: 'مصعد', name_en: 'Elevator' },
-                                    { id: 3, name_ar: 'كافيه ورستوران', name_en: 'Cafe & Dining' },
-                                    { id: 4, name_ar: 'كاميرات مراقبة', name_en: 'CCTV Security' },
-                                    { id: 5, name_ar: 'نادي رياضي', name_en: 'Gym & Spa' },
-                                    { id: 6, name_ar: 'موقف سيارات', name_en: 'Parking Garage' },
-                                ]).map(feature => (
-                                    <div key={feature.id} className="flex flex-col items-center justify-center p-3.5 rounded-xl bg-surface border border-secondary-100 text-center gap-2 hover:border-secondary-300 transition-colors">
-                                        <div className="w-8 h-8 rounded-full bg-white shadow-xs border border-secondary-100 flex items-center justify-center text-secondary-700">
-                                            <svg className="w-4 h-4 text-[#CC0000]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
+                        {project.features?.length > 0 && (
+                            <section id="features" className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6">
+                                <h2 className="text-lg font-black text-secondary-950 mb-4">{isRtl ? 'المميزات والمرافق' : 'Features & Facilities'}</h2>
+                                
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                    {project.features.map(feature => (
+                                        <div key={feature.id} className="flex flex-col items-center justify-center p-3.5 rounded-xl bg-surface border border-secondary-100 text-center gap-2 hover:border-secondary-300 transition-colors">
+                                            <div className="w-9 h-9 rounded-full bg-white shadow-xs border border-secondary-100 flex items-center justify-center text-secondary-700">
+                                                <IconByName iconName={feature.icon_name || feature.icon} className="w-5 h-5 text-[#FF6B6B]" />
+                                            </div>
+                                            <span className="text-xs font-semibold text-secondary-800">{locale === 'ar' ? (feature.name_ar || feature.name) : (feature.name_en || feature.name)}</span>
                                         </div>
-                                        <span className="text-xs font-semibold text-secondary-800">{locale === 'ar' ? feature.name_ar : feature.name_en}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </section>
+                                    ))}
+                                </div>
+                            </section>
+                        )}
                     </div>
 
                     {/* Right Sidebar Column (5 cols desktop, continuous & sticky) */}
@@ -490,58 +461,53 @@ export default function ProjectShow({ project, projectUnits, similarProjects, re
                                     <span className="text-secondary-500 font-semibold">{isRtl ? 'اسم المشروع' : 'Project Name'}</span>
                                     <span className="font-bold text-secondary-950">{project.name}</span>
                                 </div>
-                                <div className="flex items-center justify-between py-1.5 border-b border-secondary-100/60">
-                                    <span className="text-secondary-500 font-semibold">{isRtl ? 'المنطقة' : 'Area'}</span>
-                                    <span className="font-bold text-secondary-950">{project.area?.name || ''}</span>
-                                </div>
-                                <div className="flex items-center justify-between py-1.5 border-b border-secondary-100/60">
+                                {project.area?.name && (
+                                    <div className="flex items-center justify-between py-1.5 border-b border-secondary-100/60">
+                                        <span className="text-secondary-500 font-semibold">{isRtl ? 'المنطقة' : 'Area'}</span>
+                                        <Link href={localizedPath(`/areas/${project.area.slug || project.area.id}`, locale)} className="font-bold text-primary-900 hover:underline">
+                                            {project.area.name}
+                                        </Link>
+                                    </div>
+                                )}
+                                <div className="flex items-center justify-between py-1.5">
                                     <span className="text-secondary-500 font-semibold">{isRtl ? 'عدد الوحدات' : 'Total Units'}</span>
                                     <span className="font-bold text-secondary-950">{project.units_count ?? units.length} {isRtl ? 'وحدة' : 'Units'}</span>
-                                </div>
-                                <div className="flex items-center justify-between py-1.5 border-b border-secondary-100/60">
-                                    <span className="text-secondary-500 font-semibold">{isRtl ? 'سنة التسليم' : 'Delivery Year'}</span>
-                                    <span className="font-bold text-secondary-950">2026</span>
-                                </div>
-                                <div className="flex items-center justify-between py-1.5">
-                                    <span className="text-secondary-500 font-semibold">{isRtl ? 'حالة المشروع' : 'Status'}</span>
-                                    <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
-                                        {isRtl ? 'متاح للبيع' : 'Available'}
-                                    </span>
                                 </div>
                             </div>
                         </div>
 
                         {/* Card 2: الموقع على الخريطة */}
-                        <div id="location" className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4">
-                            <h2 className="text-sm font-black text-secondary-950">{isRtl ? 'الموقع على الخريطة' : 'Location Map'}</h2>
+                        {hasValidCoords(project) && (
+                            <div id="location" className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4">
+                                <h2 className="text-sm font-black text-secondary-950">{isRtl ? 'الموقع على الخريطة' : 'Location Map'}</h2>
 
-                            <div className="rounded-xl overflow-hidden border border-secondary-200 aspect-[16/9]">
-                                <iframe
-                                    src={`https://maps.google.com/maps?q=${project.latitude || '30.0444'},${project.longitude || '31.2357'}&hl=${locale}&z=14&output=embed`}
-                                    className="w-full h-full border-0"
-                                    allowFullScreen
-                                    loading="lazy"
-                                    referrerPolicy="no-referrer-when-downgrade"
-                                    title="Google Map Location"
-                                />
-                            </div>
+                                <div className="rounded-xl overflow-hidden border border-secondary-200 aspect-[16/9]">
+                                    <iframe
+                                        src={`https://maps.google.com/maps?q=${project.latitude},${project.longitude}&hl=${locale}&z=14&output=embed`}
+                                        className="w-full h-full border-0"
+                                        allowFullScreen
+                                        loading="lazy"
+                                        referrerPolicy="no-referrer-when-downgrade"
+                                        title="Google Map Location"
+                                    />
+                                </div>
 
-                            <div className="text-center pt-1">
-                                <a
-                                    href={`https://www.google.com/maps/search/?api=1&query=${project.latitude || '30.0444'},${project.longitude || '31.2357'}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-secondary-800 hover:text-[#CC0000] transition-colors"
-                                >
-                                    <svg className="w-4 h-4 text-[#CC0000]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                                    </svg>
-                                    <span>{isRtl ? 'فتح في خرائط Google' : 'Open in Google Maps'}</span>
-                                </a>
+                                <div className="text-center pt-1">
+                                    <a
+                                        href={`https://www.google.com/maps/search/?api=1&query=${project.latitude},${project.longitude}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-secondary-800 hover:text-[#CC0000] transition-colors"
+                                    >
+                                        <svg className="w-4 h-4 text-[#CC0000]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                                        </svg>
+                                        <span>{isRtl ? 'فتح في خرائط Google' : 'Open in Google Maps'}</span>
+                                    </a>
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </div>
                 </div>
 
@@ -553,6 +519,9 @@ export default function ProjectShow({ project, projectUnits, similarProjects, re
                         <p className="text-sm text-secondary-700 leading-relaxed whitespace-pre-line font-normal">
                             {project.description || (isRtl ? 'مشروع عقاري متميز يضم وحدات سكنية وتجارية مصممة بأعلى معايير الجودة والتصميم العصري مع توفير كافة الخدمات والمرافق الأساسية والترفيهية.' : 'A premier real estate development with luxury residential and commercial units.')}
                         </p>
+
+                        {/* Payment details on Mobile if any */}
+                        <PaymentTerms item={project} />
                     </section>
 
                     {/* Section: الفيديو التعريفي (Mobile) */}
@@ -565,41 +534,26 @@ export default function ProjectShow({ project, projectUnits, similarProjects, re
                                 </svg>
                                 <span>{isRtl ? 'الفيديو التعريفي للمشروع' : 'Project Video Tour'}</span>
                             </h2>
-                            <div className="rounded-xl overflow-hidden aspect-video border border-secondary-200 shadow-sm bg-black">
-                                <iframe
-                                    src={embedUrl}
-                                    className="w-full h-full border-0"
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                    allowFullScreen
-                                    title="Project Video Tour Mobile"
-                                />
-                            </div>
+                            <VideoPlayer embedUrl={embedUrl} title={project.name} />
                         </section>
                     )}
 
                     {/* 2. Features */}
-                    <section className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6">
-                        <h2 className="text-lg font-black text-secondary-950 mb-4">{isRtl ? 'المميزات والمرافق' : 'Features & Facilities'}</h2>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                            {(project.features?.length > 0 ? project.features : [
-                                { id: 1, name_ar: 'حمام سباحة', name_en: 'Swimming Pool' },
-                                { id: 2, name_ar: 'مصعد', name_en: 'Elevator' },
-                                { id: 3, name_ar: 'كافيه ورستوران', name_en: 'Cafe & Dining' },
-                                { id: 4, name_ar: 'كاميرات مراقبة', name_en: 'CCTV Security' },
-                                { id: 5, name_ar: 'نادي رياضي', name_en: 'Gym & Spa' },
-                                { id: 6, name_ar: 'موقف سيارات', name_en: 'Parking Garage' },
-                            ]).map(feature => (
-                                <div key={feature.id} className="flex flex-col items-center justify-center p-3.5 rounded-xl bg-surface border border-secondary-100 text-center gap-2">
-                                    <div className="w-8 h-8 rounded-full bg-white shadow-xs border border-secondary-100 flex items-center justify-center text-secondary-700">
-                                        <svg className="w-4 h-4 text-[#CC0000]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
+                    {project.features?.length > 0 && (
+                        <section className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6">
+                            <h2 className="text-lg font-black text-secondary-950 mb-4">{isRtl ? 'المميزات والمرافق' : 'Features & Facilities'}</h2>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                {project.features.map(feature => (
+                                    <div key={feature.id} className="flex flex-col items-center justify-center p-3.5 rounded-xl bg-surface border border-secondary-100 text-center gap-2">
+                                        <div className="w-9 h-9 rounded-full bg-white shadow-xs border border-secondary-100 flex items-center justify-center text-secondary-700">
+                                            <IconByName iconName={feature.icon_name || feature.icon} className="w-5 h-5 text-[#FF6B6B]" />
+                                        </div>
+                                        <span className="text-xs font-semibold text-secondary-800">{locale === 'ar' ? (feature.name_ar || feature.name) : (feature.name_en || feature.name)}</span>
                                     </div>
-                                    <span className="text-xs font-semibold text-secondary-800">{locale === 'ar' ? feature.name_ar : feature.name_en}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </section>
+                                ))}
+                            </div>
+                        </section>
+                    )}
 
                     {/* 3. Project Info Card */}
                     <div className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4">
@@ -609,7 +563,15 @@ export default function ProjectShow({ project, projectUnits, similarProjects, re
                                 <span className="text-secondary-500 font-semibold">{isRtl ? 'اسم المشروع' : 'Project Name'}</span>
                                 <span className="font-bold text-secondary-950">{project.name}</span>
                             </div>
-                            <div className="flex items-center justify-between py-1.5 border-b border-secondary-100/60">
+                            {project.area?.name && (
+                                <div className="flex items-center justify-between py-1.5 border-b border-secondary-100/60">
+                                    <span className="text-secondary-500 font-semibold">{isRtl ? 'المنطقة' : 'Area'}</span>
+                                    <Link href={localizedPath(`/areas/${project.area.slug || project.area.id}`, locale)} className="font-bold text-primary-900 hover:underline">
+                                        {project.area.name}
+                                    </Link>
+                                </div>
+                            )}
+                            <div className="flex items-center justify-between py-1.5">
                                 <span className="text-secondary-500 font-semibold">{isRtl ? 'عدد الوحدات' : 'Total Units'}</span>
                                 <span className="font-bold text-secondary-950">{project.units_count ?? units.length} {isRtl ? 'وحدة' : 'Units'}</span>
                             </div>
@@ -617,19 +579,35 @@ export default function ProjectShow({ project, projectUnits, similarProjects, re
                     </div>
 
                     {/* 4. Location Map */}
-                    <div className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4">
-                        <h2 className="text-sm font-black text-secondary-950">{isRtl ? 'الموقع على الخريطة' : 'Location Map'}</h2>
-                        <div className="rounded-xl overflow-hidden border border-secondary-200 aspect-[16/9]">
-                            <iframe
-                                src={`https://maps.google.com/maps?q=${project.latitude || '30.0444'},${project.longitude || '31.2357'}&hl=${locale}&z=14&output=embed`}
-                                className="w-full h-full border-0"
-                                allowFullScreen
-                                loading="lazy"
-                                referrerPolicy="no-referrer-when-downgrade"
-                                title="Google Map Location Mobile Project"
-                            />
+                    {hasValidCoords(project) && (
+                        <div className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4">
+                            <h2 className="text-sm font-black text-secondary-950">{isRtl ? 'الموقع على الخريطة' : 'Location Map'}</h2>
+                            <div className="rounded-xl overflow-hidden border border-secondary-200 aspect-[16/9]">
+                                <iframe
+                                    src={`https://maps.google.com/maps?q=${project.latitude},${project.longitude}&hl=${locale}&z=14&output=embed`}
+                                    className="w-full h-full border-0"
+                                    allowFullScreen
+                                    loading="lazy"
+                                    referrerPolicy="no-referrer-when-downgrade"
+                                    title="Google Map Location Mobile Project"
+                                />
+                            </div>
+                            <div className="text-center pt-1">
+                                <a
+                                    href={`https://www.google.com/maps/search/?api=1&query=${project.latitude},${project.longitude}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-secondary-800 hover:text-[#CC0000] transition-colors"
+                                >
+                                    <svg className="w-4 h-4 text-[#CC0000]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                                    </svg>
+                                    <span>{isRtl ? 'فتح في خرائط Google' : 'Open in Google Maps'}</span>
+                                </a>
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
 
                 {/* 1. Units inside project grid */}
@@ -711,30 +689,6 @@ export default function ProjectShow({ project, projectUnits, similarProjects, re
                 )}
             </main>
 
-            {/* DEDICATED MOBILE FLOATING RED ACTION BUTTON FOR PROJECT */}
-            {project && (
-                <div className="fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-xl border-t border-secondary-200 p-3 shadow-lg flex items-center justify-between gap-3 md:hidden">
-                    <div>
-                        <span className="text-[10px] font-bold text-secondary-500 uppercase block">{isRtl ? 'المشروع' : 'Project'}</span>
-                        <span className="text-sm font-black text-secondary-950 truncate max-w-[150px] block">
-                            {project.name}
-                        </span>
-                    </div>
-
-                    <a
-                        href={`https://wa.me/${(page.props.settings?.company_whatsapp || '201000000000').replace(/[^0-9]/g, '')}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-5 py-2.5 bg-[#CC0000] text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-md hover:bg-[#b30000] transition-colors"
-                    >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
-                        </svg>
-                        <span>{isRtl ? 'تواصل مع الوكيل' : 'Contact Agent'}</span>
-                    </a>
-                </div>
-            )}
-
             {/* Lightbox Modal */}
             {lightboxIndex !== null && images.length > 0 && (
                 <div
@@ -784,8 +738,8 @@ export default function ProjectShow({ project, projectUnits, similarProjects, re
                 </div>
             )}
 
-            {/* Fixed Mobile Bottom Action Bar */}
-            <div className="fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-secondary-200 p-3 sm:hidden flex items-center gap-3 shadow-2xl">
+            {/* Single Fixed Mobile Bottom Action Bar */}
+            <div className="fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-secondary-200 p-3 md:hidden flex items-center gap-3 shadow-2xl">
                 <a
                     href={`https://wa.me/${agentContacts.whatsapp}`}
                     target="_blank"

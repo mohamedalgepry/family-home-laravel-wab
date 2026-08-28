@@ -1,6 +1,5 @@
 {
   "\u0000rolldown/runtime.js": [],
-  "resources/js/Components/Features/AgentCard.jsx": [],
   "resources/js/Components/Features/CompareBar.jsx": [],
   "resources/js/Components/Features/CompareSearch.jsx": [],
   "resources/js/Components/Layout/AdminSidebar.jsx": [],
@@ -13,12 +12,14 @@
   "resources/js/Components/UI/IconByName.jsx": [],
   "resources/js/Components/UI/InputField.jsx": [],
   "resources/js/Components/UI/Pagination.jsx": [],
+  "resources/js/Components/UI/PaymentTerms.jsx": [],
   "resources/js/Components/UI/ProjectCard.jsx": [],
   "resources/js/Components/UI/SearchBar.jsx": [],
   "resources/js/Components/UI/Select.jsx": [],
   "resources/js/Components/UI/SeoHead.jsx": [],
   "resources/js/Components/UI/SkeletonRow.jsx": [],
   "resources/js/Components/UI/UnitCard.jsx": [],
+  "resources/js/Components/UI/VideoPlayer.jsx": [],
   "resources/js/Components/UI/WhatsAppIcon.jsx": [],
   "resources/js/Components/UI/index.js": [],
   "resources/js/Contexts/CompareContext.jsx": [],
@@ -75,6 +76,7 @@
   "resources/js/Utils/locales/en.js": [
     "/build/assets/en-w1_DcJbd.js"
   ],
+  "resources/js/Utils/location.js": [],
   "resources/js/Utils/route.js": [],
   "resources/js/Utils/storage.js": [],
   "resources/js/Utils/tiptapFontSize.js": [],

@@ -3,7 +3,23 @@ import { usePage, router } from '@inertiajs/react'
 import { useTrans } from '../../Utils/trans'
 import { useState, useEffect } from 'react'
 
-export default function SearchBar({ areas = [], unitTypes = [], features = [], finishingTypes = [], filters = {}, onSearch }) {
+export default function SearchBar({ 
+    areas: rawAreas = [], 
+    unitTypes: rawUnitTypes = [], 
+    features: rawFeatures = [], 
+    finishingTypes: rawFinishingTypes = [], 
+    initialAreas = [],
+    initialUnitTypes = [],
+    initialFeatures = [],
+    initialFinishingTypes = [],
+    filters = {}, 
+    onSearch 
+}) {
+    const areas = rawAreas && rawAreas.length > 0 ? rawAreas : (initialAreas || [])
+    const unitTypes = rawUnitTypes && rawUnitTypes.length > 0 ? rawUnitTypes : (initialUnitTypes || [])
+    const features = rawFeatures && rawFeatures.length > 0 ? rawFeatures : (initialFeatures || [])
+    const finishingTypes = rawFinishingTypes && rawFinishingTypes.length > 0 ? rawFinishingTypes : (initialFinishingTypes || [])
+
     const { locale } = usePage().props
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'

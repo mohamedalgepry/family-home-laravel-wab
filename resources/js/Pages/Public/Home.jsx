@@ -80,10 +80,10 @@ export default function Home({ featuredUnits, latestUnits, latestProjects, popul
                         {/* Integrated Search Container */}
                         <div className="max-w-4xl mx-auto">
                             <SearchBar 
-                                initialUnitTypes={unitTypes} 
-                                initialAreas={areas} 
-                                initialFeatures={features}
-                                initialFinishingTypes={finishingTypes}
+                                unitTypes={unitTypes} 
+                                areas={areas} 
+                                features={features}
+                                finishingTypes={finishingTypes}
                                 popularSearches={popularSearches}
                             />
                         </div>

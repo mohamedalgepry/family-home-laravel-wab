@@ -6,13 +6,16 @@ import Footer from '../../../Components/Layout/Footer'
 import UnitCard from '../../../Components/UI/UnitCard'
 import ProjectCard from '../../../Components/UI/ProjectCard'
 import ArticleCard from '../../../Components/UI/ArticleCard'
-import AgentCard from '../../../Components/Features/AgentCard'
+import IconByName from '../../../Components/UI/IconByName'
+import PaymentTerms from '../../../Components/UI/PaymentTerms'
+import VideoPlayer from '../../../Components/UI/VideoPlayer'
 import SeoHead from '../../../Components/UI/SeoHead'
 import { getYouTubeEmbedUrl } from '../../../Utils/youtube'
 import { getStorageUrl, PLACEHOLDER } from '../../../Utils/image'
 import { getAgentContacts } from '../../../Utils/contact'
+import { hasValidCoords } from '../../../Utils/location'
 import { WhatsAppIcon } from '../../../Components/UI'
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 
 export default function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
     const page = usePage()
@@ -34,8 +37,7 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
         const image = getStorageUrl(unit.images?.[0]?.url || unit.images?.[0]?.path, null);
         const lat = unit.latitude
         const lng = unit.longitude
-        const hasValidCoords = lat && lng && parseFloat(lat) !== 0 && parseFloat(lng) !== 0 &&
-            isFinite(parseFloat(lat)) && isFinite(parseFloat(lng))
+        const hasCoords = hasValidCoords(unit)
         
         return {
             '@context': 'https://schema.org',
@@ -62,7 +64,7 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
             ...(unit.rooms != null ? { numberOfRooms: unit.rooms } : {}),
             ...(unit.bathrooms != null ? { numberOfBathroomsTotal: unit.bathrooms } : {}),
             ...(unit.floor != null ? { floorLevel: unit.floor } : {}),
-            ...(hasValidCoords || unit.location_address ? {
+            ...(hasCoords || unit.location_address ? {
                 contentLocation: {
                     '@type': 'Place',
                     ...(unit.name ? { name: unit.name } : {}),
@@ -72,7 +74,7 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                             addressLocality: unit.location_address,
                         },
                     } : {}),
-                    ...(hasValidCoords ? {
+                    ...(hasCoords ? {
                         geo: {
                             '@type': 'GeoCoordinates',
                             latitude: lat,
@@ -84,12 +86,21 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
         }
     }, [unit, appUrl, page.url])
 
-    const { data, setData, post, processing, errors } = useForm({
+    const { data, setData, post, processing, errors, reset } = useForm({
         client_name: '',
         client_phone: '',
         client_email: '',
         content: '',
     })
+
+    useEffect(() => {
+        if (sentSuccess || flash?.success) {
+            const timer = setTimeout(() => {
+                setSentSuccess(false)
+            }, 7000)
+            return () => clearTimeout(timer)
+        }
+    }, [sentSuccess, flash?.success])
 
     const images = unit?.images ?? []
     const selectedImage = images[activeImageIndex] || images[0]
@@ -101,9 +112,8 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
         post(submitUrl, {
             preserveScroll: true,
             onSuccess: () => {
-                setData({ client_name: '', client_phone: '', client_email: '', content: '' })
+                reset()
                 setSentSuccess(true)
-                setTimeout(() => setSentSuccess(false), 7000)
             },
         })
     }
@@ -170,7 +180,7 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                                         />
 
                                         {/* Status Badge */}
-                                        <div className="absolute top-4 start-4 z-10">
+                                        <div className="absolute top-4 start-4 z-10 flex items-center gap-2">
                                             <span className="bg-[#CC0000] text-white text-xs font-bold px-3.5 py-1.5 rounded-full shadow-md">
                                                 {trans(unit.transaction === 'rent' ? 'rent' : 'sale')}
                                             </span>
@@ -188,7 +198,7 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                                                         alert(isRtl ? 'تم نسخ رابط الصفحة' : 'Link copied to clipboard')
                                                     }
                                                 }}
-                                                className="w-9 h-9 bg-white/90 hover:bg-white text-secondary-800 rounded-full shadow-md backdrop-blur-md flex items-center justify-center transition-all hover:scale-105"
+                                                className="w-9 h-9 bg-white/90 hover:bg-white text-secondary-800 rounded-full shadow-md backdrop-blur-md flex items-center justify-center transition active:scale-[0.97] duration-150 ease-out"
                                                 title={isRtl ? 'مشاركة' : 'Share'}
                                             >
                                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -206,7 +216,7 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                                             <button
                                                 type="button"
                                                 onClick={() => setLightboxIndex(activeImageIndex)}
-                                                className="bg-white/90 hover:bg-white text-secondary-950 px-3.5 py-1.5 rounded-xl shadow-md backdrop-blur-md transition-all flex items-center gap-1.5 text-xs font-bold border border-secondary-200"
+                                                className="bg-white/90 hover:bg-white text-secondary-950 px-3.5 py-1.5 rounded-xl shadow-md backdrop-blur-md transition active:scale-[0.97] duration-150 ease-out flex items-center gap-1.5 text-xs font-bold border border-secondary-200"
                                             >
                                                 <svg className="w-4 h-4 text-secondary-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                                     <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
@@ -215,15 +225,19 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                                             </button>
 
                                             {embedUrl && (
-                                                <a
-                                                    href="#video"
-                                                    className="bg-[#CC0000] hover:bg-[#b30000] text-white px-3.5 py-1.5 rounded-xl shadow-md transition-all flex items-center gap-1.5 text-xs font-bold border border-red-700"
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const el = document.getElementById('video') || document.getElementById('video-mob')
+                                                        el?.scrollIntoView({ behavior: 'smooth' })
+                                                    }}
+                                                    className="bg-[#CC0000] hover:bg-[#b30000] text-white px-3.5 py-1.5 rounded-xl shadow-md transition active:scale-[0.97] duration-150 ease-out flex items-center gap-1.5 text-xs font-bold border border-red-700"
                                                 >
                                                     <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
                                                         <path d="M8 5v14l11-7z" />
                                                     </svg>
                                                     <span>{isRtl ? 'فيديو الوحدة' : 'Watch Video'}</span>
-                                                </a>
+                                                </button>
                                             )}
                                         </div>
 
@@ -328,15 +342,18 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
 
                                 {/* Action Buttons Row */}
                                 <div className="grid grid-cols-2 gap-3 pt-2">
-                                    <a
-                                        href="#contact-form"
-                                        className="w-full py-3 px-4 bg-[#CC0000] hover:bg-[#b30000] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-all active:scale-98"
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            document.getElementById('contact-form')?.scrollIntoView({ behavior: 'smooth' })
+                                        }}
+                                        className="w-full py-3 px-4 bg-[#CC0000] hover:bg-[#b30000] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-md transition active:scale-[0.97] duration-150 ease-out"
                                     >
                                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
                                         </svg>
                                         <span>{isRtl ? 'تواصل مع الوكيل' : 'Contact Agent'}</span>
-                                    </a>
+                                    </button>
 
                                     <button
                                         type="button"
@@ -348,7 +365,7 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                                                 alert(isRtl ? 'تم نسخ رابط الصفحة' : 'Link copied')
                                             }
                                         }}
-                                        className="w-full py-3 px-4 bg-white border border-secondary-200 hover:bg-surface text-secondary-800 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-98"
+                                        className="w-full py-3 px-4 bg-white border border-secondary-200 hover:bg-surface text-secondary-800 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition active:scale-[0.97] duration-150 ease-out"
                                     >
                                         <svg className="w-4 h-4 text-secondary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0-10.5a2.25 2.25 0 100-4.5 2.25 2.25 0 000 4.5zm0 10.5a2.25 2.25 0 100-4.5 2.25 2.25 0 000 4.5z" />
@@ -358,7 +375,21 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                                 </div>
 
                                 {/* Quick Specs Box Grid */}
-                                <div className="grid grid-cols-3 gap-3 pt-2">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
+                                    {(unit.type || unit.unit_type) && (
+                                        <div className="p-3 bg-surface rounded-xl border border-secondary-100 text-center">
+                                            <div className="flex items-center justify-center gap-1 text-secondary-600 text-xs font-medium mb-1">
+                                                <svg className="w-4 h-4 text-secondary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 21v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21m0 0h4.5V3.75a.75.75 0 00-.75-.75H5.25a.75.75 0 00-.75.75V21h3.75" />
+                                                </svg>
+                                                <span>{isRtl ? 'نوع الوحدة' : 'Unit Type'}</span>
+                                            </div>
+                                            <p className="text-xs font-black text-secondary-950 truncate">
+                                                {locale === 'ar' ? (unit.type?.name_ar || unit.type?.name || unit.unit_type?.name_ar || unit.unit_type?.name) : (unit.type?.name_en || unit.type?.name || unit.unit_type?.name_en || unit.unit_type?.name)}
+                                            </p>
+                                        </div>
+                                    )}
+
                                     {unit.area_sqm && (
                                         <div className="p-3 bg-surface rounded-xl border border-secondary-100 text-center">
                                             <div className="flex items-center justify-center gap-1 text-secondary-600 text-xs font-medium mb-1">
@@ -392,6 +423,32 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                                                 <span>{isRtl ? 'الحمامات' : 'Baths'}</span>
                                             </div>
                                             <p className="text-sm font-black text-secondary-950">{unit.bathrooms}</p>
+                                        </div>
+                                    )}
+
+                                    {unit.floor != null && (
+                                        <div className="p-3 bg-surface rounded-xl border border-secondary-100 text-center">
+                                            <div className="flex items-center justify-center gap-1 text-secondary-600 text-xs font-medium mb-1">
+                                                <svg className="w-4 h-4 text-secondary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h17.25M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
+                                                </svg>
+                                                <span>{isRtl ? 'الطابق' : 'Floor'}</span>
+                                            </div>
+                                            <p className="text-sm font-black text-secondary-950">{unit.floor}</p>
+                                        </div>
+                                    )}
+
+                                    {(unit.finishingType || unit.finishing_type) && (
+                                        <div className="p-3 bg-surface rounded-xl border border-secondary-100 text-center">
+                                            <div className="flex items-center justify-center gap-1 text-secondary-600 text-xs font-medium mb-1">
+                                                <svg className="w-4 h-4 text-secondary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42" />
+                                                </svg>
+                                                <span>{isRtl ? 'التشطيب' : 'Finishing'}</span>
+                                            </div>
+                                            <p className="text-xs font-black text-secondary-950 truncate">
+                                                {locale === 'ar' ? (unit.finishingType?.name_ar || unit.finishingType?.name || unit.finishing_type?.name_ar || unit.finishing_type?.name) : (unit.finishingType?.name_en || unit.finishingType?.name || unit.finishing_type?.name_en || unit.finishing_type?.name)}
+                                            </p>
                                         </div>
                                     )}
                                 </div>
@@ -472,8 +529,8 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                         <div className="hidden md:flex items-center gap-8 border-b border-secondary-200 mb-8 overflow-x-auto text-xs font-bold text-secondary-600">
                             <a href="#overview" className="py-3 text-[#CC0000] border-b-2 border-[#CC0000] transition-colors">{isRtl ? 'نبذة عن الوحدة' : 'Overview'}</a>
                             {embedUrl && <a href="#video" className="py-3 hover:text-[#CC0000] transition-colors">{isRtl ? 'الفيديو التعريفي' : 'Video'}</a>}
-                            <a href="#features" className="py-3 hover:text-[#CC0000] transition-colors">{isRtl ? 'المميزات' : 'Features'}</a>
-                            <a href="#location" className="py-3 hover:text-[#CC0000] transition-colors">{isRtl ? 'الموقع' : 'Location'}</a>
+                            {unit.features?.length > 0 && <a href="#features" className="py-3 hover:text-[#CC0000] transition-colors">{isRtl ? 'المميزات' : 'Features'}</a>}
+                            {hasValidCoords(unit) && <a href="#location" className="py-3 hover:text-[#CC0000] transition-colors">{isRtl ? 'الموقع' : 'Location'}</a>}
                             <a href="#contact-form" className="py-3 hover:text-[#CC0000] transition-colors">{isRtl ? 'تواصل معنا' : 'Contact Us'}</a>
                         </div>
 
@@ -492,25 +549,7 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                                     </p>
 
                                     {/* Payment Details */}
-                                    {['installment', 'both'].includes(unit.payment_method) && (unit.down_payment || unit.installment_years) && (
-                                        <div className="mt-6 pt-4 border-t border-secondary-100">
-                                            <h2 className="text-xs font-bold text-secondary-900 mb-3">{isRtl ? 'أنظمة الدفع والتسهيلات' : 'Payment Details'}</h2>
-                                            <div className="grid grid-cols-2 gap-4 bg-surface p-4 rounded-xl border border-secondary-100 text-xs">
-                                                {unit.down_payment && (
-                                                    <div>
-                                                        <span className="text-secondary-500 font-medium block mb-1">{isRtl ? 'الدفعة الأولى' : 'Down Payment'}</span>
-                                                        <span className="font-bold text-secondary-950">{!isNaN(unit.down_payment) && !isNaN(parseFloat(unit.down_payment)) ? Number(unit.down_payment).toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-US') + ' ' + trans('currency_egp') : unit.down_payment}</span>
-                                                    </div>
-                                                )}
-                                                {unit.installment_years && (
-                                                    <div>
-                                                        <span className="text-secondary-500 font-medium block mb-1">{isRtl ? 'سنوات التقسيط' : 'Installment Years'}</span>
-                                                        <span className="font-bold text-secondary-950">{unit.installment_years} {isRtl ? 'سنوات' : 'Years'}</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
+                                    <PaymentTerms item={unit} />
                                 </section>
 
                                 {/* Section: الفيديو التعريفي (Desktop) */}
@@ -523,43 +562,27 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                                             </svg>
                                             <span>{isRtl ? 'الفيديو التعريفي للوحدة' : 'Property Video Tour'}</span>
                                         </h2>
-                                        <div className="rounded-xl overflow-hidden aspect-video border border-secondary-200 shadow-sm bg-black">
-                                            <iframe
-                                                src={embedUrl}
-                                                className="w-full h-full border-0"
-                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                                allowFullScreen
-                                                title="Property Video Tour"
-                                            />
-                                        </div>
+                                        <VideoPlayer embedUrl={embedUrl} title={unit.name} />
                                     </section>
                                 )}
 
                                 {/* Section 2: المميزات */}
-                                <section id="features" className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6">
-                                    <h2 className="text-lg font-black text-secondary-950 mb-4">{isRtl ? 'المميزات' : 'Features & Amenities'}</h2>
-                                    
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                        {(unit.features?.length > 0 ? unit.features : [
-                                            { id: 1, name_ar: 'حمام سباحة', name_en: 'Swimming Pool', icon: 'pool' },
-                                            { id: 2, name_ar: 'مصعد', name_en: 'Elevator', icon: 'elevator' },
-                                            { id: 3, name_ar: 'كافيه', name_en: 'Cafe', icon: 'cafe' },
-                                            { id: 4, name_ar: 'كاميرات مراقبة', name_en: 'CCTV Security', icon: 'cctv' },
-                                            { id: 5, name_ar: 'نادي رياضي', name_en: 'Gym & Fitness', icon: 'gym' },
-                                            { id: 6, name_ar: 'موقف سيارات', name_en: 'Parking Garage', icon: 'parking' },
-                                            { id: 7, name_ar: 'أمن وحراسة 24', name_en: '24/7 Security', icon: 'security' },
-                                        ]).map(feature => (
-                                            <div key={feature.id} className="flex flex-col items-center justify-center p-3.5 rounded-xl bg-surface border border-secondary-100 text-center gap-2 hover:border-secondary-300 transition-colors">
-                                                <div className="w-8 h-8 rounded-full bg-white shadow-xs border border-secondary-100 flex items-center justify-center text-secondary-700">
-                                                    <svg className="w-4 h-4 text-[#CC0000]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                    </svg>
+                                {unit.features?.length > 0 && (
+                                    <section id="features" className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6">
+                                        <h2 className="text-lg font-black text-secondary-950 mb-4">{isRtl ? 'المميزات' : 'Features & Amenities'}</h2>
+                                        
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                            {unit.features.map(feature => (
+                                                <div key={feature.id} className="flex flex-col items-center justify-center p-3.5 rounded-xl bg-surface border border-secondary-100 text-center gap-2 hover:border-secondary-300 transition-colors">
+                                                    <div className="w-9 h-9 rounded-full bg-white shadow-xs border border-secondary-100 flex items-center justify-center text-secondary-700">
+                                                        <IconByName iconName={feature.icon_name || feature.icon} className="w-5 h-5 text-[#FF6B6B]" />
+                                                    </div>
+                                                    <span className="text-xs font-semibold text-secondary-800">{locale === 'ar' ? (feature.name_ar || feature.name) : (feature.name_en || feature.name)}</span>
                                                 </div>
-                                                <span className="text-xs font-semibold text-secondary-800">{locale === 'ar' ? feature.name_ar : feature.name_en}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </section>
+                                            ))}
+                                        </div>
+                                    </section>
+                                )}
 
                                 {/* Section 3: تواصل معنا Form */}
                                 <section id="contact-form" className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6">
@@ -582,7 +605,7 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                                                     value={data.client_name}
                                                     onChange={e => setData('client_name', e.target.value)}
                                                     required
-                                                    className="w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none transition-all"
+                                                    className="w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none transition-colors"
                                                 />
                                                 {errors.client_name && <p className="text-xs text-error mt-1">{errors.client_name}</p>}
                                             </div>
@@ -594,8 +617,9 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                                                     type="tel"
                                                     value={data.client_phone}
                                                     onChange={e => setData('client_phone', e.target.value)}
-                                                    className="w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none transition-all"
+                                                    className="w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none transition-colors"
                                                 />
+                                                {errors.client_phone && <p className="text-xs text-error mt-1">{errors.client_phone}</p>}
                                             </div>
 
                                             <div>
@@ -605,8 +629,9 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                                                     type="email"
                                                     value={data.client_email}
                                                     onChange={e => setData('client_email', e.target.value)}
-                                                    className="w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none transition-all"
+                                                    className="w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none transition-colors"
                                                 />
+                                                {errors.client_email && <p className="text-xs text-error mt-1">{errors.client_email}</p>}
                                             </div>
                                         </div>
 
@@ -618,7 +643,7 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                                                 onChange={e => setData('content', e.target.value)}
                                                 required
                                                 rows={3}
-                                                className="w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none resize-none transition-all"
+                                                className="w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none resize-none transition-colors"
                                             />
                                             {errors.content && <p className="text-xs text-error mt-1">{errors.content}</p>}
                                         </div>
@@ -626,7 +651,7 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                                         <button
                                             type="submit"
                                             disabled={processing}
-                                            className="w-full py-3 bg-[#CC0000] hover:bg-[#b30000] text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-98 disabled:opacity-50 flex items-center justify-center gap-2"
+                                            className="w-full py-3 bg-[#CC0000] hover:bg-[#b30000] text-white font-bold text-xs rounded-xl shadow-md transition active:scale-[0.97] duration-150 ease-out disabled:opacity-50 flex items-center justify-center gap-2"
                                         >
                                             <svg className="w-4 h-4 rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3 21l19-9L3 3l3 9zm0 0h7.5" />
@@ -675,7 +700,7 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
 
                                         <Link
                                             href={localizedPath(`/projects/${unit.project.slug_ar || unit.project.slug_en || unit.project.slug || unit.project.id}`, locale)}
-                                            className="w-full py-2.5 px-4 bg-[#CC0000] hover:bg-[#b30000] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-sm transition-colors"
+                                            className="w-full py-2.5 px-4 bg-[#CC0000] hover:bg-[#b30000] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-sm transition active:scale-[0.97] duration-150 ease-out"
                                         >
                                             <span>{isRtl ? 'عرض المشروع وجميع وحداته' : 'View Project & All Units'}</span>
                                             <svg className="w-3.5 h-3.5 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -696,7 +721,7 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                                         </div>
                                         <Link
                                             href={localizedPath(`/areas/${unit.area.slug || unit.area.id}`, locale)}
-                                            className="w-full py-2.5 px-4 bg-surface hover:bg-secondary-100 text-secondary-800 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors border border-secondary-200"
+                                            className="w-full py-2.5 px-4 bg-surface hover:bg-secondary-100 text-secondary-800 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition active:scale-[0.97] duration-150 ease-out border border-secondary-200"
                                         >
                                             <span>{isRtl ? 'استكشف عقارات هذه المنطقة' : 'Explore Properties in this Area'}</span>
                                             <svg className="w-3.5 h-3.5 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -707,35 +732,37 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                                 ) : null}
 
                                 {/* Card 2: الموقع على الخريطة */}
-                                <div id="location" className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4">
-                                    <h2 className="text-sm font-black text-secondary-950">{isRtl ? 'الموقع على الخريطة' : 'Location on Map'}</h2>
+                                {hasValidCoords(unit) && (
+                                    <div id="location" className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4">
+                                        <h2 className="text-sm font-black text-secondary-950">{isRtl ? 'الموقع على الخريطة' : 'Location on Map'}</h2>
 
-                                    <div className="rounded-xl overflow-hidden border border-secondary-200 aspect-[16/9]">
-                                        <iframe
-                                            src={`https://maps.google.com/maps?q=${unit.latitude || '30.0444'},${unit.longitude || '31.2357'}&hl=${locale}&z=14&output=embed`}
-                                            className="w-full h-full border-0"
-                                            allowFullScreen
-                                            loading="lazy"
-                                            referrerPolicy="no-referrer-when-downgrade"
-                                            title="Google Map Location"
-                                        />
-                                    </div>
+                                        <div className="rounded-xl overflow-hidden border border-secondary-200 aspect-[16/9]">
+                                            <iframe
+                                                src={`https://maps.google.com/maps?q=${unit.latitude},${unit.longitude}&hl=${locale}&z=14&output=embed`}
+                                                className="w-full h-full border-0"
+                                                allowFullScreen
+                                                loading="lazy"
+                                                referrerPolicy="no-referrer-when-downgrade"
+                                                title="Google Map Location"
+                                            />
+                                        </div>
 
-                                    <div className="text-center pt-1">
-                                        <a
-                                            href={`https://www.google.com/maps/search/?api=1&query=${unit.latitude || '30.0444'},${unit.longitude || '31.2357'}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-secondary-800 hover:text-[#CC0000] transition-colors"
-                                        >
-                                            <svg className="w-4 h-4 text-[#CC0000]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                                            </svg>
-                                            <span>{isRtl ? 'فتح في خرائط Google' : 'Open in Google Maps'}</span>
-                                        </a>
+                                        <div className="text-center pt-1">
+                                            <a
+                                                href={`https://www.google.com/maps/search/?api=1&query=${unit.latitude},${unit.longitude}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-secondary-800 hover:text-[#CC0000] transition-colors"
+                                            >
+                                                <svg className="w-4 h-4 text-[#CC0000]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                                                </svg>
+                                                <span>{isRtl ? 'فتح في خرائط Google' : 'Open in Google Maps'}</span>
+                                            </a>
+                                        </div>
                                     </div>
-                                </div>
+                                )}
                             </div>
                         </div>
 
@@ -750,6 +777,9 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                                             ? 'شقة فاخرة بمساحة واسعة في موقع متميز تتميز بتصميم عصري وتقسيم ممتاز ومساحات تتيح أقصى درجات الراحة والتطشيبات عالية الجودة في واحدة من أفضل المناطق السكنية.'
                                             : 'Luxury spacious unit in a prime location with modern architecture, premium finishings, and optimal layout.')}
                                 </p>
+
+                                {/* Payment Details on Mobile if any */}
+                                <PaymentTerms item={unit} />
                             </section>
 
                             {/* Section: الفيديو التعريفي (Mobile) */}
@@ -762,42 +792,26 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                                         </svg>
                                         <span>{isRtl ? 'الفيديو التعريفي' : 'Property Video Tour'}</span>
                                     </h2>
-                                    <div className="rounded-xl overflow-hidden aspect-video border border-secondary-200 shadow-sm bg-black">
-                                        <iframe
-                                            src={embedUrl}
-                                            className="w-full h-full border-0"
-                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                            allowFullScreen
-                                            title="Property Video Tour Mobile"
-                                        />
-                                    </div>
+                                    <VideoPlayer embedUrl={embedUrl} title={unit.name} />
                                 </section>
                             )}
 
                             {/* 2. Features */}
-                            <section className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6">
-                                <h2 className="text-lg font-black text-secondary-950 mb-4">{isRtl ? 'المميزات' : 'Features & Amenities'}</h2>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                    {(unit.features?.length > 0 ? unit.features : [
-                                        { id: 1, name_ar: 'حمام سباحة', name_en: 'Swimming Pool', icon: 'pool' },
-                                        { id: 2, name_ar: 'مصعد', name_en: 'Elevator', icon: 'elevator' },
-                                        { id: 3, name_ar: 'كافيه', name_en: 'Cafe', icon: 'cafe' },
-                                        { id: 4, name_ar: 'كاميرات مراقبة', name_en: 'CCTV Security', icon: 'cctv' },
-                                        { id: 5, name_ar: 'نادي رياضي', name_en: 'Gym & Fitness', icon: 'gym' },
-                                        { id: 6, name_ar: 'موقف سيارات', name_en: 'Parking Garage', icon: 'parking' },
-                                        { id: 7, name_ar: 'أمن وحراسة 24', name_en: '24/7 Security', icon: 'security' },
-                                    ]).map(feature => (
-                                        <div key={feature.id} className="flex flex-col items-center justify-center p-3.5 rounded-xl bg-surface border border-secondary-100 text-center gap-2">
-                                            <div className="w-8 h-8 rounded-full bg-white shadow-xs border border-secondary-100 flex items-center justify-center text-secondary-700">
-                                                <svg className="w-4 h-4 text-[#CC0000]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                </svg>
+                            {unit.features?.length > 0 && (
+                                <section className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6">
+                                    <h2 className="text-lg font-black text-secondary-950 mb-4">{isRtl ? 'المميزات' : 'Features & Amenities'}</h2>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                        {unit.features.map(feature => (
+                                            <div key={feature.id} className="flex flex-col items-center justify-center p-3.5 rounded-xl bg-surface border border-secondary-100 text-center gap-2">
+                                                <div className="w-9 h-9 rounded-full bg-white shadow-xs border border-secondary-100 flex items-center justify-center text-secondary-700">
+                                                    <IconByName iconName={feature.icon_name || feature.icon} className="w-5 h-5 text-[#FF6B6B]" />
+                                                </div>
+                                                <span className="text-xs font-semibold text-secondary-800">{locale === 'ar' ? (feature.name_ar || feature.name) : (feature.name_en || feature.name)}</span>
                                             </div>
-                                            <span className="text-xs font-semibold text-secondary-800">{locale === 'ar' ? feature.name_ar : feature.name_en}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </section>
+                                        ))}
+                                    </div>
+                                </section>
+                            )}
 
                             {/* 3. Project / Area Info Card (Mobile) */}
                             {unit.project ? (
@@ -817,12 +831,46 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                                                 <span className="font-bold text-secondary-950">{unit.project.area.name}</span>
                                             </div>
                                         )}
+                                        {unit.project.installment_years > 0 && (
+                                            <div className="flex items-center justify-between py-1.5 border-b border-secondary-100/60">
+                                                <span className="text-secondary-500 font-semibold">{isRtl ? 'سنوات التقسيط' : 'Installment Years'}</span>
+                                                <span className="font-bold text-secondary-950">{unit.project.installment_years} {isRtl ? 'سنوات' : 'Years'}</span>
+                                            </div>
+                                        )}
+                                        <div className="flex items-center justify-between py-1.5">
+                                            <span className="text-secondary-500 font-semibold">{isRtl ? 'حالة المشروع' : 'Status'}</span>
+                                            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                                                {isRtl ? 'متاح للبيع' : 'Available'}
+                                            </span>
+                                        </div>
                                     </div>
                                     <Link
                                         href={localizedPath(`/projects/${unit.project.slug_ar || unit.project.slug_en || unit.project.slug || unit.project.id}`, locale)}
-                                        className="w-full py-2.5 px-4 bg-[#CC0000] hover:bg-[#b30000] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-sm transition-colors"
+                                        className="w-full py-2.5 px-4 bg-[#CC0000] hover:bg-[#b30000] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-sm transition active:scale-[0.97] duration-150 ease-out"
                                     >
                                         <span>{isRtl ? 'عرض المشروع وجميع وحداته' : 'View Project & All Units'}</span>
+                                        <svg className="w-3.5 h-3.5 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                                        </svg>
+                                    </Link>
+                                </div>
+                            ) : unit.area ? (
+                                <div className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4">
+                                    <div className="flex items-center justify-between border-b border-secondary-100 pb-3">
+                                        <h2 className="text-sm font-black text-secondary-950">{isRtl ? 'معلومات المنطقة' : 'Area Info'}</h2>
+                                    </div>
+                                    <div className="space-y-2.5 text-xs">
+                                        <div className="flex items-center justify-between py-1.5">
+                                            <span className="text-secondary-500 font-semibold">{isRtl ? 'المنطقة' : 'Area'}</span>
+                                            <span className="font-bold text-secondary-950">{unit.area.name}</span>
+                                        </div>
+                                    </div>
+                                    <Link
+                                        href={localizedPath(`/areas/${unit.area.slug || unit.area.id}`, locale)}
+                                        className="w-full py-2.5 px-4 bg-surface hover:bg-secondary-100 text-secondary-800 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition active:scale-[0.97] duration-150 ease-out border border-secondary-200"
+                                    >
+                                        <span>{isRtl ? 'استكشف عقارات هذه المنطقة' : 'Explore Properties in this Area'}</span>
                                         <svg className="w-3.5 h-3.5 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
                                         </svg>
@@ -831,24 +879,47 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                             ) : null}
 
                             {/* 4. Location Map */}
-                            <div className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4">
-                                <h2 className="text-sm font-black text-secondary-950">{isRtl ? 'الموقع على الخريطة' : 'Location on Map'}</h2>
-                                <div className="rounded-xl overflow-hidden border border-secondary-200 aspect-[16/9]">
-                                    <iframe
-                                        src={`https://maps.google.com/maps?q=${unit.latitude || '30.0444'},${unit.longitude || '31.2357'}&hl=${locale}&z=14&output=embed`}
-                                        className="w-full h-full border-0"
-                                        allowFullScreen
-                                        loading="lazy"
-                                        referrerPolicy="no-referrer-when-downgrade"
-                                        title="Google Map Location Mobile"
-                                    />
+                            {hasValidCoords(unit) && (
+                                <div className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4">
+                                    <h2 className="text-sm font-black text-secondary-950">{isRtl ? 'الموقع على الخريطة' : 'Location on Map'}</h2>
+                                    <div className="rounded-xl overflow-hidden border border-secondary-200 aspect-[16/9]">
+                                        <iframe
+                                            src={`https://maps.google.com/maps?q=${unit.latitude},${unit.longitude}&hl=${locale}&z=14&output=embed`}
+                                            className="w-full h-full border-0"
+                                            allowFullScreen
+                                            loading="lazy"
+                                            referrerPolicy="no-referrer-when-downgrade"
+                                            title="Google Map Location Mobile"
+                                        />
+                                    </div>
+                                    <div className="text-center pt-1">
+                                        <a
+                                            href={`https://www.google.com/maps/search/?api=1&query=${unit.latitude},${unit.longitude}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-secondary-800 hover:text-[#CC0000] transition-colors"
+                                        >
+                                            <svg className="w-4 h-4 text-[#CC0000]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                                            </svg>
+                                            <span>{isRtl ? 'فتح في خرائط Google' : 'Open in Google Maps'}</span>
+                                        </a>
+                                    </div>
                                 </div>
-                            </div>
+                            )}
 
-                            {/* 5. Contact Form */}
-                            <section className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6">
+                            {/* 5. Contact Form (Mobile) */}
+                            <section id="contact-form" className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6">
                                 <h2 className="text-lg font-black text-secondary-950 mb-1">{isRtl ? 'تواصل معنا' : 'Contact Us'}</h2>
                                 <p className="text-xs text-secondary-500 font-medium mb-5">{isRtl ? 'يرجى ملء النموذج وسيتواصل معك أحد مستشارينا في أقرب وقت' : 'Please fill out the form and our advisor will get in touch shortly.'}</p>
+
+                                {(sentSuccess || flash?.success) && (
+                                    <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold">
+                                        {flash?.success || trans('unit_message_sent_success')}
+                                    </div>
+                                )}
+
                                 <form onSubmit={handleSubmit} noValidate className="space-y-4">
                                     <div>
                                         <label htmlFor="client_name_mob" className="block text-xs font-semibold text-secondary-900 mb-1">{isRtl ? 'الاسم الكامل' : 'Full Name'}</label>
@@ -858,9 +929,11 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                                             value={data.client_name}
                                             onChange={e => setData('client_name', e.target.value)}
                                             required
-                                            className="w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none"
+                                            className="w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none transition-colors"
                                         />
+                                        {errors.client_name && <p className="text-xs text-error mt-1">{errors.client_name}</p>}
                                     </div>
+
                                     <div>
                                         <label htmlFor="client_phone_mob" className="block text-xs font-semibold text-secondary-900 mb-1">{isRtl ? 'رقم الهاتف' : 'Phone Number'}</label>
                                         <input
@@ -868,9 +941,23 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                                             type="tel"
                                             value={data.client_phone}
                                             onChange={e => setData('client_phone', e.target.value)}
-                                            className="w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none"
+                                            className="w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none transition-colors"
                                         />
+                                        {errors.client_phone && <p className="text-xs text-error mt-1">{errors.client_phone}</p>}
                                     </div>
+
+                                    <div>
+                                        <label htmlFor="client_email_mob" className="block text-xs font-semibold text-secondary-900 mb-1">{isRtl ? 'البريد الإلكتروني' : 'Email'}</label>
+                                        <input
+                                            id="client_email_mob"
+                                            type="email"
+                                            value={data.client_email}
+                                            onChange={e => setData('client_email', e.target.value)}
+                                            className="w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none transition-colors"
+                                        />
+                                        {errors.client_email && <p className="text-xs text-error mt-1">{errors.client_email}</p>}
+                                    </div>
+
                                     <div>
                                         <label htmlFor="content_mob" className="block text-xs font-semibold text-secondary-900 mb-1">{isRtl ? 'رسالتك' : 'Message'}</label>
                                         <textarea
@@ -879,14 +966,19 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                                             onChange={e => setData('content', e.target.value)}
                                             required
                                             rows={3}
-                                            className="w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none resize-none"
+                                            className="w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none resize-none transition-colors"
                                         />
+                                        {errors.content && <p className="text-xs text-error mt-1">{errors.content}</p>}
                                     </div>
+
                                     <button
                                         type="submit"
                                         disabled={processing}
-                                        className="w-full py-3 bg-[#CC0000] hover:bg-[#b30000] text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-2"
+                                        className="w-full py-3 bg-[#CC0000] hover:bg-[#b30000] text-white font-bold text-xs rounded-xl shadow-md transition active:scale-[0.97] duration-150 ease-out disabled:opacity-50 flex items-center justify-center gap-2"
                                     >
+                                        <svg className="w-4 h-4 rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3 21l19-9L3 3l3 9zm0 0h7.5" />
+                                        </svg>
                                         <span>{processing ? trans('loading', {}, 'common') : (isRtl ? 'إرسال الرسالة' : 'Send Message')}</span>
                                     </button>
                                 </form>
@@ -963,25 +1055,39 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                 )}
             </main>
 
-            {/* DEDICATED MOBILE FLOATING RED ACTION BUTTON */}
+            {/* Single Fixed Mobile Bottom Action Bar */}
             {unit && (
-                <div className="fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-xl border-t border-secondary-200 p-3 shadow-lg flex items-center justify-between gap-3 md:hidden">
-                    <div>
+                <div className="fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-secondary-200 p-3 md:hidden flex items-center justify-between gap-3 shadow-2xl">
+                    <div className="min-w-0">
                         <span className="text-[10px] font-bold text-secondary-500 uppercase block">{isRtl ? 'السعر' : 'Price'}</span>
-                        <span className="text-base font-black text-[#CC0000]">
+                        <span className="text-base font-black text-[#CC0000] truncate block">
                             {Number(unit.price).toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-US')} <span className="text-xs font-bold">{trans('currency_egp')}</span>
                         </span>
                     </div>
 
-                    <a
-                        href="#contact-form"
-                        className="px-5 py-2.5 bg-[#CC0000] text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-md hover:bg-[#b30000] transition-colors"
-                    >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
-                        </svg>
-                        <span>{isRtl ? 'تواصل مع الوكيل' : 'Contact Agent'}</span>
-                    </a>
+                    <div className="flex items-center gap-2 shrink-0">
+                        <a
+                            href={`https://wa.me/${agentContacts.whatsapp}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="py-2.5 px-3.5 bg-[#16a34a] hover:bg-[#15803d] text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-md transition-colors active:scale-98 min-h-[44px]"
+                            title="WhatsApp"
+                        >
+                            <WhatsAppIcon className="w-4 h-4 fill-current" />
+                            <span>{isRtl ? 'واتساب' : 'WhatsApp'}</span>
+                        </a>
+
+                        <a
+                            href={`tel:${agentContacts.phone}`}
+                            className="py-2.5 px-3.5 bg-[#CC0000] hover:bg-[#b30000] text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-md transition-colors active:scale-98 min-h-[44px]"
+                            title="Call"
+                        >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
+                            </svg>
+                            <span>{isRtl ? 'اتصال' : 'Call'}</span>
+                        </a>
+                    </div>
                 </div>
             )}
 
@@ -1001,7 +1107,7 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                     </button>
 
                     <img
-                        src={images[lightboxIndex]?.url || (images[lightboxIndex]?.path ? `/storage/${images[lightboxIndex].path}` : PLACEHOLDER)}
+                        src={getStorageUrl(images[lightboxIndex]?.url || images[lightboxIndex]?.path, PLACEHOLDER)}
                         alt=""
                         className="max-w-[90vw] max-h-[85vh] object-contain rounded-xl"
                         onClick={e => e.stopPropagation()}
@@ -1037,29 +1143,6 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                     )}
                 </div>
             )}
-
-            {/* Fixed Mobile Bottom Action Bar */}
-            <div className="fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-secondary-200 p-3 sm:hidden flex items-center gap-3 shadow-2xl">
-                <a
-                    href={`https://wa.me/${agentContacts.whatsapp}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 py-3 px-4 bg-[#16a34a] hover:bg-[#15803d] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-colors active:scale-98 min-h-[44px]"
-                >
-                    <WhatsAppIcon className="w-4 h-4 fill-current" />
-                    <span>{isRtl ? 'واتساب' : 'WhatsApp'}</span>
-                </a>
-
-                <a
-                    href={`tel:${agentContacts.phone}`}
-                    className="flex-1 py-3 px-4 bg-[#CC0000] hover:bg-[#b30000] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-colors active:scale-98 min-h-[44px]"
-                >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
-                    </svg>
-                    <span>{isRtl ? 'اتصال مباشر' : 'Call Agent'}</span>
-                </a>
-            </div>
 
             <Footer />
         </div>

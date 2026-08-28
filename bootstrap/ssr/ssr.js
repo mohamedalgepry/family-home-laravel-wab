@@ -14837,7 +14837,11 @@ function Show({ agent, units, locale }) {
 }
 //#endregion
 //#region resources/js/Components/UI/SearchBar.jsx
-function SearchBar({ areas = [], unitTypes = [], features = [], finishingTypes = [], filters = {}, onSearch }) {
+function SearchBar({ areas: rawAreas = [], unitTypes: rawUnitTypes = [], features: rawFeatures = [], finishingTypes: rawFinishingTypes = [], initialAreas = [], initialUnitTypes = [], initialFeatures = [], initialFinishingTypes = [], filters = {}, onSearch }) {
+	const areas = rawAreas && rawAreas.length > 0 ? rawAreas : initialAreas || [];
+	const unitTypes = rawUnitTypes && rawUnitTypes.length > 0 ? rawUnitTypes : initialUnitTypes || [];
+	const features = rawFeatures && rawFeatures.length > 0 ? rawFeatures : initialFeatures || [];
+	const finishingTypes = rawFinishingTypes && rawFinishingTypes.length > 0 ? rawFinishingTypes : initialFinishingTypes || [];
 	const { locale } = usePage().props;
 	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
@@ -17951,10 +17955,10 @@ function Home({ featuredUnits, latestUnits, latestProjects, popularSearches, are
 								}), /* @__PURE__ */ jsx("div", {
 									className: "max-w-4xl mx-auto",
 									children: /* @__PURE__ */ jsx(SearchBar, {
-										initialUnitTypes: unitTypes,
-										initialAreas: areas,
-										initialFeatures: features,
-										initialFinishingTypes: finishingTypes,
+										unitTypes,
+										areas,
+										features,
+										finishingTypes,
 										popularSearches
 									})
 								})]
@@ -18522,6 +18526,56 @@ function ProjectsIndex({ projects, filters, areas, features, finishingTypes }) {
 	});
 }
 //#endregion
+//#region resources/js/Components/UI/PaymentTerms.jsx
+function PaymentTerms({ item }) {
+	const { locale } = usePage().props;
+	const trans = useTrans(locale);
+	const isRtl = locale === "ar";
+	if (!item) return null;
+	if (!["installment", "both"].includes(item.payment_method) || !item.down_payment && !item.installment_years) return null;
+	return /* @__PURE__ */ jsxs("div", {
+		className: "mt-6 pt-4 border-t border-secondary-100",
+		children: [/* @__PURE__ */ jsx("h2", {
+			className: "text-xs font-bold text-secondary-900 mb-3",
+			children: isRtl ? "أنظمة الدفع والتسهيلات" : "Payment Terms"
+		}), /* @__PURE__ */ jsxs("div", {
+			className: "grid grid-cols-2 gap-4 bg-surface p-4 rounded-xl border border-secondary-100 text-xs",
+			children: [item.down_payment && /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("span", {
+				className: "text-secondary-500 font-medium block mb-1",
+				children: isRtl ? "الدفعة الأولى" : "Down Payment"
+			}), /* @__PURE__ */ jsx("span", {
+				className: "font-bold text-secondary-950",
+				children: !isNaN(item.down_payment) && !isNaN(parseFloat(item.down_payment)) ? Number(item.down_payment).toLocaleString(locale === "ar" ? "ar-EG" : "en-US") + " " + trans("currency_egp") : item.down_payment
+			})] }), item.installment_years && /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("span", {
+				className: "text-secondary-500 font-medium block mb-1",
+				children: isRtl ? "سنوات التقسيط" : "Installment Years"
+			}), /* @__PURE__ */ jsxs("span", {
+				className: "font-bold text-secondary-950",
+				children: [
+					item.installment_years,
+					" ",
+					isRtl ? "سنوات" : "Years"
+				]
+			})] })]
+		})]
+	});
+}
+//#endregion
+//#region resources/js/Components/UI/VideoPlayer.jsx
+function VideoPlayer({ embedUrl, title = "Video Tour", className = "" }) {
+	if (!embedUrl) return null;
+	return /* @__PURE__ */ jsx("div", {
+		className: `relative w-full aspect-video rounded-xl overflow-hidden bg-black shadow-inner ${className}`,
+		children: /* @__PURE__ */ jsx("iframe", {
+			src: embedUrl,
+			title,
+			className: "w-full h-full border-0",
+			allow: "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share",
+			allowFullScreen: true
+		})
+	});
+}
+//#endregion
 //#region resources/js/Utils/youtube.js
 function getYouTubeEmbedUrl(url) {
 	if (!url || typeof url !== "string") return null;
@@ -18536,6 +18590,20 @@ function getYouTubeEmbedUrl(url) {
 		if (match && match[1]) return `https://player.vimeo.com/video/${match[1]}`;
 	}
 	return null;
+}
+//#endregion
+//#region resources/js/Utils/location.js
+/**
+* Validates whether an entity has valid, non-zero geographic coordinates.
+* 
+* @param {Object} item - Entity containing latitude and longitude (string or number)
+* @returns {boolean}
+*/
+function hasValidCoords(item) {
+	if (!item) return false;
+	const lat = parseFloat(item.latitude);
+	const lng = parseFloat(item.longitude);
+	return Boolean(item.latitude && item.longitude && lat !== 0 && lng !== 0 && isFinite(lat) && isFinite(lng));
 }
 //#endregion
 //#region resources/js/Pages/Public/Projects/Show.jsx
@@ -18901,7 +18969,7 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 											children: isRtl ? "نوع التشطيب" : "Finishing"
 										}), /* @__PURE__ */ jsx("p", {
 											className: "text-sm font-black text-secondary-950",
-											children: project.finishingType ? locale === "ar" ? project.finishingType.name_ar : project.finishingType.name_en : isRtl ? "سوبر لوكس" : "Super Lux"
+											children: project.finishingType ? project.finishingType.name || (locale === "ar" ? project.finishingType.name_ar : project.finishingType.name_en) : isRtl ? "غير محدد" : "Not specified"
 										})]
 									})]
 								}),
@@ -18988,17 +19056,17 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 								className: "py-3 hover:text-[#CC0000] transition-colors",
 								children: isRtl ? "الفيديو التعريفي" : "Video"
 							}),
-							/* @__PURE__ */ jsx("a", {
+							project.features?.length > 0 && /* @__PURE__ */ jsx("a", {
 								href: "#features",
 								className: "py-3 hover:text-[#CC0000] transition-colors",
 								children: isRtl ? "المميزات والمرافق" : "Features"
 							}),
-							/* @__PURE__ */ jsx("a", {
+							projectUnitsList.length > 0 && /* @__PURE__ */ jsx("a", {
 								href: "#units-list",
 								className: "py-3 hover:text-[#CC0000] transition-colors",
 								children: isRtl ? "الوحدات المتاحة" : "Units"
 							}),
-							/* @__PURE__ */ jsx("a", {
+							hasValidCoords(project) && /* @__PURE__ */ jsx("a", {
 								href: "#location",
 								className: "py-3 hover:text-[#CC0000] transition-colors",
 								children: isRtl ? "الموقع" : "Location"
@@ -19022,32 +19090,7 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 											className: "text-sm text-secondary-700 leading-relaxed whitespace-pre-line font-normal",
 											children: project.description || (isRtl ? "مشروع عقاري متميز يضم وحدات سكنية وتجارية مصممة بأعلى معايير الجودة والتصميم العصري مع توفير كافة الخدمات والمرافق الأساسية والترفيهية." : "A premier real estate development with luxury residential and commercial units.")
 										}),
-										["installment", "both"].includes(project.payment_method) && (project.down_payment || project.installment_years) && /* @__PURE__ */ jsxs("div", {
-											className: "mt-6 pt-4 border-t border-secondary-100",
-											children: [/* @__PURE__ */ jsx("h2", {
-												className: "text-xs font-bold text-secondary-900 mb-3",
-												children: isRtl ? "أنظمة الدفع والتسهيلات" : "Payment Terms"
-											}), /* @__PURE__ */ jsxs("div", {
-												className: "grid grid-cols-2 gap-4 bg-surface p-4 rounded-xl border border-secondary-100 text-xs",
-												children: [project.down_payment && /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("span", {
-													className: "text-secondary-500 font-medium block mb-1",
-													children: isRtl ? "الدفعة الأولى" : "Down Payment"
-												}), /* @__PURE__ */ jsx("span", {
-													className: "font-bold text-secondary-950",
-													children: !isNaN(project.down_payment) && !isNaN(parseFloat(project.down_payment)) ? Number(project.down_payment).toLocaleString(locale === "ar" ? "ar-EG" : "en-US") + " " + trans("currency_egp") : project.down_payment
-												})] }), project.installment_years && /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("span", {
-													className: "text-secondary-500 font-medium block mb-1",
-													children: isRtl ? "سنوات التقسيط" : "Installment Years"
-												}), /* @__PURE__ */ jsxs("span", {
-													className: "font-bold text-secondary-950",
-													children: [
-														project.installment_years,
-														" ",
-														isRtl ? "سنوات" : "Years"
-													]
-												})] })]
-											})]
-										})
+										/* @__PURE__ */ jsx(PaymentTerms, { item: project })
 									]
 								}),
 								embedUrl && /* @__PURE__ */ jsxs("section", {
@@ -19071,18 +19114,12 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 												d: "M15.91 11.672a.375.375 0 010 .656l-5.603 3.113a.375.375 0 01-.557-.328V8.887c0-.286.307-.466.557-.327l5.603 3.112z"
 											})]
 										}), /* @__PURE__ */ jsx("span", { children: isRtl ? "الفيديو التعريفي للمشروع" : "Project Video Tour" })]
-									}), /* @__PURE__ */ jsx("div", {
-										className: "rounded-xl overflow-hidden aspect-video border border-secondary-200 shadow-sm bg-black",
-										children: /* @__PURE__ */ jsx("iframe", {
-											src: embedUrl,
-											className: "w-full h-full border-0",
-											allow: "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture",
-											allowFullScreen: true,
-											title: "Project Video Tour"
-										})
+									}), /* @__PURE__ */ jsx(VideoPlayer, {
+										embedUrl,
+										title: project.name
 									})]
 								}),
-								/* @__PURE__ */ jsxs("section", {
+								project.features?.length > 0 && /* @__PURE__ */ jsxs("section", {
 									id: "features",
 									className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6",
 									children: [/* @__PURE__ */ jsx("h2", {
@@ -19090,56 +19127,17 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 										children: isRtl ? "المميزات والمرافق" : "Features & Facilities"
 									}), /* @__PURE__ */ jsx("div", {
 										className: "grid grid-cols-2 sm:grid-cols-3 gap-3",
-										children: (project.features?.length > 0 ? project.features : [
-											{
-												id: 1,
-												name_ar: "حمام سباحة",
-												name_en: "Swimming Pool"
-											},
-											{
-												id: 2,
-												name_ar: "مصعد",
-												name_en: "Elevator"
-											},
-											{
-												id: 3,
-												name_ar: "كافيه ورستوران",
-												name_en: "Cafe & Dining"
-											},
-											{
-												id: 4,
-												name_ar: "كاميرات مراقبة",
-												name_en: "CCTV Security"
-											},
-											{
-												id: 5,
-												name_ar: "نادي رياضي",
-												name_en: "Gym & Spa"
-											},
-											{
-												id: 6,
-												name_ar: "موقف سيارات",
-												name_en: "Parking Garage"
-											}
-										]).map((feature) => /* @__PURE__ */ jsxs("div", {
+										children: project.features.map((feature) => /* @__PURE__ */ jsxs("div", {
 											className: "flex flex-col items-center justify-center p-3.5 rounded-xl bg-surface border border-secondary-100 text-center gap-2 hover:border-secondary-300 transition-colors",
 											children: [/* @__PURE__ */ jsx("div", {
-												className: "w-8 h-8 rounded-full bg-white shadow-xs border border-secondary-100 flex items-center justify-center text-secondary-700",
-												children: /* @__PURE__ */ jsx("svg", {
-													className: "w-4 h-4 text-[#CC0000]",
-													fill: "none",
-													viewBox: "0 0 24 24",
-													stroke: "currentColor",
-													strokeWidth: 2,
-													children: /* @__PURE__ */ jsx("path", {
-														strokeLinecap: "round",
-														strokeLinejoin: "round",
-														d: "M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-													})
+												className: "w-9 h-9 rounded-full bg-white shadow-xs border border-secondary-100 flex items-center justify-center text-secondary-700",
+												children: /* @__PURE__ */ jsx(IconByName, {
+													iconName: feature.icon_name || feature.icon,
+													className: "w-5 h-5 text-[#FF6B6B]"
 												})
 											}), /* @__PURE__ */ jsx("span", {
 												className: "text-xs font-semibold text-secondary-800",
-												children: locale === "ar" ? feature.name_ar : feature.name_en
+												children: locale === "ar" ? feature.name_ar || feature.name : feature.name_en || feature.name
 											})]
 										}, feature.id))
 									})]
@@ -19165,18 +19163,19 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 												children: project.name
 											})]
 										}),
-										/* @__PURE__ */ jsxs("div", {
+										project.area?.name && /* @__PURE__ */ jsxs("div", {
 											className: "flex items-center justify-between py-1.5 border-b border-secondary-100/60",
 											children: [/* @__PURE__ */ jsx("span", {
 												className: "text-secondary-500 font-semibold",
 												children: isRtl ? "المنطقة" : "Area"
-											}), /* @__PURE__ */ jsx("span", {
-												className: "font-bold text-secondary-950",
-												children: project.area?.name || ""
+											}), /* @__PURE__ */ jsx(Link, {
+												href: localizedPath(`/areas/${project.area.slug || project.area.id}`, locale),
+												className: "font-bold text-primary-900 hover:underline",
+												children: project.area.name
 											})]
 										}),
 										/* @__PURE__ */ jsxs("div", {
-											className: "flex items-center justify-between py-1.5 border-b border-secondary-100/60",
+											className: "flex items-center justify-between py-1.5",
 											children: [/* @__PURE__ */ jsx("span", {
 												className: "text-secondary-500 font-semibold",
 												children: isRtl ? "عدد الوحدات" : "Total Units"
@@ -19188,30 +19187,10 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 													isRtl ? "وحدة" : "Units"
 												]
 											})]
-										}),
-										/* @__PURE__ */ jsxs("div", {
-											className: "flex items-center justify-between py-1.5 border-b border-secondary-100/60",
-											children: [/* @__PURE__ */ jsx("span", {
-												className: "text-secondary-500 font-semibold",
-												children: isRtl ? "سنة التسليم" : "Delivery Year"
-											}), /* @__PURE__ */ jsx("span", {
-												className: "font-bold text-secondary-950",
-												children: "2026"
-											})]
-										}),
-										/* @__PURE__ */ jsxs("div", {
-											className: "flex items-center justify-between py-1.5",
-											children: [/* @__PURE__ */ jsx("span", {
-												className: "text-secondary-500 font-semibold",
-												children: isRtl ? "حالة المشروع" : "Status"
-											}), /* @__PURE__ */ jsxs("span", {
-												className: "inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200",
-												children: [/* @__PURE__ */ jsx("span", { className: "w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" }), isRtl ? "متاح للبيع" : "Available"]
-											})]
 										})
 									]
 								})]
-							}), /* @__PURE__ */ jsxs("div", {
+							}), hasValidCoords(project) && /* @__PURE__ */ jsxs("div", {
 								id: "location",
 								className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4",
 								children: [
@@ -19222,7 +19201,7 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 									/* @__PURE__ */ jsx("div", {
 										className: "rounded-xl overflow-hidden border border-secondary-200 aspect-[16/9]",
 										children: /* @__PURE__ */ jsx("iframe", {
-											src: `https://maps.google.com/maps?q=${project.latitude || "30.0444"},${project.longitude || "31.2357"}&hl=${locale}&z=14&output=embed`,
+											src: `https://maps.google.com/maps?q=${project.latitude},${project.longitude}&hl=${locale}&z=14&output=embed`,
 											className: "w-full h-full border-0",
 											allowFullScreen: true,
 											loading: "lazy",
@@ -19233,7 +19212,7 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 									/* @__PURE__ */ jsx("div", {
 										className: "text-center pt-1",
 										children: /* @__PURE__ */ jsxs("a", {
-											href: `https://www.google.com/maps/search/?api=1&query=${project.latitude || "30.0444"},${project.longitude || "31.2357"}`,
+											href: `https://www.google.com/maps/search/?api=1&query=${project.latitude},${project.longitude}`,
 											target: "_blank",
 											rel: "noopener noreferrer",
 											className: "inline-flex items-center justify-center gap-1.5 text-xs font-bold text-secondary-800 hover:text-[#CC0000] transition-colors",
@@ -19264,13 +19243,17 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 						children: [
 							/* @__PURE__ */ jsxs("section", {
 								className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6",
-								children: [/* @__PURE__ */ jsx("h2", {
-									className: "text-lg font-black text-secondary-950 mb-3",
-									children: isRtl ? "عن المشروع" : "About Project"
-								}), /* @__PURE__ */ jsx("p", {
-									className: "text-sm text-secondary-700 leading-relaxed whitespace-pre-line font-normal",
-									children: project.description || (isRtl ? "مشروع عقاري متميز يضم وحدات سكنية وتجارية مصممة بأعلى معايير الجودة والتصميم العصري مع توفير كافة الخدمات والمرافق الأساسية والترفيهية." : "A premier real estate development with luxury residential and commercial units.")
-								})]
+								children: [
+									/* @__PURE__ */ jsx("h2", {
+										className: "text-lg font-black text-secondary-950 mb-3",
+										children: isRtl ? "عن المشروع" : "About Project"
+									}),
+									/* @__PURE__ */ jsx("p", {
+										className: "text-sm text-secondary-700 leading-relaxed whitespace-pre-line font-normal",
+										children: project.description || (isRtl ? "مشروع عقاري متميز يضم وحدات سكنية وتجارية مصممة بأعلى معايير الجودة والتصميم العصري مع توفير كافة الخدمات والمرافق الأساسية والترفيهية." : "A premier real estate development with luxury residential and commercial units.")
+									}),
+									/* @__PURE__ */ jsx(PaymentTerms, { item: project })
+								]
 							}),
 							embedUrl && /* @__PURE__ */ jsxs("section", {
 								id: "video-mob",
@@ -19293,74 +19276,29 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 											d: "M15.91 11.672a.375.375 0 010 .656l-5.603 3.113a.375.375 0 01-.557-.328V8.887c0-.286.307-.466.557-.327l5.603 3.112z"
 										})]
 									}), /* @__PURE__ */ jsx("span", { children: isRtl ? "الفيديو التعريفي للمشروع" : "Project Video Tour" })]
-								}), /* @__PURE__ */ jsx("div", {
-									className: "rounded-xl overflow-hidden aspect-video border border-secondary-200 shadow-sm bg-black",
-									children: /* @__PURE__ */ jsx("iframe", {
-										src: embedUrl,
-										className: "w-full h-full border-0",
-										allow: "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture",
-										allowFullScreen: true,
-										title: "Project Video Tour Mobile"
-									})
+								}), /* @__PURE__ */ jsx(VideoPlayer, {
+									embedUrl,
+									title: project.name
 								})]
 							}),
-							/* @__PURE__ */ jsxs("section", {
+							project.features?.length > 0 && /* @__PURE__ */ jsxs("section", {
 								className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6",
 								children: [/* @__PURE__ */ jsx("h2", {
 									className: "text-lg font-black text-secondary-950 mb-4",
 									children: isRtl ? "المميزات والمرافق" : "Features & Facilities"
 								}), /* @__PURE__ */ jsx("div", {
 									className: "grid grid-cols-2 sm:grid-cols-3 gap-3",
-									children: (project.features?.length > 0 ? project.features : [
-										{
-											id: 1,
-											name_ar: "حمام سباحة",
-											name_en: "Swimming Pool"
-										},
-										{
-											id: 2,
-											name_ar: "مصعد",
-											name_en: "Elevator"
-										},
-										{
-											id: 3,
-											name_ar: "كافيه ورستوران",
-											name_en: "Cafe & Dining"
-										},
-										{
-											id: 4,
-											name_ar: "كاميرات مراقبة",
-											name_en: "CCTV Security"
-										},
-										{
-											id: 5,
-											name_ar: "نادي رياضي",
-											name_en: "Gym & Spa"
-										},
-										{
-											id: 6,
-											name_ar: "موقف سيارات",
-											name_en: "Parking Garage"
-										}
-									]).map((feature) => /* @__PURE__ */ jsxs("div", {
+									children: project.features.map((feature) => /* @__PURE__ */ jsxs("div", {
 										className: "flex flex-col items-center justify-center p-3.5 rounded-xl bg-surface border border-secondary-100 text-center gap-2",
 										children: [/* @__PURE__ */ jsx("div", {
-											className: "w-8 h-8 rounded-full bg-white shadow-xs border border-secondary-100 flex items-center justify-center text-secondary-700",
-											children: /* @__PURE__ */ jsx("svg", {
-												className: "w-4 h-4 text-[#CC0000]",
-												fill: "none",
-												viewBox: "0 0 24 24",
-												stroke: "currentColor",
-												strokeWidth: 2,
-												children: /* @__PURE__ */ jsx("path", {
-													strokeLinecap: "round",
-													strokeLinejoin: "round",
-													d: "M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-												})
+											className: "w-9 h-9 rounded-full bg-white shadow-xs border border-secondary-100 flex items-center justify-center text-secondary-700",
+											children: /* @__PURE__ */ jsx(IconByName, {
+												iconName: feature.icon_name || feature.icon,
+												className: "w-5 h-5 text-[#FF6B6B]"
 											})
 										}), /* @__PURE__ */ jsx("span", {
 											className: "text-xs font-semibold text-secondary-800",
-											children: locale === "ar" ? feature.name_ar : feature.name_en
+											children: locale === "ar" ? feature.name_ar || feature.name : feature.name_en || feature.name
 										})]
 									}, feature.id))
 								})]
@@ -19372,47 +19310,89 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 									children: isRtl ? "معلومات المشروع" : "Project Information"
 								}), /* @__PURE__ */ jsxs("div", {
 									className: "space-y-2.5 text-xs",
-									children: [/* @__PURE__ */ jsxs("div", {
-										className: "flex items-center justify-between py-1.5 border-b border-secondary-100/60",
-										children: [/* @__PURE__ */ jsx("span", {
-											className: "text-secondary-500 font-semibold",
-											children: isRtl ? "اسم المشروع" : "Project Name"
-										}), /* @__PURE__ */ jsx("span", {
-											className: "font-bold text-secondary-950",
-											children: project.name
-										})]
-									}), /* @__PURE__ */ jsxs("div", {
-										className: "flex items-center justify-between py-1.5 border-b border-secondary-100/60",
-										children: [/* @__PURE__ */ jsx("span", {
-											className: "text-secondary-500 font-semibold",
-											children: isRtl ? "عدد الوحدات" : "Total Units"
-										}), /* @__PURE__ */ jsxs("span", {
-											className: "font-bold text-secondary-950",
-											children: [
-												project.units_count ?? units.length,
-												" ",
-												isRtl ? "وحدة" : "Units"
-											]
-										})]
-									})]
+									children: [
+										/* @__PURE__ */ jsxs("div", {
+											className: "flex items-center justify-between py-1.5 border-b border-secondary-100/60",
+											children: [/* @__PURE__ */ jsx("span", {
+												className: "text-secondary-500 font-semibold",
+												children: isRtl ? "اسم المشروع" : "Project Name"
+											}), /* @__PURE__ */ jsx("span", {
+												className: "font-bold text-secondary-950",
+												children: project.name
+											})]
+										}),
+										project.area?.name && /* @__PURE__ */ jsxs("div", {
+											className: "flex items-center justify-between py-1.5 border-b border-secondary-100/60",
+											children: [/* @__PURE__ */ jsx("span", {
+												className: "text-secondary-500 font-semibold",
+												children: isRtl ? "المنطقة" : "Area"
+											}), /* @__PURE__ */ jsx(Link, {
+												href: localizedPath(`/areas/${project.area.slug || project.area.id}`, locale),
+												className: "font-bold text-primary-900 hover:underline",
+												children: project.area.name
+											})]
+										}),
+										/* @__PURE__ */ jsxs("div", {
+											className: "flex items-center justify-between py-1.5",
+											children: [/* @__PURE__ */ jsx("span", {
+												className: "text-secondary-500 font-semibold",
+												children: isRtl ? "عدد الوحدات" : "Total Units"
+											}), /* @__PURE__ */ jsxs("span", {
+												className: "font-bold text-secondary-950",
+												children: [
+													project.units_count ?? units.length,
+													" ",
+													isRtl ? "وحدة" : "Units"
+												]
+											})]
+										})
+									]
 								})]
 							}),
-							/* @__PURE__ */ jsxs("div", {
+							hasValidCoords(project) && /* @__PURE__ */ jsxs("div", {
 								className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4",
-								children: [/* @__PURE__ */ jsx("h2", {
-									className: "text-sm font-black text-secondary-950",
-									children: isRtl ? "الموقع على الخريطة" : "Location Map"
-								}), /* @__PURE__ */ jsx("div", {
-									className: "rounded-xl overflow-hidden border border-secondary-200 aspect-[16/9]",
-									children: /* @__PURE__ */ jsx("iframe", {
-										src: `https://maps.google.com/maps?q=${project.latitude || "30.0444"},${project.longitude || "31.2357"}&hl=${locale}&z=14&output=embed`,
-										className: "w-full h-full border-0",
-										allowFullScreen: true,
-										loading: "lazy",
-										referrerPolicy: "no-referrer-when-downgrade",
-										title: "Google Map Location Mobile Project"
+								children: [
+									/* @__PURE__ */ jsx("h2", {
+										className: "text-sm font-black text-secondary-950",
+										children: isRtl ? "الموقع على الخريطة" : "Location Map"
+									}),
+									/* @__PURE__ */ jsx("div", {
+										className: "rounded-xl overflow-hidden border border-secondary-200 aspect-[16/9]",
+										children: /* @__PURE__ */ jsx("iframe", {
+											src: `https://maps.google.com/maps?q=${project.latitude},${project.longitude}&hl=${locale}&z=14&output=embed`,
+											className: "w-full h-full border-0",
+											allowFullScreen: true,
+											loading: "lazy",
+											referrerPolicy: "no-referrer-when-downgrade",
+											title: "Google Map Location Mobile Project"
+										})
+									}),
+									/* @__PURE__ */ jsx("div", {
+										className: "text-center pt-1",
+										children: /* @__PURE__ */ jsxs("a", {
+											href: `https://www.google.com/maps/search/?api=1&query=${project.latitude},${project.longitude}`,
+											target: "_blank",
+											rel: "noopener noreferrer",
+											className: "inline-flex items-center justify-center gap-1.5 text-xs font-bold text-secondary-800 hover:text-[#CC0000] transition-colors",
+											children: [/* @__PURE__ */ jsxs("svg", {
+												className: "w-4 h-4 text-[#CC0000]",
+												fill: "none",
+												viewBox: "0 0 24 24",
+												stroke: "currentColor",
+												strokeWidth: 2,
+												children: [/* @__PURE__ */ jsx("path", {
+													strokeLinecap: "round",
+													strokeLinejoin: "round",
+													d: "M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"
+												}), /* @__PURE__ */ jsx("path", {
+													strokeLinecap: "round",
+													strokeLinejoin: "round",
+													d: "M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
+												})]
+											}), /* @__PURE__ */ jsx("span", { children: isRtl ? "فتح في خرائط Google" : "Open in Google Maps" })]
+										})
 									})
-								})]
+								]
 							})
 						]
 					}),
@@ -19504,33 +19484,6 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 					})
 				]
 			}),
-			project && /* @__PURE__ */ jsxs("div", {
-				className: "fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-xl border-t border-secondary-200 p-3 shadow-lg flex items-center justify-between gap-3 md:hidden",
-				children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("span", {
-					className: "text-[10px] font-bold text-secondary-500 uppercase block",
-					children: isRtl ? "المشروع" : "Project"
-				}), /* @__PURE__ */ jsx("span", {
-					className: "text-sm font-black text-secondary-950 truncate max-w-[150px] block",
-					children: project.name
-				})] }), /* @__PURE__ */ jsxs("a", {
-					href: `https://wa.me/${(page.props.settings?.company_whatsapp || "201000000000").replace(/[^0-9]/g, "")}`,
-					target: "_blank",
-					rel: "noopener noreferrer",
-					className: "px-5 py-2.5 bg-[#CC0000] text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-md hover:bg-[#b30000] transition-colors",
-					children: [/* @__PURE__ */ jsx("svg", {
-						className: "w-4 h-4",
-						fill: "none",
-						viewBox: "0 0 24 24",
-						stroke: "currentColor",
-						strokeWidth: 2,
-						children: /* @__PURE__ */ jsx("path", {
-							strokeLinecap: "round",
-							strokeLinejoin: "round",
-							d: "M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"
-						})
-					}), /* @__PURE__ */ jsx("span", { children: isRtl ? "تواصل مع الوكيل" : "Contact Agent" })]
-				})]
-			}),
 			lightboxIndex !== null && images.length > 0 && /* @__PURE__ */ jsxs("div", {
 				className: "fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4",
 				onClick: () => setLightboxIndex(null),
@@ -19590,7 +19543,7 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 				]
 			}),
 			/* @__PURE__ */ jsxs("div", {
-				className: "fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-secondary-200 p-3 sm:hidden flex items-center gap-3 shadow-2xl",
+				className: "fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-secondary-200 p-3 md:hidden flex items-center gap-3 shadow-2xl",
 				children: [/* @__PURE__ */ jsxs("a", {
 					href: `https://wa.me/${agentContacts.whatsapp}`,
 					target: "_blank",
@@ -19835,7 +19788,7 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 		const image = getStorageUrl(unit.images?.[0]?.url || unit.images?.[0]?.path, null);
 		const lat = unit.latitude;
 		const lng = unit.longitude;
-		const hasValidCoords = lat && lng && parseFloat(lat) !== 0 && parseFloat(lng) !== 0 && isFinite(parseFloat(lat)) && isFinite(parseFloat(lng));
+		const hasCoords = hasValidCoords(unit);
 		return {
 			"@context": "https://schema.org",
 			"@type": "RealEstateListing",
@@ -19857,14 +19810,14 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 			...unit.rooms != null ? { numberOfRooms: unit.rooms } : {},
 			...unit.bathrooms != null ? { numberOfBathroomsTotal: unit.bathrooms } : {},
 			...unit.floor != null ? { floorLevel: unit.floor } : {},
-			...hasValidCoords || unit.location_address ? { contentLocation: {
+			...hasCoords || unit.location_address ? { contentLocation: {
 				"@type": "Place",
 				...unit.name ? { name: unit.name } : {},
 				...unit.location_address ? { address: {
 					"@type": "PostalAddress",
 					addressLocality: unit.location_address
 				} } : {},
-				...hasValidCoords ? { geo: {
+				...hasCoords ? { geo: {
 					"@type": "GeoCoordinates",
 					latitude: lat,
 					longitude: lng
@@ -19876,12 +19829,20 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 		appUrl,
 		page.url
 	]);
-	const { data, setData, post, processing, errors } = useForm({
+	const { data, setData, post, processing, errors, reset } = useForm({
 		client_name: "",
 		client_phone: "",
 		client_email: "",
 		content: ""
 	});
+	useEffect(() => {
+		if (sentSuccess || flash?.success) {
+			const timer = setTimeout(() => {
+				setSentSuccess(false);
+			}, 7e3);
+			return () => clearTimeout(timer);
+		}
+	}, [sentSuccess, flash?.success]);
 	const images = unit?.images ?? [];
 	const selectedImage = images[activeImageIndex] || images[0];
 	const thumbnail = getStorageUrl(selectedImage?.url || selectedImage?.path, PLACEHOLDER$2);
@@ -19891,14 +19852,8 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 		post(submitUrl, {
 			preserveScroll: true,
 			onSuccess: () => {
-				setData({
-					client_name: "",
-					client_phone: "",
-					client_email: "",
-					content: ""
-				});
+				reset();
 				setSentSuccess(true);
-				setTimeout(() => setSentSuccess(false), 7e3);
 			}
 		});
 	}
@@ -19974,7 +19929,7 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 												decoding: "sync"
 											}),
 											/* @__PURE__ */ jsx("div", {
-												className: "absolute top-4 start-4 z-10",
+												className: "absolute top-4 start-4 z-10 flex items-center gap-2",
 												children: /* @__PURE__ */ jsx("span", {
 													className: "bg-[#CC0000] text-white text-xs font-bold px-3.5 py-1.5 rounded-full shadow-md",
 													children: trans(unit.transaction === "rent" ? "rent" : "sale")
@@ -19994,7 +19949,7 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 															alert(isRtl ? "تم نسخ رابط الصفحة" : "Link copied to clipboard");
 														}
 													},
-													className: "w-9 h-9 bg-white/90 hover:bg-white text-secondary-800 rounded-full shadow-md backdrop-blur-md flex items-center justify-center transition-all hover:scale-105",
+													className: "w-9 h-9 bg-white/90 hover:bg-white text-secondary-800 rounded-full shadow-md backdrop-blur-md flex items-center justify-center transition active:scale-[0.97] duration-150 ease-out",
 													title: isRtl ? "مشاركة" : "Share",
 													children: /* @__PURE__ */ jsx("svg", {
 														className: "w-4 h-4",
@@ -20024,7 +19979,7 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 													/* @__PURE__ */ jsxs("button", {
 														type: "button",
 														onClick: () => setLightboxIndex(activeImageIndex),
-														className: "bg-white/90 hover:bg-white text-secondary-950 px-3.5 py-1.5 rounded-xl shadow-md backdrop-blur-md transition-all flex items-center gap-1.5 text-xs font-bold border border-secondary-200",
+														className: "bg-white/90 hover:bg-white text-secondary-950 px-3.5 py-1.5 rounded-xl shadow-md backdrop-blur-md transition active:scale-[0.97] duration-150 ease-out flex items-center gap-1.5 text-xs font-bold border border-secondary-200",
 														children: [/* @__PURE__ */ jsx("svg", {
 															className: "w-4 h-4 text-secondary-700",
 															fill: "none",
@@ -20038,9 +19993,12 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 															})
 														}), /* @__PURE__ */ jsx("span", { children: isRtl ? "عرض جميع الصور" : "View All Photos" })]
 													}),
-													embedUrl && /* @__PURE__ */ jsxs("a", {
-														href: "#video",
-														className: "bg-[#CC0000] hover:bg-[#b30000] text-white px-3.5 py-1.5 rounded-xl shadow-md transition-all flex items-center gap-1.5 text-xs font-bold border border-red-700",
+													embedUrl && /* @__PURE__ */ jsxs("button", {
+														type: "button",
+														onClick: () => {
+															(document.getElementById("video") || document.getElementById("video-mob"))?.scrollIntoView({ behavior: "smooth" });
+														},
+														className: "bg-[#CC0000] hover:bg-[#b30000] text-white px-3.5 py-1.5 rounded-xl shadow-md transition active:scale-[0.97] duration-150 ease-out flex items-center gap-1.5 text-xs font-bold border border-red-700",
 														children: [/* @__PURE__ */ jsx("svg", {
 															className: "w-4 h-4 fill-current",
 															viewBox: "0 0 24 24",
@@ -20156,9 +20114,12 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 									}) }),
 									/* @__PURE__ */ jsxs("div", {
 										className: "grid grid-cols-2 gap-3 pt-2",
-										children: [/* @__PURE__ */ jsxs("a", {
-											href: "#contact-form",
-											className: "w-full py-3 px-4 bg-[#CC0000] hover:bg-[#b30000] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-all active:scale-98",
+										children: [/* @__PURE__ */ jsxs("button", {
+											type: "button",
+											onClick: () => {
+												document.getElementById("contact-form")?.scrollIntoView({ behavior: "smooth" });
+											},
+											className: "w-full py-3 px-4 bg-[#CC0000] hover:bg-[#b30000] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-md transition active:scale-[0.97] duration-150 ease-out",
 											children: [/* @__PURE__ */ jsx("svg", {
 												className: "w-4 h-4",
 												fill: "none",
@@ -20183,7 +20144,7 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 													alert(isRtl ? "تم نسخ رابط الصفحة" : "Link copied");
 												}
 											},
-											className: "w-full py-3 px-4 bg-white border border-secondary-200 hover:bg-surface text-secondary-800 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-98",
+											className: "w-full py-3 px-4 bg-white border border-secondary-200 hover:bg-surface text-secondary-800 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition active:scale-[0.97] duration-150 ease-out",
 											children: [/* @__PURE__ */ jsx("svg", {
 												className: "w-4 h-4 text-secondary-600",
 												fill: "none",
@@ -20199,8 +20160,29 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 										})]
 									}),
 									/* @__PURE__ */ jsxs("div", {
-										className: "grid grid-cols-3 gap-3 pt-2",
+										className: "grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2",
 										children: [
+											(unit.type || unit.unit_type) && /* @__PURE__ */ jsxs("div", {
+												className: "p-3 bg-surface rounded-xl border border-secondary-100 text-center",
+												children: [/* @__PURE__ */ jsxs("div", {
+													className: "flex items-center justify-center gap-1 text-secondary-600 text-xs font-medium mb-1",
+													children: [/* @__PURE__ */ jsx("svg", {
+														className: "w-4 h-4 text-secondary-500",
+														fill: "none",
+														viewBox: "0 0 24 24",
+														stroke: "currentColor",
+														strokeWidth: 1.75,
+														children: /* @__PURE__ */ jsx("path", {
+															strokeLinecap: "round",
+															strokeLinejoin: "round",
+															d: "M8.25 21v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21m0 0h4.5V3.75a.75.75 0 00-.75-.75H5.25a.75.75 0 00-.75.75V21h3.75"
+														})
+													}), /* @__PURE__ */ jsx("span", { children: isRtl ? "نوع الوحدة" : "Unit Type" })]
+												}), /* @__PURE__ */ jsx("p", {
+													className: "text-xs font-black text-secondary-950 truncate",
+													children: locale === "ar" ? unit.type?.name_ar || unit.type?.name || unit.unit_type?.name_ar || unit.unit_type?.name : unit.type?.name_en || unit.type?.name || unit.unit_type?.name_en || unit.unit_type?.name
+												})]
+											}),
 											unit.area_sqm && /* @__PURE__ */ jsxs("div", {
 												className: "p-3 bg-surface rounded-xl border border-secondary-100 text-center",
 												children: [/* @__PURE__ */ jsxs("div", {
@@ -20269,6 +20251,48 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 												}), /* @__PURE__ */ jsx("p", {
 													className: "text-sm font-black text-secondary-950",
 													children: unit.bathrooms
+												})]
+											}),
+											unit.floor != null && /* @__PURE__ */ jsxs("div", {
+												className: "p-3 bg-surface rounded-xl border border-secondary-100 text-center",
+												children: [/* @__PURE__ */ jsxs("div", {
+													className: "flex items-center justify-center gap-1 text-secondary-600 text-xs font-medium mb-1",
+													children: [/* @__PURE__ */ jsx("svg", {
+														className: "w-4 h-4 text-secondary-500",
+														fill: "none",
+														viewBox: "0 0 24 24",
+														stroke: "currentColor",
+														strokeWidth: 1.75,
+														children: /* @__PURE__ */ jsx("path", {
+															strokeLinecap: "round",
+															strokeLinejoin: "round",
+															d: "M3.75 21h17.25M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21"
+														})
+													}), /* @__PURE__ */ jsx("span", { children: isRtl ? "الطابق" : "Floor" })]
+												}), /* @__PURE__ */ jsx("p", {
+													className: "text-sm font-black text-secondary-950",
+													children: unit.floor
+												})]
+											}),
+											(unit.finishingType || unit.finishing_type) && /* @__PURE__ */ jsxs("div", {
+												className: "p-3 bg-surface rounded-xl border border-secondary-100 text-center",
+												children: [/* @__PURE__ */ jsxs("div", {
+													className: "flex items-center justify-center gap-1 text-secondary-600 text-xs font-medium mb-1",
+													children: [/* @__PURE__ */ jsx("svg", {
+														className: "w-4 h-4 text-secondary-500",
+														fill: "none",
+														viewBox: "0 0 24 24",
+														stroke: "currentColor",
+														strokeWidth: 1.75,
+														children: /* @__PURE__ */ jsx("path", {
+															strokeLinecap: "round",
+															strokeLinejoin: "round",
+															d: "M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42"
+														})
+													}), /* @__PURE__ */ jsx("span", { children: isRtl ? "التشطيب" : "Finishing" })]
+												}), /* @__PURE__ */ jsx("p", {
+													className: "text-xs font-black text-secondary-950 truncate",
+													children: locale === "ar" ? unit.finishingType?.name_ar || unit.finishingType?.name || unit.finishing_type?.name_ar || unit.finishing_type?.name : unit.finishingType?.name_en || unit.finishingType?.name || unit.finishing_type?.name_en || unit.finishing_type?.name
 												})]
 											})
 										]
@@ -20359,12 +20383,12 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 									className: "py-3 hover:text-[#CC0000] transition-colors",
 									children: isRtl ? "الفيديو التعريفي" : "Video"
 								}),
-								/* @__PURE__ */ jsx("a", {
+								unit.features?.length > 0 && /* @__PURE__ */ jsx("a", {
 									href: "#features",
 									className: "py-3 hover:text-[#CC0000] transition-colors",
 									children: isRtl ? "المميزات" : "Features"
 								}),
-								/* @__PURE__ */ jsx("a", {
+								hasValidCoords(unit) && /* @__PURE__ */ jsx("a", {
 									href: "#location",
 									className: "py-3 hover:text-[#CC0000] transition-colors",
 									children: isRtl ? "الموقع" : "Location"
@@ -20393,32 +20417,7 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 												className: "text-sm text-secondary-700 leading-relaxed whitespace-pre-line font-normal",
 												children: (locale === "ar" ? unit.description_ar || unit.description : unit.description_en || unit.description) || (isRtl ? "شقة فاخرة بمساحة واسعة في موقع متميز تتميز بتصميم عصري وتقسيم ممتاز ومساحات تتيح أقصى درجات الراحة والتطشيبات عالية الجودة في واحدة من أفضل المناطق السكنية." : "Luxury spacious unit in a prime location with modern architecture, premium finishings, and optimal layout.")
 											}),
-											["installment", "both"].includes(unit.payment_method) && (unit.down_payment || unit.installment_years) && /* @__PURE__ */ jsxs("div", {
-												className: "mt-6 pt-4 border-t border-secondary-100",
-												children: [/* @__PURE__ */ jsx("h2", {
-													className: "text-xs font-bold text-secondary-900 mb-3",
-													children: isRtl ? "أنظمة الدفع والتسهيلات" : "Payment Details"
-												}), /* @__PURE__ */ jsxs("div", {
-													className: "grid grid-cols-2 gap-4 bg-surface p-4 rounded-xl border border-secondary-100 text-xs",
-													children: [unit.down_payment && /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("span", {
-														className: "text-secondary-500 font-medium block mb-1",
-														children: isRtl ? "الدفعة الأولى" : "Down Payment"
-													}), /* @__PURE__ */ jsx("span", {
-														className: "font-bold text-secondary-950",
-														children: !isNaN(unit.down_payment) && !isNaN(parseFloat(unit.down_payment)) ? Number(unit.down_payment).toLocaleString(locale === "ar" ? "ar-EG" : "en-US") + " " + trans("currency_egp") : unit.down_payment
-													})] }), unit.installment_years && /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("span", {
-														className: "text-secondary-500 font-medium block mb-1",
-														children: isRtl ? "سنوات التقسيط" : "Installment Years"
-													}), /* @__PURE__ */ jsxs("span", {
-														className: "font-bold text-secondary-950",
-														children: [
-															unit.installment_years,
-															" ",
-															isRtl ? "سنوات" : "Years"
-														]
-													})] })]
-												})]
-											})
+											/* @__PURE__ */ jsx(PaymentTerms, { item: unit })
 										]
 									}),
 									embedUrl && /* @__PURE__ */ jsxs("section", {
@@ -20442,18 +20441,12 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 													d: "M15.91 11.672a.375.375 0 010 .656l-5.603 3.113a.375.375 0 01-.557-.328V8.887c0-.286.307-.466.557-.327l5.603 3.112z"
 												})]
 											}), /* @__PURE__ */ jsx("span", { children: isRtl ? "الفيديو التعريفي للوحدة" : "Property Video Tour" })]
-										}), /* @__PURE__ */ jsx("div", {
-											className: "rounded-xl overflow-hidden aspect-video border border-secondary-200 shadow-sm bg-black",
-											children: /* @__PURE__ */ jsx("iframe", {
-												src: embedUrl,
-												className: "w-full h-full border-0",
-												allow: "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture",
-												allowFullScreen: true,
-												title: "Property Video Tour"
-											})
+										}), /* @__PURE__ */ jsx(VideoPlayer, {
+											embedUrl,
+											title: unit.name
 										})]
 									}),
-									/* @__PURE__ */ jsxs("section", {
+									unit.features?.length > 0 && /* @__PURE__ */ jsxs("section", {
 										id: "features",
 										className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6",
 										children: [/* @__PURE__ */ jsx("h2", {
@@ -20461,68 +20454,17 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 											children: isRtl ? "المميزات" : "Features & Amenities"
 										}), /* @__PURE__ */ jsx("div", {
 											className: "grid grid-cols-2 sm:grid-cols-3 gap-3",
-											children: (unit.features?.length > 0 ? unit.features : [
-												{
-													id: 1,
-													name_ar: "حمام سباحة",
-													name_en: "Swimming Pool",
-													icon: "pool"
-												},
-												{
-													id: 2,
-													name_ar: "مصعد",
-													name_en: "Elevator",
-													icon: "elevator"
-												},
-												{
-													id: 3,
-													name_ar: "كافيه",
-													name_en: "Cafe",
-													icon: "cafe"
-												},
-												{
-													id: 4,
-													name_ar: "كاميرات مراقبة",
-													name_en: "CCTV Security",
-													icon: "cctv"
-												},
-												{
-													id: 5,
-													name_ar: "نادي رياضي",
-													name_en: "Gym & Fitness",
-													icon: "gym"
-												},
-												{
-													id: 6,
-													name_ar: "موقف سيارات",
-													name_en: "Parking Garage",
-													icon: "parking"
-												},
-												{
-													id: 7,
-													name_ar: "أمن وحراسة 24",
-													name_en: "24/7 Security",
-													icon: "security"
-												}
-											]).map((feature) => /* @__PURE__ */ jsxs("div", {
+											children: unit.features.map((feature) => /* @__PURE__ */ jsxs("div", {
 												className: "flex flex-col items-center justify-center p-3.5 rounded-xl bg-surface border border-secondary-100 text-center gap-2 hover:border-secondary-300 transition-colors",
 												children: [/* @__PURE__ */ jsx("div", {
-													className: "w-8 h-8 rounded-full bg-white shadow-xs border border-secondary-100 flex items-center justify-center text-secondary-700",
-													children: /* @__PURE__ */ jsx("svg", {
-														className: "w-4 h-4 text-[#CC0000]",
-														fill: "none",
-														viewBox: "0 0 24 24",
-														stroke: "currentColor",
-														strokeWidth: 2,
-														children: /* @__PURE__ */ jsx("path", {
-															strokeLinecap: "round",
-															strokeLinejoin: "round",
-															d: "M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-														})
+													className: "w-9 h-9 rounded-full bg-white shadow-xs border border-secondary-100 flex items-center justify-center text-secondary-700",
+													children: /* @__PURE__ */ jsx(IconByName, {
+														iconName: feature.icon_name || feature.icon,
+														className: "w-5 h-5 text-[#FF6B6B]"
 													})
 												}), /* @__PURE__ */ jsx("span", {
 													className: "text-xs font-semibold text-secondary-800",
-													children: locale === "ar" ? feature.name_ar : feature.name_en
+													children: locale === "ar" ? feature.name_ar || feature.name : feature.name_en || feature.name
 												})]
 											}, feature.id))
 										})]
@@ -20563,35 +20505,49 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 																	value: data.client_name,
 																	onChange: (e) => setData("client_name", e.target.value),
 																	required: true,
-																	className: "w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none transition-all"
+																	className: "w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none transition-colors"
 																}),
 																errors.client_name && /* @__PURE__ */ jsx("p", {
 																	className: "text-xs text-error mt-1",
 																	children: errors.client_name
 																})
 															] }),
-															/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
-																htmlFor: "client_phone_dt",
-																className: "block text-xs font-semibold text-secondary-900 mb-1",
-																children: isRtl ? "رقم الهاتف" : "Phone Number"
-															}), /* @__PURE__ */ jsx("input", {
-																id: "client_phone_dt",
-																type: "tel",
-																value: data.client_phone,
-																onChange: (e) => setData("client_phone", e.target.value),
-																className: "w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none transition-all"
-															})] }),
-															/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
-																htmlFor: "client_email_dt",
-																className: "block text-xs font-semibold text-secondary-900 mb-1",
-																children: isRtl ? "البريد الإلكتروني" : "Email"
-															}), /* @__PURE__ */ jsx("input", {
-																id: "client_email_dt",
-																type: "email",
-																value: data.client_email,
-																onChange: (e) => setData("client_email", e.target.value),
-																className: "w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none transition-all"
-															})] })
+															/* @__PURE__ */ jsxs("div", { children: [
+																/* @__PURE__ */ jsx("label", {
+																	htmlFor: "client_phone_dt",
+																	className: "block text-xs font-semibold text-secondary-900 mb-1",
+																	children: isRtl ? "رقم الهاتف" : "Phone Number"
+																}),
+																/* @__PURE__ */ jsx("input", {
+																	id: "client_phone_dt",
+																	type: "tel",
+																	value: data.client_phone,
+																	onChange: (e) => setData("client_phone", e.target.value),
+																	className: "w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none transition-colors"
+																}),
+																errors.client_phone && /* @__PURE__ */ jsx("p", {
+																	className: "text-xs text-error mt-1",
+																	children: errors.client_phone
+																})
+															] }),
+															/* @__PURE__ */ jsxs("div", { children: [
+																/* @__PURE__ */ jsx("label", {
+																	htmlFor: "client_email_dt",
+																	className: "block text-xs font-semibold text-secondary-900 mb-1",
+																	children: isRtl ? "البريد الإلكتروني" : "Email"
+																}),
+																/* @__PURE__ */ jsx("input", {
+																	id: "client_email_dt",
+																	type: "email",
+																	value: data.client_email,
+																	onChange: (e) => setData("client_email", e.target.value),
+																	className: "w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none transition-colors"
+																}),
+																errors.client_email && /* @__PURE__ */ jsx("p", {
+																	className: "text-xs text-error mt-1",
+																	children: errors.client_email
+																})
+															] })
 														]
 													}),
 													/* @__PURE__ */ jsxs("div", { children: [
@@ -20606,7 +20562,7 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 															onChange: (e) => setData("content", e.target.value),
 															required: true,
 															rows: 3,
-															className: "w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none resize-none transition-all"
+															className: "w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none resize-none transition-colors"
 														}),
 														errors.content && /* @__PURE__ */ jsx("p", {
 															className: "text-xs text-error mt-1",
@@ -20616,7 +20572,7 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 													/* @__PURE__ */ jsxs("button", {
 														type: "submit",
 														disabled: processing,
-														className: "w-full py-3 bg-[#CC0000] hover:bg-[#b30000] text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-98 disabled:opacity-50 flex items-center justify-center gap-2",
+														className: "w-full py-3 bg-[#CC0000] hover:bg-[#b30000] text-white font-bold text-xs rounded-xl shadow-md transition active:scale-[0.97] duration-150 ease-out disabled:opacity-50 flex items-center justify-center gap-2",
 														children: [/* @__PURE__ */ jsx("svg", {
 															className: "w-4 h-4 rotate-180",
 															fill: "none",
@@ -20701,7 +20657,7 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 										}),
 										/* @__PURE__ */ jsxs(Link, {
 											href: localizedPath(`/projects/${unit.project.slug_ar || unit.project.slug_en || unit.project.slug || unit.project.id}`, locale),
-											className: "w-full py-2.5 px-4 bg-[#CC0000] hover:bg-[#b30000] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-sm transition-colors",
+											className: "w-full py-2.5 px-4 bg-[#CC0000] hover:bg-[#b30000] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-sm transition active:scale-[0.97] duration-150 ease-out",
 											children: [/* @__PURE__ */ jsx("span", { children: isRtl ? "عرض المشروع وجميع وحداته" : "View Project & All Units" }), /* @__PURE__ */ jsx("svg", {
 												className: "w-3.5 h-3.5 rtl:rotate-180",
 												fill: "none",
@@ -20741,7 +20697,7 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 										}),
 										/* @__PURE__ */ jsxs(Link, {
 											href: localizedPath(`/areas/${unit.area.slug || unit.area.id}`, locale),
-											className: "w-full py-2.5 px-4 bg-surface hover:bg-secondary-100 text-secondary-800 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors border border-secondary-200",
+											className: "w-full py-2.5 px-4 bg-surface hover:bg-secondary-100 text-secondary-800 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition active:scale-[0.97] duration-150 ease-out border border-secondary-200",
 											children: [/* @__PURE__ */ jsx("span", { children: isRtl ? "استكشف عقارات هذه المنطقة" : "Explore Properties in this Area" }), /* @__PURE__ */ jsx("svg", {
 												className: "w-3.5 h-3.5 rtl:rotate-180",
 												fill: "none",
@@ -20756,7 +20712,7 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 											})]
 										})
 									]
-								}) : null, /* @__PURE__ */ jsxs("div", {
+								}) : null, hasValidCoords(unit) && /* @__PURE__ */ jsxs("div", {
 									id: "location",
 									className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4",
 									children: [
@@ -20767,7 +20723,7 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 										/* @__PURE__ */ jsx("div", {
 											className: "rounded-xl overflow-hidden border border-secondary-200 aspect-[16/9]",
 											children: /* @__PURE__ */ jsx("iframe", {
-												src: `https://maps.google.com/maps?q=${unit.latitude || "30.0444"},${unit.longitude || "31.2357"}&hl=${locale}&z=14&output=embed`,
+												src: `https://maps.google.com/maps?q=${unit.latitude},${unit.longitude}&hl=${locale}&z=14&output=embed`,
 												className: "w-full h-full border-0",
 												allowFullScreen: true,
 												loading: "lazy",
@@ -20778,7 +20734,7 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 										/* @__PURE__ */ jsx("div", {
 											className: "text-center pt-1",
 											children: /* @__PURE__ */ jsxs("a", {
-												href: `https://www.google.com/maps/search/?api=1&query=${unit.latitude || "30.0444"},${unit.longitude || "31.2357"}`,
+												href: `https://www.google.com/maps/search/?api=1&query=${unit.latitude},${unit.longitude}`,
 												target: "_blank",
 												rel: "noopener noreferrer",
 												className: "inline-flex items-center justify-center gap-1.5 text-xs font-bold text-secondary-800 hover:text-[#CC0000] transition-colors",
@@ -20809,13 +20765,17 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 							children: [
 								/* @__PURE__ */ jsxs("section", {
 									className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6",
-									children: [/* @__PURE__ */ jsx("h2", {
-										className: "text-lg font-black text-secondary-950 mb-3",
-										children: isRtl ? "نبذة عن الوحدة" : "Unit Overview"
-									}), /* @__PURE__ */ jsx("p", {
-										className: "text-sm text-secondary-700 leading-relaxed whitespace-pre-line font-normal",
-										children: (locale === "ar" ? unit.description_ar || unit.description : unit.description_en || unit.description) || (isRtl ? "شقة فاخرة بمساحة واسعة في موقع متميز تتميز بتصميم عصري وتقسيم ممتاز ومساحات تتيح أقصى درجات الراحة والتطشيبات عالية الجودة في واحدة من أفضل المناطق السكنية." : "Luxury spacious unit in a prime location with modern architecture, premium finishings, and optimal layout.")
-									})]
+									children: [
+										/* @__PURE__ */ jsx("h2", {
+											className: "text-lg font-black text-secondary-950 mb-3",
+											children: isRtl ? "نبذة عن الوحدة" : "Unit Overview"
+										}),
+										/* @__PURE__ */ jsx("p", {
+											className: "text-sm text-secondary-700 leading-relaxed whitespace-pre-line font-normal",
+											children: (locale === "ar" ? unit.description_ar || unit.description : unit.description_en || unit.description) || (isRtl ? "شقة فاخرة بمساحة واسعة في موقع متميز تتميز بتصميم عصري وتقسيم ممتاز ومساحات تتيح أقصى درجات الراحة والتطشيبات عالية الجودة في واحدة من أفضل المناطق السكنية." : "Luxury spacious unit in a prime location with modern architecture, premium finishings, and optimal layout.")
+										}),
+										/* @__PURE__ */ jsx(PaymentTerms, { item: unit })
+									]
 								}),
 								embedUrl && /* @__PURE__ */ jsxs("section", {
 									id: "video-mob",
@@ -20838,86 +20798,29 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 												d: "M15.91 11.672a.375.375 0 010 .656l-5.603 3.113a.375.375 0 01-.557-.328V8.887c0-.286.307-.466.557-.327l5.603 3.112z"
 											})]
 										}), /* @__PURE__ */ jsx("span", { children: isRtl ? "الفيديو التعريفي" : "Property Video Tour" })]
-									}), /* @__PURE__ */ jsx("div", {
-										className: "rounded-xl overflow-hidden aspect-video border border-secondary-200 shadow-sm bg-black",
-										children: /* @__PURE__ */ jsx("iframe", {
-											src: embedUrl,
-											className: "w-full h-full border-0",
-											allow: "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture",
-											allowFullScreen: true,
-											title: "Property Video Tour Mobile"
-										})
+									}), /* @__PURE__ */ jsx(VideoPlayer, {
+										embedUrl,
+										title: unit.name
 									})]
 								}),
-								/* @__PURE__ */ jsxs("section", {
+								unit.features?.length > 0 && /* @__PURE__ */ jsxs("section", {
 									className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6",
 									children: [/* @__PURE__ */ jsx("h2", {
 										className: "text-lg font-black text-secondary-950 mb-4",
 										children: isRtl ? "المميزات" : "Features & Amenities"
 									}), /* @__PURE__ */ jsx("div", {
 										className: "grid grid-cols-2 sm:grid-cols-3 gap-3",
-										children: (unit.features?.length > 0 ? unit.features : [
-											{
-												id: 1,
-												name_ar: "حمام سباحة",
-												name_en: "Swimming Pool",
-												icon: "pool"
-											},
-											{
-												id: 2,
-												name_ar: "مصعد",
-												name_en: "Elevator",
-												icon: "elevator"
-											},
-											{
-												id: 3,
-												name_ar: "كافيه",
-												name_en: "Cafe",
-												icon: "cafe"
-											},
-											{
-												id: 4,
-												name_ar: "كاميرات مراقبة",
-												name_en: "CCTV Security",
-												icon: "cctv"
-											},
-											{
-												id: 5,
-												name_ar: "نادي رياضي",
-												name_en: "Gym & Fitness",
-												icon: "gym"
-											},
-											{
-												id: 6,
-												name_ar: "موقف سيارات",
-												name_en: "Parking Garage",
-												icon: "parking"
-											},
-											{
-												id: 7,
-												name_ar: "أمن وحراسة 24",
-												name_en: "24/7 Security",
-												icon: "security"
-											}
-										]).map((feature) => /* @__PURE__ */ jsxs("div", {
+										children: unit.features.map((feature) => /* @__PURE__ */ jsxs("div", {
 											className: "flex flex-col items-center justify-center p-3.5 rounded-xl bg-surface border border-secondary-100 text-center gap-2",
 											children: [/* @__PURE__ */ jsx("div", {
-												className: "w-8 h-8 rounded-full bg-white shadow-xs border border-secondary-100 flex items-center justify-center text-secondary-700",
-												children: /* @__PURE__ */ jsx("svg", {
-													className: "w-4 h-4 text-[#CC0000]",
-													fill: "none",
-													viewBox: "0 0 24 24",
-													stroke: "currentColor",
-													strokeWidth: 2,
-													children: /* @__PURE__ */ jsx("path", {
-														strokeLinecap: "round",
-														strokeLinejoin: "round",
-														d: "M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-													})
+												className: "w-9 h-9 rounded-full bg-white shadow-xs border border-secondary-100 flex items-center justify-center text-secondary-700",
+												children: /* @__PURE__ */ jsx(IconByName, {
+													iconName: feature.icon_name || feature.icon,
+													className: "w-5 h-5 text-[#FF6B6B]"
 												})
 											}), /* @__PURE__ */ jsx("span", {
 												className: "text-xs font-semibold text-secondary-800",
-												children: locale === "ar" ? feature.name_ar : feature.name_en
+												children: locale === "ar" ? feature.name_ar || feature.name : feature.name_en || feature.name
 											})]
 										}, feature.id))
 									})]
@@ -20937,29 +20840,56 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 										}),
 										/* @__PURE__ */ jsxs("div", {
 											className: "space-y-2.5 text-xs",
-											children: [/* @__PURE__ */ jsxs("div", {
-												className: "flex items-center justify-between py-1.5 border-b border-secondary-100/60",
-												children: [/* @__PURE__ */ jsx("span", {
-													className: "text-secondary-500 font-semibold",
-													children: isRtl ? "اسم المشروع" : "Project Name"
-												}), /* @__PURE__ */ jsx("span", {
-													className: "font-bold text-secondary-950",
-													children: unit.project.name
-												})]
-											}), unit.project.area?.name && /* @__PURE__ */ jsxs("div", {
-												className: "flex items-center justify-between py-1.5 border-b border-secondary-100/60",
-												children: [/* @__PURE__ */ jsx("span", {
-													className: "text-secondary-500 font-semibold",
-													children: isRtl ? "المنطقة" : "Area"
-												}), /* @__PURE__ */ jsx("span", {
-													className: "font-bold text-secondary-950",
-													children: unit.project.area.name
-												})]
-											})]
+											children: [
+												/* @__PURE__ */ jsxs("div", {
+													className: "flex items-center justify-between py-1.5 border-b border-secondary-100/60",
+													children: [/* @__PURE__ */ jsx("span", {
+														className: "text-secondary-500 font-semibold",
+														children: isRtl ? "اسم المشروع" : "Project Name"
+													}), /* @__PURE__ */ jsx("span", {
+														className: "font-bold text-secondary-950",
+														children: unit.project.name
+													})]
+												}),
+												unit.project.area?.name && /* @__PURE__ */ jsxs("div", {
+													className: "flex items-center justify-between py-1.5 border-b border-secondary-100/60",
+													children: [/* @__PURE__ */ jsx("span", {
+														className: "text-secondary-500 font-semibold",
+														children: isRtl ? "المنطقة" : "Area"
+													}), /* @__PURE__ */ jsx("span", {
+														className: "font-bold text-secondary-950",
+														children: unit.project.area.name
+													})]
+												}),
+												unit.project.installment_years > 0 && /* @__PURE__ */ jsxs("div", {
+													className: "flex items-center justify-between py-1.5 border-b border-secondary-100/60",
+													children: [/* @__PURE__ */ jsx("span", {
+														className: "text-secondary-500 font-semibold",
+														children: isRtl ? "سنوات التقسيط" : "Installment Years"
+													}), /* @__PURE__ */ jsxs("span", {
+														className: "font-bold text-secondary-950",
+														children: [
+															unit.project.installment_years,
+															" ",
+															isRtl ? "سنوات" : "Years"
+														]
+													})]
+												}),
+												/* @__PURE__ */ jsxs("div", {
+													className: "flex items-center justify-between py-1.5",
+													children: [/* @__PURE__ */ jsx("span", {
+														className: "text-secondary-500 font-semibold",
+														children: isRtl ? "حالة المشروع" : "Status"
+													}), /* @__PURE__ */ jsxs("span", {
+														className: "inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200",
+														children: [/* @__PURE__ */ jsx("span", { className: "w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" }), isRtl ? "متاح للبيع" : "Available"]
+													})]
+												})
+											]
 										}),
 										/* @__PURE__ */ jsxs(Link, {
 											href: localizedPath(`/projects/${unit.project.slug_ar || unit.project.slug_en || unit.project.slug || unit.project.id}`, locale),
-											className: "w-full py-2.5 px-4 bg-[#CC0000] hover:bg-[#b30000] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-sm transition-colors",
+											className: "w-full py-2.5 px-4 bg-[#CC0000] hover:bg-[#b30000] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-sm transition active:scale-[0.97] duration-150 ease-out",
 											children: [/* @__PURE__ */ jsx("span", { children: isRtl ? "عرض المشروع وجميع وحداته" : "View Project & All Units" }), /* @__PURE__ */ jsx("svg", {
 												className: "w-3.5 h-3.5 rtl:rotate-180",
 												fill: "none",
@@ -20974,25 +20904,94 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 											})]
 										})
 									]
-								}) : null,
-								/* @__PURE__ */ jsxs("div", {
+								}) : unit.area ? /* @__PURE__ */ jsxs("div", {
 									className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4",
-									children: [/* @__PURE__ */ jsx("h2", {
-										className: "text-sm font-black text-secondary-950",
-										children: isRtl ? "الموقع على الخريطة" : "Location on Map"
-									}), /* @__PURE__ */ jsx("div", {
-										className: "rounded-xl overflow-hidden border border-secondary-200 aspect-[16/9]",
-										children: /* @__PURE__ */ jsx("iframe", {
-											src: `https://maps.google.com/maps?q=${unit.latitude || "30.0444"},${unit.longitude || "31.2357"}&hl=${locale}&z=14&output=embed`,
-											className: "w-full h-full border-0",
-											allowFullScreen: true,
-											loading: "lazy",
-											referrerPolicy: "no-referrer-when-downgrade",
-											title: "Google Map Location Mobile"
+									children: [
+										/* @__PURE__ */ jsx("div", {
+											className: "flex items-center justify-between border-b border-secondary-100 pb-3",
+											children: /* @__PURE__ */ jsx("h2", {
+												className: "text-sm font-black text-secondary-950",
+												children: isRtl ? "معلومات المنطقة" : "Area Info"
+											})
+										}),
+										/* @__PURE__ */ jsx("div", {
+											className: "space-y-2.5 text-xs",
+											children: /* @__PURE__ */ jsxs("div", {
+												className: "flex items-center justify-between py-1.5",
+												children: [/* @__PURE__ */ jsx("span", {
+													className: "text-secondary-500 font-semibold",
+													children: isRtl ? "المنطقة" : "Area"
+												}), /* @__PURE__ */ jsx("span", {
+													className: "font-bold text-secondary-950",
+													children: unit.area.name
+												})]
+											})
+										}),
+										/* @__PURE__ */ jsxs(Link, {
+											href: localizedPath(`/areas/${unit.area.slug || unit.area.id}`, locale),
+											className: "w-full py-2.5 px-4 bg-surface hover:bg-secondary-100 text-secondary-800 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition active:scale-[0.97] duration-150 ease-out border border-secondary-200",
+											children: [/* @__PURE__ */ jsx("span", { children: isRtl ? "استكشف عقارات هذه المنطقة" : "Explore Properties in this Area" }), /* @__PURE__ */ jsx("svg", {
+												className: "w-3.5 h-3.5 rtl:rotate-180",
+												fill: "none",
+												viewBox: "0 0 24 24",
+												stroke: "currentColor",
+												strokeWidth: 2.5,
+												children: /* @__PURE__ */ jsx("path", {
+													strokeLinecap: "round",
+													strokeLinejoin: "round",
+													d: "M8.25 4.5l7.5 7.5-7.5 7.5"
+												})
+											})]
 										})
-									})]
+									]
+								}) : null,
+								hasValidCoords(unit) && /* @__PURE__ */ jsxs("div", {
+									className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4",
+									children: [
+										/* @__PURE__ */ jsx("h2", {
+											className: "text-sm font-black text-secondary-950",
+											children: isRtl ? "الموقع على الخريطة" : "Location on Map"
+										}),
+										/* @__PURE__ */ jsx("div", {
+											className: "rounded-xl overflow-hidden border border-secondary-200 aspect-[16/9]",
+											children: /* @__PURE__ */ jsx("iframe", {
+												src: `https://maps.google.com/maps?q=${unit.latitude},${unit.longitude}&hl=${locale}&z=14&output=embed`,
+												className: "w-full h-full border-0",
+												allowFullScreen: true,
+												loading: "lazy",
+												referrerPolicy: "no-referrer-when-downgrade",
+												title: "Google Map Location Mobile"
+											})
+										}),
+										/* @__PURE__ */ jsx("div", {
+											className: "text-center pt-1",
+											children: /* @__PURE__ */ jsxs("a", {
+												href: `https://www.google.com/maps/search/?api=1&query=${unit.latitude},${unit.longitude}`,
+												target: "_blank",
+												rel: "noopener noreferrer",
+												className: "inline-flex items-center justify-center gap-1.5 text-xs font-bold text-secondary-800 hover:text-[#CC0000] transition-colors",
+												children: [/* @__PURE__ */ jsxs("svg", {
+													className: "w-4 h-4 text-[#CC0000]",
+													fill: "none",
+													viewBox: "0 0 24 24",
+													stroke: "currentColor",
+													strokeWidth: 2,
+													children: [/* @__PURE__ */ jsx("path", {
+														strokeLinecap: "round",
+														strokeLinejoin: "round",
+														d: "M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"
+													}), /* @__PURE__ */ jsx("path", {
+														strokeLinecap: "round",
+														strokeLinejoin: "round",
+														d: "M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
+													})]
+												}), /* @__PURE__ */ jsx("span", { children: isRtl ? "فتح في خرائط Google" : "Open in Google Maps" })]
+											})
+										})
+									]
 								}),
 								/* @__PURE__ */ jsxs("section", {
+									id: "contact-form",
 									className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6",
 									children: [
 										/* @__PURE__ */ jsx("h2", {
@@ -21003,51 +21002,105 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 											className: "text-xs text-secondary-500 font-medium mb-5",
 											children: isRtl ? "يرجى ملء النموذج وسيتواصل معك أحد مستشارينا في أقرب وقت" : "Please fill out the form and our advisor will get in touch shortly."
 										}),
+										(sentSuccess || flash?.success) && /* @__PURE__ */ jsx("div", {
+											className: "mb-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold",
+											children: flash?.success || trans("unit_message_sent_success")
+										}),
 										/* @__PURE__ */ jsxs("form", {
 											onSubmit: handleSubmit,
 											noValidate: true,
 											className: "space-y-4",
 											children: [
-												/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
-													htmlFor: "client_name_mob",
-													className: "block text-xs font-semibold text-secondary-900 mb-1",
-													children: isRtl ? "الاسم الكامل" : "Full Name"
-												}), /* @__PURE__ */ jsx("input", {
-													id: "client_name_mob",
-													type: "text",
-													value: data.client_name,
-													onChange: (e) => setData("client_name", e.target.value),
-													required: true,
-													className: "w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none"
-												})] }),
-												/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
-													htmlFor: "client_phone_mob",
-													className: "block text-xs font-semibold text-secondary-900 mb-1",
-													children: isRtl ? "رقم الهاتف" : "Phone Number"
-												}), /* @__PURE__ */ jsx("input", {
-													id: "client_phone_mob",
-													type: "tel",
-													value: data.client_phone,
-													onChange: (e) => setData("client_phone", e.target.value),
-													className: "w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none"
-												})] }),
-												/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
-													htmlFor: "content_mob",
-													className: "block text-xs font-semibold text-secondary-900 mb-1",
-													children: isRtl ? "رسالتك" : "Message"
-												}), /* @__PURE__ */ jsx("textarea", {
-													id: "content_mob",
-													value: data.content,
-													onChange: (e) => setData("content", e.target.value),
-													required: true,
-													rows: 3,
-													className: "w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none resize-none"
-												})] }),
-												/* @__PURE__ */ jsx("button", {
+												/* @__PURE__ */ jsxs("div", { children: [
+													/* @__PURE__ */ jsx("label", {
+														htmlFor: "client_name_mob",
+														className: "block text-xs font-semibold text-secondary-900 mb-1",
+														children: isRtl ? "الاسم الكامل" : "Full Name"
+													}),
+													/* @__PURE__ */ jsx("input", {
+														id: "client_name_mob",
+														type: "text",
+														value: data.client_name,
+														onChange: (e) => setData("client_name", e.target.value),
+														required: true,
+														className: "w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none transition-colors"
+													}),
+													errors.client_name && /* @__PURE__ */ jsx("p", {
+														className: "text-xs text-error mt-1",
+														children: errors.client_name
+													})
+												] }),
+												/* @__PURE__ */ jsxs("div", { children: [
+													/* @__PURE__ */ jsx("label", {
+														htmlFor: "client_phone_mob",
+														className: "block text-xs font-semibold text-secondary-900 mb-1",
+														children: isRtl ? "رقم الهاتف" : "Phone Number"
+													}),
+													/* @__PURE__ */ jsx("input", {
+														id: "client_phone_mob",
+														type: "tel",
+														value: data.client_phone,
+														onChange: (e) => setData("client_phone", e.target.value),
+														className: "w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none transition-colors"
+													}),
+													errors.client_phone && /* @__PURE__ */ jsx("p", {
+														className: "text-xs text-error mt-1",
+														children: errors.client_phone
+													})
+												] }),
+												/* @__PURE__ */ jsxs("div", { children: [
+													/* @__PURE__ */ jsx("label", {
+														htmlFor: "client_email_mob",
+														className: "block text-xs font-semibold text-secondary-900 mb-1",
+														children: isRtl ? "البريد الإلكتروني" : "Email"
+													}),
+													/* @__PURE__ */ jsx("input", {
+														id: "client_email_mob",
+														type: "email",
+														value: data.client_email,
+														onChange: (e) => setData("client_email", e.target.value),
+														className: "w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none transition-colors"
+													}),
+													errors.client_email && /* @__PURE__ */ jsx("p", {
+														className: "text-xs text-error mt-1",
+														children: errors.client_email
+													})
+												] }),
+												/* @__PURE__ */ jsxs("div", { children: [
+													/* @__PURE__ */ jsx("label", {
+														htmlFor: "content_mob",
+														className: "block text-xs font-semibold text-secondary-900 mb-1",
+														children: isRtl ? "رسالتك" : "Message"
+													}),
+													/* @__PURE__ */ jsx("textarea", {
+														id: "content_mob",
+														value: data.content,
+														onChange: (e) => setData("content", e.target.value),
+														required: true,
+														rows: 3,
+														className: "w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none resize-none transition-colors"
+													}),
+													errors.content && /* @__PURE__ */ jsx("p", {
+														className: "text-xs text-error mt-1",
+														children: errors.content
+													})
+												] }),
+												/* @__PURE__ */ jsxs("button", {
 													type: "submit",
 													disabled: processing,
-													className: "w-full py-3 bg-[#CC0000] hover:bg-[#b30000] text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-2",
-													children: /* @__PURE__ */ jsx("span", { children: processing ? trans("loading", {}, "common") : isRtl ? "إرسال الرسالة" : "Send Message" })
+													className: "w-full py-3 bg-[#CC0000] hover:bg-[#b30000] text-white font-bold text-xs rounded-xl shadow-md transition active:scale-[0.97] duration-150 ease-out disabled:opacity-50 flex items-center justify-center gap-2",
+													children: [/* @__PURE__ */ jsx("svg", {
+														className: "w-4 h-4 rotate-180",
+														fill: "none",
+														viewBox: "0 0 24 24",
+														stroke: "currentColor",
+														strokeWidth: 2,
+														children: /* @__PURE__ */ jsx("path", {
+															strokeLinecap: "round",
+															strokeLinejoin: "round",
+															d: "M6 12L3 21l19-9L3 3l3 9zm0 0h7.5"
+														})
+													}), /* @__PURE__ */ jsx("span", { children: processing ? trans("loading", {}, "common") : isRtl ? "إرسال الرسالة" : "Send Message" })]
 												})
 											]
 										})
@@ -21134,35 +21187,49 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 				]
 			}),
 			unit && /* @__PURE__ */ jsxs("div", {
-				className: "fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-xl border-t border-secondary-200 p-3 shadow-lg flex items-center justify-between gap-3 md:hidden",
-				children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("span", {
-					className: "text-[10px] font-bold text-secondary-500 uppercase block",
-					children: isRtl ? "السعر" : "Price"
-				}), /* @__PURE__ */ jsxs("span", {
-					className: "text-base font-black text-[#CC0000]",
-					children: [
-						Number(unit.price).toLocaleString(locale === "ar" ? "ar-EG" : "en-US"),
-						" ",
-						/* @__PURE__ */ jsx("span", {
-							className: "text-xs font-bold",
-							children: trans("currency_egp")
-						})
-					]
-				})] }), /* @__PURE__ */ jsxs("a", {
-					href: "#contact-form",
-					className: "px-5 py-2.5 bg-[#CC0000] text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-md hover:bg-[#b30000] transition-colors",
-					children: [/* @__PURE__ */ jsx("svg", {
-						className: "w-4 h-4",
-						fill: "none",
-						viewBox: "0 0 24 24",
-						stroke: "currentColor",
-						strokeWidth: 2,
-						children: /* @__PURE__ */ jsx("path", {
-							strokeLinecap: "round",
-							strokeLinejoin: "round",
-							d: "M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"
-						})
-					}), /* @__PURE__ */ jsx("span", { children: isRtl ? "تواصل مع الوكيل" : "Contact Agent" })]
+				className: "fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-secondary-200 p-3 md:hidden flex items-center justify-between gap-3 shadow-2xl",
+				children: [/* @__PURE__ */ jsxs("div", {
+					className: "min-w-0",
+					children: [/* @__PURE__ */ jsx("span", {
+						className: "text-[10px] font-bold text-secondary-500 uppercase block",
+						children: isRtl ? "السعر" : "Price"
+					}), /* @__PURE__ */ jsxs("span", {
+						className: "text-base font-black text-[#CC0000] truncate block",
+						children: [
+							Number(unit.price).toLocaleString(locale === "ar" ? "ar-EG" : "en-US"),
+							" ",
+							/* @__PURE__ */ jsx("span", {
+								className: "text-xs font-bold",
+								children: trans("currency_egp")
+							})
+						]
+					})]
+				}), /* @__PURE__ */ jsxs("div", {
+					className: "flex items-center gap-2 shrink-0",
+					children: [/* @__PURE__ */ jsxs("a", {
+						href: `https://wa.me/${agentContacts.whatsapp}`,
+						target: "_blank",
+						rel: "noopener noreferrer",
+						className: "py-2.5 px-3.5 bg-[#16a34a] hover:bg-[#15803d] text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-md transition-colors active:scale-98 min-h-[44px]",
+						title: "WhatsApp",
+						children: [/* @__PURE__ */ jsx(WhatsAppIcon, { className: "w-4 h-4 fill-current" }), /* @__PURE__ */ jsx("span", { children: isRtl ? "واتساب" : "WhatsApp" })]
+					}), /* @__PURE__ */ jsxs("a", {
+						href: `tel:${agentContacts.phone}`,
+						className: "py-2.5 px-3.5 bg-[#CC0000] hover:bg-[#b30000] text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-md transition-colors active:scale-98 min-h-[44px]",
+						title: "Call",
+						children: [/* @__PURE__ */ jsx("svg", {
+							className: "w-4 h-4",
+							fill: "none",
+							viewBox: "0 0 24 24",
+							stroke: "currentColor",
+							strokeWidth: 2,
+							children: /* @__PURE__ */ jsx("path", {
+								strokeLinecap: "round",
+								strokeLinejoin: "round",
+								d: "M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"
+							})
+						}), /* @__PURE__ */ jsx("span", { children: isRtl ? "اتصال" : "Call" })]
+					})]
 				})]
 			}),
 			lightboxIndex !== null && images.length > 0 && /* @__PURE__ */ jsxs("div", {
@@ -21177,7 +21244,7 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 						children: "✕"
 					}),
 					/* @__PURE__ */ jsx("img", {
-						src: images[lightboxIndex]?.url || (images[lightboxIndex]?.path ? `/storage/${images[lightboxIndex].path}` : "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 600\"%3E%3Crect fill=\"%23F0F0F0\" width=\"800\" height=\"600\"/%3E%3C/svg%3E"),
+						src: getStorageUrl(images[lightboxIndex]?.url || images[lightboxIndex]?.path, "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 600\"%3E%3Crect fill=\"%23F0F0F0\" width=\"800\" height=\"600\"/%3E%3C/svg%3E"),
 						alt: "",
 						className: "max-w-[90vw] max-h-[85vh] object-contain rounded-xl",
 						onClick: (e) => e.stopPropagation()
@@ -21224,31 +21291,6 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 						})
 					})] })
 				]
-			}),
-			/* @__PURE__ */ jsxs("div", {
-				className: "fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-secondary-200 p-3 sm:hidden flex items-center gap-3 shadow-2xl",
-				children: [/* @__PURE__ */ jsxs("a", {
-					href: `https://wa.me/${agentContacts.whatsapp}`,
-					target: "_blank",
-					rel: "noopener noreferrer",
-					className: "flex-1 py-3 px-4 bg-[#16a34a] hover:bg-[#15803d] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-colors active:scale-98 min-h-[44px]",
-					children: [/* @__PURE__ */ jsx(WhatsAppIcon, { className: "w-4 h-4 fill-current" }), /* @__PURE__ */ jsx("span", { children: isRtl ? "واتساب" : "WhatsApp" })]
-				}), /* @__PURE__ */ jsxs("a", {
-					href: `tel:${agentContacts.phone}`,
-					className: "flex-1 py-3 px-4 bg-[#CC0000] hover:bg-[#b30000] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-colors active:scale-98 min-h-[44px]",
-					children: [/* @__PURE__ */ jsx("svg", {
-						className: "w-4 h-4",
-						fill: "none",
-						viewBox: "0 0 24 24",
-						stroke: "currentColor",
-						strokeWidth: 2,
-						children: /* @__PURE__ */ jsx("path", {
-							strokeLinecap: "round",
-							strokeLinejoin: "round",
-							d: "M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"
-						})
-					}), /* @__PURE__ */ jsx("span", { children: isRtl ? "اتصال مباشر" : "Call Agent" })]
-				})]
 			}),
 			/* @__PURE__ */ jsx(Footer, {})
 		]

@@ -145,6 +145,12 @@
       "skillPath": "skills/test-guard/SKILL.md",
       "computedHash": "1822498db8c41906ee9eb12c76018a9645e1979fbb5d0335fe27c113b5593330"
     },
+    "ui-ux-pro-max": {
+      "source": "nextlevelbuilder/ui-ux-pro-max-skill",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/ui-ux-pro-max/SKILL.md",
+      "computedHash": "d1de8ff8d228cd4204bf06eb959ef4317d5b927908d9f42765971e33e80c8a7e"
+    },
     "woo-guard": {
       "source": "amElnagdy/guard-skills",
       "sourceType": "github",
