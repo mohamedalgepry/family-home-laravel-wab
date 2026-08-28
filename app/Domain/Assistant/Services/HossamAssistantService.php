@@ -103,6 +103,9 @@ class HossamAssistantService
             ? $this->formatUnitCards($matchingUnits, $locale)
             : [];
 
+        // 6. Auto-linkify unit & project names mentioned in the reply
+        $reply = $this->injectUnitLinks($reply, $matchingUnits, $locale);
+
         return [
             'reply' => $reply,
             'recommended_units' => $recommendedCards,
@@ -491,6 +494,75 @@ PROMPT;
 
             return null;
         }
+    }
+
+    /**
+     * Scan the AI reply for known unit & project names and inject markdown links.
+     * e.g. "شقة في التجمع" → "[شقة في التجمع](/ar/units/slug)"
+     */
+    private function injectUnitLinks(string $reply, array $units, string $locale): string
+    {
+        if (empty($units) || empty($reply)) {
+            return $reply;
+        }
+
+        // Build a name → url map for units and their projects
+        $linkMap = [];
+        foreach ($units as $u) {
+            $slug = $locale === 'ar' ? ($u->slug_ar ?? $u->slug) : ($u->slug_en ?? $u->slug);
+            $url = '/' . $locale . '/units/' . $slug;
+            if (! empty($u->name) && mb_strlen($u->name) >= 3) {
+                $linkMap[$u->name] = $url;
+            }
+
+            // Also link project names if available
+            if ($u->project && ! empty($u->project->name) && mb_strlen($u->project->name) >= 3) {
+                $projectSlug = $locale === 'ar'
+                    ? ($u->project->slug_ar ?? $u->project->slug)
+                    : ($u->project->slug_en ?? $u->project->slug);
+                $projectUrl = '/' . $locale . '/projects/' . $projectSlug;
+                if (! isset($linkMap[$u->project->name])) {
+                    $linkMap[$u->project->name] = $projectUrl;
+                }
+            }
+        }
+
+        if (empty($linkMap)) {
+            return $reply;
+        }
+
+        // Sort by name length descending to match longer names first (avoid partial overlaps)
+        uksort($linkMap, fn ($a, $b) => mb_strlen($b) - mb_strlen($a));
+
+        foreach ($linkMap as $name => $url) {
+            // Skip if this name is already linked
+            if (mb_strpos($reply, '[' . $name . '](') !== false) {
+                continue;
+            }
+
+            // Try bold-wrapped name first: **name**
+            $boldName = '**' . $name . '**';
+            $boldPos = mb_stripos($reply, $boldName);
+            if ($boldPos !== false) {
+                $originalName = mb_substr($reply, $boldPos + 2, mb_strlen($name));
+                $reply = mb_substr($reply, 0, $boldPos)
+                    . '[' . $originalName . '](' . $url . ')'
+                    . mb_substr($reply, $boldPos + mb_strlen($boldName));
+
+                continue;
+            }
+
+            // Try plain name
+            $pos = mb_stripos($reply, $name);
+            if ($pos !== false) {
+                $originalName = mb_substr($reply, $pos, mb_strlen($name));
+                $reply = mb_substr($reply, 0, $pos)
+                    . '[' . $originalName . '](' . $url . ')'
+                    . mb_substr($reply, $pos + mb_strlen($name));
+            }
+        }
+
+        return $reply;
     }
 
     /**

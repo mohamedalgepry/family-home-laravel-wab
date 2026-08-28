@@ -14841,7 +14841,13 @@ function HossamChatWidget() {
 	};
 	const formatInline = (str) => {
 		if (!str) return null;
-		return str.split(/(\*\*[^*]+\*\*)/g).map((part, pIdx) => {
+		return str.split(/(\[[^\]]+\]\([^)]+\)|\*\*[^*]+\*\*)/g).map((part, pIdx) => {
+			const linkMatch = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+			if (linkMatch) return /* @__PURE__ */ jsx(Link, {
+				href: linkMatch[2],
+				className: "text-[#CC0000] font-bold underline underline-offset-2 decoration-[#CC0000]/30 hover:text-[#990000] hover:decoration-[#990000]/60 transition-colors",
+				children: linkMatch[1]
+			}, pIdx);
 			if (part.startsWith("**") && part.endsWith("**")) return /* @__PURE__ */ jsx("strong", {
 				className: "font-bold text-slate-950",
 				children: part.slice(2, -2)

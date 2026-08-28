@@ -141,11 +141,26 @@ export default function HossamChatWidget() {
         ])
     }
 
-    // Helper to format inline bold text
+    // Helper to format inline bold text and markdown links
     const formatInline = (str) => {
         if (!str) return null
-        const parts = str.split(/(\*\*[^*]+\*\*)/g)
+        // Split by: markdown links [text](url) and bold **text**
+        const parts = str.split(/(\[[^\]]+\]\([^)]+\)|\*\*[^*]+\*\*)/g)
         return parts.map((part, pIdx) => {
+            // Markdown link [text](url)
+            const linkMatch = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/)
+            if (linkMatch) {
+                return (
+                    <Link
+                        key={pIdx}
+                        href={linkMatch[2]}
+                        className="text-[#CC0000] font-bold underline underline-offset-2 decoration-[#CC0000]/30 hover:text-[#990000] hover:decoration-[#990000]/60 transition-colors"
+                    >
+                        {linkMatch[1]}
+                    </Link>
+                )
+            }
+            // Bold **text**
             if (part.startsWith('**') && part.endsWith('**')) {
                 return <strong key={pIdx} className="font-bold text-slate-950">{part.slice(2, -2)}</strong>
             }
