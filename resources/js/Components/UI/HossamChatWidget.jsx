@@ -141,50 +141,149 @@ export default function HossamChatWidget() {
         ])
     }
 
-    // Format rich text and markdown elements
+    // Helper to format inline bold text
+    const formatInline = (str) => {
+        if (!str) return null
+        const parts = str.split(/(\*\*[^*]+\*\*)/g)
+        return parts.map((part, pIdx) => {
+            if (part.startsWith('**') && part.endsWith('**')) {
+                return <strong key={pIdx} className="font-bold text-slate-950">{part.slice(2, -2)}</strong>
+            }
+            return part
+        })
+    }
+
+    // Format rich text, tables, and markdown elements
     const formatMessageText = (text) => {
         if (!text) return null
-        return text.split('\n').map((line, idx) => {
+        const lines = text.split('\n')
+        const elements = []
+        let inTable = false
+        let tableRows = []
+
+        const flushTable = (key) => {
+            if (tableRows.length > 0) {
+                elements.push(
+                    <div key={`tbl_${key}`} className="my-2.5 overflow-x-auto rounded-xl border border-slate-200 shadow-xs bg-white">
+                        <table className="min-w-full text-xs text-start divide-y divide-slate-200">
+                            <tbody>
+                                {tableRows.map((row, rIdx) => {
+                                    const isHeader = rIdx === 0
+                                    const isDivider = row.every(cell => /^[-:\s|]+$/.test(cell))
+                                    if (isDivider) return null
+                                    return (
+                                        <tr key={rIdx} className={isHeader ? 'bg-slate-100/90 font-bold text-slate-900' : 'hover:bg-slate-50/80 text-slate-700 divide-x divide-slate-100'}>
+                                            {row.map((cell, cIdx) => (
+                                                <td key={cIdx} className={`px-2.5 py-1.5 whitespace-nowrap ${isHeader ? 'font-black text-slate-900' : ''}`}>
+                                                    {formatInline(cell)}
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    )
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                )
+                tableRows = []
+            }
+            inTable = false
+        }
+
+        lines.forEach((line, idx) => {
             const trimmed = line.trim()
-            if (!trimmed) return <div key={idx} className="h-1.5" />
+            if (!trimmed) {
+                if (inTable) flushTable(idx)
+                elements.push(<div key={idx} className="h-1.5" />)
+                return
+            }
+
+            // Table row
+            if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+                inTable = true
+                const cells = trimmed.slice(1, -1).split('|').map(c => c.trim())
+                tableRows.push(cells)
+                return
+            } else if (inTable) {
+                flushTable(idx)
+            }
+
+            // Divider
+            if (/^[-*_]{3,}$/.test(trimmed)) {
+                elements.push(<hr key={idx} className="my-2.5 border-slate-200" />)
+                return
+            }
 
             // Headers
             if (trimmed.startsWith('### ')) {
-                return (
-                    <h4 key={idx} className="font-bold text-slate-900 text-sm mt-2 mb-1">
-                        {trimmed.slice(4)}
+                elements.push(
+                    <h4 key={idx} className="font-bold text-slate-900 text-xs sm:text-sm mt-2.5 mb-1 flex items-center gap-1.5">
+                        <span className="w-1.5 h-3 bg-[#CC0000] rounded-full inline-block"></span>
+                        <span>{formatInline(trimmed.slice(4))}</span>
                     </h4>
                 )
+                return
             }
             if (trimmed.startsWith('## ')) {
-                return (
-                    <h3 key={idx} className="font-black text-slate-900 text-sm sm:text-base mt-2.5 mb-1 text-primary-900">
-                        {trimmed.slice(3)}
+                elements.push(
+                    <h3 key={idx} className="font-black text-slate-950 text-sm mt-3 mb-1.5 text-[#990000] border-b border-slate-200/80 pb-1">
+                        {formatInline(trimmed.slice(3))}
                     </h3>
                 )
+                return
+            }
+            if (trimmed.startsWith('# ')) {
+                elements.push(
+                    <h2 key={idx} className="font-black text-slate-950 text-sm sm:text-base mt-3 mb-1.5 text-[#990000]">
+                        {formatInline(trimmed.slice(2))}
+                    </h2>
+                )
+                return
             }
 
-            // Bold text formatting
-            const parts = line.split(/(\*\*[^*]+\*\*)/g)
-            const formattedLine = parts.map((part, pIdx) => {
-                if (part.startsWith('**') && part.endsWith('**')) {
-                    return <strong key={pIdx} className="font-bold text-slate-950">{part.slice(2, -2)}</strong>
-                }
-                return part
-            })
-
-            // Bullet points
+            // Bullet points (- or * or •)
+            let bulletContent = null
             if (trimmed.startsWith('- ') || trimmed.startsWith('* ') || trimmed.startsWith('• ')) {
-                return (
-                    <div key={idx} className="flex items-start gap-2 my-1 ps-1 text-slate-800">
-                        <span className="text-[#CC0000] font-black leading-relaxed">•</span>
-                        <span className="flex-1">{formattedLine.slice(1)}</span>
+                bulletContent = trimmed.slice(2).trim()
+            } else if (trimmed.startsWith('•')) {
+                bulletContent = trimmed.slice(1).trim()
+            }
+
+            if (bulletContent !== null) {
+                if (bulletContent.length === 0) return
+                elements.push(
+                    <div key={idx} className="flex items-start gap-2 my-1 ps-1 text-slate-800 text-xs sm:text-sm">
+                        <span className="text-[#CC0000] font-black leading-relaxed shrink-0">•</span>
+                        <span className="flex-1 leading-relaxed">{formatInline(bulletContent)}</span>
                     </div>
                 )
+                return
             }
 
-            return <p key={idx} className="my-1 leading-relaxed text-slate-800">{formattedLine}</p>
+            // Numbered items (1. 2. 3.)
+            if (/^\d+\.\s/.test(trimmed)) {
+                const dotPos = trimmed.indexOf('.')
+                const num = trimmed.slice(0, dotPos)
+                const numContent = trimmed.slice(dotPos + 1).trim()
+                elements.push(
+                    <div key={idx} className="flex items-start gap-2 my-1.5 ps-1 text-slate-800 text-xs sm:text-sm">
+                        <span className="w-5 h-5 rounded-md bg-slate-100 text-[#CC0000] font-bold text-xs flex items-center justify-center shrink-0 border border-slate-200 shadow-2xs">{num}</span>
+                        <span className="flex-1 leading-relaxed font-semibold">{formatInline(numContent)}</span>
+                    </div>
+                )
+                return
+            }
+
+            // Normal paragraph
+            elements.push(
+                <p key={idx} className="my-1 leading-relaxed text-slate-800 text-xs sm:text-sm">
+                    {formatInline(line)}
+                </p>
+            )
         })
+
+        if (inTable) flushTable('end')
+        return elements
     }
 
     return (

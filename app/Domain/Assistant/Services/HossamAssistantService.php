@@ -97,58 +97,166 @@ class HossamAssistantService
     /**
      * Search database for units matching user request.
      */
+    /**
+     * Search database for units matching user request with smart parametric extraction.
+     */
     private function searchRelevantUnits(string $message, string $locale): array
     {
         try {
+            // Normalize Arabic digits (٠-٩) to English digits
+            $eastern = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+            $western = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+            $normalizedMessage = str_replace($eastern, $western, $message);
+            $lowerMessage = mb_strtolower($normalizedMessage, 'UTF-8');
+
             $query = Unit::query()
                 ->where('is_active', true)
                 ->with(['area', 'type', 'images', 'user', 'project']);
 
-            // Check if user mentions rental vs sale
-            if (preg_match('/(إيجار|ايجار|أجر|rent|rental)/iu', $message)) {
-                $query->where('transaction', 'rent');
-            } elseif (preg_match('/(بيع|شراء|اشتري|تمليك|sale|buy)/iu', $message)) {
-                $query->where('transaction', 'sale');
+            $hasSpecificConstraints = false;
+
+            // 1. Smart Price Extraction
+            $toValue = function ($numStr, $isMillion, $isThousand) {
+                $val = (float) str_replace([',', ' '], '', $numStr);
+                if ($isMillion) return $val * 1000000;
+                if ($isThousand) return $val * 1000;
+                if ($val < 100) return $val * 1000000; // e.g. "5" in "اقل من 5" means 5 million
+                return $val;
+            };
+
+            // Range: "بين X و Y" / "من X إلى Y"
+            if (preg_match('/(?:بين|من)\s*(\d+(?:\.\d+)?)\s*(مليون|الف|ألف)?\s*(?:و|إلى|الي|لـ|ل)\s*(\d+(?:\.\d+)?)\s*(مليون|الف|ألف)?/u', $lowerMessage, $m)) {
+                $isMil1 = ! empty($m[2]) && mb_strpos($m[2], 'مليون') !== false;
+                $isMil2 = (! empty($m[4]) && mb_strpos($m[4], 'مليون') !== false) || $isMil1;
+                $minPrice = $toValue($m[1], $isMil1 || $isMil2, false);
+                $maxPrice = $toValue($m[3], $isMil2, false);
+                $query->whereBetween('price', [$minPrice, $maxPrice]);
+                $hasSpecificConstraints = true;
+            }
+            // Max Price: "أقل من X" / "تحت X" / "حد أقصى X" / "مش أكتر من X"
+            elseif (preg_match('/(?:أقل\s*من|اقل\s*من|تحت|حد\s*أقصى|حد\s*اقصى|مش\s*أكتر\s*من|مش\s*اكتر\s*من|اقل|أقل|max|under|below|less\s*than)\s*(\d+(?:\.\d+)?)\s*(مليون|الف|ألف|k|m)?/u', $lowerMessage, $m)) {
+                $isMil = (! empty($m[2]) && (mb_strpos($m[2], 'مليون') !== false || mb_strpos($m[2], 'm') !== false)) || (float) $m[1] < 100;
+                $isK = ! empty($m[2]) && (mb_strpos($m[2], 'الف') !== false || mb_strpos($m[2], 'ألف') !== false || mb_strpos($m[2], 'k') !== false);
+                $maxPrice = $toValue($m[1], $isMil, $isK);
+                $query->where('price', '<=', $maxPrice);
+                $hasSpecificConstraints = true;
+            }
+            // Min Price: "أكثر من X" / "اكتر من X" / "فوق X" / "حد أدنى X"
+            elseif (preg_match('/(?:أكثر\s*من|اكتر\s*من|فوق|حد\s*أدنى|حد\s*ادنى|أزيد\s*من|ازيد\s*من|more\s*than|above|min)\s*(\d+(?:\.\d+)?)\s*(مليون|الف|ألف|k|m)?/u', $lowerMessage, $m)) {
+                $isMil = (! empty($m[2]) && (mb_strpos($m[2], 'مليون') !== false || mb_strpos($m[2], 'm') !== false)) || (float) $m[1] < 100;
+                $isK = ! empty($m[2]) && (mb_strpos($m[2], 'الف') !== false || mb_strpos($m[2], 'ألف') !== false || mb_strpos($m[2], 'k') !== false);
+                $minPrice = $toValue($m[1], $isMil, $isK);
+                $query->where('price', '>=', $minPrice);
+                $hasSpecificConstraints = true;
+            }
+            // Target Budget: "ميزانية X" / "معايا X" / "في حدود X" / "بسعر X"
+            elseif (preg_match('/(?:ميزانية|ميزانيتي|معايا|معي|بميزانية|في\s*حدود|سعر|بـ|بحوالي|حوالي|budget)\s*(\d+(?:\.\d+)?)\s*(مليون|الف|ألف|k|m)?/u', $lowerMessage, $m)) {
+                $isMil = (! empty($m[2]) && (mb_strpos($m[2], 'مليون') !== false || mb_strpos($m[2], 'm') !== false)) || (float) $m[1] < 100;
+                $isK = ! empty($m[2]) && (mb_strpos($m[2], 'الف') !== false || mb_strpos($m[2], 'ألف') !== false || mb_strpos($m[2], 'k') !== false);
+                $targetVal = $toValue($m[1], $isMil, $isK);
+                $query->whereBetween('price', [$targetVal * 0.7, $targetVal * 1.25]);
+                $hasSpecificConstraints = true;
             }
 
-            // Check if user mentions installment or deals
-            if (preg_match('/(تقسيط|قسط|مقدم|installment)/iu', $message)) {
-                $query->whereIn('payment_method', ['installment', 'both']);
-            }
-            if (preg_match('/(لقطة|عرض|مميز|deal|featured)/iu', $message)) {
-                $query->where(fn ($q) => $q->where('is_deal', true)->orWhere('is_pinned', true));
+            // 2. Property Subtype Extraction (شقة, فيلا, شاليه, دوبلكس, استوديو, مكتب, محل)
+            $subtypeKeywords = [
+                'شقة' => ['شقة', 'شقه', 'apartment', 'flat'],
+                'فيلا' => ['فيلا', 'villa'],
+                'شاليه' => ['شاليه', 'chalet'],
+                'دوبلكس' => ['دوبلكس', 'duplex'],
+                'استوديو' => ['استوديو', 'استديو', 'studio'],
+                'مكتب' => ['مكتب', 'office', 'إداري', 'اداري'],
+                'محل' => ['محل', 'تجاري', 'shop', 'commercial'],
+            ];
+
+            foreach ($subtypeKeywords as $key => $keywords) {
+                foreach ($keywords as $kw) {
+                    if (mb_stripos($lowerMessage, $kw) !== false) {
+                        $query->where(function ($q) use ($keywords) {
+                            foreach ($keywords as $w) {
+                                $q->orWhere('name', 'LIKE', "%{$w}%")
+                                  ->orWhere('description_ar', 'LIKE', "%{$w}%")
+                                  ->orWhere('description_en', 'LIKE', "%{$w}%");
+                            }
+                        });
+                        $hasSpecificConstraints = true;
+                        break 2;
+                    }
+                }
             }
 
-            // Extract area name matching
-            $areas = Area::select('id', 'name_ar', 'name_en')->get();
+            // 3. Area Extraction
+            $areas = Area::select('id', 'name_ar', 'name_en', 'slug')->get();
             $matchedAreaId = null;
             foreach ($areas as $area) {
-                if (($area->name_ar && mb_stripos($message, $area->name_ar) !== false) ||
-                    ($area->name_en && mb_stripos($message, $area->name_en) !== false)) {
+                if (($area->name_ar && mb_stripos($lowerMessage, $area->name_ar) !== false) ||
+                    ($area->name_en && mb_stripos($lowerMessage, $area->name_en) !== false) ||
+                    ($area->slug && mb_stripos($lowerMessage, $area->slug) !== false)) {
                     $matchedAreaId = $area->id;
                     break;
                 }
             }
+            if (! $matchedAreaId) {
+                if (preg_match('/(تجمع|التجمع|new cairo|fifth settlement)/iu', $lowerMessage)) {
+                    $matchedArea = $areas->first(fn ($a) => mb_stripos($a->name_ar, 'تجمع') !== false || mb_stripos($a->name_en, 'cairo') !== false);
+                    $matchedAreaId = $matchedArea?->id;
+                } elseif (preg_match('/(زايد|الشيخ زايد|zayed)/iu', $lowerMessage)) {
+                    $matchedArea = $areas->first(fn ($a) => mb_stripos($a->name_ar, 'زايد') !== false || mb_stripos($a->name_en, 'zayed') !== false);
+                    $matchedAreaId = $matchedArea?->id;
+                } elseif (preg_match('/(ساحل|الساحل|north coast)/iu', $lowerMessage)) {
+                    $matchedArea = $areas->first(fn ($a) => mb_stripos($a->name_ar, 'ساحل') !== false || mb_stripos($a->name_en, 'coast') !== false);
+                    $matchedAreaId = $matchedArea?->id;
+                }
+            }
             if ($matchedAreaId) {
                 $query->where('area_id', $matchedAreaId);
+                $hasSpecificConstraints = true;
             }
 
-            // Order by priority & deals
+            // 4. Rooms Extraction
+            if (preg_match('/(\d+)\s*(?:غرف|غرفة|غرفه|نوم|rooms|bedrooms)/iu', $lowerMessage, $rm)) {
+                $query->where('rooms', (int) $rm[1]);
+                $hasSpecificConstraints = true;
+            } elseif (preg_match('/(غرفتين|2 غرف)/iu', $lowerMessage)) {
+                $query->where('rooms', 2);
+                $hasSpecificConstraints = true;
+            } elseif (preg_match('/(غرفة واحدة|غرفه واحده|1 غرفة)/iu', $lowerMessage)) {
+                $query->where('rooms', 1);
+                $hasSpecificConstraints = true;
+            }
+
+            // 5. Transaction & Payment
+            if (preg_match('/(إيجار|ايجار|أجر|rent|rental)/iu', $lowerMessage)) {
+                $query->where('transaction', 'rent');
+                $hasSpecificConstraints = true;
+            } elseif (preg_match('/(بيع|شراء|اشتري|تمليك|sale|buy)/iu', $lowerMessage) || ! empty($maxPrice) || ! empty($minPrice)) {
+                $query->where('transaction', 'sale');
+            }
+
+            if (preg_match('/(تقسيط|قسط|مقدم|installment)/iu', $lowerMessage)) {
+                $query->whereIn('payment_method', ['installment', 'both']);
+                $hasSpecificConstraints = true;
+            } elseif (preg_match('/(كاش|نقدي|cash)/iu', $lowerMessage)) {
+                $query->whereIn('payment_method', ['cash', 'both']);
+                $hasSpecificConstraints = true;
+            }
+
+            // Order by priority & return results
             $units = $query->orderByDesc('is_pinned')
                 ->orderByDesc('priority_points')
                 ->orderByDesc('created_at')
                 ->take(4)
                 ->get();
 
-            // If strict query returned few, fallback to top active/featured units
-            if ($units->count() < 2) {
+            // If no specific constraints were provided and few results returned, show top deals
+            if (! $hasSpecificConstraints && $units->count() < 2) {
                 $fallback = Unit::query()
                     ->where('is_active', true)
                     ->with(['area', 'type', 'images', 'user', 'project'])
                     ->orderByDesc('is_deal')
                     ->orderByDesc('priority_points')
                     ->orderByDesc('created_at')
-                    ->take(3)
+                    ->take(4)
                     ->get();
                 $units = $units->merge($fallback)->unique('id')->take(4);
             }

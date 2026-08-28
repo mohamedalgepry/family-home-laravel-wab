@@ -14839,41 +14839,123 @@ function HossamChatWidget() {
 			})
 		}]);
 	};
+	const formatInline = (str) => {
+		if (!str) return null;
+		return str.split(/(\*\*[^*]+\*\*)/g).map((part, pIdx) => {
+			if (part.startsWith("**") && part.endsWith("**")) return /* @__PURE__ */ jsx("strong", {
+				className: "font-bold text-slate-950",
+				children: part.slice(2, -2)
+			}, pIdx);
+			return part;
+		});
+	};
 	const formatMessageText = (text) => {
 		if (!text) return null;
-		return text.split("\n").map((line, idx) => {
+		const lines = text.split("\n");
+		const elements = [];
+		let inTable = false;
+		let tableRows = [];
+		const flushTable = (key) => {
+			if (tableRows.length > 0) {
+				elements.push(/* @__PURE__ */ jsx("div", {
+					className: "my-2.5 overflow-x-auto rounded-xl border border-slate-200 shadow-xs bg-white",
+					children: /* @__PURE__ */ jsx("table", {
+						className: "min-w-full text-xs text-start divide-y divide-slate-200",
+						children: /* @__PURE__ */ jsx("tbody", { children: tableRows.map((row, rIdx) => {
+							const isHeader = rIdx === 0;
+							if (row.every((cell) => /^[-:\s|]+$/.test(cell))) return null;
+							return /* @__PURE__ */ jsx("tr", {
+								className: isHeader ? "bg-slate-100/90 font-bold text-slate-900" : "hover:bg-slate-50/80 text-slate-700 divide-x divide-slate-100",
+								children: row.map((cell, cIdx) => /* @__PURE__ */ jsx("td", {
+									className: `px-2.5 py-1.5 whitespace-nowrap ${isHeader ? "font-black text-slate-900" : ""}`,
+									children: formatInline(cell)
+								}, cIdx))
+							}, rIdx);
+						}) })
+					})
+				}, `tbl_${key}`));
+				tableRows = [];
+			}
+			inTable = false;
+		};
+		lines.forEach((line, idx) => {
 			const trimmed = line.trim();
-			if (!trimmed) return /* @__PURE__ */ jsx("div", { className: "h-1.5" }, idx);
-			if (trimmed.startsWith("### ")) return /* @__PURE__ */ jsx("h4", {
-				className: "font-bold text-slate-900 text-sm mt-2 mb-1",
-				children: trimmed.slice(4)
-			}, idx);
-			if (trimmed.startsWith("## ")) return /* @__PURE__ */ jsx("h3", {
-				className: "font-black text-slate-900 text-sm sm:text-base mt-2.5 mb-1 text-primary-900",
-				children: trimmed.slice(3)
-			}, idx);
-			const formattedLine = line.split(/(\*\*[^*]+\*\*)/g).map((part, pIdx) => {
-				if (part.startsWith("**") && part.endsWith("**")) return /* @__PURE__ */ jsx("strong", {
-					className: "font-bold text-slate-950",
-					children: part.slice(2, -2)
-				}, pIdx);
-				return part;
-			});
-			if (trimmed.startsWith("- ") || trimmed.startsWith("* ") || trimmed.startsWith("• ")) return /* @__PURE__ */ jsxs("div", {
-				className: "flex items-start gap-2 my-1 ps-1 text-slate-800",
-				children: [/* @__PURE__ */ jsx("span", {
-					className: "text-[#CC0000] font-black leading-relaxed",
-					children: "•"
-				}), /* @__PURE__ */ jsx("span", {
-					className: "flex-1",
-					children: formattedLine.slice(1)
-				})]
-			}, idx);
-			return /* @__PURE__ */ jsx("p", {
-				className: "my-1 leading-relaxed text-slate-800",
-				children: formattedLine
-			}, idx);
+			if (!trimmed) {
+				if (inTable) flushTable(idx);
+				elements.push(/* @__PURE__ */ jsx("div", { className: "h-1.5" }, idx));
+				return;
+			}
+			if (trimmed.startsWith("|") && trimmed.endsWith("|")) {
+				inTable = true;
+				const cells = trimmed.slice(1, -1).split("|").map((c) => c.trim());
+				tableRows.push(cells);
+				return;
+			} else if (inTable) flushTable(idx);
+			if (/^[-*_]{3,}$/.test(trimmed)) {
+				elements.push(/* @__PURE__ */ jsx("hr", { className: "my-2.5 border-slate-200" }, idx));
+				return;
+			}
+			if (trimmed.startsWith("### ")) {
+				elements.push(/* @__PURE__ */ jsxs("h4", {
+					className: "font-bold text-slate-900 text-xs sm:text-sm mt-2.5 mb-1 flex items-center gap-1.5",
+					children: [/* @__PURE__ */ jsx("span", { className: "w-1.5 h-3 bg-[#CC0000] rounded-full inline-block" }), /* @__PURE__ */ jsx("span", { children: formatInline(trimmed.slice(4)) })]
+				}, idx));
+				return;
+			}
+			if (trimmed.startsWith("## ")) {
+				elements.push(/* @__PURE__ */ jsx("h3", {
+					className: "font-black text-slate-950 text-sm mt-3 mb-1.5 text-[#990000] border-b border-slate-200/80 pb-1",
+					children: formatInline(trimmed.slice(3))
+				}, idx));
+				return;
+			}
+			if (trimmed.startsWith("# ")) {
+				elements.push(/* @__PURE__ */ jsx("h2", {
+					className: "font-black text-slate-950 text-sm sm:text-base mt-3 mb-1.5 text-[#990000]",
+					children: formatInline(trimmed.slice(2))
+				}, idx));
+				return;
+			}
+			let bulletContent = null;
+			if (trimmed.startsWith("- ") || trimmed.startsWith("* ") || trimmed.startsWith("• ")) bulletContent = trimmed.slice(2).trim();
+			else if (trimmed.startsWith("•")) bulletContent = trimmed.slice(1).trim();
+			if (bulletContent !== null) {
+				if (bulletContent.length === 0) return;
+				elements.push(/* @__PURE__ */ jsxs("div", {
+					className: "flex items-start gap-2 my-1 ps-1 text-slate-800 text-xs sm:text-sm",
+					children: [/* @__PURE__ */ jsx("span", {
+						className: "text-[#CC0000] font-black leading-relaxed shrink-0",
+						children: "•"
+					}), /* @__PURE__ */ jsx("span", {
+						className: "flex-1 leading-relaxed",
+						children: formatInline(bulletContent)
+					})]
+				}, idx));
+				return;
+			}
+			if (/^\d+\.\s/.test(trimmed)) {
+				const dotPos = trimmed.indexOf(".");
+				const num = trimmed.slice(0, dotPos);
+				const numContent = trimmed.slice(dotPos + 1).trim();
+				elements.push(/* @__PURE__ */ jsxs("div", {
+					className: "flex items-start gap-2 my-1.5 ps-1 text-slate-800 text-xs sm:text-sm",
+					children: [/* @__PURE__ */ jsx("span", {
+						className: "w-5 h-5 rounded-md bg-slate-100 text-[#CC0000] font-bold text-xs flex items-center justify-center shrink-0 border border-slate-200 shadow-2xs",
+						children: num
+					}), /* @__PURE__ */ jsx("span", {
+						className: "flex-1 leading-relaxed font-semibold",
+						children: formatInline(numContent)
+					})]
+				}, idx));
+				return;
+			}
+			elements.push(/* @__PURE__ */ jsx("p", {
+				className: "my-1 leading-relaxed text-slate-800 text-xs sm:text-sm",
+				children: formatInline(line)
+			}, idx));
 		});
+		if (inTable) flushTable("end");
+		return elements;
 	};
 	return /* @__PURE__ */ jsxs("div", {
 		dir: isRtl ? "rtl" : "ltr",
