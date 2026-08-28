@@ -3,6 +3,7 @@
 namespace App\Domain\Assistant\Services;
 
 use App\Domain\Listings\Models\Area;
+use App\Domain\Listings\Models\Project;
 use App\Domain\Listings\Models\Setting;
 use App\Domain\Listings\Models\Unit;
 use Illuminate\Support\Facades\Http;
@@ -329,9 +330,10 @@ SECURITY & PRIVACY GUARDRAILS:
 2. **Domain Boundary:** Your exclusive domain is real estate, investment, and financial analysis for Family Home. If asked political, religious, inappropriate, or off-topic questions, politely decline and steer back to real estate.
 3. **Data Safety:** Never ask clients for sensitive data like bank account numbers or passwords.
 
-NO-LINKS RULE:
-- NEVER include URLs or markdown links in your response UNLESS the client explicitly asks for a link (e.g., "send me the link", "what's the URL?").
-- Describe properties by name, specs, and price in words and numbers only.
+PROPERTY & PROJECT DIRECT LINKING (CRITICAL):
+- Whenever you mention, suggest, or recommend any property or project from the portfolio, **always make the property/project name a direct markdown link**: `[Property Name](property_url)` (e.g., `[Modern Apartment in New Cairo](/en/units/modern-apartment)`).
+- This allows the client to click directly on the property name to view photos, specs, and details immediately.
+- Never output raw bare URLs (e.g., don't write "Visit: /en/units/..."). Always embed the URL into the name as `[Name](URL)`.
 
 THE ART OF CONSULTATIVE SELLING (Non-Pushy Persuasion):
 1. **Smart Discovery:** If the client is unsure or their query is vague, calmly explain the economic logic, then ask 1-2 short discovery questions (Goal: residence or investment? Budget or payment plan? Preferred area?) — without premature recommendations.
@@ -345,9 +347,9 @@ THE ART OF CONSULTATIVE SELLING (Non-Pushy Persuasion):
 6. **[SHOW_CARDS] Tag:** If the client explicitly asks to see properties or specific prices and you recommend units from the list, place the hidden tag `[SHOW_CARDS]` at the very end of your reply. If the conversation is general discussion or inquiry, do NOT include this tag.
 
 RESPONSE STRUCTURE:
-- Structure your replies as: (1) Assessment & Economic Analysis, (2) Numerical Comparison with figures or tables if relevant, (3) Investment Recommendation & Practical Next Steps.
+- Structure your replies as: (1) Assessment & Economic Analysis, (2) Numerical Comparison with figures or tables if relevant, (3) Investment Recommendation & Practical Next Steps with linked properties.
 - Keep responses concise, data-driven, and free of filler or empty pleasantries.
-- Use **bold** for key figures and property names.
+- Use **bold** for key figures.
 
 AVAILABLE PROPERTIES IN FAMILY HOME'S PORTFOLIO:
 {$inventoryText}
@@ -375,9 +377,10 @@ PROMPT;
 2. **حدود النطاق التخصصي (Domain Boundary):** تخصصك الحصري هو العقارات، والاستثمار، والتحليل الاقتصادي والمالي لمنصة فاميلي هوم. إذا طُرح عليك أي سؤال سياسي، أو ديني، أو غير لائق، أو خارج نطاق العقار، اعتذر بأدب جم ورصانة ووجّه الحديث بلباقة إلى الشأن العقاري.
 3. **أمان البيانات:** لا تطلب من العميل أي بيانات حساسة أو أرقام حسابات بنكية.
 
-قاعدة الروابط واللينكات (Strict No-Links Rule):
-- **ممنوع منعاً باتاً وضع روابط (URLs / Markdown Links) في نص ردك** إلا إذا طلب العميل منك الرابط بشكل صريح ومباشر (مثل: «ابعتلي اللينك»، «عايز الرابط»، «أين رابط العقار؟»).
-- في الحالة الطبيعية، تحدث بأسلوب وصفي واستشاري، واذكر اسم الوحدة ومواصفاتها وسعرها بالكلمات والأرقام فقط.
+قاعدة روابط الوحدات والمشاريع (مهمة جداً):
+- عندما تذكر أو ترشح أي عقار أو مشروع عقاري في ردك، **اجعل اسم العقار أو المشروع نفسه دائماً رابطاً بصيغة الماركداون**: `[اسم العقار](رابط_العقار)` (مثال: `[شقة 150م بالتجمع الخامس](/ar/units/shqh-150m-baltgma-alkhams)`).
+- هذا يتيح للعميل الضغط مباشرة على اسم العقار للانتقال لصفحة تفاصيل الوحدة والصور فوراً.
+- لا تضع الروابط الطويلة العارية في نص الكلام، بل ادمج الرابط دائماً داخل اسم العقار بصيغة الماركداون `[اسم العقار](الرابط)`.
 
 فن البيع والإقناع بدون ضغط (The Art of Non-Pushy Persuasion):
 1. **الاستكشاف الذكي (Discovery):** إذا كان العميل محتاراً أو استفساره عاماً، اشرح له المنطق الاقتصادي بهدوء، واطرح سؤالاً أو سؤالين استكشافيين قصيرين لفهم (الهدف: سكن أم استثمار؟ الميزانية أو نظام السداد؟ المنطقة؟) دون إقحام ترشيحات مسبقة.
@@ -391,9 +394,9 @@ PROMPT;
 6. **وسم الكروت `[SHOW_CARDS]`:** إذا طلب العميل صراحة رؤية عقارات أو أسعار محددة وقمت بترشيح وحدات من القائمة، ضع الوسم الخفي `[SHOW_CARDS]` في نهاية ردك. إذا كان الحوار نقاشاً أو استفساراً عاماً، لا تضع هذا الوسم.
 
 هيكلة الرد:
-- قسّم الرد إلى: (1) التقييم والتحليل الاقتصادي، (2) المقارنة الحسابية بالأرقام أو الجداول إن كانت مفيدة، (3) التوصية الاستثمارية والخطوات العملية.
+- قسّم الرد إلى: (1) التقييم والتحليل الاقتصادي، (2) المقارنة الحسابية بالأرقام أو الجداول إن كانت مفيدة، (3) التوصية الاستثمارية والخطوات العملية مع إدراج روابط الوحدات.
 - اجعل الطرح موجزاً، مركزاً، ومبنياً على الحقائق والأرقام دون حشو أو مجاملات إنشائية.
-- استخدم **غامق** للأرقام المهمة وأسماء الوحدات.
+- استخدم **غامق** للأرقام المهمة.
 
 قائمة العقارات المتوفرة حالياً في محفظة فاميلي هوم للاستناد إليها:
 {$inventoryText}
@@ -425,7 +428,7 @@ PROMPT;
                 $slug = $u->slug_en ?? $u->slug;
                 $url = '/' . $locale . '/units/' . $slug;
 
-                $list[] = '- [' . $u->name . '] | Price: ' . $priceFormatted . ' | Area: ' . $areaName . ' | Rooms: ' . $u->rooms . ' | Size: ' . $u->area_sqm . ' sqm | Payment: ' . $payment . $downPayment . $years . ' | Unit link (only mention if client asks): ' . $url;
+                $list[] = '- Property: [' . $u->name . '](' . $url . ') | Price: ' . $priceFormatted . ' | Area: ' . $areaName . ' | Rooms: ' . $u->rooms . ' | Size: ' . $u->area_sqm . ' sqm | Payment: ' . $payment . $downPayment . $years . ' | Markdown link: [' . $u->name . '](' . $url . ')';
             } else {
                 $payment = $u->payment_method === 'installment' ? 'تقسيط' : ($u->payment_method === 'both' ? 'كاش أو تقسيط' : 'كاش');
                 $downPayment = $u->down_payment ? ' (مقدم: ' . number_format((float) $u->down_payment) . ' ' . $currency . ')' : '';
@@ -433,7 +436,7 @@ PROMPT;
                 $slug = $u->slug_ar ?? $u->slug;
                 $url = '/' . $locale . '/units/' . $slug;
 
-                $list[] = '- [' . $u->name . '] | السعر: ' . $priceFormatted . ' | المنطقة: ' . $areaName . ' | الغرف: ' . $u->rooms . ' | المساحة: ' . $u->area_sqm . ' م² | نظام الدفع: ' . $payment . $downPayment . $years . ' | رابط الوحدة (لا تذكره إلا إذا طلبه العميل): ' . $url;
+                $list[] = '- اسم العقار: [' . $u->name . '](' . $url . ') | السعر: ' . $priceFormatted . ' | المنطقة: ' . $areaName . ' | الغرف: ' . $u->rooms . ' | المساحة: ' . $u->area_sqm . ' م² | نظام الدفع: ' . $payment . $downPayment . $years . ' | رابط الماركداون: [' . $u->name . '](' . $url . ')';
             }
         }
 
@@ -502,64 +505,115 @@ PROMPT;
      */
     private function injectUnitLinks(string $reply, array $units, string $locale): string
     {
-        if (empty($units) || empty($reply)) {
+        if (empty($reply)) {
             return $reply;
         }
 
-        // Build a name → url map for units and their projects
+        // 1. Build link map from current units, all active units, and all active projects
         $linkMap = [];
+
+        // Matching units first (highest relevance)
         foreach ($units as $u) {
             $slug = $locale === 'ar' ? ($u->slug_ar ?? $u->slug) : ($u->slug_en ?? $u->slug);
             $url = '/' . $locale . '/units/' . $slug;
             if (! empty($u->name) && mb_strlen($u->name) >= 3) {
                 $linkMap[$u->name] = $url;
             }
+        }
 
-            // Also link project names if available
-            if ($u->project && ! empty($u->project->name) && mb_strlen($u->project->name) >= 3) {
-                $projectSlug = $locale === 'ar'
-                    ? ($u->project->slug_ar ?? $u->project->slug)
-                    : ($u->project->slug_en ?? $u->project->slug);
-                $projectUrl = '/' . $locale . '/projects/' . $projectSlug;
-                if (! isset($linkMap[$u->project->name])) {
-                    $linkMap[$u->project->name] = $projectUrl;
+        // All active units
+        try {
+            $allUnits = Unit::where('is_active', true)->with('project')->get();
+            foreach ($allUnits as $u) {
+                $slug = $locale === 'ar' ? ($u->slug_ar ?? $u->slug) : ($u->slug_en ?? $u->slug);
+                $url = '/' . $locale . '/units/' . $slug;
+                if (! empty($u->name) && mb_strlen($u->name) >= 3 && ! isset($linkMap[$u->name])) {
+                    $linkMap[$u->name] = $url;
+                }
+                if ($u->project && ! empty($u->project->name) && mb_strlen($u->project->name) >= 3) {
+                    $pSlug = $locale === 'ar' ? ($u->project->slug_ar ?? $u->project->slug) : ($u->project->slug_en ?? $u->project->slug);
+                    $pUrl = '/' . $locale . '/projects/' . $pSlug;
+                    if (! isset($linkMap[$u->project->name])) {
+                        $linkMap[$u->project->name] = $pUrl;
+                    }
                 }
             }
+        } catch (\Throwable $e) {
+            // Silently fallback to current units
+        }
+
+        // All active projects
+        try {
+            $allProjects = Project::where('is_active', true)->get();
+            foreach ($allProjects as $p) {
+                $pSlug = $locale === 'ar' ? ($p->slug_ar ?? $p->slug) : ($p->slug_en ?? $p->slug);
+                $pUrl = '/' . $locale . '/projects/' . $pSlug;
+                if (! empty($p->name) && mb_strlen($p->name) >= 3 && ! isset($linkMap[$p->name])) {
+                    $linkMap[$p->name] = $pUrl;
+                }
+            }
+        } catch (\Throwable $e) {
+            // Silently ignore
         }
 
         if (empty($linkMap)) {
             return $reply;
         }
 
-        // Sort by name length descending to match longer names first (avoid partial overlaps)
+        // Sort by name length descending to match longer names first
         uksort($linkMap, fn ($a, $b) => mb_strlen($b) - mb_strlen($a));
 
         foreach ($linkMap as $name => $url) {
-            // Skip if this name is already linked
-            if (mb_strpos($reply, '[' . $name . '](') !== false) {
+            // Skip if this URL is already linked in the text
+            if (str_contains($reply, '(' . $url . ')')) {
                 continue;
             }
 
-            // Try bold-wrapped name first: **name**
-            $boldName = '**' . $name . '**';
-            $boldPos = mb_stripos($reply, $boldName);
-            if ($boldPos !== false) {
-                $originalName = mb_substr($reply, $boldPos + 2, mb_strlen($name));
-                $reply = mb_substr($reply, 0, $boldPos)
-                    . '[' . $originalName . '](' . $url . ')'
-                    . mb_substr($reply, $boldPos + mb_strlen($boldName));
+            $nameEscaped = preg_quote($name, '/');
 
+            // 1. Markdown bold: **name**
+            $reply = preg_replace_callback(
+                '/\*\*' . $nameEscaped . '\*\*/iu',
+                fn ($m) => '[' . $name . '](' . $url . ')',
+                $reply,
+                1
+            );
+
+            if (str_contains($reply, '(' . $url . ')')) {
                 continue;
             }
 
-            // Try plain name
-            $pos = mb_stripos($reply, $name);
-            if ($pos !== false) {
-                $originalName = mb_substr($reply, $pos, mb_strlen($name));
-                $reply = mb_substr($reply, 0, $pos)
-                    . '[' . $originalName . '](' . $url . ')'
-                    . mb_substr($reply, $pos + mb_strlen($name));
+            // 2. Bracketed: [name] (without (url))
+            $reply = preg_replace_callback(
+                '/\[(' . $nameEscaped . ')\](?!\()/iu',
+                fn ($m) => '[' . $m[1] . '](' . $url . ')',
+                $reply,
+                1
+            );
+
+            if (str_contains($reply, '(' . $url . ')')) {
+                continue;
             }
+
+            // 3. Quotes: «name» or "name" or “name”
+            $reply = preg_replace_callback(
+                '/[«"“](' . $nameEscaped . ')[»"”]/iu',
+                fn ($m) => '[' . $m[1] . '](' . $url . ')',
+                $reply,
+                1
+            );
+
+            if (str_contains($reply, '(' . $url . ')')) {
+                continue;
+            }
+
+            // 4. Plain name (not preceded by [ or / or alphanumeric)
+            $reply = preg_replace_callback(
+                '/(?<!\[|\/|\w)(' . $nameEscaped . ')(?!\]|\))/iu',
+                fn ($m) => '[' . $m[1] . '](' . $url . ')',
+                $reply,
+                1
+            );
         }
 
         return $reply;
