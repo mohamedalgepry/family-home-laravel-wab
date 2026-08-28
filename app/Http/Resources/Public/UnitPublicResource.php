@@ -40,6 +40,8 @@ class UnitPublicResource extends JsonResource
             'is_active' => $this->is_active,
             'is_deal' => $this->is_deal,
             'location_address' => $this->location_address,
+            'location_address_ar' => $this->location_address_ar,
+            'location_address_en' => $this->location_address_en,
             'latitude' => $this->latitude,
             'longitude' => $this->longitude,
             'map_embed_url' => $this->map_embed_url,

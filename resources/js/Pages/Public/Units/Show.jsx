@@ -31,6 +31,10 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
     const relatedProjectsList = Array.isArray(relatedProjects) ? relatedProjects : (relatedProjects?.data ?? [])
     const relatedArticlesList = Array.isArray(relatedArticles) ? relatedArticles : (relatedArticles?.data ?? [])
 
+    const areaName = (locale === 'ar' ? unit?.area?.name_ar : unit?.area?.name_en) || unit?.area?.name || ''
+    const locationAddress = (locale === 'ar' ? unit?.location_address_ar : unit?.location_address_en) || unit?.location_address || ''
+    const hasLocationOrCoords = hasValidCoords(unit) || Boolean(locationAddress)
+
     const jsonLd = useMemo(() => {
         if (!unit) return null
         
@@ -326,7 +330,7 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
                                         </svg>
-                                        <span>{(locale === 'ar' ? unit.area?.name_ar : unit.area?.name_en) || unit.area?.name || unit.location_address || ''}</span>
+                                        <span>{areaName && locationAddress ? `${areaName} • ${locationAddress}` : (locationAddress || areaName || '')}</span>
                                     </p>
                                 </div>
 
@@ -530,7 +534,7 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                             <a href="#overview" className="py-3 text-[#CC0000] border-b-2 border-[#CC0000] transition-colors">{isRtl ? 'نبذة عن الوحدة' : 'Overview'}</a>
                             {embedUrl && <a href="#video" className="py-3 hover:text-[#CC0000] transition-colors">{isRtl ? 'الفيديو التعريفي' : 'Video'}</a>}
                             {unit.features?.length > 0 && <a href="#features" className="py-3 hover:text-[#CC0000] transition-colors">{isRtl ? 'المميزات' : 'Features'}</a>}
-                            {hasValidCoords(unit) && <a href="#location" className="py-3 hover:text-[#CC0000] transition-colors">{isRtl ? 'الموقع' : 'Location'}</a>}
+                            {hasLocationOrCoords && <a href="#location" className="py-3 hover:text-[#CC0000] transition-colors">{isRtl ? 'الموقع' : 'Location'}</a>}
                             <a href="#contact-form" className="py-3 hover:text-[#CC0000] transition-colors">{isRtl ? 'تواصل معنا' : 'Contact Us'}</a>
                         </div>
 
@@ -683,6 +687,12 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                                                     <span className="font-bold text-secondary-950">{unit.project.area.name}</span>
                                                 </div>
                                             )}
+                                            {locationAddress && (
+                                                <div className="flex items-start justify-between py-1.5 border-b border-secondary-100/60 gap-2">
+                                                    <span className="text-secondary-500 font-semibold shrink-0">{trans('location_address') || (isRtl ? 'العنوان' : 'Address')}</span>
+                                                    <span className="font-bold text-secondary-950 text-end break-words">{locationAddress}</span>
+                                                </div>
+                                            )}
                                             {unit.project.installment_years > 0 && (
                                                 <div className="flex items-center justify-between py-1.5 border-b border-secondary-100/60">
                                                     <span className="text-secondary-500 font-semibold">{isRtl ? 'سنوات التقسيط' : 'Installment Years'}</span>
@@ -714,10 +724,16 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                                             <h2 className="text-sm font-black text-secondary-950">{isRtl ? 'معلومات المنطقة' : 'Area Info'}</h2>
                                         </div>
                                         <div className="space-y-2.5 text-xs">
-                                            <div className="flex items-center justify-between py-1.5">
+                                            <div className="flex items-center justify-between py-1.5 border-b border-secondary-100/60">
                                                 <span className="text-secondary-500 font-semibold">{isRtl ? 'المنطقة' : 'Area'}</span>
                                                 <span className="font-bold text-secondary-950">{unit.area.name}</span>
                                             </div>
+                                            {locationAddress && (
+                                                <div className="flex items-start justify-between py-1.5 gap-2">
+                                                    <span className="text-secondary-500 font-semibold shrink-0">{trans('location_address') || (isRtl ? 'العنوان' : 'Address')}</span>
+                                                    <span className="font-bold text-secondary-950 text-end break-words">{locationAddress}</span>
+                                                </div>
+                                            )}
                                         </div>
                                         <Link
                                             href={localizedPath(`/areas/${unit.area.slug || unit.area.id}`, locale)}
@@ -729,38 +745,71 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                                             </svg>
                                         </Link>
                                     </div>
+                                ) : locationAddress ? (
+                                    <div className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4">
+                                        <div className="flex items-center justify-between border-b border-secondary-100 pb-3">
+                                            <h2 className="text-sm font-black text-secondary-950">{isRtl ? 'معلومات الموقع' : 'Location Info'}</h2>
+                                        </div>
+                                        <div className="space-y-2.5 text-xs">
+                                            <div className="flex items-start justify-between py-1.5 gap-2">
+                                                <span className="text-secondary-500 font-semibold shrink-0">{trans('location_address') || (isRtl ? 'العنوان' : 'Address')}</span>
+                                                <span className="font-bold text-secondary-950 text-end break-words">{locationAddress}</span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 ) : null}
 
                                 {/* Card 2: الموقع على الخريطة */}
-                                {hasValidCoords(unit) && (
+                                {hasLocationOrCoords && (
                                     <div id="location" className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4">
-                                        <h2 className="text-sm font-black text-secondary-950">{isRtl ? 'الموقع على الخريطة' : 'Location on Map'}</h2>
-
-                                        <div className="rounded-xl overflow-hidden border border-secondary-200 aspect-[16/9]">
-                                            <iframe
-                                                src={`https://maps.google.com/maps?q=${unit.latitude},${unit.longitude}&hl=${locale}&z=14&output=embed`}
-                                                className="w-full h-full border-0"
-                                                allowFullScreen
-                                                loading="lazy"
-                                                referrerPolicy="no-referrer-when-downgrade"
-                                                title="Google Map Location"
-                                            />
+                                        <div className="flex items-center justify-between border-b border-secondary-100 pb-3">
+                                            <h2 className="text-sm font-black text-secondary-950">{isRtl ? 'الموقع والعنوان' : 'Location & Address'}</h2>
                                         </div>
 
-                                        <div className="text-center pt-1">
-                                            <a
-                                                href={`https://www.google.com/maps/search/?api=1&query=${unit.latitude},${unit.longitude}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-secondary-800 hover:text-[#CC0000] transition-colors"
-                                            >
-                                                <svg className="w-4 h-4 text-[#CC0000]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                                                </svg>
-                                                <span>{isRtl ? 'فتح في خرائط Google' : 'Open in Google Maps'}</span>
-                                            </a>
-                                        </div>
+                                        {locationAddress && (
+                                            <div className="flex items-start gap-3 p-3.5 rounded-xl bg-surface border border-secondary-100">
+                                                <div className="w-8 h-8 rounded-lg bg-red-50 text-[#CC0000] flex items-center justify-center shrink-0">
+                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                                                    </svg>
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <span className="text-[11px] font-semibold text-secondary-500 block mb-0.5">{isRtl ? 'العنوان بالتفصيل' : 'Detailed Address'}</span>
+                                                    <p className="text-xs font-bold text-secondary-950 leading-relaxed break-words">{locationAddress}</p>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {hasValidCoords(unit) && (
+                                            <>
+                                                <div className="rounded-xl overflow-hidden border border-secondary-200 aspect-[16/9]">
+                                                    <iframe
+                                                        src={`https://maps.google.com/maps?q=${unit.latitude},${unit.longitude}&hl=${locale}&z=14&output=embed`}
+                                                        className="w-full h-full border-0"
+                                                        allowFullScreen
+                                                        loading="lazy"
+                                                        referrerPolicy="no-referrer-when-downgrade"
+                                                        title="Google Map Location"
+                                                    />
+                                                </div>
+
+                                                <div className="text-center pt-1">
+                                                    <a
+                                                        href={`https://www.google.com/maps/search/?api=1&query=${unit.latitude},${unit.longitude}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-secondary-800 hover:text-[#CC0000] transition-colors"
+                                                    >
+                                                        <svg className="w-4 h-4 text-[#CC0000]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                                                        </svg>
+                                                        <span>{isRtl ? 'فتح في خرائط Google' : 'Open in Google Maps'}</span>
+                                                    </a>
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -831,6 +880,12 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                                                 <span className="font-bold text-secondary-950">{unit.project.area.name}</span>
                                             </div>
                                         )}
+                                        {locationAddress && (
+                                            <div className="flex items-start justify-between py-1.5 border-b border-secondary-100/60 gap-2">
+                                                <span className="text-secondary-500 font-semibold shrink-0">{trans('location_address') || (isRtl ? 'العنوان' : 'Address')}</span>
+                                                <span className="font-bold text-secondary-950 text-end break-words">{locationAddress}</span>
+                                            </div>
+                                        )}
                                         {unit.project.installment_years > 0 && (
                                             <div className="flex items-center justify-between py-1.5 border-b border-secondary-100/60">
                                                 <span className="text-secondary-500 font-semibold">{isRtl ? 'سنوات التقسيط' : 'Installment Years'}</span>
@@ -861,10 +916,16 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                                         <h2 className="text-sm font-black text-secondary-950">{isRtl ? 'معلومات المنطقة' : 'Area Info'}</h2>
                                     </div>
                                     <div className="space-y-2.5 text-xs">
-                                        <div className="flex items-center justify-between py-1.5">
+                                        <div className="flex items-center justify-between py-1.5 border-b border-secondary-100/60">
                                             <span className="text-secondary-500 font-semibold">{isRtl ? 'المنطقة' : 'Area'}</span>
                                             <span className="font-bold text-secondary-950">{unit.area.name}</span>
                                         </div>
+                                        {locationAddress && (
+                                            <div className="flex items-start justify-between py-1.5 gap-2">
+                                                <span className="text-secondary-500 font-semibold shrink-0">{trans('location_address') || (isRtl ? 'العنوان' : 'Address')}</span>
+                                                <span className="font-bold text-secondary-950 text-end break-words">{locationAddress}</span>
+                                            </div>
+                                        )}
                                     </div>
                                     <Link
                                         href={localizedPath(`/areas/${unit.area.slug || unit.area.id}`, locale)}
@@ -876,36 +937,70 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                                         </svg>
                                     </Link>
                                 </div>
+                            ) : locationAddress ? (
+                                <div className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4">
+                                    <div className="flex items-center justify-between border-b border-secondary-100 pb-3">
+                                        <h2 className="text-sm font-black text-secondary-950">{isRtl ? 'معلومات الموقع' : 'Location Info'}</h2>
+                                    </div>
+                                    <div className="space-y-2.5 text-xs">
+                                        <div className="flex items-start justify-between py-1.5 gap-2">
+                                            <span className="text-secondary-500 font-semibold shrink-0">{trans('location_address') || (isRtl ? 'العنوان' : 'Address')}</span>
+                                            <span className="font-bold text-secondary-950 text-end break-words">{locationAddress}</span>
+                                        </div>
+                                    </div>
+                                </div>
                             ) : null}
 
                             {/* 4. Location Map */}
-                            {hasValidCoords(unit) && (
+                            {hasLocationOrCoords && (
                                 <div className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4">
-                                    <h2 className="text-sm font-black text-secondary-950">{isRtl ? 'الموقع على الخريطة' : 'Location on Map'}</h2>
-                                    <div className="rounded-xl overflow-hidden border border-secondary-200 aspect-[16/9]">
-                                        <iframe
-                                            src={`https://maps.google.com/maps?q=${unit.latitude},${unit.longitude}&hl=${locale}&z=14&output=embed`}
-                                            className="w-full h-full border-0"
-                                            allowFullScreen
-                                            loading="lazy"
-                                            referrerPolicy="no-referrer-when-downgrade"
-                                            title="Google Map Location Mobile"
-                                        />
+                                    <div className="flex items-center justify-between border-b border-secondary-100 pb-3">
+                                        <h2 className="text-sm font-black text-secondary-950">{isRtl ? 'الموقع والعنوان' : 'Location & Address'}</h2>
                                     </div>
-                                    <div className="text-center pt-1">
-                                        <a
-                                            href={`https://www.google.com/maps/search/?api=1&query=${unit.latitude},${unit.longitude}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-secondary-800 hover:text-[#CC0000] transition-colors"
-                                        >
-                                            <svg className="w-4 h-4 text-[#CC0000]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                                            </svg>
-                                            <span>{isRtl ? 'فتح في خرائط Google' : 'Open in Google Maps'}</span>
-                                        </a>
-                                    </div>
+
+                                    {locationAddress && (
+                                        <div className="flex items-start gap-3 p-3.5 rounded-xl bg-surface border border-secondary-100">
+                                            <div className="w-8 h-8 rounded-lg bg-red-50 text-[#CC0000] flex items-center justify-center shrink-0">
+                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                                                </svg>
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                                <span className="text-[11px] font-semibold text-secondary-500 block mb-0.5">{isRtl ? 'العنوان بالتفصيل' : 'Detailed Address'}</span>
+                                                <p className="text-xs font-bold text-secondary-950 leading-relaxed break-words">{locationAddress}</p>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {hasValidCoords(unit) && (
+                                        <>
+                                            <div className="rounded-xl overflow-hidden border border-secondary-200 aspect-[16/9]">
+                                                <iframe
+                                                    src={`https://maps.google.com/maps?q=${unit.latitude},${unit.longitude}&hl=${locale}&z=14&output=embed`}
+                                                    className="w-full h-full border-0"
+                                                    allowFullScreen
+                                                    loading="lazy"
+                                                    referrerPolicy="no-referrer-when-downgrade"
+                                                    title="Google Map Location Mobile"
+                                                />
+                                            </div>
+                                            <div className="text-center pt-1">
+                                                <a
+                                                    href={`https://www.google.com/maps/search/?api=1&query=${unit.latitude},${unit.longitude}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-secondary-800 hover:text-[#CC0000] transition-colors"
+                                                >
+                                                    <svg className="w-4 h-4 text-[#CC0000]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                                                    </svg>
+                                                    <span>{isRtl ? 'فتح في خرائط Google' : 'Open in Google Maps'}</span>
+                                                </a>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             )}
 

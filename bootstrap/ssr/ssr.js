@@ -32,10 +32,10 @@ async function loadLocale(locale) {
 	const lang = locale === "ar" ? "ar" : "en";
 	if (!dictionaries[lang]) try {
 		if (lang === "ar") {
-			const mod = await import("./assets/ar-DgMEkSmz.js");
+			const mod = await import("./assets/ar-BS1e7N5b.js");
 			dictionaries.ar = mod.default || mod;
 		} else {
-			const mod = await import("./assets/en-w1_DcJbd.js");
+			const mod = await import("./assets/en-CzvXTPB9.js");
 			dictionaries.en = mod.default || mod;
 		}
 	} catch (e) {
@@ -17356,6 +17356,10 @@ function ComparisonSection({ type, title, items, maxItems, isRtl, locale, trans 
 											label: trans("area"),
 											value: item.area.name
 										}),
+										item.location_address && /* @__PURE__ */ jsx(DetailRow, {
+											label: trans("location_address") || trans("location"),
+											value: item.location_address
+										}),
 										item.finishing_type?.name && /* @__PURE__ */ jsx(DetailRow, {
 											label: trans("finishing") || "Finishing",
 											value: item.finishing_type.name
@@ -18622,6 +18626,9 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 	const units = projectUnitsList;
 	const similarProjectsList = Array.isArray(similarProjects) ? similarProjects : Array.isArray(similarProjects?.data) ? similarProjects.data : [];
 	const relatedArticlesList = Array.isArray(relatedArticles) ? relatedArticles : Array.isArray(relatedArticles?.data) ? relatedArticles.data : [];
+	const areaName = (locale === "ar" ? project?.area?.name_ar : project?.area?.name_en) || project?.area?.name || "";
+	const locationAddress = (locale === "ar" ? project?.location_address_ar : project?.location_address_en) || project?.location_address || "";
+	const hasLocationOrCoords = hasValidCoords(project) || Boolean(locationAddress);
 	const mainImage = images.find((img) => img.is_main || img.is_primary) || images[0];
 	const mainImageIndex = Math.max(images.indexOf(mainImage), 0);
 	const selectedImageIndex = activeImageIndex ?? mainImageIndex;
@@ -18898,7 +18905,7 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 												strokeLinejoin: "round",
 												d: "M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
 											})]
-										}), /* @__PURE__ */ jsx("span", { children: project.area?.name || project.location_address || "" })]
+										}), /* @__PURE__ */ jsx("span", { children: areaName && locationAddress ? `${areaName} • ${locationAddress}` : locationAddress || areaName || "" })]
 									})
 								] }),
 								/* @__PURE__ */ jsxs("div", {
@@ -19066,7 +19073,7 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 								className: "py-3 hover:text-[#CC0000] transition-colors",
 								children: isRtl ? "الوحدات المتاحة" : "Units"
 							}),
-							hasValidCoords(project) && /* @__PURE__ */ jsx("a", {
+							hasLocationOrCoords && /* @__PURE__ */ jsx("a", {
 								href: "#location",
 								className: "py-3 hover:text-[#CC0000] transition-colors",
 								children: isRtl ? "الموقع" : "Location"
@@ -19174,6 +19181,16 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 												children: project.area.name
 											})]
 										}),
+										locationAddress && /* @__PURE__ */ jsxs("div", {
+											className: "flex items-start justify-between py-1.5 border-b border-secondary-100/60 gap-2",
+											children: [/* @__PURE__ */ jsx("span", {
+												className: "text-secondary-500 font-semibold shrink-0",
+												children: trans("location_address") || (isRtl ? "العنوان" : "Address")
+											}), /* @__PURE__ */ jsx("span", {
+												className: "font-bold text-secondary-950 text-end break-words",
+												children: locationAddress
+											})]
+										}),
 										/* @__PURE__ */ jsxs("div", {
 											className: "flex items-center justify-between py-1.5",
 											children: [/* @__PURE__ */ jsx("span", {
@@ -19190,15 +19207,49 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 										})
 									]
 								})]
-							}), hasValidCoords(project) && /* @__PURE__ */ jsxs("div", {
+							}), hasLocationOrCoords && /* @__PURE__ */ jsxs("div", {
 								id: "location",
 								className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4",
 								children: [
-									/* @__PURE__ */ jsx("h2", {
-										className: "text-sm font-black text-secondary-950",
-										children: isRtl ? "الموقع على الخريطة" : "Location Map"
-									}),
 									/* @__PURE__ */ jsx("div", {
+										className: "flex items-center justify-between border-b border-secondary-100 pb-3",
+										children: /* @__PURE__ */ jsx("h2", {
+											className: "text-sm font-black text-secondary-950",
+											children: isRtl ? "الموقع والعنوان" : "Location & Address"
+										})
+									}),
+									locationAddress && /* @__PURE__ */ jsxs("div", {
+										className: "flex items-start gap-3 p-3.5 rounded-xl bg-surface border border-secondary-100",
+										children: [/* @__PURE__ */ jsx("div", {
+											className: "w-8 h-8 rounded-lg bg-red-50 text-[#CC0000] flex items-center justify-center shrink-0",
+											children: /* @__PURE__ */ jsxs("svg", {
+												className: "w-4 h-4",
+												fill: "none",
+												viewBox: "0 0 24 24",
+												stroke: "currentColor",
+												strokeWidth: 2,
+												children: [/* @__PURE__ */ jsx("path", {
+													strokeLinecap: "round",
+													strokeLinejoin: "round",
+													d: "M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"
+												}), /* @__PURE__ */ jsx("path", {
+													strokeLinecap: "round",
+													strokeLinejoin: "round",
+													d: "M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
+												})]
+											})
+										}), /* @__PURE__ */ jsxs("div", {
+											className: "min-w-0 flex-1",
+											children: [/* @__PURE__ */ jsx("span", {
+												className: "text-[11px] font-semibold text-secondary-500 block mb-0.5",
+												children: isRtl ? "العنوان بالتفصيل" : "Detailed Address"
+											}), /* @__PURE__ */ jsx("p", {
+												className: "text-xs font-bold text-secondary-950 leading-relaxed break-words",
+												children: locationAddress
+											})]
+										})]
+									}),
+									hasValidCoords(project) && /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("div", {
 										className: "rounded-xl overflow-hidden border border-secondary-200 aspect-[16/9]",
 										children: /* @__PURE__ */ jsx("iframe", {
 											src: `https://maps.google.com/maps?q=${project.latitude},${project.longitude}&hl=${locale}&z=14&output=embed`,
@@ -19208,8 +19259,7 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 											referrerPolicy: "no-referrer-when-downgrade",
 											title: "Google Map Location"
 										})
-									}),
-									/* @__PURE__ */ jsx("div", {
+									}), /* @__PURE__ */ jsx("div", {
 										className: "text-center pt-1",
 										children: /* @__PURE__ */ jsxs("a", {
 											href: `https://www.google.com/maps/search/?api=1&query=${project.latitude},${project.longitude}`,
@@ -19233,7 +19283,7 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 												})]
 											}), /* @__PURE__ */ jsx("span", { children: isRtl ? "فتح في خرائط Google" : "Open in Google Maps" })]
 										})
-									})
+									})] })
 								]
 							})]
 						})]
@@ -19332,6 +19382,16 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 												children: project.area.name
 											})]
 										}),
+										locationAddress && /* @__PURE__ */ jsxs("div", {
+											className: "flex items-start justify-between py-1.5 border-b border-secondary-100/60 gap-2",
+											children: [/* @__PURE__ */ jsx("span", {
+												className: "text-secondary-500 font-semibold shrink-0",
+												children: trans("location_address") || (isRtl ? "العنوان" : "Address")
+											}), /* @__PURE__ */ jsx("span", {
+												className: "font-bold text-secondary-950 text-end break-words",
+												children: locationAddress
+											})]
+										}),
 										/* @__PURE__ */ jsxs("div", {
 											className: "flex items-center justify-between py-1.5",
 											children: [/* @__PURE__ */ jsx("span", {
@@ -19349,14 +19409,48 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 									]
 								})]
 							}),
-							hasValidCoords(project) && /* @__PURE__ */ jsxs("div", {
+							hasLocationOrCoords && /* @__PURE__ */ jsxs("div", {
 								className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4",
 								children: [
-									/* @__PURE__ */ jsx("h2", {
-										className: "text-sm font-black text-secondary-950",
-										children: isRtl ? "الموقع على الخريطة" : "Location Map"
-									}),
 									/* @__PURE__ */ jsx("div", {
+										className: "flex items-center justify-between border-b border-secondary-100 pb-3",
+										children: /* @__PURE__ */ jsx("h2", {
+											className: "text-sm font-black text-secondary-950",
+											children: isRtl ? "الموقع والعنوان" : "Location Map"
+										})
+									}),
+									locationAddress && /* @__PURE__ */ jsxs("div", {
+										className: "flex items-start gap-3 p-3.5 rounded-xl bg-surface border border-secondary-100",
+										children: [/* @__PURE__ */ jsx("div", {
+											className: "w-8 h-8 rounded-lg bg-red-50 text-[#CC0000] flex items-center justify-center shrink-0",
+											children: /* @__PURE__ */ jsxs("svg", {
+												className: "w-4 h-4",
+												fill: "none",
+												viewBox: "0 0 24 24",
+												stroke: "currentColor",
+												strokeWidth: 2,
+												children: [/* @__PURE__ */ jsx("path", {
+													strokeLinecap: "round",
+													strokeLinejoin: "round",
+													d: "M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"
+												}), /* @__PURE__ */ jsx("path", {
+													strokeLinecap: "round",
+													strokeLinejoin: "round",
+													d: "M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
+												})]
+											})
+										}), /* @__PURE__ */ jsxs("div", {
+											className: "min-w-0 flex-1",
+											children: [/* @__PURE__ */ jsx("span", {
+												className: "text-[11px] font-semibold text-secondary-500 block mb-0.5",
+												children: isRtl ? "العنوان بالتفصيل" : "Detailed Address"
+											}), /* @__PURE__ */ jsx("p", {
+												className: "text-xs font-bold text-secondary-950 leading-relaxed break-words",
+												children: locationAddress
+											})]
+										})]
+									}),
+									hasValidCoords(project) && /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("div", {
 										className: "rounded-xl overflow-hidden border border-secondary-200 aspect-[16/9]",
 										children: /* @__PURE__ */ jsx("iframe", {
 											src: `https://maps.google.com/maps?q=${project.latitude},${project.longitude}&hl=${locale}&z=14&output=embed`,
@@ -19366,8 +19460,7 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 											referrerPolicy: "no-referrer-when-downgrade",
 											title: "Google Map Location Mobile Project"
 										})
-									}),
-									/* @__PURE__ */ jsx("div", {
+									}), /* @__PURE__ */ jsx("div", {
 										className: "text-center pt-1",
 										children: /* @__PURE__ */ jsxs("a", {
 											href: `https://www.google.com/maps/search/?api=1&query=${project.latitude},${project.longitude}`,
@@ -19391,7 +19484,7 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 												})]
 											}), /* @__PURE__ */ jsx("span", { children: isRtl ? "فتح في خرائط Google" : "Open in Google Maps" })]
 										})
-									})
+									})] })
 								]
 							})
 						]
@@ -19783,6 +19876,9 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 	const similarUnitsList = Array.isArray(similarUnits) ? similarUnits : similarUnits?.data ?? [];
 	const relatedProjectsList = Array.isArray(relatedProjects) ? relatedProjects : relatedProjects?.data ?? [];
 	const relatedArticlesList = Array.isArray(relatedArticles) ? relatedArticles : relatedArticles?.data ?? [];
+	const areaName = (locale === "ar" ? unit?.area?.name_ar : unit?.area?.name_en) || unit?.area?.name || "";
+	const locationAddress = (locale === "ar" ? unit?.location_address_ar : unit?.location_address_en) || unit?.location_address || "";
+	const hasLocationOrCoords = hasValidCoords(unit) || Boolean(locationAddress);
 	const jsonLd = useMemo(() => {
 		if (!unit) return null;
 		const image = getStorageUrl(unit.images?.[0]?.url || unit.images?.[0]?.path, null);
@@ -20102,7 +20198,7 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 													strokeLinejoin: "round",
 													d: "M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
 												})]
-											}), /* @__PURE__ */ jsx("span", { children: (locale === "ar" ? unit.area?.name_ar : unit.area?.name_en) || unit.area?.name || unit.location_address || "" })]
+											}), /* @__PURE__ */ jsx("span", { children: areaName && locationAddress ? `${areaName} • ${locationAddress}` : locationAddress || areaName || "" })]
 										})
 									] }),
 									/* @__PURE__ */ jsx("div", { children: /* @__PURE__ */ jsxs("p", {
@@ -20388,7 +20484,7 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 									className: "py-3 hover:text-[#CC0000] transition-colors",
 									children: isRtl ? "المميزات" : "Features"
 								}),
-								hasValidCoords(unit) && /* @__PURE__ */ jsx("a", {
+								hasLocationOrCoords && /* @__PURE__ */ jsx("a", {
 									href: "#location",
 									className: "py-3 hover:text-[#CC0000] transition-colors",
 									children: isRtl ? "الموقع" : "Location"
@@ -20629,6 +20725,16 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 														children: unit.project.area.name
 													})]
 												}),
+												locationAddress && /* @__PURE__ */ jsxs("div", {
+													className: "flex items-start justify-between py-1.5 border-b border-secondary-100/60 gap-2",
+													children: [/* @__PURE__ */ jsx("span", {
+														className: "text-secondary-500 font-semibold shrink-0",
+														children: trans("location_address") || (isRtl ? "العنوان" : "Address")
+													}), /* @__PURE__ */ jsx("span", {
+														className: "font-bold text-secondary-950 text-end break-words",
+														children: locationAddress
+													})]
+												}),
 												unit.project.installment_years > 0 && /* @__PURE__ */ jsxs("div", {
 													className: "flex items-center justify-between py-1.5 border-b border-secondary-100/60",
 													children: [/* @__PURE__ */ jsx("span", {
@@ -20682,10 +20788,10 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 												children: isRtl ? "معلومات المنطقة" : "Area Info"
 											})
 										}),
-										/* @__PURE__ */ jsx("div", {
+										/* @__PURE__ */ jsxs("div", {
 											className: "space-y-2.5 text-xs",
-											children: /* @__PURE__ */ jsxs("div", {
-												className: "flex items-center justify-between py-1.5",
+											children: [/* @__PURE__ */ jsxs("div", {
+												className: "flex items-center justify-between py-1.5 border-b border-secondary-100/60",
 												children: [/* @__PURE__ */ jsx("span", {
 													className: "text-secondary-500 font-semibold",
 													children: isRtl ? "المنطقة" : "Area"
@@ -20693,7 +20799,16 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 													className: "font-bold text-secondary-950",
 													children: unit.area.name
 												})]
-											})
+											}), locationAddress && /* @__PURE__ */ jsxs("div", {
+												className: "flex items-start justify-between py-1.5 gap-2",
+												children: [/* @__PURE__ */ jsx("span", {
+													className: "text-secondary-500 font-semibold shrink-0",
+													children: trans("location_address") || (isRtl ? "العنوان" : "Address")
+												}), /* @__PURE__ */ jsx("span", {
+													className: "font-bold text-secondary-950 text-end break-words",
+													children: locationAddress
+												})]
+											})]
 										}),
 										/* @__PURE__ */ jsxs(Link, {
 											href: localizedPath(`/areas/${unit.area.slug || unit.area.id}`, locale),
@@ -20712,15 +20827,70 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 											})]
 										})
 									]
-								}) : null, hasValidCoords(unit) && /* @__PURE__ */ jsxs("div", {
+								}) : locationAddress ? /* @__PURE__ */ jsxs("div", {
+									className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4",
+									children: [/* @__PURE__ */ jsx("div", {
+										className: "flex items-center justify-between border-b border-secondary-100 pb-3",
+										children: /* @__PURE__ */ jsx("h2", {
+											className: "text-sm font-black text-secondary-950",
+											children: isRtl ? "معلومات الموقع" : "Location Info"
+										})
+									}), /* @__PURE__ */ jsx("div", {
+										className: "space-y-2.5 text-xs",
+										children: /* @__PURE__ */ jsxs("div", {
+											className: "flex items-start justify-between py-1.5 gap-2",
+											children: [/* @__PURE__ */ jsx("span", {
+												className: "text-secondary-500 font-semibold shrink-0",
+												children: trans("location_address") || (isRtl ? "العنوان" : "Address")
+											}), /* @__PURE__ */ jsx("span", {
+												className: "font-bold text-secondary-950 text-end break-words",
+												children: locationAddress
+											})]
+										})
+									})]
+								}) : null, hasLocationOrCoords && /* @__PURE__ */ jsxs("div", {
 									id: "location",
 									className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4",
 									children: [
-										/* @__PURE__ */ jsx("h2", {
-											className: "text-sm font-black text-secondary-950",
-											children: isRtl ? "الموقع على الخريطة" : "Location on Map"
-										}),
 										/* @__PURE__ */ jsx("div", {
+											className: "flex items-center justify-between border-b border-secondary-100 pb-3",
+											children: /* @__PURE__ */ jsx("h2", {
+												className: "text-sm font-black text-secondary-950",
+												children: isRtl ? "الموقع والعنوان" : "Location & Address"
+											})
+										}),
+										locationAddress && /* @__PURE__ */ jsxs("div", {
+											className: "flex items-start gap-3 p-3.5 rounded-xl bg-surface border border-secondary-100",
+											children: [/* @__PURE__ */ jsx("div", {
+												className: "w-8 h-8 rounded-lg bg-red-50 text-[#CC0000] flex items-center justify-center shrink-0",
+												children: /* @__PURE__ */ jsxs("svg", {
+													className: "w-4 h-4",
+													fill: "none",
+													viewBox: "0 0 24 24",
+													stroke: "currentColor",
+													strokeWidth: 2,
+													children: [/* @__PURE__ */ jsx("path", {
+														strokeLinecap: "round",
+														strokeLinejoin: "round",
+														d: "M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"
+													}), /* @__PURE__ */ jsx("path", {
+														strokeLinecap: "round",
+														strokeLinejoin: "round",
+														d: "M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
+													})]
+												})
+											}), /* @__PURE__ */ jsxs("div", {
+												className: "min-w-0 flex-1",
+												children: [/* @__PURE__ */ jsx("span", {
+													className: "text-[11px] font-semibold text-secondary-500 block mb-0.5",
+													children: isRtl ? "العنوان بالتفصيل" : "Detailed Address"
+												}), /* @__PURE__ */ jsx("p", {
+													className: "text-xs font-bold text-secondary-950 leading-relaxed break-words",
+													children: locationAddress
+												})]
+											})]
+										}),
+										hasValidCoords(unit) && /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("div", {
 											className: "rounded-xl overflow-hidden border border-secondary-200 aspect-[16/9]",
 											children: /* @__PURE__ */ jsx("iframe", {
 												src: `https://maps.google.com/maps?q=${unit.latitude},${unit.longitude}&hl=${locale}&z=14&output=embed`,
@@ -20730,8 +20900,7 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 												referrerPolicy: "no-referrer-when-downgrade",
 												title: "Google Map Location"
 											})
-										}),
-										/* @__PURE__ */ jsx("div", {
+										}), /* @__PURE__ */ jsx("div", {
 											className: "text-center pt-1",
 											children: /* @__PURE__ */ jsxs("a", {
 												href: `https://www.google.com/maps/search/?api=1&query=${unit.latitude},${unit.longitude}`,
@@ -20755,7 +20924,7 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 													})]
 												}), /* @__PURE__ */ jsx("span", { children: isRtl ? "فتح في خرائط Google" : "Open in Google Maps" })]
 											})
-										})
+										})] })
 									]
 								})]
 							})]
@@ -20861,6 +21030,16 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 														children: unit.project.area.name
 													})]
 												}),
+												locationAddress && /* @__PURE__ */ jsxs("div", {
+													className: "flex items-start justify-between py-1.5 border-b border-secondary-100/60 gap-2",
+													children: [/* @__PURE__ */ jsx("span", {
+														className: "text-secondary-500 font-semibold shrink-0",
+														children: trans("location_address") || (isRtl ? "العنوان" : "Address")
+													}), /* @__PURE__ */ jsx("span", {
+														className: "font-bold text-secondary-950 text-end break-words",
+														children: locationAddress
+													})]
+												}),
 												unit.project.installment_years > 0 && /* @__PURE__ */ jsxs("div", {
 													className: "flex items-center justify-between py-1.5 border-b border-secondary-100/60",
 													children: [/* @__PURE__ */ jsx("span", {
@@ -20914,10 +21093,10 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 												children: isRtl ? "معلومات المنطقة" : "Area Info"
 											})
 										}),
-										/* @__PURE__ */ jsx("div", {
+										/* @__PURE__ */ jsxs("div", {
 											className: "space-y-2.5 text-xs",
-											children: /* @__PURE__ */ jsxs("div", {
-												className: "flex items-center justify-between py-1.5",
+											children: [/* @__PURE__ */ jsxs("div", {
+												className: "flex items-center justify-between py-1.5 border-b border-secondary-100/60",
 												children: [/* @__PURE__ */ jsx("span", {
 													className: "text-secondary-500 font-semibold",
 													children: isRtl ? "المنطقة" : "Area"
@@ -20925,7 +21104,16 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 													className: "font-bold text-secondary-950",
 													children: unit.area.name
 												})]
-											})
+											}), locationAddress && /* @__PURE__ */ jsxs("div", {
+												className: "flex items-start justify-between py-1.5 gap-2",
+												children: [/* @__PURE__ */ jsx("span", {
+													className: "text-secondary-500 font-semibold shrink-0",
+													children: trans("location_address") || (isRtl ? "العنوان" : "Address")
+												}), /* @__PURE__ */ jsx("span", {
+													className: "font-bold text-secondary-950 text-end break-words",
+													children: locationAddress
+												})]
+											})]
 										}),
 										/* @__PURE__ */ jsxs(Link, {
 											href: localizedPath(`/areas/${unit.area.slug || unit.area.id}`, locale),
@@ -20944,15 +21132,70 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 											})]
 										})
 									]
+								}) : locationAddress ? /* @__PURE__ */ jsxs("div", {
+									className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4",
+									children: [/* @__PURE__ */ jsx("div", {
+										className: "flex items-center justify-between border-b border-secondary-100 pb-3",
+										children: /* @__PURE__ */ jsx("h2", {
+											className: "text-sm font-black text-secondary-950",
+											children: isRtl ? "معلومات الموقع" : "Location Info"
+										})
+									}), /* @__PURE__ */ jsx("div", {
+										className: "space-y-2.5 text-xs",
+										children: /* @__PURE__ */ jsxs("div", {
+											className: "flex items-start justify-between py-1.5 gap-2",
+											children: [/* @__PURE__ */ jsx("span", {
+												className: "text-secondary-500 font-semibold shrink-0",
+												children: trans("location_address") || (isRtl ? "العنوان" : "Address")
+											}), /* @__PURE__ */ jsx("span", {
+												className: "font-bold text-secondary-950 text-end break-words",
+												children: locationAddress
+											})]
+										})
+									})]
 								}) : null,
-								hasValidCoords(unit) && /* @__PURE__ */ jsxs("div", {
+								hasLocationOrCoords && /* @__PURE__ */ jsxs("div", {
 									className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4",
 									children: [
-										/* @__PURE__ */ jsx("h2", {
-											className: "text-sm font-black text-secondary-950",
-											children: isRtl ? "الموقع على الخريطة" : "Location on Map"
-										}),
 										/* @__PURE__ */ jsx("div", {
+											className: "flex items-center justify-between border-b border-secondary-100 pb-3",
+											children: /* @__PURE__ */ jsx("h2", {
+												className: "text-sm font-black text-secondary-950",
+												children: isRtl ? "الموقع والعنوان" : "Location & Address"
+											})
+										}),
+										locationAddress && /* @__PURE__ */ jsxs("div", {
+											className: "flex items-start gap-3 p-3.5 rounded-xl bg-surface border border-secondary-100",
+											children: [/* @__PURE__ */ jsx("div", {
+												className: "w-8 h-8 rounded-lg bg-red-50 text-[#CC0000] flex items-center justify-center shrink-0",
+												children: /* @__PURE__ */ jsxs("svg", {
+													className: "w-4 h-4",
+													fill: "none",
+													viewBox: "0 0 24 24",
+													stroke: "currentColor",
+													strokeWidth: 2,
+													children: [/* @__PURE__ */ jsx("path", {
+														strokeLinecap: "round",
+														strokeLinejoin: "round",
+														d: "M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"
+													}), /* @__PURE__ */ jsx("path", {
+														strokeLinecap: "round",
+														strokeLinejoin: "round",
+														d: "M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
+													})]
+												})
+											}), /* @__PURE__ */ jsxs("div", {
+												className: "min-w-0 flex-1",
+												children: [/* @__PURE__ */ jsx("span", {
+													className: "text-[11px] font-semibold text-secondary-500 block mb-0.5",
+													children: isRtl ? "العنوان بالتفصيل" : "Detailed Address"
+												}), /* @__PURE__ */ jsx("p", {
+													className: "text-xs font-bold text-secondary-950 leading-relaxed break-words",
+													children: locationAddress
+												})]
+											})]
+										}),
+										hasValidCoords(unit) && /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("div", {
 											className: "rounded-xl overflow-hidden border border-secondary-200 aspect-[16/9]",
 											children: /* @__PURE__ */ jsx("iframe", {
 												src: `https://maps.google.com/maps?q=${unit.latitude},${unit.longitude}&hl=${locale}&z=14&output=embed`,
@@ -20962,8 +21205,7 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 												referrerPolicy: "no-referrer-when-downgrade",
 												title: "Google Map Location Mobile"
 											})
-										}),
-										/* @__PURE__ */ jsx("div", {
+										}), /* @__PURE__ */ jsx("div", {
 											className: "text-center pt-1",
 											children: /* @__PURE__ */ jsxs("a", {
 												href: `https://www.google.com/maps/search/?api=1&query=${unit.latitude},${unit.longitude}`,
@@ -20987,7 +21229,7 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 													})]
 												}), /* @__PURE__ */ jsx("span", { children: isRtl ? "فتح في خرائط Google" : "Open in Google Maps" })]
 											})
-										})
+										})] })
 									]
 								}),
 								/* @__PURE__ */ jsxs("section", {

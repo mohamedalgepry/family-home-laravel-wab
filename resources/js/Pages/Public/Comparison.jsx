@@ -163,6 +163,7 @@ function ComparisonSection({ type, title, items, maxItems, isRtl, locale, trans 
                                         <DetailRow label={trans('transaction')} value={trans(item.transaction === 'rent' ? 'rent' : 'sale')} />
                                         {item.type?.name && <DetailRow label={trans('unit_type') || 'Type'} value={item.type.name} />}
                                         {item.area?.name && <DetailRow label={trans('area')} value={item.area.name} />}
+                                        {item.location_address && <DetailRow label={trans('location_address') || trans('location')} value={item.location_address} />}
                                         {item.finishing_type?.name && <DetailRow label={trans('finishing') || 'Finishing'} value={item.finishing_type.name} />}
                                         {item.payment_method && <DetailRow label={trans('payment_method') || 'Payment'} value={item.payment_method} />}
                                         {item.down_payment && <DetailRow label={trans('down_payment') || 'Down'} value={item.down_payment} />}

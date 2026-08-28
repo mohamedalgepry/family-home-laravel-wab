@@ -140,6 +140,7 @@ const en = {
         latitude: 'Latitude',
         longitude: 'Longitude',
         location_address: 'Address',
+        detailed_address: 'Detailed Address',
         pinned: 'Pinned',
         not_pinned: 'Not Pinned',
         is_deal: 'Deal',

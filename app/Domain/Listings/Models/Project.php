@@ -51,7 +51,9 @@ class Project extends Model
     {
         $locale = app()->getLocale();
 
-        return $locale === 'ar' ? $this->location_address_ar : $this->location_address_en;
+        return $locale === 'ar'
+            ? ($this->location_address_ar ?: $this->location_address_en)
+            : ($this->location_address_en ?: $this->location_address_ar);
     }
 
     public function getMetaDescriptionAttribute()
