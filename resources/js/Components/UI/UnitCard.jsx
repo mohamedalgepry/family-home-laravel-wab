@@ -4,7 +4,7 @@ import { usePage, Link } from '@inertiajs/react'
 import { useTrans } from '../../Utils/trans'
 import { useCompare } from '../../Hooks/useCompare'
 import OptimizedImage from '../OptimizedImage'
-import { getStorageUrl, PLACEHOLDER } from '../../Utils/image'
+import { getStorageUrl, getThumbUrl, PLACEHOLDER } from '../../Utils/image'
 import { getAgentContacts } from '../../Utils/contact'
 import WhatsAppIcon from './WhatsAppIcon'
 
@@ -37,7 +37,7 @@ function UnitCard({ unit, loading = false, priority = false }) {
     }
 
     const mainImage = unit?.images?.find(img => img.is_main || img.is_primary) || unit?.images?.[0]
-    const thumbnail = getStorageUrl(mainImage?.thumb_url || mainImage?.url || mainImage?.path, PLACEHOLDER)
+    const thumbnail = getThumbUrl(mainImage?.thumb_url || mainImage?.url || mainImage?.path, PLACEHOLDER)
     const isCompared = compareList.includes(unit?.id)
 
     const agentContacts = getAgentContacts(unit?.user || unit?.project?.user, settings)

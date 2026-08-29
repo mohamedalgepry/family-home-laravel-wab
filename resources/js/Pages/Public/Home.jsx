@@ -9,7 +9,7 @@ import UnitCard from '../../Components/UI/UnitCard'
 import ProjectCard from '../../Components/UI/ProjectCard'
 import Pagination from '../../Components/UI/Pagination'
 import SeoHead from '../../Components/UI/SeoHead'
-import { getStorageUrl } from '../../Utils/image'
+import { getStorageUrl, getThumbUrl } from '../../Utils/image'
 
 const HERO_BG = '/images/hero.webp'
 const HERO_BG_MOBILE = '/images/hero-mobile.webp'
@@ -124,7 +124,7 @@ export default function Home({ featuredUnits, latestUnits, latestProjects, popul
                             {areas?.map(area => {
                                 const areaName = isRtl ? (area.name_ar || area.name_en || area.name) : (area.name_en || area.name_ar || area.name)
                                 const areaSlug = area.slug || area.id
-                                const areaImg = getStorageUrl(area.image_path || area.hero_image)
+                                const areaImg = getThumbUrl(area.image_path || area.hero_image)
                                 return (
                                     <Link
                                         key={area.id}
@@ -133,7 +133,7 @@ export default function Home({ featuredUnits, latestUnits, latestProjects, popul
                                     >
                                         {(area.image_path || area.hero_image) ? (
                                             <img 
-                                                src={getStorageUrl(area.image_path || area.hero_image)}
+                                                src={areaImg}
                                                 alt={areaName}
                                                 width={220}
                                                 height={240}

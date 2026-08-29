@@ -32,7 +32,9 @@
 @endphp
 
 <title inertia>{{ $title }}</title>
+@if(!empty($description))
 <meta name="description" content="{{ $description }}" inertia head-key="description">
+@endif
 @if(!empty($keywords))
 <meta name="keywords" content="{{ $keywords }}" inertia head-key="keywords">
 @endif
