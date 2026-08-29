@@ -237,6 +237,12 @@ Route::prefix('admin')->middleware(['auth', 'role:admin,manager,agent'])->group(
         Route::delete('/{message}', [App\Http\Controllers\Admin\MessageController::class, 'destroy'])->name('destroy');
     });
 
+    Route::prefix('assistant-leads')->name('admin.assistant-leads.')->middleware('role:admin')->group(function () {
+        Route::get('/', [App\Http\Controllers\Admin\AssistantLeadController::class, 'index'])->name('index');
+        Route::post('/{lead}/contacted', [App\Http\Controllers\Admin\AssistantLeadController::class, 'markAsContacted'])->name('mark-contacted');
+        Route::delete('/{lead}', [App\Http\Controllers\Admin\AssistantLeadController::class, 'destroy'])->name('destroy');
+    });
+
     Route::prefix('notifications')->name('admin.notifications.')->group(function () {
         Route::get('/', [NotificationController::class, 'index'])->name('index');
         Route::get('/recent', [NotificationController::class, 'recent'])->name('recent');

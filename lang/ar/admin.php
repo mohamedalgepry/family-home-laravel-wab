@@ -14,6 +14,7 @@ return [
     'sidebar_articles' => 'المقالات والأخبار',
     'sidebar_messages' => 'الرسائل',
     'sidebar_users' => 'المستخدمين',
+    'sidebar_assistant_leads' => 'عملاء المساعد الذكي',
     'sidebar_points' => 'النقاط',
     'sidebar_settings' => 'الإعدادات',
     'sidebar_seo_pages' => 'SEO الصفحات',
