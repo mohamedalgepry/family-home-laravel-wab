@@ -36,7 +36,7 @@ class HossamAssistantService
     public function chat(string $message, array $history = [], string $locale = 'ar'): array
     {
         // 1. Search database for relevant active listings based on query keywords
-        $searchResult = $this->searchRelevantUnits($message, $locale);
+        $searchResult = $this->searchRelevantUnits($message, $history, $locale);
         $matchingUnits = $searchResult['units'];
         $hasSpecificConstraints = $searchResult['has_constraints'];
 
@@ -100,8 +100,26 @@ class HossamAssistantService
             $shouldShowCards = true;
         }
 
-        $recommendedCards = ($shouldShowCards && ! empty($matchingUnits))
-            ? $this->formatUnitCards($matchingUnits, $locale)
+        $filteredUnits = [];
+        if ($shouldShowCards && ! empty($matchingUnits)) {
+            $isFallback = str_contains($reply, 'أفضل العقارات المتاحة حسب طلبك') || str_contains($reply, 'Here are the best available properties');
+            
+            foreach ($matchingUnits as $unit) {
+                $slugAr = $unit->slug_ar ?? $unit->slug;
+                $slugEn = $unit->slug_en ?? $unit->slug;
+                $name = $unit->name;
+                
+                if ($isFallback || 
+                    str_contains($reply, $slugAr) || 
+                    str_contains($reply, $slugEn) || 
+                    (!empty($name) && mb_strlen($name) > 3 && str_contains($reply, $name))) {
+                    $filteredUnits[] = $unit;
+                }
+            }
+        }
+
+        $recommendedCards = !empty($filteredUnits)
+            ? $this->formatUnitCards($filteredUnits, $locale)
             : [];
 
         // 6. Auto-linkify unit & project names mentioned in the reply
@@ -119,13 +137,25 @@ class HossamAssistantService
     /**
      * Search database for units matching user request with smart parametric extraction.
      */
-    private function searchRelevantUnits(string $message, string $locale): array
+    private function searchRelevantUnits(string $message, array $history, string $locale): array
     {
         try {
+            // Combine the last 3 user messages to build search context to avoid losing previous constraints
+            $contextMessages = [];
+            $trimmedHistory = array_slice($history, -6); // Get last 6 turns
+            foreach ($trimmedHistory as $turn) {
+                if (isset($turn['role']) && $turn['role'] === 'user') {
+                    $contextMessages[] = $turn['content'];
+                }
+            }
+            $contextMessages[] = $message;
+            $contextMessages = array_slice($contextMessages, -3); // Keep only the last 3 user messages
+            $combinedMessage = implode(' ', $contextMessages);
+
             // Normalize Arabic digits (٠-٩) to English digits
             $eastern = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
             $western = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
-            $normalizedMessage = str_replace($eastern, $western, $message);
+            $normalizedMessage = str_replace($eastern, $western, $combinedMessage);
             $lowerMessage = mb_strtolower($normalizedMessage, 'UTF-8');
 
             $query = Unit::query()
