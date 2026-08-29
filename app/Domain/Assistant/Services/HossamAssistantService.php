@@ -16,8 +16,9 @@ class HossamAssistantService
     private string $fallbackModel;
     private string $baseUrl;
 
-    public function __construct()
-    {
+    public function __construct(
+        private \App\Domain\Listings\Services\SettingsService $settingsService
+    ) {
         $this->apiKey = (string) config('services.openrouter.api_key', env('OPENROUTER_API_KEY', ''));
         $this->model = (string) config('services.openrouter.model', env('OPENROUTER_MODEL', 'openrouter/free'));
         $this->fallbackModel = (string) config('services.openrouter.fallback_model', env('OPENROUTER_FALLBACK_MODEL', 'openrouter/free'));
@@ -303,30 +304,35 @@ class HossamAssistantService
     private function buildSystemPrompt(array $units, string $locale): string
     {
         $currency = config('app.currency', 'EGP');
+        $companyPhone = $this->settingsService->get('phone', '');
+        $companyWhatsapp = $this->settingsService->get('company_whatsapp', '');
+        $companyContact = $companyWhatsapp ?: $companyPhone;
 
         if ($locale === 'en') {
-            return $this->buildEnglishPrompt($units, $currency, $locale);
+            return $this->buildEnglishPrompt($units, $currency, $locale, $companyContact);
         }
 
-        return $this->buildArabicPrompt($units, $currency, $locale);
+        return $this->buildArabicPrompt($units, $currency, $locale, $companyContact);
     }
 
     /**
      * Build English system prompt — optimized for high conversion & consultative selling.
      */
-    private function buildEnglishPrompt(array $units, string $currency, string $locale): string
+    private function buildEnglishPrompt(array $units, string $currency, string $locale, string $companyContact): string
     {
         $inventoryText = $this->formatInventoryText($units, $currency, $locale);
+        $contactContext = !empty($companyContact) ? "\n- General Company Contact / WhatsApp: {$companyContact}" : "";
 
         return <<<PROMPT
 You are "Hossam" — Senior Real Estate Sales & Investment Consultant at "Family Home". Respond in professional, persuasive, friendly English.
 
 YOUR MISSION & SALES STRATEGY:
-1. **Proactively Suggest Units with Direct Links:** Whenever the client asks about properties, locations, budgets, or investments, always recommend 1 to 3 relevant properties from the list below. Make every property name a direct clickable markdown link: `[Property Name](URL)` (e.g. `[Modern Apartment in New Cairo](/en/units/modern-apartment)`).
-2. **Sales Persuasion & Value:** Don't just list units — persuade the client why each property is a smart catch (prime location, capital appreciation, high rental yield, or flexible installment plan that preserves liquidity against inflation).
-3. **Accurate Numbers:** Clearly calculate down payments, installments, and payment plans whenever pricing is discussed.
-4. **Display Interactive Cards:** Whenever you suggest any unit from the portfolio, always append `[SHOW_CARDS]` at the very end of your response so the interactive cards with pictures and WhatsApp contact display.
-5. **Concise & Direct:** Be helpful and consultative. Never repeat introductory greetings in every message.
+1. **Proactively Suggest Units with Direct Links:** Whenever the client asks about properties, locations, budgets, or investments, always recommend 1 to 3 relevant properties from the list below. Make every property name a direct clickable markdown link: `[Property Name](URL)`.
+2. **Contact & Agent Access:** You have access to the agent's specific WhatsApp number for each unit (provided in the list below). If the user wants to proceed, mention the agent's WhatsApp number.{$contactContext}
+3. **Sales Persuasion & Value:** Don't just list units — persuade the client why each property is a smart catch.
+4. **Accurate Numbers:** Clearly calculate down payments, installments, and payment plans.
+5. **Display Interactive Cards:** Whenever you suggest any unit, always append `[SHOW_CARDS]` at the very end of your response.
+6. **Concise & Direct:** Be helpful and consultative. Never repeat introductory greetings in every message.
 
 AVAILABLE PORTFOLIO UNITS:
 {$inventoryText}
@@ -336,19 +342,21 @@ PROMPT;
     /**
      * Build Arabic system prompt — optimized for high conversion & consultative selling.
      */
-    private function buildArabicPrompt(array $units, string $currency, string $locale): string
+    private function buildArabicPrompt(array $units, string $currency, string $locale, string $companyContact): string
     {
         $inventoryText = $this->formatInventoryText($units, $currency, $locale);
+        $contactContext = !empty($companyContact) ? "\n- رقم التواصل العام للموقع / واتساب: {$companyContact}" : "";
 
         return <<<PROMPT
 أنت «حسام» — مستشار مبيعات واستثمار عقاري محترف وخبير في شركة «فاميلي هوم (Family Home)». ردّ دائماً باللغة العربية بأسلوب راقٍ ومقنع وودود.
 
 استراتيجية الإقناع والبيع الاستشاري:
-1. **اقتراح الوحدات بالروابط المباشرة دائماً:** عندما يسأل العميل عن عقار أو منطقة أو ميزانية أو استثمار، رشّح له من 1 إلى 3 وحدات من القائمة المتاحة أدناه. واجعل اسم كل عقار رابط ماركداون مباشر بالصيغة: `[اسم العقار](الرابط)` (مثال: `[شقة فاخرة بالتجمع الخامس](/ar/units/shqh-fakhrh)`).
-2. **فن الإقناع وإبراز القيمة:** لا تسرد العقارات بجفاف؛ أقنع العميل بذكاء لماذا تمثل هذه الوحدة «فرصة استثمارية أو سكنية مميزة» (الموقع الاستراتيجي، أنظمة السداد والتقسيط لحفظ السيولة ضد التضخم، العائد الإيجاري المرتفع، أو جودة التشطيب والاستلام).
-3. **حسابات دقيقة:** احسب للعميل المقدم والأقساط وفترة السداد بالأرقام والنسب المئوية بشكل واضح ومرتب.
-4. **إظهار كروت الوحدات:** عندما ترشح أي وحدات من القائمة، ضع دائماً الوسم الخفي `[SHOW_CARDS]` في نهاية ردك لظهور كروت العقارات المصورة وروابط الواتساب مباشرة للعميل.
-5. **اللباقة وعدم التكرار:** كن استشارياً ناصحاً يكسب ثقة العميل من أول لحظة، ولا تكرر رسائل الترحيب في كل رد.
+1. **اقتراح الوحدات بالروابط المباشرة دائماً:** رشّح 1 إلى 3 وحدات من القائمة المتاحة أدناه. اجعل اسم العقار رابط ماركداون مباشر بالصيغة: `[اسم العقار](الرابط)`.
+2. **الوصول لأرقام التواصل:** أنت لديك وصول لرقم هاتف الوكيل الخاص بكل وحدة (موضح في تفاصيل الوحدة بالأسفل). إذا أراد العميل الحجز أو التواصل، قدم له رقم واتساب الوكيل الخاص بالوحدة.{$contactContext}
+3. **فن الإقناع وإبراز القيمة:** أقنع العميل بذكاء لماذا تمثل هذه الوحدة «فرصة مميزة».
+4. **حسابات دقيقة:** احسب المقدم والأقساط وفترة السداد بالأرقام والنسب المئوية بشكل واضح.
+5. **إظهار كروت الوحدات:** عندما ترشح أي وحدات من القائمة، ضع دائماً الوسم الخفي `[SHOW_CARDS]` في نهاية ردك لظهور كروت العقارات المصورة وروابط الواتساب.
+6. **اللباقة وعدم التكرار:** كن استشارياً ناصحاً، ولا تكرر رسائل الترحيب في كل رد.
 
 قائمة العقارات والفرص المتاحة في محفظة فاميلي هوم:
 {$inventoryText}
@@ -367,11 +375,17 @@ PROMPT;
         }
 
         $list = [];
+        $settingsWhatsapp = $this->settingsService->get('company_whatsapp', '');
+        $settingsPhone = $this->settingsService->get('phone', '');
+
         foreach ($units as $u) {
             $areaName = $locale === 'en'
                 ? ($u->area?->name_en ?? $u->area?->name ?? 'Prime Location')
                 : ($u->area?->name_ar ?? $u->area?->name ?? 'موقع متميز');
             $priceFormatted = number_format((float) $u->price) . ' ' . $currency;
+            
+            $agentWhatsapp = $u->user?->whatsapp ?? $u->user?->phone ?? $settingsWhatsapp ?: $settingsPhone;
+            $agentContact = !empty($agentWhatsapp) ? preg_replace('/[^\d+]/', '', (string) $agentWhatsapp) : 'N/A';
 
             if ($locale === 'en') {
                 $payment = $u->payment_method === 'installment' ? 'Installment' : ($u->payment_method === 'both' ? 'Cash or Installment' : 'Cash');
@@ -380,7 +394,7 @@ PROMPT;
                 $slug = $u->slug_en ?? $u->slug;
                 $url = '/' . $locale . '/units/' . $slug;
 
-                $list[] = '- Property: [' . $u->name . '](' . $url . ') | Price: ' . $priceFormatted . ' | Area: ' . $areaName . ' | Rooms: ' . $u->rooms . ' | Size: ' . $u->area_sqm . ' sqm | Payment: ' . $payment . $downPayment . $years . ' | Markdown link: [' . $u->name . '](' . $url . ')';
+                $list[] = '- Property: [' . $u->name . '](' . $url . ') | Price: ' . $priceFormatted . ' | Area: ' . $areaName . ' | Rooms: ' . $u->rooms . ' | Size: ' . $u->area_sqm . ' sqm | Payment: ' . $payment . $downPayment . $years . ' | Agent WhatsApp: ' . $agentContact . ' | Markdown link: [' . $u->name . '](' . $url . ')';
             } else {
                 $payment = $u->payment_method === 'installment' ? 'تقسيط' : ($u->payment_method === 'both' ? 'كاش أو تقسيط' : 'كاش');
                 $downPayment = $u->down_payment ? ' (مقدم: ' . number_format((float) $u->down_payment) . ' ' . $currency . ')' : '';
@@ -388,7 +402,7 @@ PROMPT;
                 $slug = $u->slug_ar ?? $u->slug;
                 $url = '/' . $locale . '/units/' . $slug;
 
-                $list[] = '- اسم العقار: [' . $u->name . '](' . $url . ') | السعر: ' . $priceFormatted . ' | المنطقة: ' . $areaName . ' | الغرف: ' . $u->rooms . ' | المساحة: ' . $u->area_sqm . ' م² | نظام الدفع: ' . $payment . $downPayment . $years . ' | رابط الماركداون: [' . $u->name . '](' . $url . ')';
+                $list[] = '- اسم العقار: [' . $u->name . '](' . $url . ') | السعر: ' . $priceFormatted . ' | المنطقة: ' . $areaName . ' | الغرف: ' . $u->rooms . ' | المساحة: ' . $u->area_sqm . ' م² | نظام الدفع: ' . $payment . $downPayment . $years . ' | واتساب الوكيل: ' . $agentContact . ' | رابط الماركداون: [' . $u->name . '](' . $url . ')';
             }
         }
 
