@@ -9,7 +9,9 @@
   "resources/js/Components/OptimizedImage.jsx": [],
   "resources/js/Components/UI/ArticleCard.jsx": [],
   "resources/js/Components/UI/Button.jsx": [],
-  "resources/js/Components/UI/HossamChatWidget.jsx": [],
+  "resources/js/Components/UI/HossamChatWidget.jsx": [
+    "/build/assets/HossamChatWidget-DZ1B6GjT.js"
+  ],
   "resources/js/Components/UI/IconByName.jsx": [],
   "resources/js/Components/UI/InputField.jsx": [],
   "resources/js/Components/UI/Pagination.jsx": [],

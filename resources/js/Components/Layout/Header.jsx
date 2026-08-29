@@ -36,7 +36,7 @@ export default function Header({ compareCount = 0 }) {
 
     const logoSrc = settings?.site_logo 
         ? (settings.site_logo.startsWith('http') || settings.site_logo.startsWith('/storage') ? settings.site_logo : `/storage/${settings.site_logo}`) 
-        : '/icon.webp';
+        : '/icon-64.webp';
 
     const logoAlt = `${trans('app_name')} - ${isRtl ? 'موقع عقارات عائلية' : 'Family Real Estate'}`;
 

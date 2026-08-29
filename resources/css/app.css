@@ -503,15 +503,15 @@ button.touch-active,
     @keyframes conciergeRing {
         0% {
             transform: scale(0.95);
-            box-shadow: 0 0 0 0 rgba(204, 0, 0, 0.45);
+            opacity: 0.8;
         }
         70% {
-            transform: scale(1);
-            box-shadow: 0 0 0 14px rgba(204, 0, 0, 0);
+            transform: scale(1.15);
+            opacity: 0;
         }
         100% {
             transform: scale(0.95);
-            box-shadow: 0 0 0 0 rgba(204, 0, 0, 0);
+            opacity: 0;
         }
     }
 
@@ -621,9 +621,14 @@ button.touch-active,
 }
 
 @utility animate-subtle-zoom {
-    animation: subtleZoom 12s ease-in-out infinite alternate;
     will-change: transform;
     transform: translateZ(0);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .animate-subtle-zoom {
+        animation: subtleZoom 12s ease-in-out infinite alternate;
+    }
 }
 
 @keyframes slideUp {
@@ -656,55 +661,6 @@ button.touch-active,
 
 @utility animate-in {
     animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-/* Hossam Concierge Chat Styles */
-.concierge-paper {
-    background-color: #FAFAF8;
-}
-.concierge-rule {
-    border-color: #EFEFEA;
-}
-.concierge-pin {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    letter-spacing: 0.08em;
-}
-@keyframes conciergeBubbleIn {
-    0% {
-        opacity: 0;
-        transform: translateY(6px);
-    }
-    100% {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-.concierge-bubble-in {
-    animation: conciergeBubbleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-@keyframes conciergeOpenAnim {
-    0% {
-        opacity: 0;
-        transform: scale(0.96) translateY(12px);
-    }
-    100% {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-    }
-}
-.concierge-open {
-    animation: conciergeOpenAnim 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-@keyframes streamingCaret {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0; }
-}
-.streaming-caret::after {
-    content: '▍';
-    display: inline-block;
-    color: #CC0000;
-    margin-inline-start: 2px;
-    animation: streamingCaret 0.8s infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
