@@ -168,9 +168,16 @@ export default function HossamChatWidget() {
     ], [trans])
 
     /* ---------- network ---------- */
-    const handleSendMessage = async (textToSend = null) => {
+    const abortControllerRef = useRef(null)
+
+    const handleSendMessage = async (textToSend = null, retryMessageId = null) => {
         const text = (textToSend || inputMessage).trim()
         if (!text || isLoading) return
+
+        // If retrying, remove the old error message
+        if (retryMessageId) {
+            setMessages(prev => prev.filter(m => m.id !== retryMessageId))
+        }
 
         const userMsg = {
             id: 'user_' + Date.now(),
@@ -179,75 +186,125 @@ export default function HossamChatWidget() {
             timestamp: formatTime(new Date(), locale),
         }
 
-        const newMessages = [...messages, userMsg]
-        setMessages(newMessages)
+        const newMessages = retryMessageId
+            ? [...messages.filter(m => m.id !== retryMessageId), userMsg]
+            : [...messages, userMsg]
+
+        // Don't add user message again if retrying (it's already there)
+        if (!retryMessageId) {
+            setMessages(newMessages)
+        } else {
+            setMessages(prev => prev.filter(m => m.id !== retryMessageId))
+        }
         setInputMessage('')
         setIsLoading(true)
 
-        try {
-            const historyPayload = newMessages
-                .filter(m => m.id !== 'welcome' && !String(m.id).startsWith('welcome_'))
-                .map(m => ({ role: m.role, content: m.content }))
-
-            const csrfToken = typeof document !== 'undefined'
-                ? (document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '')
-                : ''
-
-            const response = await fetch(`/${locale || 'ar'}/assistant/chat`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken,
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-                body: JSON.stringify({
-                    message: text,
-                    history: historyPayload,
-                    locale: locale || 'ar',
-                }),
-            })
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`)
-            }
-
-            const data = await response.json()
-            if (data && data.success) {
-                const newBotId = 'bot_' + Date.now()
-                setStreamedMessageId(newBotId)
-                setMessages(prev => [
-                    ...prev,
-                    {
-                        id: newBotId,
-                        role: 'assistant',
-                        content: data.reply,
-                        recommended_units: data.recommended_units || [],
-                        timestamp: formatTime(new Date(), locale),
-                    }
-                ])
-                // Stop the streaming caret after a moment
-                setTimeout(() => setStreamedMessageId(null), 1400)
-            } else {
-                throw new Error('Empty reply payload')
-            }
-        } catch (error) {
-            console.error('Hossam Assistant Error:', error)
-            setMessages(prev => [
-                ...prev,
-                {
-                    id: 'bot_err_' + Date.now(),
-                    role: 'assistant',
-                    content: isRtl
-                        ? 'أهلاً بك! أنا حسام. عذراً حدث ضغط مؤقت في الاتصال، يرجى المحاولة مرة أخرى أو اختيار أحد الأسئلة السريعة.'
-                        : 'Hello! I am Hossam. A temporary network congestion occurred. Please try again or tap one of the quick suggestions below.',
-                    recommended_units: [],
-                    timestamp: formatTime(new Date(), locale),
-                }
-            ])
-        } finally {
-            setIsLoading(false)
+        // AbortController for fetch timeout
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort()
         }
+        const controller = new AbortController()
+        abortControllerRef.current = controller
+        const timeoutId = setTimeout(() => controller.abort(), 45000) // 45s timeout
+
+        const maxAttempts = 2
+        let lastError = null
+
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                const historyPayload = newMessages
+                    .filter(m => m.id !== 'welcome' && !String(m.id).startsWith('welcome_'))
+                    .map(m => ({ role: m.role, content: m.content }))
+
+                const csrfToken = typeof document !== 'undefined'
+                    ? (document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '')
+                    : ''
+
+                const response = await fetch(`/${locale || 'ar'}/assistant/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify({
+                        message: text,
+                        history: historyPayload,
+                        locale: locale || 'ar',
+                    }),
+                    signal: controller.signal,
+                })
+
+                if (!response.ok) {
+                    // On 429 (rate limit) or 5xx, retry
+                    if (attempt < maxAttempts && (response.status === 429 || response.status >= 500)) {
+                        await new Promise(r => setTimeout(r, 1000))
+                        continue
+                    }
+                    throw new Error(`HTTP error! status: ${response.status}`)
+                }
+
+                const data = await response.json()
+                if (data && data.success) {
+                    const newBotId = 'bot_' + Date.now()
+                    setStreamedMessageId(newBotId)
+                    setMessages(prev => [
+                        ...prev,
+                        {
+                            id: newBotId,
+                            role: 'assistant',
+                            content: data.reply,
+                            recommended_units: data.recommended_units || [],
+                            timestamp: formatTime(new Date(), locale),
+                        }
+                    ])
+                    setTimeout(() => setStreamedMessageId(null), 1400)
+                    clearTimeout(timeoutId)
+                    abortControllerRef.current = null
+                    setIsLoading(false)
+                    return // Success — exit
+                } else {
+                    throw new Error('Empty reply payload')
+                }
+            } catch (error) {
+                lastError = error
+                if (error.name === 'AbortError') {
+                    break // Don't retry on user abort / timeout
+                }
+                if (attempt < maxAttempts) {
+                    await new Promise(r => setTimeout(r, 800))
+                    continue
+                }
+            }
+        }
+
+        // All attempts failed
+        clearTimeout(timeoutId)
+        abortControllerRef.current = null
+
+        console.error('Hossam Assistant Error:', lastError)
+        const errorId = 'bot_err_' + Date.now()
+        const isTimeout = lastError?.name === 'AbortError'
+        setMessages(prev => [
+            ...prev,
+            {
+                id: errorId,
+                role: 'assistant',
+                content: isRtl
+                    ? (isTimeout
+                        ? 'عذراً، الاستجابة أخذت وقت أطول من المتوقع. اضغط على زر "إعادة المحاولة" أو اكتب سؤالك مرة تانية.'
+                        : 'عذراً، حدث خطأ في الاتصال. اضغط على "إعادة المحاولة" أو جرب مرة أخرى.')
+                    : (isTimeout
+                        ? 'Sorry, the response took longer than expected. Tap "Retry" or rephrase your question.'
+                        : 'Sorry, a connection error occurred. Tap "Retry" or try again.'),
+                recommended_units: [],
+                timestamp: formatTime(new Date(), locale),
+                isError: true,
+                retryText: text,
+            }
+        ])
+        setIsLoading(false)
     }
 
     const resetChat = () => {
@@ -585,10 +642,12 @@ export default function HossamChatWidget() {
                                             className={`max-w-[88%] rounded-2xl px-3.5 py-2.5 text-[13.5px] leading-relaxed ${
                                                 isUser
                                                     ? 'bg-[#1A1A1A] text-white rounded-br-md shadow-[0_2px_8px_rgba(0,0,0,0.10)]'
-                                                    : 'bg-white text-slate-800 border border-slate-200/80 rounded-bl-md shadow-[0_1px_2px_rgba(0,0,0,0.04)]'
+                                                    : msg.isError
+                                                        ? 'bg-rose-50 text-rose-800 border border-rose-200 rounded-bl-md shadow-[0_1px_2px_rgba(0,0,0,0.04)]'
+                                                        : 'bg-white text-slate-800 border border-slate-200/80 rounded-bl-md shadow-[0_1px_2px_rgba(0,0,0,0.04)]'
                                             }`}
                                         >
-                                            <div className={isUser ? 'text-white' : 'text-slate-800'}>
+                                            <div className={isUser ? 'text-white' : msg.isError ? 'text-rose-800' : 'text-slate-800'}>
                                                 {isUser
                                                     ? <span className={isStreaming ? 'streaming-caret' : ''}>{msg.content}</span>
                                                     : <span className={isStreaming ? 'streaming-caret' : ''}>{formatMessageText(msg.content)}</span>
@@ -603,8 +662,21 @@ export default function HossamChatWidget() {
                                             )}
                                         </div>
 
+                                        {/* Retry button — under error messages */}
+                                        {msg.isError && msg.retryText && !isLoading && (
+                                            <button
+                                                onClick={() => handleSendMessage(msg.retryText, msg.id)}
+                                                className="flex items-center gap-1.5 mt-1.5 ms-1 text-[11px] font-bold text-[#CC0000] hover:text-[#990000] bg-rose-50 hover:bg-rose-100 border border-rose-200 px-3 py-1.5 rounded-full transition-all"
+                                            >
+                                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                                </svg>
+                                                {isRtl ? 'إعادة المحاولة' : 'Retry'}
+                                            </button>
+                                        )}
+
                                         {/* Feedback row — under assistant messages only */}
-                                        {!isUser && !isStreaming && (
+                                        {!isUser && !isStreaming && !msg.isError && (
                                             <div className="flex items-center gap-1 mt-1 ms-1">
                                                 <button
                                                     onClick={() => setReaction(msg.id, 'up')}

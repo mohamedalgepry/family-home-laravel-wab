@@ -179,12 +179,8 @@ Route::prefix('{locale}')->whereIn('locale', ['ar', 'en'])->middleware(SetLocale
         ->name('assistant.chat');
 });
 
-Route::post('/assistant/chat', [AiAssistantController::class, 'chat'])
-    ->middleware('throttle:30,1');
-Route::post('/contact', [MessageController::class, 'storeContact'])
-    ->middleware('throttle:contact-form');
-Route::post('/units/{unit:slug}/contact', [MessageController::class, 'store'])
-    ->middleware('throttle:contact-form');
+
+
 
 Route::prefix('admin')->middleware(['auth', 'role:admin,manager,agent'])->group(function () {
     Route::get('/', DashboardController::class)->name('admin.dashboard');

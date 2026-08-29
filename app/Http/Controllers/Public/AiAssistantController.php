@@ -17,9 +17,9 @@ class AiAssistantController
     {
         $validated = $request->validate([
             'message' => ['required', 'string', 'min:1', 'max:1000'],
-            'history' => ['nullable', 'array', 'max:12'],
+            'history' => ['nullable', 'array', 'max:30'],
             'history.*.role' => ['required_with:history', 'string', 'in:user,assistant'],
-            'history.*.content' => ['required_with:history', 'string', 'max:1500'],
+            'history.*.content' => ['required_with:history', 'string', 'max:2000'],
             'locale' => ['nullable', 'string', 'in:ar,en'],
         ]);
 

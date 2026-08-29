@@ -47,8 +47,8 @@ class HossamAssistantService
             ['role' => 'system', 'content' => $systemPrompt],
         ];
 
-        // Append past history (limited to last 6 turns for efficiency)
-        $trimmedHistory = array_slice($history, -6);
+        // Append past history (limited to last 15 turns for richer context)
+        $trimmedHistory = array_slice($history, -15);
         foreach ($trimmedHistory as $turn) {
             if (isset($turn['role'], $turn['content']) && in_array($turn['role'], ['user', 'assistant'])) {
                 $messages[] = [
@@ -67,11 +67,9 @@ class HossamAssistantService
         // 4. Request completion from OpenRouter with multi-model fallback cascade
         $candidateModels = array_values(array_unique(array_filter([
             $this->model,
-            'google/gemma-4-31b-it:free',
-            'google/gemma-4-26b-a4b-it:free',
+            'google/gemma-3-27b-it:free',
+            'meta-llama/llama-4-scout:free',
             $this->fallbackModel,
-            'openrouter/free',
-            'minimax/minimax-m3:free',
         ])));
 
         $reply = null;
@@ -444,9 +442,9 @@ PROMPT;
     }
 
     /**
-     * Execute completion request against OpenRouter.
+     * Execute completion request against OpenRouter with intelligent retry.
      */
-    private function callOpenRouter(array $messages, string $model): ?string
+    private function callOpenRouter(array $messages, string $model, int $timeout = 25): ?string
     {
         if (empty($this->apiKey)) {
             Log::warning('HossamAssistant: OPENROUTER_API_KEY is not configured');
@@ -454,49 +452,88 @@ PROMPT;
             return null;
         }
 
-        try {
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->apiKey,
-                'HTTP-Referer' => config('app.url', 'https://familyhome-co.com'),
-                'X-Title' => config('app.name', 'Family Home'),
-                'Content-Type' => 'application/json',
-            ])
-                ->withoutVerifying()
-                ->timeout(12)
-                ->post($this->baseUrl . '/chat/completions', [
-                    'model' => $model,
-                    'messages' => $messages,
-                    'temperature' => 0.7,
-                    'max_tokens' => 900,
-                ]);
+        $maxAttempts = 2;
 
-            if ($response->successful()) {
-                $rawBody = trim($response->body());
-                $data = json_decode($rawBody, true) ?: $response->json();
-                $reply = $data['choices'][0]['message']['content'] ?? null;
-                if (! empty($reply)) {
-                    $trimmedReply = trim($reply);
-                    if (mb_strlen($trimmedReply) > 25 && ! str_starts_with($trimmedReply, 'User Safety:')) {
-                        return $trimmedReply;
+        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+            try {
+                // Use shorter timeout on retry attempt
+                $currentTimeout = $attempt === 1 ? $timeout : min($timeout, 15);
+
+                $response = Http::withHeaders([
+                    'Authorization' => 'Bearer ' . $this->apiKey,
+                    'HTTP-Referer' => config('app.url', 'https://familyhome-co.com'),
+                    'X-Title' => config('app.name', 'Family Home'),
+                    'Content-Type' => 'application/json',
+                ])
+                    ->withoutVerifying()
+                    ->timeout($currentTimeout)
+                    ->post($this->baseUrl . '/chat/completions', [
+                        'model' => $model,
+                        'messages' => $messages,
+                        'temperature' => 0.7,
+                        'max_tokens' => 1500,
+                    ]);
+
+                if ($response->successful()) {
+                    $rawBody = trim($response->body());
+                    $data = json_decode($rawBody, true) ?: $response->json();
+                    $reply = $data['choices'][0]['message']['content'] ?? null;
+                    if (! empty($reply)) {
+                        $trimmedReply = trim($reply);
+                        if (mb_strlen($trimmedReply) > 25 && ! str_starts_with($trimmedReply, 'User Safety:')) {
+                            return $trimmedReply;
+                        }
                     }
                 }
+
+                // If rate limited (429) or server error (5xx), retry
+                $status = $response->status();
+                if ($attempt < $maxAttempts && ($status === 429 || $status >= 500)) {
+                    Log::info('HossamAssistant: Retrying model after status ' . $status, [
+                        'model' => $model,
+                        'attempt' => $attempt,
+                    ]);
+                    usleep(500000); // 0.5s delay before retry
+
+                    continue;
+                }
+
+                Log::warning('HossamAssistant: OpenRouter error response', [
+                    'status' => $status,
+                    'body' => $response->body(),
+                    'model' => $model,
+                    'attempt' => $attempt,
+                ]);
+
+                return null;
+            } catch (\Throwable $e) {
+                // On timeout/connection error, retry once
+                if ($attempt < $maxAttempts && (
+                    str_contains($e->getMessage(), 'timed out') ||
+                    str_contains($e->getMessage(), 'Connection') ||
+                    str_contains($e->getMessage(), 'cURL')
+                )) {
+                    Log::info('HossamAssistant: Retrying model after exception', [
+                        'model' => $model,
+                        'error' => $e->getMessage(),
+                        'attempt' => $attempt,
+                    ]);
+                    usleep(300000); // 0.3s delay
+
+                    continue;
+                }
+
+                Log::error('HossamAssistant: API call exception', [
+                    'error' => $e->getMessage(),
+                    'model' => $model,
+                    'attempt' => $attempt,
+                ]);
+
+                return null;
             }
-
-            Log::warning('HossamAssistant: OpenRouter error response', [
-                'status' => $response->status(),
-                'body' => $response->body(),
-                'model' => $model,
-            ]);
-
-            return null;
-        } catch (\Throwable $e) {
-            Log::error('HossamAssistant: API call exception', [
-                'error' => $e->getMessage(),
-                'model' => $model,
-            ]);
-
-            return null;
         }
+
+        return null;
     }
 
     /**
