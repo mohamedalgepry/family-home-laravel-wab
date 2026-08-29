@@ -41,7 +41,7 @@ export default defineConfig({
                         if (id.includes('react-dom')) {
                             return 'vendor-react-dom';
                         }
-                        if (id.includes('react') && !id.includes('react-dom')) {
+                        if (id.includes('react')) {
                             return 'vendor-react';
                         }
                         if (id.includes('@inertiajs')) {

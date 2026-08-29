@@ -17,7 +17,6 @@ class SecurityHeadersMiddleware
         $response->headers->set('X-Content-Type-Options', 'nosniff');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
         $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), interest-cohort=()');
-        $response->headers->set('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
 
         if ($request->isSecure() || app()->environment('production')) {
             $response->headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
@@ -26,12 +25,10 @@ class SecurityHeadersMiddleware
         $csp = "default-src 'self'; "
             ."script-src 'self' 'unsafe-inline' https://*.google-analytics.com https://*.googletagmanager.com https://*.googleapis.com https://maps.googleapis.com; "
             ."style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-            ."img-src 'self' data: blob: https: https://*.googleapis.com https://maps.gstatic.com https://i.ytimg.com; "
+            ."img-src 'self' data: blob: https: https://*.googleapis.com https://maps.gstatic.com; "
             ."font-src 'self' data: https://fonts.gstatic.com; "
             ."connect-src 'self' https://*.google-analytics.com https://*.googletagmanager.com https://*.googleapis.com https://maps.googleapis.com; "
             .'frame-src https://maps.google.com https://www.google.com https://www.youtube.com; '
-            ."object-src 'none'; "
-            ."base-uri 'self'; "
             ."form-action 'self'; "
             ."frame-ancestors 'self'; "
             .'report-uri /csp-report; '
@@ -55,4 +52,5 @@ class SecurityHeadersMiddleware
 
         return $response;
     }
+}
 }

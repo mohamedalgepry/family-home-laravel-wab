@@ -123,16 +123,14 @@ class ErrorBoundary extends Component {
 }
 
 if (typeof window !== 'undefined') {
-    setTimeout(() => {
-        console.log(
-            '%cتنسيق الأمان | Security Notice',
-            'color: #CC0000; font-size: 24px; font-weight: bold;'
-        );
-        console.log(
-            '%cهذه الشاشة مخصصة للمطورين. لا تقم بنسخ أو تنفيذ أي أكواد هنا للحفاظ على أمان حسابك وموقعك.',
-            'font-size: 14px; color: #333;'
-        );
-    }, 5000);
+    console.log(
+        '%cتنسيق الأمان | Security Notice',
+        'color: #CC0000; font-size: 24px; font-weight: bold;'
+    );
+    console.log(
+        '%cهذه الشاشة مخصصة للمطورين. لا تقم بنسخ أو تنفيذ أي أكواد هنا للحفاظ على أمان حسابك وموقعك.',
+        'font-size: 14px; color: #333;'
+    );
 
     router.on('invalid', (event) => {
         const response = event.detail.response;
@@ -192,7 +190,7 @@ async function boot() {
     const appEl = document.getElementById('app')
     let initialLocale = 'en'
     const pageScript = document.querySelector('script[data-page="app"]')
-    
+
     if (pageScript) {
         try {
             initialLocale = JSON.parse(pageScript.textContent).props?.locale || 'en'
@@ -207,7 +205,7 @@ async function boot() {
             initialLocale = 'en'
         }
     }
-    
+
     await loadLocale(initialLocale)
 
     createInertiaApp({

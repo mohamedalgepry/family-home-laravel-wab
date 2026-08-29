@@ -34,9 +34,9 @@ export default function Header({ compareCount = 0 }) {
         return () => window.removeEventListener('keydown', handleKeyDown)
     }, [menuOpen])
 
-    const logoSrc = settings?.site_logo 
-        ? (settings.site_logo.startsWith('http') || settings.site_logo.startsWith('/storage') ? settings.site_logo : `/storage/${settings.site_logo}`) 
-        : '/icon-64.webp';
+    const logoSrc = settings?.site_logo
+        ? (settings.site_logo.startsWith('http') || settings.site_logo.startsWith('/storage') ? settings.site_logo : `/storage/${settings.site_logo}`)
+        : '/icon.webp';
 
     const logoAlt = `${trans('app_name')} - ${isRtl ? 'موقع عقارات عائلية' : 'Family Real Estate'}`;
 
@@ -76,14 +76,14 @@ export default function Header({ compareCount = 0 }) {
                     onClick={(e) => handleNavClick(e, '/')}
                     className="flex items-center gap-2 shrink-0 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded-md"
                 >
-                    <OptimizedImage 
-                        src={logoSrc} 
-                        alt={logoAlt} 
+                    <OptimizedImage
+                        src={logoSrc}
+                        alt={logoAlt}
                         width={32}
                         height={32}
                         lazy={false}
                         fallbackSrc="/icon.webp"
-                        className="h-8 w-auto object-contain" 
+                        className="h-8 w-auto object-contain"
                     />
                     <span className="text-xl font-bold text-primary-900 tracking-tight group-hover:text-primary-700 transition-colors">{trans('app_name')}</span>
                 </Link>
@@ -97,11 +97,10 @@ export default function Header({ compareCount = 0 }) {
                                 key={item.key}
                                 href={localizedPath(item.href, locale)}
                                 onClick={(e) => handleNavClick(e, item.href)}
-                                className={`text-sm transition-colors duration-200 py-2 px-4 rounded-xl flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-900/10 ${
-                                    active 
-                                        ? 'text-primary-900 bg-primary-50 font-bold' 
+                                className={`text-sm transition-colors duration-200 py-2 px-4 rounded-xl flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-900/10 ${active
+                                        ? 'text-primary-900 bg-primary-50 font-bold'
                                         : 'text-secondary-800 hover:text-primary-900 hover:bg-surface-hover font-medium'
-                                }`}
+                                    }`}
                             >
                                 {trans(item.key)}
                                 {item.key === 'compare' && compareCount > 0 && (
@@ -153,11 +152,10 @@ export default function Header({ compareCount = 0 }) {
                             <Link
                                 key={item.key}
                                 href={localizedPath(item.href, locale)}
-                                className={`block py-3 px-4 text-sm rounded-xl transition-colors duration-200 flex items-center justify-between min-h-[44px] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-900/10 ${
-                                    active
+                                className={`block py-3 px-4 text-sm rounded-xl transition-colors duration-200 flex items-center justify-between min-h-[44px] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-900/10 ${active
                                         ? 'text-primary-900 bg-primary-50 font-bold'
                                         : 'text-secondary-900 hover:text-primary-900 hover:bg-surface-hover font-medium'
-                                }`}
+                                    }`}
                                 onClick={(e) => handleNavClick(e, item.href)}
                             >
                                 {trans(item.key)}

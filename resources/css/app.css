@@ -454,6 +454,7 @@ button.touch-active,
    hairline rules, signature concierge pin.
    ---------------------------------------------------- */
 @layer utilities {
+
     /* Warm off-white paper background for the conversation surface */
     .concierge-paper {
         background-color: #FAF7F4;
@@ -479,6 +480,7 @@ button.touch-active,
 }
 
 @layer utilities {
+
     /* Streaming caret used while a reply is being typed out */
     .streaming-caret::after {
         content: '';
@@ -493,25 +495,36 @@ button.touch-active,
     }
 
     @keyframes streamBlink {
-        0%, 50% { opacity: 1; }
-        50.01%, 100% { opacity: 0; }
+
+        0%,
+        50% {
+            opacity: 1;
+        }
+
+        50.01%,
+        100% {
+            opacity: 0;
+        }
     }
 }
 
 @layer utilities {
+
     /* Pulse-ring for the FAB when an unread reply is waiting */
     @keyframes conciergeRing {
         0% {
             transform: scale(0.95);
-            opacity: 0.8;
+            box-shadow: 0 0 0 0 rgba(204, 0, 0, 0.45);
         }
+
         70% {
-            transform: scale(1.15);
-            opacity: 0;
+            transform: scale(1);
+            box-shadow: 0 0 0 14px rgba(204, 0, 0, 0);
         }
+
         100% {
             transform: scale(0.95);
-            opacity: 0;
+            box-shadow: 0 0 0 0 rgba(204, 0, 0, 0);
         }
     }
 
@@ -521,15 +534,18 @@ button.touch-active,
 }
 
 @layer utilities {
+
     /* Entry choreography: concierge window opens like a private desk unfolding */
     @keyframes conciergeOpen {
         0% {
             opacity: 0;
             transform: translateY(14px) scale(0.96);
         }
+
         60% {
             opacity: 1;
         }
+
         100% {
             opacity: 1;
             transform: translateY(0) scale(1);
@@ -543,12 +559,14 @@ button.touch-active,
 }
 
 @layer utilities {
+
     /* Each new message rises into place — restrained, not bouncy */
     @keyframes conciergeBubbleIn {
         0% {
             opacity: 0;
             transform: translateY(8px);
         }
+
         100% {
             opacity: 1;
             transform: translateY(0);
@@ -561,8 +579,10 @@ button.touch-active,
 }
 
 @layer utilities {
+
     /* Respect users who prefer no motion */
     @media (prefers-reduced-motion: reduce) {
+
         .concierge-open,
         .concierge-bubble-in,
         .concierge-pulse,
@@ -573,6 +593,7 @@ button.touch-active,
 }
 
 @layer utilities {
+
     /* Mobile fullscreen edge: respect iOS safe area + Android nav */
     .concierge-safe-bottom {
         padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
@@ -615,26 +636,21 @@ button.touch-active,
     0% {
         transform: scale(1.0);
     }
+
     100% {
         transform: scale(1.04);
     }
 }
 
 @utility animate-subtle-zoom {
-    will-change: transform;
-    transform: translateZ(0);
-}
-
-@media (hover: hover) and (pointer: fine) {
-    .animate-subtle-zoom {
-        animation: subtleZoom 12s ease-in-out infinite alternate;
-    }
+    animation: subtleZoom 12s ease-in-out infinite alternate;
 }
 
 @keyframes slideUp {
     0% {
         transform: translateY(100%);
     }
+
     100% {
         transform: translateY(0);
     }
@@ -649,6 +665,7 @@ button.touch-active,
         opacity: 0;
         transform: scale(0.95);
     }
+
     100% {
         opacity: 1;
         transform: scale(1);
@@ -663,7 +680,74 @@ button.touch-active,
     animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* Hossam Concierge Chat Styles */
+.concierge-paper {
+    background-color: #FAFAF8;
+}
+
+.concierge-rule {
+    border-color: #EFEFEA;
+}
+
+.concierge-pin {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    letter-spacing: 0.08em;
+}
+
+@keyframes conciergeBubbleIn {
+    0% {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.concierge-bubble-in {
+    animation: conciergeBubbleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes conciergeOpenAnim {
+    0% {
+        opacity: 0;
+        transform: scale(0.96) translateY(12px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.concierge-open {
+    animation: conciergeOpenAnim 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes streamingCaret {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0;
+    }
+}
+
+.streaming-caret::after {
+    content: '▍';
+    display: inline-block;
+    color: #CC0000;
+    margin-inline-start: 2px;
+    animation: streamingCaret 0.8s infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
+
     *,
     ::before,
     ::after {
@@ -672,4 +756,4 @@ button.touch-active,
         transition-duration: 0.01ms !important;
         scroll-behavior: auto !important;
     }
-}
+}

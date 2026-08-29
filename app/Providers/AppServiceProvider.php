@@ -37,7 +37,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\Vite;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -108,10 +107,5 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('property-search', function (Request $request) {
             return Limit::perMinute(30)->by($request->ip());
         });
-
-        Vite::useStyleTagAttributes(fn (string $src, string $url, array $chunk, array $manifest) => [
-            'media' => 'print',
-            'onload' => "this.media='all'",
-        ]);
     }
 }

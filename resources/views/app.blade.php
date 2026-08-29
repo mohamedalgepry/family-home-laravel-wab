@@ -85,18 +85,6 @@
          @inertiaHead never duplicates these tags. --}}
     <x-seo.meta :meta="$currentMeta" />
 
-    {{-- Critical CSS to prevent FOUC when app.css is loaded asynchronously for better FCP --}}
-    <style>
-        body { font-family: 'Cairo', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #F8F8F8; color: #1A1A1A; margin: 0; line-height: 1.5; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-        .bg-white { background-color: #ffffff; }
-        .text-primary-900 { color: #CC0000; }
-        .max-w-container { max-width: 1280px; margin-left: auto; margin-right: auto; padding-left: 1rem; padding-right: 1rem; }
-        header[role="banner"] { min-height: 64px; border-bottom: 1px solid #E4E4E4; background-color: rgba(255,255,255,0.95); display: flex; align-items: center; justify-content: space-between; }
-        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0; }
-        .skeleton { background: linear-gradient(90deg, #F5F5F5 25%, #E4E4E4 50%, #F5F5F5 75%); background-size: 200% 100%; animation: shimmer 1.5s ease-in-out infinite; border-radius: 8px; }
-        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
-    </style>
-
     @vite(['resources/js/app.jsx', 'resources/css/app.css'])
     @php
         $localeChunk = null;

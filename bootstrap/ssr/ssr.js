@@ -14425,7 +14425,7 @@ function Header({ compareCount = 0 }) {
 		window.addEventListener("keydown", handleKeyDown);
 		return () => window.removeEventListener("keydown", handleKeyDown);
 	}, [menuOpen]);
-	const logoSrc = settings?.site_logo ? settings.site_logo.startsWith("http") || settings.site_logo.startsWith("/storage") ? settings.site_logo : `/storage/${settings.site_logo}` : "/icon-64.webp";
+	const logoSrc = settings?.site_logo ? settings.site_logo.startsWith("http") || settings.site_logo.startsWith("/storage") ? settings.site_logo : `/storage/${settings.site_logo}` : "/icon.webp";
 	const logoAlt = `${trans("app_name")} - ${isRtl ? "موقع عقارات عائلية" : "Family Real Estate"}`;
 	const isActive = (href) => {
 		if (!url) return false;
@@ -19243,48 +19243,15 @@ function PaymentTerms({ item }) {
 //#endregion
 //#region resources/js/Components/UI/VideoPlayer.jsx
 function VideoPlayer({ embedUrl, title = "Video Tour", className = "" }) {
-	const [isPlaying, setIsPlaying] = useState(false);
 	if (!embedUrl) return null;
-	const ytMatch = embedUrl.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/);
-	const videoId = ytMatch ? ytMatch[1] : null;
-	if (videoId && !isPlaying) return /* @__PURE__ */ jsxs("div", {
-		className: `relative w-full aspect-video rounded-xl overflow-hidden bg-black shadow-inner cursor-pointer group ${className}`,
-		onClick: () => setIsPlaying(true),
-		role: "button",
-		tabIndex: 0,
-		onKeyDown: (e) => {
-			if (e.key === "Enter" || e.key === " ") setIsPlaying(true);
-		},
-		"aria-label": `تشغيل الفيديو: ${title}`,
-		children: [/* @__PURE__ */ jsx("img", {
-			src: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
-			alt: title,
-			className: "w-full h-full object-cover transition-transform duration-500 group-hover:scale-105",
-			loading: "lazy",
-			decoding: "async"
-		}), /* @__PURE__ */ jsx("div", {
-			className: "absolute inset-0 bg-black/30 group-hover:bg-black/20 transition-colors flex items-center justify-center",
-			children: /* @__PURE__ */ jsx("div", {
-				className: "w-16 h-16 rounded-full bg-[#CC0000] text-white flex items-center justify-center shadow-2xl transition-transform duration-300 group-hover:scale-110 group-active:scale-95",
-				children: /* @__PURE__ */ jsx("svg", {
-					className: "w-7 h-7 ms-1 fill-current",
-					viewBox: "0 0 24 24",
-					"aria-hidden": "true",
-					children: /* @__PURE__ */ jsx("path", { d: "M8 5v14l11-7z" })
-				})
-			})
-		})]
-	});
-	const autoplayUrl = embedUrl.includes("?") ? `${embedUrl}&autoplay=1` : `${embedUrl}?autoplay=1`;
 	return /* @__PURE__ */ jsx("div", {
 		className: `relative w-full aspect-video rounded-xl overflow-hidden bg-black shadow-inner ${className}`,
 		children: /* @__PURE__ */ jsx("iframe", {
-			src: isPlaying ? autoplayUrl : embedUrl,
+			src: embedUrl,
 			title,
 			className: "w-full h-full border-0",
 			allow: "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share",
-			allowFullScreen: true,
-			loading: "lazy"
+			allowFullScreen: true
 		})
 	});
 }
