@@ -1,11 +1,9 @@
-import { lazy, Suspense } from 'react'
 import { usePage, Link } from '@inertiajs/react'
 import { useTrans } from '../../Utils/trans'
 import { localizedPath } from '../../Utils/route'
 import CompareBar from '../Features/CompareBar'
+import HossamChatWidget from '../UI/HossamChatWidget'
 import { WhatsAppIcon } from '../UI'
-
-const HossamChatWidget = lazy(() => import('../UI/HossamChatWidget'))
 
 const QUICK_LINKS = [
     { key: 'home', href: '/' },
@@ -165,9 +163,7 @@ export default function Footer() {
                 </p>
             </div>
             <CompareBar />
-            <Suspense fallback={null}>
-                <HossamChatWidget />
-            </Suspense>
+            <HossamChatWidget />
         </footer>
     )
 }
