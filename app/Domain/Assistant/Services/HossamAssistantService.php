@@ -40,8 +40,13 @@ class HossamAssistantService
         $matchingUnits = $searchResult['units'];
         $hasSpecificConstraints = $searchResult['has_constraints'];
 
+        $currencyContext = '';
+        if (preg_match('/(دولار|يورو|dollar|euro|usd|eur|سعر الصرف|عملة|عمله)/iu', $message)) {
+            $currencyContext = $this->getLiveCurrencyContext($locale);
+        }
+
         // 2. Build system instructions & inventory context
-        $systemPrompt = $this->buildSystemPrompt($matchingUnits, $locale);
+        $systemPrompt = $this->buildSystemPrompt($matchingUnits, $locale, $currencyContext);
 
         // 3. Format message history for OpenRouter
         $messages = [
@@ -331,7 +336,7 @@ class HossamAssistantService
      * Build high-IQ bilingual system prompt defining Hossam's persona as a top-tier Consultative Merchant & Sales Advisor.
      * The entire prompt is generated in the user's language (Arabic or English).
      */
-    private function buildSystemPrompt(array $units, string $locale): string
+    private function buildSystemPrompt(array $units, string $locale, string $currencyContext = ''): string
     {
         $currency = config('app.currency', 'EGP');
         $companyPhone = $this->settingsService->get('phone', '');
@@ -339,16 +344,16 @@ class HossamAssistantService
         $companyContact = $companyWhatsapp ?: $companyPhone;
 
         if ($locale === 'en') {
-            return $this->buildEnglishPrompt($units, $currency, $locale, $companyContact);
+            return $this->buildEnglishPrompt($units, $currency, $locale, $companyContact, $currencyContext);
         }
 
-        return $this->buildArabicPrompt($units, $currency, $locale, $companyContact);
+        return $this->buildArabicPrompt($units, $currency, $locale, $companyContact, $currencyContext);
     }
 
     /**
      * Build English system prompt — optimized for high conversion & consultative selling.
      */
-    private function buildEnglishPrompt(array $units, string $currency, string $locale, string $companyContact): string
+    private function buildEnglishPrompt(array $units, string $currency, string $locale, string $companyContact, string $currencyContext = ''): string
     {
         $inventoryText = $this->formatInventoryText($units, $currency, $locale);
         $contactContext = !empty($companyContact)
@@ -471,11 +476,11 @@ When information is missing:
 
 CURRENT PORTFOLIO DATA
 {$inventoryText}
-{$contactContext}
+{$contactContext}{$currencyContext}
 PROMPT;
     }
 
-    private function buildArabicPrompt(array $units, string $currency, string $locale, string $companyContact): string
+    private function buildArabicPrompt(array $units, string $currency, string $locale, string $companyContact, string $currencyContext = ''): string
     {
         $inventoryText = $this->formatInventoryText($units, $currency, $locale);
         $contactContext = !empty($companyContact)
@@ -598,7 +603,7 @@ PROMPT;
 
 بيانات الوحدات المتاحة حاليًا
 {$inventoryText}
-{$contactContext}
+{$contactContext}{$currencyContext}
 PROMPT;
     }
 
@@ -953,5 +958,34 @@ PROMPT;
         }
 
         return $cards;
+    }
+
+    /**
+     * Fetch live currency context if the user asked about it.
+     */
+    private function getLiveCurrencyContext(string $locale): string
+    {
+        try {
+            return \Illuminate\Support\Facades\Cache::remember('live_currency_rates', 3600 * 6, function () use ($locale) {
+                $response = \Illuminate\Support\Facades\Http::timeout(5)->get('https://api.exchangerate-api.com/v4/latest/USD');
+                if ($response->successful()) {
+                    $data = $response->json();
+                    $egp = $data['rates']['EGP'] ?? null;
+                    $eur = $data['rates']['EUR'] ?? null;
+                    
+                    if ($egp && $eur) {
+                        $eurToEgp = $egp / $eur;
+                        if ($locale === 'en') {
+                            return "\n\nLIVE MARKET DATA (Use ONLY if asked):\n- USD to EGP: " . round($egp, 2) . " EGP.\n- EUR to EGP: " . round($eurToEgp, 2) . " EGP.";
+                        }
+                        return "\n\nمعلومات حية للسوق اليوم (استخدمها بدقة إذا سألك العميل فقط):\n- سعر الدولار الأمريكي (USD): " . round($egp, 2) . " جنيه مصري.\n- سعر اليورو (EUR): " . round($eurToEgp, 2) . " جنيه مصري.";
+                    }
+                }
+                return '';
+            });
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('HossamAssistant: Failed to fetch currency', ['error' => $e->getMessage()]);
+            return '';
+        }
     }
 }
