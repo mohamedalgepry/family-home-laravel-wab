@@ -170,6 +170,12 @@ var NAV_GROUPS = [
 		key: "nav_group_users",
 		items: [
 			{
+				key: "sidebar_assistant_leads",
+				href: "/admin/assistant-leads",
+				scope: "admin",
+				icon: "M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
+			},
+			{
 				key: "sidebar_messages",
 				href: "/admin/messages",
 				icon: "M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155"
@@ -2881,7 +2887,7 @@ function AdminAreasEdit({ area, parents }) {
 }
 //#endregion
 //#region resources/js/Pages/Admin/Areas/Index.jsx
-var Index_exports$16 = /* @__PURE__ */ __exportAll({ default: () => AdminAreasIndex });
+var Index_exports$17 = /* @__PURE__ */ __exportAll({ default: () => AdminAreasIndex });
 function AdminAreasIndex({ areas, filters }) {
 	const { locale, flash } = usePage().props;
 	const trans = useTrans(locale);
@@ -4682,7 +4688,7 @@ function AdminArticlesForm({ article, categories }) {
 }
 //#endregion
 //#region resources/js/Pages/Admin/Articles/Index.jsx
-var Index_exports$15 = /* @__PURE__ */ __exportAll({ default: () => AdminArticlesIndex });
+var Index_exports$16 = /* @__PURE__ */ __exportAll({ default: () => AdminArticlesIndex });
 function AdminArticlesIndex({ articles, categories, filters }) {
 	const { locale } = usePage().props;
 	const trans = useTrans(locale);
@@ -4869,6 +4875,226 @@ function AdminArticlesIndex({ articles, categories, filters }) {
 			})
 		]
 	})] });
+}
+//#endregion
+//#region resources/js/Pages/Admin/AssistantLeads/Index.jsx
+var Index_exports$15 = /* @__PURE__ */ __exportAll({ default: () => AssistantLeadsIndex });
+function AssistantLeadsIndex({ leads }) {
+	const { locale, auth } = usePage().props;
+	const trans = useTrans(locale);
+	const isRtl = locale === "ar";
+	auth?.user?.role;
+	const [selectedLead, setSelectedLead] = useState(null);
+	function markContacted(leadId) {
+		router.post(`/admin/assistant-leads/${leadId}/contacted`, {}, {
+			preserveScroll: true,
+			only: ["leads"]
+		});
+	}
+	function deleteLead(leadId) {
+		if (!confirm(trans("common.confirm_delete"))) return;
+		setSelectedLead(null);
+		router.delete(`/admin/assistant-leads/${leadId}`, {
+			preserveScroll: true,
+			only: ["leads"]
+		});
+	}
+	const data = leads?.data || leads || [];
+	return /* @__PURE__ */ jsxs(AdminSidebar, { children: [
+		/* @__PURE__ */ jsx(Head, { title: trans("sidebar_assistant_leads") + " — " + trans("app_name") }),
+		/* @__PURE__ */ jsxs("div", {
+			dir: isRtl ? "rtl" : "ltr",
+			className: "p-6",
+			children: [/* @__PURE__ */ jsx("h1", {
+				className: "text-2xl font-bold text-secondary-950 mb-6",
+				children: trans("sidebar_assistant_leads")
+			}), /* @__PURE__ */ jsx("div", {
+				className: "bg-white rounded-xl shadow-card overflow-x-auto",
+				children: /* @__PURE__ */ jsxs("table", {
+					className: "w-full text-sm",
+					children: [/* @__PURE__ */ jsx("thead", { children: /* @__PURE__ */ jsxs("tr", {
+						className: "bg-surface text-secondary-700 text-start rtl:text-right",
+						children: [
+							/* @__PURE__ */ jsx("th", {
+								className: "px-4 py-3 font-medium",
+								children: "الهاتف"
+							}),
+							/* @__PURE__ */ jsx("th", {
+								className: "px-4 py-3 font-medium",
+								children: "سياق الصفحة"
+							}),
+							/* @__PURE__ */ jsx("th", {
+								className: "px-4 py-3 font-medium",
+								children: "الحالة"
+							}),
+							/* @__PURE__ */ jsx("th", {
+								className: "px-4 py-3 font-medium",
+								children: "وقت التسجيل"
+							}),
+							/* @__PURE__ */ jsx("th", {
+								className: "px-4 py-3 font-medium",
+								children: trans("actions")
+							})
+						]
+					}) }), /* @__PURE__ */ jsx("tbody", { children: data.length > 0 ? data.map((m) => /* @__PURE__ */ jsxs("tr", {
+						className: "border-t border-secondary-100 hover:bg-surface/50 transition-colors cursor-pointer",
+						onClick: () => setSelectedLead(m),
+						children: [
+							/* @__PURE__ */ jsx("td", {
+								className: "px-4 py-3",
+								children: /* @__PURE__ */ jsx("div", {
+									className: "text-sm",
+									children: /* @__PURE__ */ jsx("p", {
+										className: "font-bold text-secondary-950",
+										children: m.phone
+									})
+								})
+							}),
+							/* @__PURE__ */ jsx("td", {
+								className: "px-4 py-3 max-w-xs",
+								children: /* @__PURE__ */ jsx("p", {
+									className: "text-secondary-700 truncate",
+									dir: "ltr",
+									children: m.context || "—"
+								})
+							}),
+							/* @__PURE__ */ jsx("td", {
+								className: "px-4 py-3",
+								children: /* @__PURE__ */ jsx("span", {
+									className: `inline-block px-2 py-0.5 text-xs rounded-full font-medium ${m.status === "contacted" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`,
+									children: m.status === "contacted" ? "تم التواصل" : "جديد"
+								})
+							}),
+							/* @__PURE__ */ jsx("td", {
+								className: "px-4 py-3 text-xs text-muted whitespace-nowrap",
+								children: new Date(m.created_at).toLocaleString()
+							}),
+							/* @__PURE__ */ jsx("td", {
+								className: "px-4 py-3",
+								children: /* @__PURE__ */ jsx("div", {
+									className: "flex gap-1",
+									children: m.status === "new" && /* @__PURE__ */ jsx("button", {
+										onClick: (e) => {
+											e.stopPropagation();
+											markContacted(m.id);
+										},
+										className: "text-xs px-2 py-1 rounded bg-green-50 text-green-700 hover:bg-green-100 transition-colors",
+										children: "تحديد كتم التواصل"
+									})
+								})
+							})
+						]
+					}, m.id)) : /* @__PURE__ */ jsx("tr", { children: /* @__PURE__ */ jsx("td", {
+						colSpan: 5,
+						className: "px-4 py-12 text-center text-muted",
+						children: "لا يوجد عملاء جدد"
+					}) }) })]
+				})
+			})]
+		}),
+		selectedLead && /* @__PURE__ */ jsx("div", {
+			className: "fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4",
+			onClick: () => setSelectedLead(null),
+			children: /* @__PURE__ */ jsxs("div", {
+				className: "bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col",
+				onClick: (e) => e.stopPropagation(),
+				children: [
+					/* @__PURE__ */ jsxs("div", {
+						className: "p-6 border-b border-secondary-100 flex items-center justify-between shrink-0",
+						children: [/* @__PURE__ */ jsx("h2", {
+							className: "text-lg font-bold text-secondary-950",
+							children: "تفاصيل العميل وتاريخ المحادثة"
+						}), /* @__PURE__ */ jsx("button", {
+							onClick: () => setSelectedLead(null),
+							className: "text-muted hover:text-secondary-950 text-xl leading-none",
+							children: "×"
+						})]
+					}),
+					/* @__PURE__ */ jsxs("div", {
+						className: "p-6 overflow-y-auto flex-1 bg-surface",
+						children: [
+							/* @__PURE__ */ jsxs("div", {
+								className: "mb-6 bg-white p-4 rounded-xl border border-secondary-100 shadow-sm",
+								children: [
+									/* @__PURE__ */ jsxs("p", {
+										className: "mb-2",
+										children: [
+											/* @__PURE__ */ jsx("strong", {
+												className: "text-secondary-950",
+												children: "الهاتف:"
+											}),
+											" ",
+											/* @__PURE__ */ jsx("span", {
+												className: "font-mono text-primary-700 text-lg",
+												children: selectedLead.phone
+											})
+										]
+									}),
+									/* @__PURE__ */ jsxs("p", {
+										className: "mb-2",
+										children: [
+											/* @__PURE__ */ jsx("strong", {
+												className: "text-secondary-950",
+												children: "السياق (الصفحة):"
+											}),
+											" ",
+											selectedLead.context ? /* @__PURE__ */ jsx("a", {
+												href: selectedLead.context,
+												target: "_blank",
+												rel: "noreferrer",
+												className: "text-blue-600 underline",
+												children: selectedLead.context
+											}) : "غير متوفر"
+										]
+									}),
+									/* @__PURE__ */ jsxs("p", { children: [
+										/* @__PURE__ */ jsx("strong", {
+											className: "text-secondary-950",
+											children: "الحالة:"
+										}),
+										" ",
+										selectedLead.status === "contacted" ? "تم التواصل ✅" : "عميل جديد 🚨"
+									] })
+								]
+							}),
+							/* @__PURE__ */ jsx("h3", {
+								className: "font-bold text-secondary-950 mb-4",
+								children: "تاريخ المحادثة مع حسام"
+							}),
+							/* @__PURE__ */ jsxs("div", {
+								className: "space-y-4",
+								children: [selectedLead.chat_history && selectedLead.chat_history.map((msg, idx) => /* @__PURE__ */ jsx("div", {
+									className: `flex ${msg.role === "user" ? "justify-start" : "justify-end"}`,
+									children: /* @__PURE__ */ jsx("div", {
+										className: `max-w-[85%] p-3 rounded-xl ${msg.role === "user" ? "bg-secondary-100 text-secondary-900 rounded-tr-none" : "bg-primary-900 text-white rounded-tl-none"}`,
+										children: /* @__PURE__ */ jsx("p", {
+											className: "whitespace-pre-wrap text-sm leading-relaxed",
+											children: msg.content
+										})
+									})
+								}, idx)), (!selectedLead.chat_history || selectedLead.chat_history.length === 0) && /* @__PURE__ */ jsx("p", {
+									className: "text-muted text-sm text-center",
+									children: "لا يوجد تاريخ محادثة محفوظ"
+								})]
+							})
+						]
+					}),
+					/* @__PURE__ */ jsxs("div", {
+						className: "p-6 border-t border-secondary-100 flex justify-between shrink-0",
+						children: [/* @__PURE__ */ jsx("button", {
+							onClick: () => deleteLead(selectedLead.id),
+							className: "px-4 py-2 text-rose-600 hover:bg-rose-50 rounded-lg text-sm font-medium transition-colors",
+							children: "حذف العميل"
+						}), /* @__PURE__ */ jsx("button", {
+							onClick: () => setSelectedLead(null),
+							className: "px-4 py-2 bg-secondary-100 text-secondary-900 rounded-lg text-sm font-medium hover:bg-secondary-200 transition-colors",
+							children: "إغلاق"
+						})]
+					})
+				]
+			})
+		})
+	] });
 }
 //#endregion
 //#region resources/js/Pages/Admin/Categories/Index.jsx
@@ -14736,7 +14962,7 @@ function CompareBar() {
 }
 //#endregion
 //#region resources/js/Components/Layout/Footer.jsx
-var HossamChatWidget = lazy(() => import("./assets/HossamChatWidget-DZ1B6GjT.js"));
+var HossamChatWidget = lazy(() => import("./assets/HossamChatWidget-BpPrbSKV.js"));
 var QUICK_LINKS = [
 	{
 		key: "home",
@@ -23276,9 +23502,10 @@ async function renderPage(page) {
 				"./Pages/Admin/Areas/AreaForm.jsx": AreaForm_exports,
 				"./Pages/Admin/Areas/Create.jsx": Create_exports$1,
 				"./Pages/Admin/Areas/Edit.jsx": Edit_exports$1,
-				"./Pages/Admin/Areas/Index.jsx": Index_exports$16,
+				"./Pages/Admin/Areas/Index.jsx": Index_exports$17,
 				"./Pages/Admin/Articles/Form.jsx": Form_exports$2,
-				"./Pages/Admin/Articles/Index.jsx": Index_exports$15,
+				"./Pages/Admin/Articles/Index.jsx": Index_exports$16,
+				"./Pages/Admin/AssistantLeads/Index.jsx": Index_exports$15,
 				"./Pages/Admin/Categories/Index.jsx": Index_exports$14,
 				"./Pages/Admin/Dashboard.jsx": Dashboard_exports,
 				"./Pages/Admin/Features/Index.jsx": Index_exports$13,

@@ -10,7 +10,7 @@
   "resources/js/Components/UI/ArticleCard.jsx": [],
   "resources/js/Components/UI/Button.jsx": [],
   "resources/js/Components/UI/HossamChatWidget.jsx": [
-    "/build/assets/HossamChatWidget-DZ1B6GjT.js"
+    "/build/assets/HossamChatWidget-BpPrbSKV.js"
   ],
   "resources/js/Components/UI/IconByName.jsx": [],
   "resources/js/Components/UI/InputField.jsx": [],
@@ -34,6 +34,7 @@
   "resources/js/Pages/Admin/Areas/Index.jsx": [],
   "resources/js/Pages/Admin/Articles/Form.jsx": [],
   "resources/js/Pages/Admin/Articles/Index.jsx": [],
+  "resources/js/Pages/Admin/AssistantLeads/Index.jsx": [],
   "resources/js/Pages/Admin/Categories/Index.jsx": [],
   "resources/js/Pages/Admin/Dashboard.jsx": [],
   "resources/js/Pages/Admin/Features/Index.jsx": [],
