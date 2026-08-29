@@ -327,6 +327,14 @@ export default function HossamChatWidget() {
         setFeedback(prev => ({ ...prev, [messageId]: prev[messageId] === reaction ? null : reaction }))
     }
 
+    /* Minimize chat on mobile when a property link is clicked */
+    const handleUnitLinkClick = () => {
+        if (typeof window !== 'undefined' && window.innerWidth < 768) {
+            setIsOpen(false)
+            setIsFullscreen(false)
+        }
+    }
+
     /* ---------- markdown helpers ---------- */
     const formatInline = (str) => {
         if (!str) return null
@@ -338,6 +346,7 @@ export default function HossamChatWidget() {
                     <Link
                         key={pIdx}
                         href={linkMatch[2]}
+                        onClick={handleUnitLinkClick}
                         className="text-[#CC0000] font-bold underline underline-offset-2 decoration-[#CC0000]/30 hover:text-[#990000] hover:decoration-[#990000]/60 transition-colors"
                     >
                         {linkMatch[1]}
@@ -719,16 +728,26 @@ export default function HossamChatWidget() {
                                                         key={unit.id}
                                                         className="bg-white rounded-xl p-2.5 border border-slate-200 hover:border-slate-300 transition-all flex gap-3 items-center group"
                                                     >
-                                                        <img
-                                                            src={unit.image_url}
-                                                            alt={unit.name}
-                                                            className="w-16 h-16 rounded-lg object-cover shrink-0 border border-slate-100 bg-slate-100"
-                                                            loading="lazy"
-                                                        />
+                                                        <Link
+                                                            href={unit.url}
+                                                            onClick={handleUnitLinkClick}
+                                                            className="shrink-0"
+                                                        >
+                                                            <img
+                                                                src={unit.image_url}
+                                                                alt={unit.name}
+                                                                className="w-16 h-16 rounded-lg object-cover border border-slate-100 bg-slate-100 group-hover:opacity-90 transition-opacity"
+                                                                loading="lazy"
+                                                            />
+                                                        </Link>
                                                         <div className="flex-1 min-w-0">
-                                                            <h4 className="font-bold text-slate-900 text-[12.5px] truncate group-hover:text-[#CC0000] transition-colors">
+                                                            <Link
+                                                                href={unit.url}
+                                                                onClick={handleUnitLinkClick}
+                                                                className="block font-bold text-slate-900 text-[12.5px] truncate group-hover:text-[#CC0000] transition-colors"
+                                                            >
                                                                 {unit.name}
-                                                            </h4>
+                                                            </Link>
                                                             <p className="text-[10.5px] text-slate-500 truncate mt-0.5">
                                                                 {unit.area_name || (isRtl ? 'موقع متميز' : 'Prime Location')}
                                                             </p>
@@ -748,6 +767,7 @@ export default function HossamChatWidget() {
                                                             <div className="flex items-center gap-1 mt-1.5">
                                                                 <Link
                                                                     href={unit.url}
+                                                                    onClick={handleUnitLinkClick}
                                                                     className="text-[10px] font-bold text-slate-900 hover:text-[#CC0000] underline underline-offset-2 decoration-slate-300 hover:decoration-[#CC0000] transition-colors"
                                                                 >
                                                                     {trans('assistant_view_unit')}
