@@ -220,6 +220,9 @@ export default function HossamChatWidget() {
                     ? (document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '')
                     : ''
 
+                const contextUrl = typeof window !== 'undefined' ? window.location.href : ''
+                const contextTitle = typeof document !== 'undefined' ? document.title : ''
+
                 const response = await fetch(`/${locale || 'ar'}/assistant/chat`, {
                     method: 'POST',
                     headers: {
@@ -232,6 +235,8 @@ export default function HossamChatWidget() {
                         message: text,
                         history: historyPayload,
                         locale: locale || 'ar',
+                        context_url: contextUrl,
+                        context_title: contextTitle,
                     }),
                     signal: controller.signal,
                 })

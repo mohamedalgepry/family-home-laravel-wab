@@ -21,14 +21,32 @@ class AiAssistantController
             'history.*.role' => ['required_with:history', 'string', 'in:user,assistant'],
             'history.*.content' => ['required_with:history', 'string', 'max:2000'],
             'locale' => ['nullable', 'string', 'in:ar,en'],
+            'context_url' => ['nullable', 'string', 'max:1000'],
+            'context_title' => ['nullable', 'string', 'max:500'],
         ]);
 
         $message = trim((string) $validated['message']);
         $history = $validated['history'] ?? [];
         $locale = $validated['locale'] ?? app()->getLocale() ?: 'ar';
+        $contextUrl = $validated['context_url'] ?? '';
+        $contextTitle = $validated['context_title'] ?? '';
+
+        // 1. Lead Capture
+        if (preg_match('/(01[0125][0-9]{8})/u', $message, $matches)) {
+            $phone = $matches[1];
+            $historyWithCurrent = array_merge($history, [['role' => 'user', 'content' => $message]]);
+            \App\Domain\Assistant\Models\AssistantLead::firstOrCreate(
+                ['phone' => $phone],
+                [
+                    'context' => $contextUrl,
+                    'chat_history' => $historyWithCurrent,
+                    'status' => 'new',
+                ]
+            );
+        }
 
         try {
-            $result = $this->hossamService->chat($message, $history, $locale);
+            $result = $this->hossamService->chat($message, $history, $locale, $contextUrl, $contextTitle);
 
             return response()->json([
                 'success' => true,

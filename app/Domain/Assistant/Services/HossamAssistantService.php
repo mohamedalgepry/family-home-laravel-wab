@@ -33,7 +33,7 @@ class HossamAssistantService
      * @param  string  $locale
      * @return array{reply: string, recommended_units: array}
      */
-    public function chat(string $message, array $history = [], string $locale = 'ar'): array
+    public function chat(string $message, array $history = [], string $locale = 'ar', string $contextUrl = '', string $contextTitle = ''): array
     {
         // 1. Search database for relevant active listings based on query keywords
         $searchResult = $this->searchRelevantUnits($message, $history, $locale);
@@ -46,7 +46,7 @@ class HossamAssistantService
         }
 
         // 2. Build system instructions & inventory context
-        $systemPrompt = $this->buildSystemPrompt($matchingUnits, $locale, $currencyContext);
+        $systemPrompt = $this->buildSystemPrompt($matchingUnits, $locale, $currencyContext, $contextUrl, $contextTitle);
 
         // 3. Format message history for OpenRouter
         $messages = [
@@ -169,6 +169,57 @@ class HossamAssistantService
 
             $hasSpecificConstraints = false;
 
+            // --- 0. AI Search Extraction (100% Precision) ---
+            $aiParams = $this->extractSearchParametersViaAI($combinedMessage);
+            
+            if (!empty($aiParams)) {
+                // If AI extracted data, use it
+                if (!empty($aiParams['min_price'])) {
+                    $query->where('price', '>=', $aiParams['min_price']);
+                    $hasSpecificConstraints = true;
+                }
+                if (!empty($aiParams['max_price'])) {
+                    $query->where('price', '<=', $aiParams['max_price']);
+                    $hasSpecificConstraints = true;
+                }
+                if (!empty($aiParams['type'])) {
+                    $query->whereHas('type', function ($q) use ($aiParams) {
+                        $q->where('name', 'LIKE', '%' . $aiParams['type'] . '%');
+                    });
+                    $hasSpecificConstraints = true;
+                }
+                if (!empty($aiParams['area_keyword'])) {
+                    $query->whereHas('area', function ($q) use ($aiParams) {
+                        $q->where('name_ar', 'LIKE', '%' . $aiParams['area_keyword'] . '%')
+                          ->orWhere('name_en', 'LIKE', '%' . $aiParams['area_keyword'] . '%')
+                          ->orWhere('slug', 'LIKE', '%' . $aiParams['area_keyword'] . '%');
+                    });
+                    $hasSpecificConstraints = true;
+                }
+                if (!empty($aiParams['rooms'])) {
+                    $query->where('rooms', $aiParams['rooms']);
+                    $hasSpecificConstraints = true;
+                }
+                if (!empty($aiParams['transaction'])) {
+                    $query->where('transaction', $aiParams['transaction']);
+                    $hasSpecificConstraints = true;
+                }
+                if (!empty($aiParams['payment'])) {
+                    $query->whereIn('payment_method', [$aiParams['payment'], 'both']);
+                    $hasSpecificConstraints = true;
+                }
+                
+                // If AI found at least one constraint, we skip the manual Regex fallback
+                if ($hasSpecificConstraints) {
+                    $units = $query->orderBy('is_featured', 'desc')->latest()->take(4)->get();
+                    return [
+                        'units' => $units->toArray(),
+                        'has_constraints' => true,
+                    ];
+                }
+            }
+
+            // --- Fallback: Regex Manual Extraction ---
             // 1. Smart Price Extraction
             $toValue = function ($numStr, $isMillion, $isThousand) {
                 $val = (float) str_replace([',', ' '], '', $numStr);
@@ -336,7 +387,7 @@ class HossamAssistantService
      * Build high-IQ bilingual system prompt defining Hossam's persona as a top-tier Consultative Merchant & Sales Advisor.
      * The entire prompt is generated in the user's language (Arabic or English).
      */
-    private function buildSystemPrompt(array $units, string $locale, string $currencyContext = ''): string
+    private function buildSystemPrompt(array $units, string $locale, string $currencyContext = '', string $contextUrl = '', string $contextTitle = ''): string
     {
         $currency = config('app.currency', 'EGP');
         $companyPhone = $this->settingsService->get('phone', '');
@@ -344,21 +395,26 @@ class HossamAssistantService
         $companyContact = $companyWhatsapp ?: $companyPhone;
 
         if ($locale === 'en') {
-            return $this->buildEnglishPrompt($units, $currency, $locale, $companyContact, $currencyContext);
+            return $this->buildEnglishPrompt($units, $currency, $locale, $companyContact, $currencyContext, $contextUrl, $contextTitle);
         }
 
-        return $this->buildArabicPrompt($units, $currency, $locale, $companyContact, $currencyContext);
+        return $this->buildArabicPrompt($units, $currency, $locale, $companyContact, $currencyContext, $contextUrl, $contextTitle);
     }
 
     /**
      * Build English system prompt — optimized for high conversion & consultative selling.
      */
-    private function buildEnglishPrompt(array $units, string $currency, string $locale, string $companyContact, string $currencyContext = ''): string
+    private function buildEnglishPrompt(array $units, string $currency, string $locale, string $companyContact, string $currencyContext = '', string $contextUrl = '', string $contextTitle = ''): string
     {
         $inventoryText = $this->formatInventoryText($units, $currency, $locale);
         $contactContext = !empty($companyContact)
             ? "\n- General company contact / WhatsApp: {$companyContact}"
             : '';
+            
+        $pageContext = '';
+        if (!empty($contextUrl) && !empty($contextTitle)) {
+            $pageContext = "\n\nCURRENT PAGE CONTEXT:\nThe user is currently viewing this page: {$contextTitle} ({$contextUrl}). Use this if they say 'this property' or 'this page'.";
+        }
 
         return <<<PROMPT
 You are "Hossam", the senior real-estate sales and investment consultant for Family Home.
@@ -366,6 +422,10 @@ You are "Hossam", the senior real-estate sales and investment consultant for Fam
 CORE ROLE
 You are a precise consultative real-estate advisor, not a generic chatbot.
 Your job is to understand the user's current goal, preserve relevant context from the conversation, use only verified portfolio data supplied below, and guide the user toward a useful property decision without inventing facts.
+
+LEAD CAPTURE (IMPORTANT)
+- If the user shows strong intent to buy, book, or get more details about a specific unit, politely ask for their phone number so the sales team can contact them immediately.
+- Once they provide a phone number, thank them and confirm that a consultant will reach out shortly.
 
 LANGUAGE & STYLE
 - Reply entirely in the user's current language.
@@ -473,6 +533,7 @@ When information is missing:
 - Ask only the single most useful question that will materially improve the next search.
 - Do not ask for a field that can reasonably be inferred from the conversation.
 - If enough information exists to make a useful recommendation, recommend first and ask the follow-up afterward.
+{$pageContext}
 
 CURRENT PORTFOLIO DATA
 {$inventoryText}
@@ -480,18 +541,27 @@ CURRENT PORTFOLIO DATA
 PROMPT;
     }
 
-    private function buildArabicPrompt(array $units, string $currency, string $locale, string $companyContact, string $currencyContext = ''): string
+    private function buildArabicPrompt(array $units, string $currency, string $locale, string $companyContact, string $currencyContext = '', string $contextUrl = '', string $contextTitle = ''): string
     {
         $inventoryText = $this->formatInventoryText($units, $currency, $locale);
         $contactContext = !empty($companyContact)
             ? "\n- رقم التواصل العام للشركة / واتساب: {$companyContact}"
             : '';
+            
+        $pageContext = '';
+        if (!empty($contextUrl) && !empty($contextTitle)) {
+            $pageContext = "\n\nسياق الصفحة الحالية:\nالعميل يتصفح الآن هذه الصفحة: {$contextTitle} ({$contextUrl}). استخدم هذه المعلومة إذا سألك عن \"هذا العقار\" أو \"هذه الصفحة\".";
+        }
 
         return <<<PROMPT
 أنت «حسام»، المستشار العقاري والاستثماري الأول في شركة «فاميلي هوم (Family Home)».
 
 الدور الأساسي
 أنت مستشار عقاري دقيق وعملي، ولست شات بوت عام. مهمتك فهم هدف العميل الحالي، الحفاظ على السياق المهم داخل المحادثة الحالية، الاعتماد فقط على بيانات العقارات المتاحة أدناه، ثم توجيه العميل إلى أفضل قرار عقاري ممكن بدون اختراع أي معلومة.
+
+اقتناص العملاء (مهم جداً)
+- إذا لاحظت أن العميل مهتم جداً بالشراء أو الحجز أو طلب تفاصيل محددة عن وحدة معينة، اطلب منه بلباقة ترك رقم هاتفه ليتواصل معه فريق المبيعات فوراً.
+- بمجرد أن يكتب العميل رقم هاتفه، اشكره وأكد له أن مستشاراً عقارياً سيتواصل معه قريباً جداً.
 
 اللغة والأسلوب
 - إذا كان العميل يتحدث بالعربية المصرية، ردّ بالعربية المصرية الطبيعية.
@@ -600,6 +670,7 @@ PROMPT;
 - اسأل سؤالًا واحدًا فقط، وهو السؤال الأكثر تأثيرًا على البحث.
 - لا تسأل عن معلومة يمكن استنتاجها من السياق.
 - إذا كان لديك ما يكفي لترشيح وحدات مفيدة، قدم الترشيح أولًا ثم اسأل السؤال التالي عند الحاجة.
+{$pageContext}
 
 بيانات الوحدات المتاحة حاليًا
 {$inventoryText}
@@ -959,6 +1030,55 @@ PROMPT;
 
         return $cards;
     }
+
+    /**
+     * Extracts search parameters using an LLM for 100% precision.
+     */
+    private function extractSearchParametersViaAI(string $message): array
+    {
+        $prompt = <<<PROMPT
+You are a JSON extractor for a real estate search engine. 
+Analyze the user's message and extract search constraints.
+Return ONLY a raw JSON object. Do not wrap in markdown or backticks.
+Schema:
+{
+  "min_price": (int|null),
+  "max_price": (int|null),
+  "type": (string|null, e.g. "شقة", "فيلا", "شاليه", "مكتب", "دوبلكس", "محل", "تاون هاوس", "استوديو"),
+  "area_keyword": (string|null, e.g. "التجمع", "الساحل", "زايد", "اكتوبر"),
+  "rooms": (int|null),
+  "transaction": (string|null, "sale" or "rent"),
+  "payment": (string|null, "cash" or "installment")
+}
+If they say "5 مليون" -> 5000000.
+If they say "حدود 5 مليون" -> min_price: 4000000, max_price: 6000000.
+Message: "{$message}"
+PROMPT;
+        try {
+            $response = \Illuminate\Support\Facades\Http::withHeaders([
+                'Authorization' => "Bearer {$this->apiKey}",
+                'Content-Type' => 'application/json',
+                'HTTP-Referer' => config('app.url'),
+            ])->timeout(8)->post($this->baseUrl . '/chat/completions', [
+                'model' => 'openrouter/free',
+                'messages' => [['role' => 'user', 'content' => $prompt]],
+                'temperature' => 0.0,
+            ]);
+
+            if ($response->successful()) {
+                $content = $response->json('choices.0.message.content');
+                $content = preg_replace('/```(?:json)?\s*(.*?)\s*```/is', '$1', $content);
+                $decoded = json_decode(trim($content), true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    return $decoded;
+                }
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Hossam AI Extractor failed', ['error' => $e->getMessage()]);
+        }
+        return [];
+    }
+
 
     /**
      * Fetch live currency context if the user asked about it.
