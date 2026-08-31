@@ -132,27 +132,44 @@ if (typeof window !== 'undefined') {
         'font-size: 14px; color: #333;'
     );
 
-    router.on('invalid', (event) => {
-        const response = event.detail.response;
-        const inertiaLocation = response?.headers?.['x-inertia-location'];
+    const handleNonInertiaResponse = (event) => {
+        const response = event.detail?.response;
+        const inertiaLocation = response?.headers?.['x-inertia-location'] || response?.headers?.['X-Inertia-Location'];
 
         if (inertiaLocation) {
             event.preventDefault();
             window.location.href = inertiaLocation;
-            return;
+            return false;
         }
 
         // Cached HTML returned instead of Inertia JSON — reload the intended page cleanly
-        const visitUrl = event.detail?.visit?.url?.href || response?.request?.responseURL;
+        const visitUrl = event.detail?.visit?.url?.href || response?.url || response?.request?.responseURL;
         if (visitUrl) {
             event.preventDefault();
             window.location.assign(visitUrl);
-            return;
+            return false;
         }
 
         event.preventDefault();
         window.location.reload();
-    });
+        return false;
+    };
+
+    router.on('invalid', handleNonInertiaResponse);
+    router.on('httpException', handleNonInertiaResponse);
+    document.addEventListener('inertia:invalid', handleNonInertiaResponse);
+    document.addEventListener('inertia:httpException', handleNonInertiaResponse);
+
+    // Auto-remove any #inertia-error-dialog element if dynamically created
+    if (typeof MutationObserver !== 'undefined' && typeof document !== 'undefined') {
+        const observer = new MutationObserver(() => {
+            const dialog = document.getElementById('inertia-error-dialog');
+            if (dialog) {
+                dialog.remove();
+            }
+        });
+        observer.observe(document.documentElement, { childList: true, subtree: true });
+    }
 
     // Auto-refresh page state if tab is restored from mobile browser BFCache / background sleep
     window.addEventListener('pageshow', (event) => {

@@ -757,3 +757,11 @@ button.touch-active,
         scroll-behavior: auto !important;
     }
 }
+
+/* Prevent Inertia HTML/exception debugger dialog popup iframe from displaying */
+#inertia-error-dialog,
+dialog#inertia-error-dialog {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
