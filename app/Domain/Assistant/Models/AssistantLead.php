@@ -11,7 +11,9 @@ class AssistantLead extends Model
         'phone',
         'context',
         'status',
-        'chat_history'
+        'chat_history',
+        'lead_score',
+        'lead_status'
     ];
 
     protected $casts = [

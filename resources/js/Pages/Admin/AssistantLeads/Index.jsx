@@ -39,6 +39,7 @@ export default function AssistantLeadsIndex({ leads }) {
                                 <th className="px-4 py-3 font-medium">الهاتف</th>
                                 <th className="px-4 py-3 font-medium">سياق الصفحة</th>
                                 <th className="px-4 py-3 font-medium">الحالة</th>
+                                <th className="px-4 py-3 font-medium">التقييم</th>
                                 <th className="px-4 py-3 font-medium">وقت التسجيل</th>
                                 <th className="px-4 py-3 font-medium">{trans('actions')}</th>
                             </tr>
@@ -59,9 +60,23 @@ export default function AssistantLeadsIndex({ leads }) {
                                         <p className="text-secondary-700 truncate" dir="ltr">{m.context || '—'}</p>
                                     </td>
                                     <td className="px-4 py-3">
-                                        <span className={`inline-block px-2 py-0.5 text-xs rounded-full font-medium ${m.status === 'contacted' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                                            {m.status === 'contacted' ? 'تم التواصل' : 'جديد'}
-                                        </span>
+                                        <div className="flex flex-col gap-1">
+                                            <span className={`inline-block px-2 py-0.5 text-xs rounded-full font-medium w-fit ${m.status === 'contacted' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                                                {m.status === 'contacted' ? 'تم التواصل' : 'جديد'}
+                                            </span>
+                                            {m.lead_status === 'hot' && (
+                                                <span className="inline-block px-2 py-0.5 text-xs rounded-full font-bold bg-rose-100 text-rose-700 border border-rose-200 w-fit shadow-xs animate-pulse">
+                                                    Hot Lead 🔥
+                                                </span>
+                                            )}
+                                        </div>
+                                    </td>
+                                    <td className="px-4 py-3 text-center">
+                                        <div className="flex items-center justify-center">
+                                            <div className="flex items-center justify-center w-8 h-8 rounded-full font-bold text-xs bg-slate-100 text-slate-700 border border-slate-200">
+                                                {m.lead_score || 0}
+                                            </div>
+                                        </div>
                                     </td>
                                     <td className="px-4 py-3 text-xs text-muted whitespace-nowrap">{new Date(m.created_at).toLocaleString()}</td>
                                     <td className="px-4 py-3">
@@ -112,7 +127,10 @@ export default function AssistantLeadsIndex({ leads }) {
                             <div className="mb-6 bg-white p-4 rounded-xl border border-secondary-100 shadow-sm">
                                 <p className="mb-2"><strong className="text-secondary-950">الهاتف:</strong> <span className="font-mono text-primary-700 text-lg">{selectedLead.phone}</span></p>
                                 <p className="mb-2"><strong className="text-secondary-950">السياق (الصفحة):</strong> {selectedLead.context ? <a href={selectedLead.context} target="_blank" rel="noreferrer" className="text-blue-600 underline">{selectedLead.context}</a> : 'غير متوفر'}</p>
-                                <p><strong className="text-secondary-950">الحالة:</strong> {selectedLead.status === 'contacted' ? 'تم التواصل ✅' : 'عميل جديد 🚨'}</p>
+                                <div className="flex items-center gap-4">
+                                    <p><strong className="text-secondary-950">الحالة:</strong> {selectedLead.status === 'contacted' ? 'تم التواصل ✅' : 'عميل جديد 🚨'}</p>
+                                    <p><strong className="text-secondary-950">تقييم الذكاء الاصطناعي:</strong> <span className="font-bold text-rose-600">{selectedLead.lead_score || 0}/10 {selectedLead.lead_status === 'hot' && '🔥 (Hot Lead)'}</span></p>
+                                </div>
                             </div>
 
                             <h3 className="font-bold text-secondary-950 mb-4">تاريخ المحادثة مع حسام</h3>

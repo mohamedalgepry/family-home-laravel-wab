@@ -72,6 +72,11 @@ export default function HossamChatWidget() {
     const [isHovered, setIsHovered] = useState(false)
     const [feedback, setFeedback] = useState({}) // { [messageId]: 'up' | 'down' | null }
     const [streamedMessageId, setStreamedMessageId] = useState(null) // for caret animation
+    
+    // Voice state
+    const [isListening, setIsListening] = useState(false)
+    const [isSpeaking, setIsSpeaking] = useState(false)
+    const [audioEnabled, setAudioEnabled] = useState(false)
 
     const welcomeTimestamp = useMemo(() => formatTime(new Date(), locale), [locale])
 
@@ -140,6 +145,76 @@ export default function HossamChatWidget() {
     useEffect(() => {
         scrollToBottom()
     }, [messages, isLoading, scrollToBottom])
+
+    /* ---------- speech synthesis (TTS) ---------- */
+    const speakMessage = useCallback((text) => {
+        if (!audioEnabled || typeof window === 'undefined' || !window.speechSynthesis) return
+
+        window.speechSynthesis.cancel() // Stop previous speech
+        const speech = new SpeechSynthesisUtterance(text)
+        speech.lang = locale === 'ar' ? 'ar-EG' : 'en-US'
+        speech.rate = 1.05
+        speech.pitch = 1
+        
+        speech.onstart = () => setIsSpeaking(true)
+        speech.onend = () => setIsSpeaking(false)
+        speech.onerror = () => setIsSpeaking(false)
+        
+        window.speechSynthesis.speak(speech)
+    }, [audioEnabled, locale])
+
+    // Toggle audio
+    const toggleAudio = useCallback(() => {
+        setAudioEnabled(prev => {
+            const next = !prev
+            if (!next && window.speechSynthesis) {
+                window.speechSynthesis.cancel()
+                setIsSpeaking(false)
+            }
+            return next
+        })
+    }, [])
+
+    /* ---------- speech recognition (STT) ---------- */
+    const SpeechRecognition = typeof window !== 'undefined' ? (window.SpeechRecognition || window.webkitSpeechRecognition) : null
+    const recognitionRef = useRef(null)
+
+    useEffect(() => {
+        if (!SpeechRecognition) return
+        const recognition = new SpeechRecognition()
+        recognition.continuous = false
+        recognition.interimResults = true
+        recognition.lang = locale === 'ar' ? 'ar-EG' : 'en-US'
+
+        recognition.onresult = (event) => {
+            let finalTranscript = ''
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                if (event.results[i].isFinal) {
+                    finalTranscript += event.results[i][0].transcript
+                }
+            }
+            if (finalTranscript) {
+                setInputMessage(prev => (prev + ' ' + finalTranscript).trim())
+            }
+        }
+
+        recognition.onerror = () => setIsListening(false)
+        recognition.onend = () => setIsListening(false)
+        
+        recognitionRef.current = recognition
+    }, [SpeechRecognition, locale])
+
+    const toggleListening = useCallback(() => {
+        if (!recognitionRef.current) return
+        if (isListening) {
+            recognitionRef.current.stop()
+            setIsListening(false)
+        } else {
+            setInputMessage('')
+            recognitionRef.current.start()
+            setIsListening(true)
+        }
+    }, [isListening])
 
     /* ---------- keyboard shortcuts ---------- */
     useEffect(() => {
@@ -261,10 +336,16 @@ export default function HossamChatWidget() {
                             role: 'assistant',
                             content: data.reply,
                             recommended_units: data.recommended_units || [],
+                            quick_replies: data.quick_replies || [],
                             timestamp: formatTime(new Date(), locale),
                         }
                     ])
                     setTimeout(() => setStreamedMessageId(null), 1400)
+                    
+                    if (audioEnabled) {
+                        speakMessage(data.reply)
+                    }
+
                     clearTimeout(timeoutId)
                     abortControllerRef.current = null
                     setIsLoading(false)
@@ -588,6 +669,27 @@ export default function HossamChatWidget() {
                             </div>
                             {/* Header actions */}
                             <div className="flex items-center gap-0.5 shrink-0">
+                                {SpeechRecognition && (
+                                    <button
+                                        onClick={toggleAudio}
+                                        className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+                                            audioEnabled ? 'text-[#CC0000] bg-red-50' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
+                                        }`}
+                                        title={audioEnabled ? (isRtl ? 'إيقاف الصوت' : 'Mute') : (isRtl ? 'تشغيل الصوت' : 'Unmute')}
+                                        aria-label={audioEnabled ? (isRtl ? 'إيقاف الصوت' : 'Mute') : (isRtl ? 'تشغيل الصوت' : 'Unmute')}
+                                    >
+                                        {audioEnabled ? (
+                                            <svg className={`w-3.5 h-3.5 ${isSpeaking ? 'animate-pulse' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                                            </svg>
+                                        ) : (
+                                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                                            </svg>
+                                        )}
+                                    </button>
+                                )}
                                 <button
                                     onClick={() => setIsFullscreen(prev => !prev)}
                                     className="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-900 flex items-center justify-center transition-colors"
@@ -796,6 +898,21 @@ export default function HossamChatWidget() {
                                                 ))}
                                             </div>
                                         )}
+
+                                        {/* Dynamic Quick Replies */}
+                                        {!isUser && !isStreaming && msg.quick_replies && msg.quick_replies.length > 0 && !isLoading && (
+                                            <div className="flex flex-wrap gap-1.5 mt-3 ms-1 w-full max-w-[96%]">
+                                                {msg.quick_replies.map((replyText, idx) => (
+                                                    <button
+                                                        key={`qr-${msg.id}-${idx}`}
+                                                        onClick={() => handleSendMessage(replyText)}
+                                                        className="px-3 py-1.5 text-[11.5px] font-medium text-slate-700 bg-white border border-slate-200/80 rounded-full hover:border-[#CC0000] hover:text-[#CC0000] hover:bg-red-50/30 transition-all shadow-sm text-start"
+                                                    >
+                                                        {replyText}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 )
                             })}
@@ -859,12 +976,27 @@ export default function HossamChatWidget() {
                                         handleSendMessage()
                                     }
                                 }}
-                                placeholder={trans('assistant_placeholder')}
-                                disabled={isLoading}
+                                placeholder={isListening ? (isRtl ? 'جاري الاستماع...' : 'Listening...') : trans('assistant_placeholder')}
+                                disabled={isLoading || isListening}
                                 rows={1}
                                 className="flex-1 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus:outline-none focus:border-0 focus:shadow-none resize-none text-[13.5px] text-slate-900 placeholder:text-slate-400 leading-relaxed max-h-24 disabled:opacity-60 px-1 py-1 shadow-none"
                                 style={{ minHeight: '24px', outline: 'none', boxShadow: 'none' }}
                             />
+                            {SpeechRecognition && (
+                                <button
+                                    type="button"
+                                    onClick={toggleListening}
+                                    disabled={isLoading}
+                                    className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all shrink-0 ${
+                                        isListening ? 'bg-red-100 text-[#CC0000] animate-pulse' : 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700'
+                                    }`}
+                                    aria-label={isRtl ? 'تحدث' : 'Speak'}
+                                >
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                    </svg>
+                                </button>
+                            )}
                             <button
                                 type="submit"
                                 disabled={!inputMessage.trim() || isLoading}

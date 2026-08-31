@@ -4929,6 +4929,10 @@ function AssistantLeadsIndex({ leads }) {
 							}),
 							/* @__PURE__ */ jsx("th", {
 								className: "px-4 py-3 font-medium",
+								children: "التقييم"
+							}),
+							/* @__PURE__ */ jsx("th", {
+								className: "px-4 py-3 font-medium",
 								children: "وقت التسجيل"
 							}),
 							/* @__PURE__ */ jsx("th", {
@@ -4960,9 +4964,25 @@ function AssistantLeadsIndex({ leads }) {
 							}),
 							/* @__PURE__ */ jsx("td", {
 								className: "px-4 py-3",
-								children: /* @__PURE__ */ jsx("span", {
-									className: `inline-block px-2 py-0.5 text-xs rounded-full font-medium ${m.status === "contacted" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`,
-									children: m.status === "contacted" ? "تم التواصل" : "جديد"
+								children: /* @__PURE__ */ jsxs("div", {
+									className: "flex flex-col gap-1",
+									children: [/* @__PURE__ */ jsx("span", {
+										className: `inline-block px-2 py-0.5 text-xs rounded-full font-medium w-fit ${m.status === "contacted" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`,
+										children: m.status === "contacted" ? "تم التواصل" : "جديد"
+									}), m.lead_status === "hot" && /* @__PURE__ */ jsx("span", {
+										className: "inline-block px-2 py-0.5 text-xs rounded-full font-bold bg-rose-100 text-rose-700 border border-rose-200 w-fit shadow-xs animate-pulse",
+										children: "Hot Lead 🔥"
+									})]
+								})
+							}),
+							/* @__PURE__ */ jsx("td", {
+								className: "px-4 py-3 text-center",
+								children: /* @__PURE__ */ jsx("div", {
+									className: "flex items-center justify-center",
+									children: /* @__PURE__ */ jsx("div", {
+										className: "flex items-center justify-center w-8 h-8 rounded-full font-bold text-xs bg-slate-100 text-slate-700 border border-slate-200",
+										children: m.lead_score || 0
+									})
 								})
 							}),
 							/* @__PURE__ */ jsx("td", {
@@ -5047,14 +5067,31 @@ function AssistantLeadsIndex({ leads }) {
 											}) : "غير متوفر"
 										]
 									}),
-									/* @__PURE__ */ jsxs("p", { children: [
-										/* @__PURE__ */ jsx("strong", {
-											className: "text-secondary-950",
-											children: "الحالة:"
-										}),
-										" ",
-										selectedLead.status === "contacted" ? "تم التواصل ✅" : "عميل جديد 🚨"
-									] })
+									/* @__PURE__ */ jsxs("div", {
+										className: "flex items-center gap-4",
+										children: [/* @__PURE__ */ jsxs("p", { children: [
+											/* @__PURE__ */ jsx("strong", {
+												className: "text-secondary-950",
+												children: "الحالة:"
+											}),
+											" ",
+											selectedLead.status === "contacted" ? "تم التواصل ✅" : "عميل جديد 🚨"
+										] }), /* @__PURE__ */ jsxs("p", { children: [
+											/* @__PURE__ */ jsx("strong", {
+												className: "text-secondary-950",
+												children: "تقييم الذكاء الاصطناعي:"
+											}),
+											" ",
+											/* @__PURE__ */ jsxs("span", {
+												className: "font-bold text-rose-600",
+												children: [
+													selectedLead.lead_score || 0,
+													"/10 ",
+													selectedLead.lead_status === "hot" && "🔥 (Hot Lead)"
+												]
+											})
+										] })]
+									})
 								]
 							}),
 							/* @__PURE__ */ jsx("h3", {
@@ -7076,7 +7113,7 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 														className: "px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition-colors",
 														children: isRtl ? "موافقة ونشر" : "Approve & publish"
 													}),
-													isUnread && isUnitExpiry && item.unit_id && isAdmin && /* @__PURE__ */ jsxs("button", {
+													(isUnitExpiry || isUnitExpired) && item.unit_id && isAdmin && /* @__PURE__ */ jsxs("button", {
 														onClick: () => openExtendModal(item.unit_id, item.unit_name || item.title),
 														className: "px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1",
 														children: [/* @__PURE__ */ jsx("svg", {
@@ -7092,7 +7129,7 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 															})
 														}), trans("extend")]
 													}),
-													isUnread && isProjectExpiry && item.project_id && isAdmin && /* @__PURE__ */ jsxs("button", {
+													isProjectExpiry && item.project_id && isAdmin && /* @__PURE__ */ jsxs("button", {
 														onClick: () => handleExtendProject(item.project_id),
 														className: "px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1",
 														children: [/* @__PURE__ */ jsx("svg", {
@@ -14962,7 +14999,7 @@ function CompareBar() {
 }
 //#endregion
 //#region resources/js/Components/Layout/Footer.jsx
-var HossamChatWidget = lazy(() => import("./assets/HossamChatWidget-BpPrbSKV.js"));
+var HossamChatWidget = lazy(() => import("./assets/HossamChatWidget-KBxgnjpD.js"));
 var QUICK_LINKS = [
 	{
 		key: "home",

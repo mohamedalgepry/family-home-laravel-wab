@@ -31,11 +31,20 @@ class AiAssistantController
         $contextUrl = $validated['context_url'] ?? '';
         $contextTitle = $validated['context_title'] ?? '';
 
-        // 1. Lead Capture
-        if (preg_match('/(01[0125][0-9]{8})/u', $message, $matches)) {
-            $phone = $matches[1];
-            $historyWithCurrent = array_merge($history, [['role' => 'user', 'content' => $message]]);
-            \App\Domain\Assistant\Models\AssistantLead::firstOrCreate(
+        // 1. Lead Capture & Scoring Preparation
+        $phone = null;
+        $historyWithCurrent = array_merge($history, [['role' => 'user', 'content' => $message]]);
+        
+        // Search full history (and current message) for a phone number
+        foreach (array_reverse($historyWithCurrent) as $msg) {
+            if ($msg['role'] === 'user' && preg_match('/(01[0125][0-9]{8})/u', $msg['content'], $matches)) {
+                $phone = $matches[1];
+                break; // Use the most recent phone number provided
+            }
+        }
+
+        if ($phone) {
+            \App\Domain\Assistant\Models\AssistantLead::updateOrCreate(
                 ['phone' => $phone],
                 [
                     'context' => $contextUrl,
@@ -48,10 +57,20 @@ class AiAssistantController
         try {
             $result = $this->hossamService->chat($message, $history, $locale, $contextUrl, $contextTitle);
 
+            if ($phone && !empty($result['is_hot_lead'])) {
+                $lead = \App\Domain\Assistant\Models\AssistantLead::where('phone', $phone)->first();
+                if ($lead) {
+                    $lead->lead_status = 'hot';
+                    $lead->lead_score = min(10, $lead->lead_score + 3);
+                    $lead->save();
+                }
+            }
+
             return response()->json([
                 'success' => true,
                 'reply' => $result['reply'],
                 'recommended_units' => $result['recommended_units'],
+                'quick_replies' => $result['quick_replies'] ?? [],
             ]);
         } catch (\Throwable $e) {
             Log::error('AiAssistantController error', [
@@ -65,6 +84,7 @@ class AiAssistantController
                     ? 'I am currently unable to process your request. Please try again in a moment.'
                     : 'أعتذر، حدث خطأ غير متوقع أثناء معالجة طلبك. يرجى المحاولة مرة أخرى بعد قليل.',
                 'recommended_units' => [],
+                'quick_replies' => [],
             ], 500);
         }
     }

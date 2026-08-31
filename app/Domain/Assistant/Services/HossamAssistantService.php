@@ -40,13 +40,19 @@ class HossamAssistantService
         $matchingUnits = $searchResult['units'];
         $hasSpecificConstraints = $searchResult['has_constraints'];
 
+        // 2. Search Blog Articles for RAG if the query looks like a general/investment question
+        $articleContext = '';
+        if (preg_match('/(كيف|لماذا|هل|ما هو|ما هي|استثمار|مستقبل|أفضل|افضل|عائد|سوق|نصيحة|معلومات|how|why|what|investment|future|best|roi|market|advice)/iu', $message)) {
+            $articleContext = $this->searchRelevantArticles($message, $locale);
+        }
+
         $currencyContext = '';
         if (preg_match('/(دولار|يورو|dollar|euro|usd|eur|سعر الصرف|عملة|عمله)/iu', $message)) {
             $currencyContext = $this->getLiveCurrencyContext($locale);
         }
 
-        // 2. Build system instructions & inventory context
-        $systemPrompt = $this->buildSystemPrompt($matchingUnits, $locale, $currencyContext, $contextUrl, $contextTitle);
+        // 3. Build system instructions & inventory context
+        $systemPrompt = $this->buildSystemPrompt($matchingUnits, $locale, $currencyContext, $contextUrl, $contextTitle, $articleContext);
 
         // 3. Format message history for OpenRouter
         $messages = [
@@ -105,6 +111,18 @@ class HossamAssistantService
             $shouldShowCards = true;
         }
 
+        $isHotLead = false;
+        if (str_contains($reply, '[HOT_LEAD]')) {
+            $isHotLead = true;
+            $reply = trim(str_replace(['[HOT_LEAD]', '[hot_lead]'], '', $reply));
+        }
+
+        $quickReplies = [];
+        if (preg_match_all('/\[REPLY:\s*(.+?)\]/iu', $reply, $matches)) {
+            $quickReplies = array_map('trim', $matches[1]);
+            $reply = trim(preg_replace('/\[REPLY:\s*.+?\]/iu', '', $reply));
+        }
+
         $filteredUnits = [];
         if ($shouldShowCards && ! empty($matchingUnits)) {
             $isFallback = str_contains($reply, 'أفضل العقارات المتاحة حسب طلبك') || str_contains($reply, 'Here are the best available properties');
@@ -133,6 +151,8 @@ class HossamAssistantService
         return [
             'reply' => $reply,
             'recommended_units' => $recommendedCards,
+            'is_hot_lead' => $isHotLead,
+            'quick_replies' => $quickReplies,
         ];
     }
 
@@ -387,7 +407,7 @@ class HossamAssistantService
      * Build high-IQ bilingual system prompt defining Hossam's persona as a top-tier Consultative Merchant & Sales Advisor.
      * The entire prompt is generated in the user's language (Arabic or English).
      */
-    private function buildSystemPrompt(array $units, string $locale, string $currencyContext = '', string $contextUrl = '', string $contextTitle = ''): string
+    private function buildSystemPrompt(array $units, string $locale, string $currencyContext = '', string $contextUrl = '', string $contextTitle = '', string $articleContext = ''): string
     {
         $currency = config('app.currency', 'EGP');
         $companyPhone = $this->settingsService->get('phone', '');
@@ -395,16 +415,13 @@ class HossamAssistantService
         $companyContact = $companyWhatsapp ?: $companyPhone;
 
         if ($locale === 'en') {
-            return $this->buildEnglishPrompt($units, $currency, $locale, $companyContact, $currencyContext, $contextUrl, $contextTitle);
+            return $this->buildEnglishPrompt($units, $currency, $locale, $companyContact, $currencyContext, $contextUrl, $contextTitle, $articleContext);
         }
 
-        return $this->buildArabicPrompt($units, $currency, $locale, $companyContact, $currencyContext, $contextUrl, $contextTitle);
+        return $this->buildArabicPrompt($units, $currency, $locale, $companyContact, $currencyContext, $contextUrl, $contextTitle, $articleContext);
     }
 
-    /**
-     * Build English system prompt — optimized for high conversion & consultative selling.
-     */
-    private function buildEnglishPrompt(array $units, string $currency, string $locale, string $companyContact, string $currencyContext = '', string $contextUrl = '', string $contextTitle = ''): string
+    private function buildEnglishPrompt(array $units, string $currency, string $locale, string $companyContact, string $currencyContext = '', string $contextUrl = '', string $contextTitle = '', string $articleContext = ''): string
     {
         $inventoryText = $this->formatInventoryText($units, $currency, $locale);
         $contactContext = !empty($companyContact)
@@ -515,10 +532,12 @@ LINKS — ABSOLUTE RULE
 - Only use URLs explicitly supplied in the portfolio context.
 - If a real unit URL is not available in the context, mention the property name without creating a link.
 
-CARDS
+CARDS & TAGS
 - Append [SHOW_CARDS] only when recommending one or more supplied units and displaying the matching inventory cards is useful.
 - Never use [SHOW_CARDS] for unrelated properties or empty results.
-- Put [SHOW_CARDS] at the very end of the response and nowhere else.
+- Append [HOT_LEAD] if the user shows extremely strong buying intent (e.g., asking for a site visit, asking for payment details, or saying they are ready to buy).
+- Append 2 or 3 suggested quick replies for the user to click, using the format: [REPLY: Suggested text]. Example: [REPLY: Book a visit] [REPLY: View cheaper options].
+- Put these tags at the very end of the response and nowhere else.
 
 SAFETY, TRUTHFULNESS & EXPERT KNOWLEDGE
 - For specific units, prices, and inventory: The portfolio data is the absolute source of truth. Do not invent properties.
@@ -538,10 +557,12 @@ When information is missing:
 CURRENT PORTFOLIO DATA
 {$inventoryText}
 {$contactContext}{$currencyContext}
+
+{$articleContext}
 PROMPT;
     }
 
-    private function buildArabicPrompt(array $units, string $currency, string $locale, string $companyContact, string $currencyContext = '', string $contextUrl = '', string $contextTitle = ''): string
+    private function buildArabicPrompt(array $units, string $currency, string $locale, string $companyContact, string $currencyContext = '', string $contextUrl = '', string $contextTitle = '', string $articleContext = ''): string
     {
         $inventoryText = $this->formatInventoryText($units, $currency, $locale);
         $contactContext = !empty($companyContact)
@@ -654,10 +675,12 @@ PROMPT;
 - استخدم فقط الروابط الموجودة صراحة في بيانات العقار المرسلة لك.
 - إذا لم يوجد رابط حقيقي في السياق، اذكر اسم العقار فقط بدون رابط.
 
-كروت العقارات
+كروت العقارات والعلامات الخاصة
 - ضع [SHOW_CARDS] فقط عندما تكون هناك وحدات حقيقية مرشحة من البيانات ومن المفيد عرض كروتها.
 - لا تستخدم [SHOW_CARDS] مع عقارات غير مرتبطة أو عند عدم وجود نتائج.
-- ضع الوسم في آخر الرد فقط.
+- أضف العلامة [HOT_LEAD] إذا أظهر العميل نية شراء قوية جداً (مثلاً: يطلب معاينة، يسأل عن طرق الدفع، أو يقول أنه جاهز للشراء).
+- اقترح 2 أو 3 ردود سريعة للعميل ليضغط عليها، باستخدام الصيغة: [REPLY: النص المقترح]. مثال: [REPLY: أريد حجز معاينة] [REPLY: هل يوجد خيارات أرخص؟].
+- ضع هذه العلامات في آخر الرد فقط ولا تضعها في أي مكان آخر.
 
 الصدق والدقة والخبرة العامة
 - بالنسبة للعقارات والأسعار المتاحة: بيانات المحفظة هي المصدر الأساسي للحقيقة. ممنوع اختراع عقار غير موجود.
@@ -676,7 +699,47 @@ PROMPT;
 بيانات الوحدات المتاحة حاليًا
 {$inventoryText}
 {$contactContext}{$currencyContext}
+
+{$articleContext}
 PROMPT;
+    }
+
+    /**
+     * Search Articles for RAG.
+     */
+    private function searchRelevantArticles(string $query, string $locale): string
+    {
+        $keywords = array_filter(explode(' ', mb_strtolower(preg_replace('/[^\p{L}\p{N}\s]/u', '', $query))));
+        if (empty($keywords)) return '';
+
+        $q = \App\Domain\Listings\Models\Article::where('is_published', true);
+        
+        $q->where(function ($queryBuilder) use ($keywords) {
+            foreach ($keywords as $kw) {
+                if (mb_strlen($kw) > 3) {
+                    $queryBuilder->orWhere('title_ar', 'LIKE', "%{$kw}%")
+                                 ->orWhere('title_en', 'LIKE', "%{$kw}%")
+                                 ->orWhere('content_ar', 'LIKE', "%{$kw}%")
+                                 ->orWhere('content_en', 'LIKE', "%{$kw}%")
+                                 ->orWhere('keywords', 'LIKE', "%{$kw}%");
+                }
+            }
+        });
+
+        $articles = $q->orderBy('published_at', 'desc')->take(2)->get();
+        if ($articles->isEmpty()) return '';
+
+        $context = $locale === 'en' 
+            ? "GENERAL KNOWLEDGE BASE (Use this to answer the user's question if relevant):\n" 
+            : "معلومات عامة من مدونة الشركة قد تفيدك للرد على سؤال العميل (استخدمها فقط إذا كان سؤال العميل يتطلب ذلك):\n";
+
+        foreach ($articles as $article) {
+            $title = $locale === 'en' ? ($article->title_en ?: $article->title) : ($article->title_ar ?: $article->title);
+            $content = $locale === 'en' ? ($article->content_en ?: $article->content) : ($article->content_ar ?: $article->content);
+            $stripped = mb_substr(strip_tags($content), 0, 1000); // 1000 characters context per article
+            $context .= "- {$title}\n{$stripped}...\n";
+        }
+        return $context;
     }
 
     /**
