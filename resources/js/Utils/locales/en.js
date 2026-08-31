@@ -249,6 +249,7 @@ const en = {
         sidebar_projects: 'Projects',
         sidebar_points: 'Points',
         sidebar_users: 'Users',
+        sidebar_assistant_leads: 'Assistant Leads',
         sidebar_messages: 'Messages',
         message_details: 'Message Details',
         client_name: 'Client Name',

@@ -248,6 +248,7 @@ const ar = {
         sidebar_projects: 'المشاريع',
         sidebar_points: 'النقاط',
         sidebar_users: 'المستخدمين',
+        sidebar_assistant_leads: 'عملاء المساعد الذكي',
         sidebar_messages: 'الرسائل',
         message_details: 'تفاصيل الرسالة',
         client_name: 'اسم العميل',
