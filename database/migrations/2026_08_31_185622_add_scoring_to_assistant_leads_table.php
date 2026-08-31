@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('assistant_leads', function (Blueprint $table) {
-            $table->unsignedTinyInteger('lead_score')->default(0)->after('last_active_at');
+            $table->unsignedTinyInteger('lead_score')->default(0)->after('status');
             $table->string('lead_status')->default('normal')->after('lead_score');
         });
     }
