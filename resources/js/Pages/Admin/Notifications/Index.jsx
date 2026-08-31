@@ -440,7 +440,7 @@ export default function NotificationsIndex({ notifications, unreadCount, autoDel
                                                                     </button>
                                                                 )}
 
-                                                                {isUnread && isUnitExpiry && item.unit_id && isAdmin && (
+                                                                {(isUnitExpiry || isUnitExpired) && item.unit_id && isAdmin && (
                                                                     <button
                                                                         onClick={() => openExtendModal(item.unit_id, item.unit_name || item.title)}
                                                                         className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1"
@@ -452,7 +452,7 @@ export default function NotificationsIndex({ notifications, unreadCount, autoDel
                                                                     </button>
                                                                 )}
 
-                                                                {isUnread && isProjectExpiry && item.project_id && isAdmin && (
+                                                                {isProjectExpiry && item.project_id && isAdmin && (
                                                                     <button
                                                                         onClick={() => handleExtendProject(item.project_id)}
                                                                         className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1"
