@@ -23555,10 +23555,13 @@ http.createServer(async (req, res) => {
 		res.end(JSON.stringify({ error: "Not found" }));
 		return;
 	}
+	console.log(`[SSR] Received request to /render`);
 	const chunks = [];
 	try {
 		for await (const chunk of req) chunks.push(Buffer.from(chunk));
-	} catch {
+		console.log(`[SSR] Finished reading body`);
+	} catch (e) {
+		console.log(`[SSR] Error reading body: ${e.message}`);
 		res.writeHead(400, { "Content-Type": "application/json" });
 		res.end(JSON.stringify({ error: "Failed to read request body" }));
 		return;
@@ -23572,10 +23575,13 @@ http.createServer(async (req, res) => {
 		return;
 	}
 	try {
+		console.log(`[SSR] Rendering page: ${page?.url || "unknown"}`);
 		const result = await renderPage(page);
+		console.log(`[SSR] Render complete: ${page?.url || "unknown"}`);
 		res.writeHead(200, { "Content-Type": "application/json" });
 		res.end(JSON.stringify(result));
 	} catch (e) {
+		console.log(`[SSR] Render error: ${e.message}`);
 		res.writeHead(500, { "Content-Type": "application/json" });
 		res.end(JSON.stringify({
 			error: e.message,
@@ -23583,7 +23589,7 @@ http.createServer(async (req, res) => {
 			type: "render"
 		}));
 	}
-}).listen(PORT, "0.0.0.0", () => {
+}).listen(PORT, "127.0.0.1", () => {
 	console.log(`Custom SSR server listening on port ${PORT}...`);
 });
 //#endregion

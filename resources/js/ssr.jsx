@@ -32,10 +32,13 @@ const server = http.createServer(async (req, res) => {
         return
     }
 
+    console.log(`[SSR] Received request to /render`)
     const chunks = []
     try {
         for await (const chunk of req) chunks.push(Buffer.from(chunk))
-    } catch {
+        console.log(`[SSR] Finished reading body`)
+    } catch (e) {
+        console.log(`[SSR] Error reading body: ${e.message}`)
         res.writeHead(400, { 'Content-Type': 'application/json' })
         res.end(JSON.stringify({ error: 'Failed to read request body' }))
         return
@@ -51,15 +54,18 @@ const server = http.createServer(async (req, res) => {
     }
 
     try {
+        console.log(`[SSR] Rendering page: ${page?.url || 'unknown'}`)
         const result = await renderPage(page)
+        console.log(`[SSR] Render complete: ${page?.url || 'unknown'}`)
         res.writeHead(200, { 'Content-Type': 'application/json' })
         res.end(JSON.stringify(result))
     } catch (e) {
+        console.log(`[SSR] Render error: ${e.message}`)
         res.writeHead(500, { 'Content-Type': 'application/json' })
         res.end(JSON.stringify({ error: e.message, url: page?.url, type: 'render' }))
     }
 })
 
-server.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, '127.0.0.1', () => {
     console.log(`Custom SSR server listening on port ${PORT}...`)
 })

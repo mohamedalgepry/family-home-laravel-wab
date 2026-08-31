@@ -20,8 +20,36 @@ class ExportPrerenderData extends Command
     {
         $baseUrl = $this->resolveBaseUrl();
         $dbAvailable = $this->isDbAvailable();
-        $urls = $this->collectUrls($dbAvailable);
         $results = [];
+
+        if (!$dbAvailable) {
+            if (file_exists(storage_path('app/prerender_pages.json'))) {
+                $existingRaw = file_get_contents(storage_path('app/prerender_pages.json'));
+                $existing = json_decode($existingRaw, true);
+                if (is_array($existing) && !empty($existing)) {
+                    $updated = [];
+                    foreach ($existing as $item) {
+                        $item['baseUrl'] = $baseUrl;
+                        $item['htmlTemplate'] = $this->normalizeBaseUrls($item['htmlTemplate'] ?? '', $baseUrl);
+                        $item['page'] = $this->normalizePageUrls($item['page'] ?? [], $baseUrl);
+                        $updated[] = $item;
+                    }
+                    $results = $updated;
+                    $this->info('Database unavailable. Used existing exported page templates from storage/app/prerender_pages.json.');
+                    
+                    $filePath = storage_path('app/prerender_pages.json');
+                    file_put_contents($filePath, json_encode($results, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE));
+                    return Command::SUCCESS;
+                }
+            }
+            
+            // If we reach here, either the file doesn't exist or it's empty, and DB is down.
+            $this->warn('Database unavailable and no valid cache found. Proceeding with empty prerender.');
+            file_put_contents(storage_path('app/prerender_pages.json'), '[]');
+            return Command::SUCCESS;
+        }
+
+        $urls = $this->collectUrls($dbAvailable);
         $kernel = app(Kernel::class);
 
         foreach ($urls as $item) {
