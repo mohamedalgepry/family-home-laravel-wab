@@ -54,6 +54,45 @@ class HossamAssistantService
         $matchingUnits = $searchResult['units'];
         $hasSpecificConstraints = $searchResult['has_constraints'];
 
+        if (!empty($contextUrl)) {
+            $path = parse_url($contextUrl, PHP_URL_PATH);
+            if ($path) {
+                if (preg_match('#/units/([^/]+)#', $path, $matches)) {
+                    $slug = $matches[1];
+                    $contextUnit = \App\Domain\Listings\Models\Unit::with(['area', 'type', 'images', 'user', 'project'])
+                        ->where('slug', $slug)
+                        ->orWhere('slug_ar', $slug)
+                        ->orWhere('slug_en', $slug)
+                        ->first();
+                        
+                    if ($contextUnit) {
+                        $matchingUnits = array_filter($matchingUnits, fn($u) => $u->id !== $contextUnit->id);
+                        array_unshift($matchingUnits, $contextUnit);
+                    }
+                } elseif (preg_match('#/projects/([^/]+)#', $path, $matches)) {
+                    $slug = $matches[1];
+                    $contextProject = \App\Domain\Listings\Models\Project::with(['area', 'developer', 'units' => function($q) {
+                            $q->where('is_active', true)->with(['area', 'type', 'images', 'user', 'project'])->take(15);
+                        }])
+                        ->where('slug', $slug)
+                        ->orWhere('slug_ar', $slug)
+                        ->orWhere('slug_en', $slug)
+                        ->first();
+                        
+                    if ($contextProject) {
+                        $projectUnits = $contextProject->units->all();
+                        $existingIds = array_map(fn($u) => $u->id, $matchingUnits);
+                        foreach (array_reverse($projectUnits) as $pu) {
+                            if (!in_array($pu->id, $existingIds)) {
+                                array_unshift($matchingUnits, $pu);
+                                $existingIds[] = $pu->id;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // 2. Search Blog Articles for RAG if the query looks like a general/investment question
         $articleContext = '';
         if (preg_match('/(كيف|لماذا|هل|ما هو|ما هي|استثمار|مستقبل|أفضل|افضل|عائد|سوق|نصيحة|معلومات|how|why|what|investment|future|best|roi|market|advice)/iu', $message)) {
