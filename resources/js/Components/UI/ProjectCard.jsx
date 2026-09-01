@@ -48,7 +48,7 @@ function ProjectCard({ project, loading = false }) {
     return (
         <article 
             dir={isRtl ? 'rtl' : 'ltr'} 
-            className="bg-white rounded-2xl shadow-card hover:shadow-2xl hover:-translate-y-1.5 transition-[transform,box-shadow] duration-300 overflow-hidden group border border-secondary-100/80 flex flex-col h-full"
+            className="bg-white rounded-2xl shadow-card hover:shadow-2xl hover:-translate-y-1.5 hover:scale-[1.02] transition-all duration-300 overflow-hidden group border border-secondary-100/80 flex flex-col h-full"
         >
             {/* Image Container */}
             <div className="relative overflow-hidden aspect-[4/3] bg-secondary-100">

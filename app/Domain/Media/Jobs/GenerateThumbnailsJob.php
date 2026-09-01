@@ -127,18 +127,13 @@ class GenerateThumbnailsJob implements ShouldQueue
         $sourceWidth = imagesx($source);
         if ($sourceWidth > self::MAX_ORIGINAL_WIDTH_PX) {
             $scaled = $this->scaleDownToMaxWidth($source, self::MAX_ORIGINAL_WIDTH_PX);
-
-            // Preserve the original format instead of writing WebP bytes into a .jpg/.png file
-            $extension = strtolower(pathinfo($fullPath, PATHINFO_EXTENSION));
-            $saved = match ($extension) {
-                'png' => imagepng($scaled, $fullPath, 8),
-                'webp' => imagewebp($scaled, $fullPath, self::ORIGINAL_QUALITY),
-                default => imagejpeg($scaled, $fullPath, self::ORIGINAL_QUALITY), // jpg/jpeg
-            };
-
+            imagewebp($scaled, $fullPath, self::ORIGINAL_QUALITY);
             if ($scaled !== $source) {
                 imagedestroy($scaled);
             }
+        } else {
+            // Even if not scaled, convert original to WebP to save space
+            imagewebp($source, $fullPath, self::ORIGINAL_QUALITY);
         }
     }
 
@@ -198,10 +193,17 @@ class GenerateThumbnailsJob implements ShouldQueue
     private function generateThumbnailWithIntervention(ImageManager $manager, string $fullPath, string $thumbFullPath): void
     {
         $image = $manager->decodePath($fullPath);
-        $image->scaleDown(width: self::THUMB_WIDTH_PX);
-        $encoded = $image->encode(new WebpEncoder(quality: self::THUMB_QUALITY));
+        
+        // 1. Generate thumbnail
+        $thumb = clone $image;
+        $thumb->scaleDown(width: self::THUMB_WIDTH_PX);
+        $encodedThumb = $thumb->encode(new WebpEncoder(quality: self::THUMB_QUALITY));
+        file_put_contents($thumbFullPath, (string) $encodedThumb);
 
-        file_put_contents($thumbFullPath, (string) $encoded);
+        // 2. Scale down original if needed and convert to WebP
+        $image->scaleDown(width: self::MAX_ORIGINAL_WIDTH_PX);
+        $encodedOriginal = $image->encode(new WebpEncoder(quality: self::ORIGINAL_QUALITY));
+        file_put_contents($fullPath, (string) $encodedOriginal);
     }
 
     private function buildThumbRelativePath(string $relativePath): string

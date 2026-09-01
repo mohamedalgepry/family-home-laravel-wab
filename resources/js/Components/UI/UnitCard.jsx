@@ -51,7 +51,7 @@ function UnitCard({ unit, loading = false, priority = false }) {
     const unitSlug = isRtl && unit.slug_ar ? unit.slug_ar : (unit.slug_en || unit.slug || unit.id)
 
     return (
-        <article dir={isRtl ? 'rtl' : 'ltr'} className="bg-white rounded-2xl shadow-card overflow-hidden hover:shadow-2xl transition-[transform,box-shadow] duration-300 group border border-secondary-100/70 hover:-translate-y-1.5 flex flex-col justify-between">
+        <article dir={isRtl ? 'rtl' : 'ltr'} className="bg-white rounded-2xl shadow-card overflow-hidden hover:shadow-2xl transition-all duration-300 group border border-secondary-100/70 hover:-translate-y-1.5 hover:scale-[1.02] flex flex-col justify-between">
             <div>
                 {/* Image */}
                 <Link href={localizedPath(`/units/${unitSlug}`, locale)} className="block relative overflow-hidden aspect-[4/3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">

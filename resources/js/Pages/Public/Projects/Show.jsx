@@ -765,7 +765,7 @@ export default function ProjectShow({ project, projectUnits, similarProjects, re
 
                     <img
                         src={getStorageUrl(images[lightboxIndex]?.url || images[lightboxIndex]?.path, PLACEHOLDER)}
-                        alt=""
+                        alt={images[lightboxIndex]?.alt_text || project.name}
                         className="max-w-[90vw] max-h-[85vh] object-contain rounded-xl"
                         onClick={e => e.stopPropagation()}
                     />

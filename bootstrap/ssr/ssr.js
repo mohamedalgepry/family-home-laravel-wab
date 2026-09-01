@@ -15477,7 +15477,7 @@ function UnitCard({ unit, loading = false, priority = false }) {
 	const unitSlug = isRtl && unit.slug_ar ? unit.slug_ar : unit.slug_en || unit.slug || unit.id;
 	return /* @__PURE__ */ jsxs("article", {
 		dir: isRtl ? "rtl" : "ltr",
-		className: "bg-white rounded-2xl shadow-card overflow-hidden hover:shadow-2xl transition-[transform,box-shadow] duration-300 group border border-secondary-100/70 hover:-translate-y-1.5 flex flex-col justify-between",
+		className: "bg-white rounded-2xl shadow-card overflow-hidden hover:shadow-2xl transition-all duration-300 group border border-secondary-100/70 hover:-translate-y-1.5 hover:scale-[1.02] flex flex-col justify-between",
 		children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsxs(Link, {
 			href: localizedPath(`/units/${unitSlug}`, locale),
 			className: "block relative overflow-hidden aspect-[4/3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
@@ -16579,7 +16579,7 @@ function ProjectCard({ project, loading = false }) {
 	const projectSlug = isRtl && project.slug_ar ? project.slug_ar : project.slug_en || project.slug || project.id;
 	return /* @__PURE__ */ jsxs("article", {
 		dir: isRtl ? "rtl" : "ltr",
-		className: "bg-white rounded-2xl shadow-card hover:shadow-2xl hover:-translate-y-1.5 transition-[transform,box-shadow] duration-300 overflow-hidden group border border-secondary-100/80 flex flex-col h-full",
+		className: "bg-white rounded-2xl shadow-card hover:shadow-2xl hover:-translate-y-1.5 hover:scale-[1.02] transition-all duration-300 overflow-hidden group border border-secondary-100/80 flex flex-col h-full",
 		children: [/* @__PURE__ */ jsxs("div", {
 			className: "relative overflow-hidden aspect-[4/3] bg-secondary-100",
 			children: [
@@ -20545,7 +20545,7 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 					}),
 					/* @__PURE__ */ jsx("img", {
 						src: getStorageUrl(images[lightboxIndex]?.url || images[lightboxIndex]?.path, "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 600\"%3E%3Crect fill=\"%23F0F0F0\" width=\"800\" height=\"600\"/%3E%3C/svg%3E"),
-						alt: "",
+						alt: images[lightboxIndex]?.alt_text || project.name,
 						className: "max-w-[90vw] max-h-[85vh] object-contain rounded-xl",
 						onClick: (e) => e.stopPropagation()
 					}),
@@ -22448,7 +22448,7 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 					}),
 					/* @__PURE__ */ jsx("img", {
 						src: getStorageUrl(images[lightboxIndex]?.url || images[lightboxIndex]?.path, "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 600\"%3E%3Crect fill=\"%23F0F0F0\" width=\"800\" height=\"600\"/%3E%3C/svg%3E"),
-						alt: "",
+						alt: images[lightboxIndex]?.alt_text || unit.name,
 						className: "max-w-[90vw] max-h-[85vh] object-contain rounded-xl",
 						onClick: (e) => e.stopPropagation()
 					}),
