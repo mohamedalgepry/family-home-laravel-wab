@@ -118,7 +118,7 @@ function ProjectCard({ project, loading = false }) {
                     </Link>
 
                     {project.description && (
-                        <p className="text-xs text-secondary-500 line-clamp-2 leading-relaxed mb-3 font-medium">
+                        <p className="text-xs text-secondary-600 line-clamp-2 leading-relaxed mb-3 font-medium">
                             {project.description}
                         </p>
                     )}

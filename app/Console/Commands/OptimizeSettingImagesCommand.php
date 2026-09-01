@@ -41,6 +41,10 @@ class OptimizeSettingImagesCommand extends Command
                 // Mobile WebP (max 640px)
                 $targetMobileW = min($w, 640);
                 $targetMobileH = (int) round(($h / $w) * $targetMobileW);
+                if ($targetMobileH > 850) {
+                    $targetMobileH = 850;
+                    $targetMobileW = (int) round(($w / $h) * $targetMobileH);
+                }
                 $dstMobile = imagecreatetruecolor($targetMobileW, $targetMobileH);
                 imagecopyresampled($dstMobile, $srcImg, 0, 0, 0, 0, $targetMobileW, $targetMobileH, $w, $h);
 
@@ -70,7 +74,7 @@ class OptimizeSettingImagesCommand extends Command
             if ($srcImg) {
                 $w = imagesx($srcImg);
                 $h = imagesy($srcImg);
-                $targetW = min($w, 600);
+                $targetW = min($w, 240);
                 $targetH = (int) round(($h / $w) * $targetW);
                 $dstImg = imagecreatetruecolor($targetW, $targetH);
                 imagealphablending($dstImg, false);

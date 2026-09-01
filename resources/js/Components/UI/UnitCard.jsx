@@ -111,7 +111,7 @@ function UnitCard({ unit, loading = false, priority = false }) {
                         <span className="text-2xl font-black text-primary-900 tracking-tight">
                             {Number(unit.price).toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-US')}
                         </span>
-                        <span className="text-xs font-bold text-primary-800 bg-primary-50 px-2 py-0.5 rounded ms-2">
+                        <span className="text-xs font-bold text-white bg-primary-900 px-2 py-0.5 rounded ms-2">
                             {trans('currency_egp')}
                         </span>
                     </div>
