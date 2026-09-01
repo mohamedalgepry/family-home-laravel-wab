@@ -340,7 +340,7 @@ export default function HossamChatWidget() {
                             timestamp: formatTime(new Date(), locale),
                         }
                     ])
-                    setTimeout(() => setStreamedMessageId(null), 1400)
+                    setTimeout(() => setStreamedMessageId(null), 300)
                     
                     if (audioEnabled) {
                         speakMessage(data.reply)
