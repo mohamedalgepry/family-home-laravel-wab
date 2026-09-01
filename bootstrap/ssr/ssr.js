@@ -14647,7 +14647,8 @@ function OptimizedImage({ src, alt = "", width, height, className = "", lazy = t
 		width,
 		height,
 		loading: lazy ? "lazy" : "eager",
-		decoding: "async",
+		fetchpriority: !lazy ? "high" : void 0,
+		decoding: lazy ? "async" : "sync",
 		className,
 		onError: handleError,
 		role,
@@ -15489,8 +15490,8 @@ function UnitCard({ unit, loading = false, priority = false }) {
 					srcSet,
 					alt: imageAlt,
 					width: 400,
-					height: 300,
-					lazy: true,
+					height: 360,
+					lazy: !priority,
 					fallbackSrc: PLACEHOLDER$2,
 					className: "w-full h-full object-cover group-hover:scale-108 transition-transform duration-700 ease-out"
 				}),
@@ -16566,7 +16567,7 @@ function SkeletonCard$1() {
 		})]
 	});
 }
-function ProjectCard({ project, loading = false }) {
+function ProjectCard({ project, loading = false, priority = false }) {
 	const { locale } = usePage().props;
 	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
@@ -16597,7 +16598,7 @@ function ProjectCard({ project, loading = false }) {
 						alt: imageAlt,
 						width: 480,
 						height: 360,
-						lazy: true,
+						lazy: !priority,
 						fallbackSrc: PLACEHOLDER$2,
 						className: "w-full h-full object-cover group-hover:scale-108 transition-transform duration-500 ease-out"
 					})
@@ -19143,7 +19144,10 @@ function Home({ featuredUnits, latestUnits, latestProjects, popularSearches, are
 							children: Array.from({ length: 4 }).map((_, i) => /* @__PURE__ */ jsx(ProjectCard_default, { loading: true }, i))
 						}) : hasProjects && Array.isArray(latestProjects?.data) ? /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("div", {
 							className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5",
-							children: latestProjects.data.map((project) => /* @__PURE__ */ jsx(ProjectCard_default, { project }, project.id))
+							children: latestProjects.data.map((project, i) => /* @__PURE__ */ jsx(ProjectCard_default, {
+								project,
+								priority: i < 4
+							}, project.id))
 						}), /* @__PURE__ */ jsx(Pagination, {
 							meta: latestProjects,
 							links: latestProjects?.links,
@@ -19170,7 +19174,10 @@ function Home({ featuredUnits, latestUnits, latestProjects, popularSearches, are
 							children: Array.from({ length: 4 }).map((_, i) => /* @__PURE__ */ jsx(UnitCard_default, { loading: true }, i))
 						}) : hasLatest && Array.isArray(latestUnits?.data) ? /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("div", {
 							className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5",
-							children: latestUnits.data.map((unit) => /* @__PURE__ */ jsx(UnitCard_default, { unit }, unit.id))
+							children: latestUnits.data.map((unit, i) => /* @__PURE__ */ jsx(UnitCard_default, {
+								unit,
+								priority: i < 4
+							}, unit.id))
 						}), /* @__PURE__ */ jsx(Pagination, {
 							meta: latestUnits,
 							links: latestUnits?.links,
@@ -19446,7 +19453,10 @@ function ProjectsIndex({ projects, filters, areas, features, finishingTypes }) {
 						className: "flex flex-col gap-8 mb-8",
 						children: [/* @__PURE__ */ jsx("div", {
 							className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6",
-							children: projects.data.map((project) => /* @__PURE__ */ jsx(ProjectCard_default, { project }, project.id))
+							children: projects.data.map((project, i) => /* @__PURE__ */ jsx(ProjectCard_default, {
+								project,
+								priority: i < 4
+							}, project.id))
 						}), /* @__PURE__ */ jsx(Pagination, {
 							meta: projects.meta || projects,
 							links: projects.links
@@ -20783,7 +20793,10 @@ function UnitsIndex({ units, filters, areas, unitTypes, features, finishingTypes
 						className: "flex flex-col gap-8",
 						children: [/* @__PURE__ */ jsx("div", {
 							className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6",
-							children: units.data.map((unit) => /* @__PURE__ */ jsx(UnitCard_default, { unit }, unit.id))
+							children: units.data.map((unit, i) => /* @__PURE__ */ jsx(UnitCard_default, {
+								unit,
+								priority: i < 4
+							}, unit.id))
 						}), /* @__PURE__ */ jsx(Pagination, {
 							meta: units.meta || units,
 							links: units.links
