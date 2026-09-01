@@ -39,9 +39,9 @@ function ProjectCard({ project, loading = false, priority = false }) {
     const mainImage = project?.images?.find(img => img.is_main || img.is_primary) || project?.images?.[0]
     const thumbnail = getThumbUrl(mainImage?.thumb_url || mainImage?.url || mainImage?.path, PLACEHOLDER)
     const originalUrl = getStorageUrl(mainImage?.url || mainImage?.path, null)
-    const srcSet = originalUrl && thumbnail && originalUrl !== thumbnail 
-        ? `${thumbnail} 400w, ${originalUrl} 800w` 
-        : undefined
+    const srcSet = mainImage?.srcset || (originalUrl && thumbnail && originalUrl !== thumbnail 
+        ? `${thumbnail} 480w, ${originalUrl} 1600w` 
+        : undefined)
     const isCompared = compareList.includes(project?.id)
 
     const areaName = project.area?.name || project.area_name || (isRtl ? 'مصر' : 'Egypt')
