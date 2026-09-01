@@ -15548,7 +15548,7 @@ function UnitCard({ unit, loading = false, priority = false }) {
 						className: "text-2xl font-black text-primary-900 tracking-tight",
 						children: Number(unit.price).toLocaleString(locale === "ar" ? "ar-EG" : "en-US")
 					}), /* @__PURE__ */ jsx("span", {
-						className: "text-xs font-bold text-primary-800 bg-primary-50 px-2 py-0.5 rounded ms-2",
+						className: "text-xs font-bold text-white bg-primary-900 px-2 py-0.5 rounded ms-2",
 						children: trans("currency_egp")
 					})]
 				}),
@@ -16656,7 +16656,7 @@ function ProjectCard({ project, loading = false }) {
 					})
 				}),
 				project.description && /* @__PURE__ */ jsx("p", {
-					className: "text-xs text-secondary-500 line-clamp-2 leading-relaxed mb-3 font-medium",
+					className: "text-xs text-secondary-600 line-clamp-2 leading-relaxed mb-3 font-medium",
 					children: project.description
 				}),
 				/* @__PURE__ */ jsxs("div", {

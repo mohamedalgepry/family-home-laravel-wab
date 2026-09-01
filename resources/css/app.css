@@ -147,20 +147,20 @@
     --color-secondary-100: #F0F0F0;
     --color-secondary-200: #E4E4E4;
     --color-secondary-300: #D1D1D1;
-    --color-secondary-400: #737373;
-    --color-secondary-500: #606060;
-    --color-secondary-600: #4B4B4B;
-    --color-secondary-700: #6B6B6B;
-    --color-secondary-800: #515151;
-    --color-secondary-900: #3D3D3D;
-    --color-secondary-950: #1A1A1A;
+    --color-secondary-400: #595959; /* Darkened to pass WCAG on #F5F5F5 */
+    --color-secondary-500: #4D4D4D; /* Darkened for accessibility */
+    --color-secondary-600: #404040;
+    --color-secondary-700: #333333; /* Fixed ordering */
+    --color-secondary-800: #262626; /* Fixed ordering */
+    --color-secondary-900: #1A1A1A;
+    --color-secondary-950: #0D0D0D;
 
     /* Semantic colors for quick reference */
     --color-background: #FFFFFF;
     --color-surface: #F5F5F5;
     --color-surface-hover: #F0F0F0;
     --color-border: #E4E4E4;
-    --color-muted: #6B6B6B;
+    --color-muted: #595959; /* Updated to match secondary-400 */
     --color-success: #22C55E;
     --color-warning: #F59E0B;
     --color-error: #EF4444;
