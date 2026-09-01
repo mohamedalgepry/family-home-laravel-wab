@@ -28,10 +28,23 @@ class ImageOptimizerService
             }
 
             $image = $manager->decodePath($sourcePath);
-            $image->scaleDown(width: self::MAX_WIDTH_PX);
-            $encoded = $image->encode(new WebpEncoder(quality: $quality));
-
             $this->ensureDirectoryExists(dirname($outputPath));
+            $dir = dirname($outputPath);
+            $filename = pathinfo($outputPath, PATHINFO_FILENAME);
+
+            $variants = ['thumb' => 480, 'medium' => 960, 'large' => 1440];
+            foreach ($variants as $prefix => $width) {
+                try {
+                    $variantImg = $image->scaleDown(width: $width);
+                    $varEncoded = $variantImg->encode(new WebpEncoder(quality: $quality));
+                    file_put_contents("$dir/{$prefix}_{$filename}.webp", (string) $varEncoded);
+                } catch (\Throwable $e) {
+                    Log::warning("Failed to generate variant $prefix for $outputPath");
+                }
+            }
+
+            $image = $image->scaleDown(width: self::MAX_WIDTH_PX);
+            $encoded = $image->encode(new WebpEncoder(quality: $quality));
 
             file_put_contents($outputPath, (string) $encoded);
 

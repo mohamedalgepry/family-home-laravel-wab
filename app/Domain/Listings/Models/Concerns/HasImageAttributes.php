@@ -9,38 +9,70 @@ trait HasImageAttributes
 {
     public function getUrlAttribute(): string
     {
-        if (! $this->path) {
-            return '';
-        }
-
-        if ($this->isExternalOrAbsolutePath($this->path)) {
-            return $this->path;
-        }
-
-        return '/storage/'.ltrim($this->path, '/');
+        return $this->path && ! $this->isExternalOrAbsolutePath($this->path)
+            ? '/storage/'.ltrim($this->path, '/')
+            : (string) $this->path;
     }
 
     public function getThumbUrlAttribute(): string
     {
-        if (! $this->path) {
-            return '';
+        return $this->variantUrl('thumb') ?: $this->url;
+    }
+
+    public function getMediumUrlAttribute(): string
+    {
+        return $this->variantUrl('medium') ?: $this->url;
+    }
+
+    public function getLargeUrlAttribute(): string
+    {
+        return $this->variantUrl('large') ?: $this->medium_url;
+    }
+
+    public function getSrcsetAttribute(): ?string
+    {
+        if (! $this->path || $this->isExternalOrAbsolutePath($this->path)) {
+            return null;
         }
 
-        if ($this->isExternalOrAbsolutePath($this->path)) {
-            return $this->url;
+        $sources = [];
+        foreach (['thumb' => 480, 'medium' => 960, 'large' => 1440] as $variant => $width) {
+            $url = $this->variantUrl($variant);
+            if ($url) {
+                $sources[] = "{$url} {$width}w";
+            }
         }
 
-        $webpThumbPath = $this->resolveWebpThumbPath();
+        return $sources === [] ? null : implode(', ', $sources);
+    }
 
-        if ($this->thumbExistsOnDisk($webpThumbPath)) {
-            return '/storage/'.$webpThumbPath;
+    private function variantUrl(string $variant): ?string
+    {
+        if (! $this->path || $this->isExternalOrAbsolutePath($this->path)) {
+            return null;
         }
 
-        $legacyThumbPath = $this->resolveLegacyThumbPath();
+        $path = $this->variantRelativePath($variant);
 
-        return $this->thumbExistsOnDisk($legacyThumbPath)
-            ? '/storage/'.$legacyThumbPath
-            : $this->url;
+        return $this->variantExists($variant, $path) ? '/storage/'.$path : null;
+    }
+
+    private function variantRelativePath(string $variant): string
+    {
+        $dir = dirname($this->path);
+        $filename = pathinfo($this->path, PATHINFO_FILENAME);
+        $prefix = $dir !== '.' ? $dir.'/' : '';
+
+        return $prefix."{$variant}_{$filename}.webp";
+    }
+
+    private function variantExists(string $variant, string $path): bool
+    {
+        return Cache::remember(
+            "image_variant_exists:{$variant}:{$this->path}",
+            now()->addDay(),
+            fn () => Storage::disk('public')->exists($path)
+        );
     }
 
     private function isExternalOrAbsolutePath(string $path): bool
@@ -48,32 +80,5 @@ trait HasImageAttributes
         return str_starts_with($path, 'http://')
             || str_starts_with($path, 'https://')
             || str_starts_with($path, '/');
-    }
-
-    private function resolveWebpThumbPath(): string
-    {
-        $dir = dirname($this->path);
-        $nameWithoutExtension = pathinfo($this->path, PATHINFO_FILENAME);
-        $prefix = $dir !== '.' ? $dir.'/' : '';
-
-        return $prefix.'thumb_'.$nameWithoutExtension.'.webp';
-    }
-
-    private function resolveLegacyThumbPath(): string
-    {
-        $dir = dirname($this->path);
-        $filename = basename($this->path);
-        $prefix = $dir !== '.' ? $dir.'/' : '';
-
-        return $prefix.'thumb_'.$filename;
-    }
-
-    private function thumbExistsOnDisk(string $thumbPath): bool
-    {
-        return Cache::remember(
-            "thumb_exists:{$thumbPath}",
-            now()->addDay(),
-            fn () => Storage::disk('public')->exists($thumbPath)
-        );
     }
 }

@@ -5,7 +5,7 @@ namespace App\Domain\Media\Jobs;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Foundation\Bus\Queueable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Cache;
@@ -20,20 +20,15 @@ class GenerateThumbnailsJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 3;
-
-    public int $timeout = 60;
-
+    public int $timeout = 90;
     public array $backoff = [10, 30, 60];
 
-    private const MAX_ORIGINAL_WIDTH_PX = 1400;
-
-    private const THUMB_WIDTH_PX = 400;
-
-    private const THUMB_QUALITY = 80;
-
-    private const ORIGINAL_QUALITY = 82;
-
-    private const RASTERIZABLE_EXTS = ['jpg', 'jpeg', 'png'];
+    /** Sizes for cards, content pages, and LCP images. */
+    private const VARIANTS = [
+        'thumb' => ['width' => 480, 'quality' => 78],
+        'medium' => ['width' => 960, 'quality' => 80],
+        'large' => ['width' => 1440, 'quality' => 82],
+    ];
 
     public function __construct(
         public readonly string $modelType,
@@ -43,11 +38,6 @@ class GenerateThumbnailsJob implements ShouldQueue
 
     public function handle(): void
     {
-        Log::info('GenerateThumbnailsJob: processing thumbnails', [
-            'model' => "{$this->modelType}#{$this->modelId}",
-            'paths_count' => count($this->paths),
-        ]);
-
         $disk = Storage::disk('public');
         $manager = $this->resolveImageManager();
 
@@ -64,117 +54,64 @@ class GenerateThumbnailsJob implements ShouldQueue
             }
 
             $fullPath = $disk->path($relativePath);
-            $thumbRelPath = $this->buildThumbRelativePath($relativePath);
-            $thumbFullPath = $disk->path($thumbRelPath);
 
-            $this->generateThumbnail($fullPath, $thumbFullPath, $relativePath, $manager);
+            if ($this->canUseNativeGd()) {
+                $this->generateWithNativeGd($fullPath, $relativePath);
+            } elseif ($manager) {
+                $this->generateWithIntervention($manager, $fullPath, $relativePath);
+            } else {
+                throw new \RuntimeException('No supported image extension is available.');
+            }
 
-            Cache::forget("thumb_exists:{$thumbRelPath}");
-
-            Log::info('GenerateThumbnailsJob: thumbnail generated', [
-                'original' => $relativePath,
-                'thumbnail' => $thumbRelPath,
-            ]);
+            foreach (array_keys(self::VARIANTS) as $variant) {
+                Cache::forget("image_variant_exists:{$variant}:{$relativePath}");
+            }
         } catch (\Throwable $e) {
-            Log::warning('GenerateThumbnailsJob: failed to process image', [
+            Log::warning('Image variant generation failed', [
                 'path' => $relativePath,
+                'model' => "{$this->modelType}#{$this->modelId}",
                 'error' => $e->getMessage(),
             ]);
         }
     }
 
-    private function generateThumbnail(
-        string $fullPath,
-        string $thumbFullPath,
-        string $relativePath,
-        ?ImageManager $manager,
-    ): void {
-        if ($this->canUseNativeGd()) {
-            $this->generateThumbnailWithNativeGd($fullPath, $thumbFullPath, $relativePath);
-        } elseif ($manager) {
-            $this->generateThumbnailWithIntervention($manager, $fullPath, $thumbFullPath);
-        }
-    }
-
-    private function generateThumbnailWithNativeGd(
-        string $fullPath,
-        string $thumbFullPath,
-        string $relativePath,
-    ): void {
+    private function generateWithNativeGd(string $fullPath, string $relativePath): void
+    {
         $rawBytes = @file_get_contents($fullPath);
-        if (! $rawBytes) {
-            return;
+        $source = $rawBytes ? @imagecreatefromstring($rawBytes) : false;
+
+        if (! $source) {
+            throw new \RuntimeException('The uploaded file could not be decoded as an image.');
         }
 
-        $sourceImage = @imagecreatefromstring($rawBytes);
-        if (! $sourceImage) {
-            return;
-        }
-
-        // 1. Generate small mobile thumbnail (400px)
-        $thumbImage = $this->scaleDownWithGd($sourceImage);
-        imagewebp($thumbImage, $thumbFullPath, self::THUMB_QUALITY);
-        imagedestroy($thumbImage);
-
-        // 2. Automatically scale down huge originals (> 1400px) in the background to save bandwidth & boost LCP
-        $this->scaleDownOriginalIfNeeded($sourceImage, $fullPath);
-
-        imagedestroy($sourceImage);
-    }
-
-    private function scaleDownOriginalIfNeeded(\GdImage $source, string $fullPath): void
-    {
-        $sourceWidth = imagesx($source);
-        if ($sourceWidth > self::MAX_ORIGINAL_WIDTH_PX) {
-            $scaled = $this->scaleDownToMaxWidth($source, self::MAX_ORIGINAL_WIDTH_PX);
-            imagewebp($scaled, $fullPath, self::ORIGINAL_QUALITY);
-            if ($scaled !== $source) {
-                imagedestroy($scaled);
+        try {
+            foreach (self::VARIANTS as $variant => $options) {
+                $scaled = $this->scaleDownWithGd($source, $options['width']);
+                imagewebp($scaled, $this->absoluteVariantPath($fullPath, $relativePath, $variant), $options['quality']);
+                if ($scaled !== $source) {
+                    imagedestroy($scaled);
+                }
             }
-        } else {
-            // Even if not scaled, convert original to WebP to save space
-            imagewebp($source, $fullPath, self::ORIGINAL_QUALITY);
+        } finally {
+            imagedestroy($source);
         }
     }
 
-    private function scaleDownWithGd(\GdImage $source): \GdImage
+    private function generateWithIntervention(ImageManager $manager, string $fullPath, string $relativePath): void
     {
-        $sourceWidth = imagesx($source);
-        $sourceHeight = imagesy($source);
-        $thumbWidth = min(self::THUMB_WIDTH_PX, $sourceWidth);
-        $thumbHeight = (int) round(($sourceHeight / $sourceWidth) * $thumbWidth);
+        $source = $manager->decodePath($fullPath);
 
-        $thumb = imagecreatetruecolor($thumbWidth, $thumbHeight);
-        imagecopyresampled($thumb, $source, 0, 0, 0, 0, $thumbWidth, $thumbHeight, $sourceWidth, $sourceHeight);
-
-        return $thumb;
-    }
-
-    private function convertOriginalToWebpIfRasterizable(\GdImage $source, string $fullPath, string $relativePath): void
-    {
-        $extension = strtolower(pathinfo($relativePath, PATHINFO_EXTENSION));
-
-        if (! in_array($extension, self::RASTERIZABLE_EXTS, true)) {
-            return;
-        }
-
-        $dir = dirname($fullPath);
-        $nameWithoutExt = pathinfo($fullPath, PATHINFO_FILENAME);
-        $webpFullPath = $dir.DIRECTORY_SEPARATOR.$nameWithoutExt.'.webp';
-
-        $scaled = $this->scaleDownToMaxWidth($source, self::MAX_ORIGINAL_WIDTH_PX);
-        imagewebp($scaled, $webpFullPath, self::ORIGINAL_QUALITY);
-
-        if ($scaled !== $source) {
-            imagedestroy($scaled);
-        }
-
-        if (file_exists($webpFullPath)) {
-            @unlink($fullPath);
+        foreach (self::VARIANTS as $variant => $options) {
+            $image = clone $source;
+            $image->scaleDown(width: $options['width']);
+            file_put_contents(
+                $this->absoluteVariantPath($fullPath, $relativePath, $variant),
+                (string) $image->encode(new WebpEncoder(quality: $options['quality']))
+            );
         }
     }
 
-    private function scaleDownToMaxWidth(\GdImage $source, int $maxWidth): \GdImage
+    private function scaleDownWithGd(\GdImage $source, int $maxWidth): \GdImage
     {
         $sourceWidth = imagesx($source);
         if ($sourceWidth <= $maxWidth) {
@@ -183,36 +120,26 @@ class GenerateThumbnailsJob implements ShouldQueue
 
         $sourceHeight = imagesy($source);
         $targetHeight = (int) round(($sourceHeight / $sourceWidth) * $maxWidth);
-
         $scaled = imagecreatetruecolor($maxWidth, $targetHeight);
+        imagealphablending($scaled, false);
+        imagesavealpha($scaled, true);
         imagecopyresampled($scaled, $source, 0, 0, 0, 0, $maxWidth, $targetHeight, $sourceWidth, $sourceHeight);
 
         return $scaled;
     }
 
-    private function generateThumbnailWithIntervention(ImageManager $manager, string $fullPath, string $thumbFullPath): void
+    private function absoluteVariantPath(string $fullPath, string $relativePath, string $variant): string
     {
-        $image = $manager->decodePath($fullPath);
-        
-        // 1. Generate thumbnail
-        $thumb = clone $image;
-        $thumb->scaleDown(width: self::THUMB_WIDTH_PX);
-        $encodedThumb = $thumb->encode(new WebpEncoder(quality: self::THUMB_QUALITY));
-        file_put_contents($thumbFullPath, (string) $encodedThumb);
-
-        // 2. Scale down original if needed and convert to WebP
-        $image->scaleDown(width: self::MAX_ORIGINAL_WIDTH_PX);
-        $encodedOriginal = $image->encode(new WebpEncoder(quality: self::ORIGINAL_QUALITY));
-        file_put_contents($fullPath, (string) $encodedOriginal);
+        return dirname($fullPath).DIRECTORY_SEPARATOR.basename($this->variantRelativePath($relativePath, $variant));
     }
 
-    private function buildThumbRelativePath(string $relativePath): string
+    private function variantRelativePath(string $relativePath, string $variant): string
     {
         $dir = dirname($relativePath);
-        $nameWithoutExt = pathinfo($relativePath, PATHINFO_FILENAME);
+        $filename = pathinfo($relativePath, PATHINFO_FILENAME);
         $prefix = $dir !== '.' ? $dir.'/' : '';
 
-        return $prefix.'thumb_'.$nameWithoutExt.'.webp';
+        return $prefix."{$variant}_{$filename}.webp";
     }
 
     private function canUseNativeGd(): bool
@@ -222,29 +149,18 @@ class GenerateThumbnailsJob implements ShouldQueue
 
     private function resolveImageManager(): ?ImageManager
     {
-        if (extension_loaded('gd')) {
-            return $this->tryBuildManager(new Driver);
-        }
+        try {
+            if (extension_loaded('gd')) {
+                return new ImageManager(new Driver);
+            }
 
-        if (extension_loaded('imagick')) {
-            return $this->tryBuildManager(new \Intervention\Image\Drivers\Imagick\Driver);
+            if (extension_loaded('imagick')) {
+                return new ImageManager(new \Intervention\Image\Drivers\Imagick\Driver);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Image manager initialization failed', ['error' => $e->getMessage()]);
         }
-
-        Log::warning('GenerateThumbnailsJob: No image extension available (GD/Imagick)');
 
         return null;
-    }
-
-    private function tryBuildManager(mixed $driver): ?ImageManager
-    {
-        try {
-            return new ImageManager($driver);
-        } catch (\Throwable $e) {
-            Log::warning('GenerateThumbnailsJob: Driver initialization failed', [
-                'error' => $e->getMessage(),
-            ]);
-
-            return null;
-        }
     }
 }

@@ -79,6 +79,9 @@ class ProjectPublicResource extends JsonResource
                         'path' => $image->path,
                         'url' => $image->url,
                         'thumb_url' => $image->thumb_url ?: null,
+                        'medium_url' => $image->medium_url ?: null,
+                        'large_url' => $image->large_url ?: null,
+                        'srcset' => $image->srcset,
                         'is_primary' => $image->is_primary,
                         'alt_text' => $image->alt_text,
                     ];

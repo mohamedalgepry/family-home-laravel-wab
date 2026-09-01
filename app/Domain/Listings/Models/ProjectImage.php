@@ -11,7 +11,7 @@ class ProjectImage extends Model
 
     protected $fillable = ['project_id', 'path', 'alt_text', 'sort_order'];
 
-    protected $appends = ['url', 'thumb_url'];
+    protected $appends = ['url', 'thumb_url', 'medium_url', 'large_url', 'srcset'];
 
     public function project()
     {

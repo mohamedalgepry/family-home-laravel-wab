@@ -11,7 +11,7 @@ class UnitImage extends Model
 
     protected $fillable = ['unit_id', 'path', 'alt_text', 'sort_order', 'is_primary'];
 
-    protected $appends = ['url', 'thumb_url'];
+    protected $appends = ['url', 'thumb_url', 'medium_url', 'large_url', 'srcset'];
 
     protected function casts(): array
     {

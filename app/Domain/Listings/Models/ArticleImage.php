@@ -11,7 +11,7 @@ class ArticleImage extends Model
 
     protected $fillable = ['article_id', 'path', 'alt_text', 'link_url', 'position', 'size', 'sort_order'];
 
-    protected $appends = ['url', 'thumb_url'];
+    protected $appends = ['url', 'thumb_url', 'medium_url', 'large_url', 'srcset'];
 
     public function article()
     {
