@@ -251,7 +251,7 @@ function HossamChatWidget() {
 					quick_replies: data.quick_replies || [],
 					timestamp: formatTime(/* @__PURE__ */ new Date(), locale)
 				}]);
-				setTimeout(() => setStreamedMessageId(null), 1400);
+				setTimeout(() => setStreamedMessageId(null), 300);
 				if (audioEnabled) speakMessage(data.reply);
 				clearTimeout(timeoutId);
 				abortControllerRef.current = null;

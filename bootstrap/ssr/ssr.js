@@ -15000,7 +15000,7 @@ function CompareBar() {
 }
 //#endregion
 //#region resources/js/Components/Layout/Footer.jsx
-var HossamChatWidget = lazy(() => import("./assets/HossamChatWidget-BQSS8ODA.js"));
+var HossamChatWidget = lazy(() => import("./assets/HossamChatWidget-BtIqNxn-.js"));
 var QUICK_LINKS = [
 	{
 		key: "home",
