@@ -38,6 +38,10 @@ function UnitCard({ unit, loading = false, priority = false }) {
 
     const mainImage = unit?.images?.find(img => img.is_main || img.is_primary) || unit?.images?.[0]
     const thumbnail = getThumbUrl(mainImage?.thumb_url || mainImage?.url || mainImage?.path, PLACEHOLDER)
+    const originalUrl = getStorageUrl(mainImage?.url || mainImage?.path, null)
+    const srcSet = originalUrl && thumbnail && originalUrl !== thumbnail 
+        ? `${thumbnail} 400w, ${originalUrl} 800w` 
+        : undefined
     const isCompared = compareList.includes(unit?.id)
 
     const agentContacts = getAgentContacts(unit?.user || unit?.project?.user, settings)
@@ -57,6 +61,7 @@ function UnitCard({ unit, loading = false, priority = false }) {
                 <Link href={localizedPath(`/units/${unitSlug}`, locale)} className="block relative overflow-hidden aspect-[4/3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
                     <OptimizedImage
                         src={thumbnail}
+                        srcSet={srcSet}
                         alt={imageAlt}
                         width={400}
                         height={300}
@@ -75,7 +80,7 @@ function UnitCard({ unit, loading = false, priority = false }) {
 
                     {/* Area tag overlay */}
                     {unit.area?.name && (
-                        <span className="absolute bottom-3 start-3 text-white text-xs font-medium bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded-md flex items-center gap-1">
+                        <span className="absolute bottom-3 start-3 text-white text-xs font-medium bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded-md flex items-center gap-1">
                             <svg className="w-3.5 h-3.5 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />

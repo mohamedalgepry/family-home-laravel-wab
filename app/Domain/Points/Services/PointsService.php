@@ -139,6 +139,7 @@ class PointsService
                     $managers = User::lockForUpdate()->whereIn('id', $managerIds)->pluck('points_balance', 'id');
 
                     $transactions = [];
+                    $validUnitIds = [];
 
                     foreach ($lockedUnits as $unit) {
                         // Skip if already deducted in another concurrent transaction
@@ -154,8 +155,8 @@ class PointsService
                         $deduction = min($unit->priority_points, $value);
                         $newPoints = max(0, $unit->priority_points - $deduction);
 
-                        $unit->priority_points = $newPoints;
-                        $unit->save();
+                        // Collect valid unit ID for bulk update instead of individual save
+                        $validUnitIds[] = $unit->id;
 
                         $managerId = $unit->user?->manager_id ?? $unit->user_id;
 
@@ -171,6 +172,12 @@ class PointsService
                         ];
 
                         $processedCount++;
+                    }
+
+                    if (! empty($validUnitIds)) {
+                        Unit::whereIn('id', $validUnitIds)->update([
+                            'priority_points' => DB::raw("GREATEST(0, priority_points - {$value})")
+                        ]);
                     }
 
                     if (! empty($transactions)) {

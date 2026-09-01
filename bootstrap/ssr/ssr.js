@@ -15092,7 +15092,7 @@ function Footer() {
 							children: QUICK_LINKS.map((item) => /* @__PURE__ */ jsx("li", { children: /* @__PURE__ */ jsx(Link, {
 								href: localizedPath(item.href, locale),
 								onClick: (e) => handleNavClick(e, item.href),
-								className: "text-sm text-secondary-400 hover:text-white transition-colors",
+								className: "text-sm text-secondary-300 hover:text-white transition-colors",
 								children: trans(item.key)
 							}) }, item.key))
 						})] }),
@@ -15470,6 +15470,8 @@ function UnitCard({ unit, loading = false, priority = false }) {
 	if (!unit) return null;
 	const mainImage = unit?.images?.find((img) => img.is_main || img.is_primary) || unit?.images?.[0];
 	const thumbnail = getThumbUrl(mainImage?.thumb_url || mainImage?.url || mainImage?.path, PLACEHOLDER$2);
+	const originalUrl = getStorageUrl(mainImage?.url || mainImage?.path, null);
+	const srcSet = originalUrl && thumbnail && originalUrl !== thumbnail ? `${thumbnail} 400w, ${originalUrl} 800w` : void 0;
 	const isCompared = compareList.includes(unit?.id);
 	const whatsappLink = `https://wa.me/${getAgentContacts(unit?.user || unit?.project?.user, settings).whatsapp}?text=${encodeURIComponent(trans("unit_whatsapp_inquiry", { name: unit?.name || "" }))}`;
 	const areaName = unit.area?.name || (isRtl ? "مصر" : "Egypt");
@@ -15484,6 +15486,7 @@ function UnitCard({ unit, loading = false, priority = false }) {
 			children: [
 				/* @__PURE__ */ jsx(OptimizedImage, {
 					src: thumbnail,
+					srcSet,
 					alt: imageAlt,
 					width: 400,
 					height: 300,
@@ -15500,7 +15503,7 @@ function UnitCard({ unit, loading = false, priority = false }) {
 					})
 				}),
 				unit.area?.name && /* @__PURE__ */ jsxs("span", {
-					className: "absolute bottom-3 start-3 text-white text-xs font-medium bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded-md flex items-center gap-1",
+					className: "absolute bottom-3 start-3 text-white text-xs font-medium bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded-md flex items-center gap-1",
 					children: [/* @__PURE__ */ jsxs("svg", {
 						className: "w-3.5 h-3.5 text-primary-400",
 						fill: "none",
@@ -16572,6 +16575,8 @@ function ProjectCard({ project, loading = false }) {
 	if (!project) return null;
 	const mainImage = project?.images?.find((img) => img.is_main || img.is_primary) || project?.images?.[0];
 	const thumbnail = getThumbUrl(mainImage?.thumb_url || mainImage?.url || mainImage?.path, PLACEHOLDER$2);
+	const originalUrl = getStorageUrl(mainImage?.url || mainImage?.path, null);
+	const srcSet = originalUrl && thumbnail && originalUrl !== thumbnail ? `${thumbnail} 400w, ${originalUrl} 800w` : void 0;
 	const isCompared = compareList.includes(project?.id);
 	const areaName = project.area?.name || project.area_name || (isRtl ? "مصر" : "Egypt");
 	const imageAlt = project.alt_text || `${project.name || (isRtl ? "مشروع عقاري" : "Project")} ${isRtl ? "في" : "in"} ${areaName} - ${trans("app_name")}`;
@@ -16588,6 +16593,7 @@ function ProjectCard({ project, loading = false }) {
 					className: "block w-full h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
 					children: /* @__PURE__ */ jsx(OptimizedImage, {
 						src: thumbnail,
+						srcSet,
 						alt: imageAlt,
 						width: 480,
 						height: 360,
@@ -16624,7 +16630,7 @@ function ProjectCard({ project, loading = false }) {
 					})]
 				}),
 				project.area?.name && /* @__PURE__ */ jsxs("span", {
-					className: "absolute bottom-3 start-3 text-white text-xs font-medium bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded-md flex items-center gap-1",
+					className: "absolute bottom-3 start-3 text-white text-xs font-medium bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded-md flex items-center gap-1",
 					children: [/* @__PURE__ */ jsxs("svg", {
 						className: "w-3.5 h-3.5 text-primary-400",
 						fill: "none",

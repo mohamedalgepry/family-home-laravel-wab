@@ -35,6 +35,20 @@ class HossamAssistantService
      */
     public function chat(string $message, array $history = [], string $locale = 'ar', string $contextUrl = '', string $contextTitle = ''): array
     {
+        // Rate Limiting: 20 requests per 10 minutes per IP
+        $ip = request()->ip() ?? 'unknown';
+        $key = 'hossam-chat-' . $ip;
+        
+        if (\Illuminate\Support\Facades\RateLimiter::tooManyAttempts($key, 20)) {
+            return [
+                'reply' => $locale === 'en' ? 'You have reached the maximum number of messages. Please try again in 10 minutes.' : 'عذراً، لقد تجاوزت الحد المسموح من الرسائل. يرجى المحاولة بعد 10 دقائق.',
+                'recommended_units' => [],
+                'is_hot_lead' => false,
+                'quick_replies' => [],
+            ];
+        }
+        \Illuminate\Support\Facades\RateLimiter::hit($key, 600);
+
         // 1. Search database for relevant active listings based on query keywords
         $searchResult = $this->searchRelevantUnits($message, $history, $locale);
         $matchingUnits = $searchResult['units'];
@@ -948,35 +962,40 @@ PROMPT;
             }
         }
 
-        // All active units
+        // All active units and projects (Cached for 10 minutes to avoid hitting DB every turn)
         try {
-            $allUnits = Unit::where('is_active', true)->with('project')->get();
-            foreach ($allUnits as $u) {
-                $slug = $locale === 'ar' ? ($u->slug_ar ?? $u->slug) : ($u->slug_en ?? $u->slug);
-                $url = '/' . $locale . '/units/' . $slug;
-                if (! empty($u->name) && mb_strlen($u->name) >= 3 && ! isset($linkMap[$u->name])) {
-                    $linkMap[$u->name] = $url;
-                }
-                if ($u->project && ! empty($u->project->name) && mb_strlen($u->project->name) >= 3) {
-                    $pSlug = $locale === 'ar' ? ($u->project->slug_ar ?? $u->project->slug) : ($u->project->slug_en ?? $u->project->slug);
-                    $pUrl = '/' . $locale . '/projects/' . $pSlug;
-                    if (! isset($linkMap[$u->project->name])) {
-                        $linkMap[$u->project->name] = $pUrl;
+            $cachedLinks = \Illuminate\Support\Facades\Cache::remember('hossam_link_map_' . $locale, 600, function () use ($locale) {
+                $map = [];
+                $allUnits = Unit::where('is_active', true)->select(['id', 'name', 'slug', 'slug_ar', 'slug_en', 'project_id'])->with(['project' => fn($q) => $q->select(['id', 'name', 'slug', 'slug_ar', 'slug_en'])])->get();
+                foreach ($allUnits as $u) {
+                    $slug = $locale === 'ar' ? ($u->slug_ar ?? $u->slug) : ($u->slug_en ?? $u->slug);
+                    $url = '/' . $locale . '/units/' . $slug;
+                    if (! empty($u->name) && mb_strlen($u->name) >= 3 && ! isset($map[$u->name])) {
+                        $map[$u->name] = $url;
+                    }
+                    if ($u->project && ! empty($u->project->name) && mb_strlen($u->project->name) >= 3) {
+                        $pSlug = $locale === 'ar' ? ($u->project->slug_ar ?? $u->project->slug) : ($u->project->slug_en ?? $u->project->slug);
+                        $pUrl = '/' . $locale . '/projects/' . $pSlug;
+                        if (! isset($map[$u->project->name])) {
+                            $map[$u->project->name] = $pUrl;
+                        }
                     }
                 }
-            }
-        } catch (\Throwable $e) {
-            // Silently fallback to current units
-        }
-
-        // All active projects
-        try {
-            $allProjects = Project::where('is_active', true)->get();
-            foreach ($allProjects as $p) {
-                $pSlug = $locale === 'ar' ? ($p->slug_ar ?? $p->slug) : ($p->slug_en ?? $p->slug);
-                $pUrl = '/' . $locale . '/projects/' . $pSlug;
-                if (! empty($p->name) && mb_strlen($p->name) >= 3 && ! isset($linkMap[$p->name])) {
-                    $linkMap[$p->name] = $pUrl;
+                
+                $allProjects = Project::where('is_active', true)->select(['id', 'name', 'slug', 'slug_ar', 'slug_en'])->get();
+                foreach ($allProjects as $p) {
+                    $pSlug = $locale === 'ar' ? ($p->slug_ar ?? $p->slug) : ($p->slug_en ?? $p->slug);
+                    $pUrl = '/' . $locale . '/projects/' . $pSlug;
+                    if (! empty($p->name) && mb_strlen($p->name) >= 3 && ! isset($map[$p->name])) {
+                        $map[$p->name] = $pUrl;
+                    }
+                }
+                return $map;
+            });
+            
+            foreach ($cachedLinks as $name => $url) {
+                if (!isset($linkMap[$name])) {
+                    $linkMap[$name] = $url;
                 }
             }
         } catch (\Throwable $e) {
@@ -1123,7 +1142,7 @@ PROMPT;
                 'Authorization' => "Bearer {$this->apiKey}",
                 'Content-Type' => 'application/json',
                 'HTTP-Referer' => config('app.url'),
-            ])->timeout(8)->post($this->baseUrl . '/chat/completions', [
+            ])->timeout(4)->post($this->baseUrl . '/chat/completions', [
                 'model' => 'openrouter/free',
                 'messages' => [['role' => 'user', 'content' => $prompt]],
                 'temperature' => 0.0,

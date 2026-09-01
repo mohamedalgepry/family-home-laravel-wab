@@ -70,7 +70,7 @@ export default function Footer() {
                                     <Link
                                         href={localizedPath(item.href, locale)}
                                         onClick={(e) => handleNavClick(e, item.href)}
-                                        className="text-sm text-secondary-400 hover:text-white transition-colors"
+                                        className="text-sm text-secondary-300 hover:text-white transition-colors"
                                     >
                                         {trans(item.key)}
                                     </Link>
