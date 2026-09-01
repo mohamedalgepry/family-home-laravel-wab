@@ -22,7 +22,7 @@ function SkeletonCard() {
     )
 }
 
-function ProjectCard({ project, loading = false }) {
+function ProjectCard({ project, loading = false, priority = false }) {
     const { locale } = usePage().props
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
@@ -66,7 +66,7 @@ function ProjectCard({ project, loading = false }) {
                         alt={imageAlt}
                         width={480}
                         height={360}
-                        lazy={true}
+                        lazy={!priority}
                         fallbackSrc={PLACEHOLDER}
                         className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-500 ease-out"
                     />

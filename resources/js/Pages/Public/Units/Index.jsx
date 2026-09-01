@@ -66,8 +66,8 @@ export default function UnitsIndex({ units, filters, areas, unitTypes, features,
                     ) : hasUnits ? (
                         <div className="flex flex-col gap-8">
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                {units.data.map(unit => (
-                                    <UnitCard key={unit.id} unit={unit} />
+                                {units.data.map((unit, i) => (
+                                    <UnitCard key={unit.id} unit={unit} priority={i < 4} />
                                 ))}
                             </div>
                             <Pagination meta={units.meta || units} links={units.links} />

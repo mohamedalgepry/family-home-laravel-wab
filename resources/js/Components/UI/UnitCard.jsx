@@ -64,8 +64,8 @@ function UnitCard({ unit, loading = false, priority = false }) {
                         srcSet={srcSet}
                         alt={imageAlt}
                         width={400}
-                        height={300}
-                        lazy={true}
+                        height={360}
+                        lazy={!priority}
                         fallbackSrc={PLACEHOLDER}
                         className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-700 ease-out"
                     />
