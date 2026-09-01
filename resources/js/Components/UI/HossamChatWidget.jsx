@@ -590,7 +590,6 @@ export default function HossamChatWidget() {
                         <span>{trans('assistant_name')}</span>
                         <span className="text-white/40">•</span>
                         <span className="text-white/80 font-normal">{trans('assistant_title')}</span>
-                        <span className="bg-[#CC0000] text-white text-[9px] px-1.5 py-0.5 rounded-full font-black tracking-wider">AI</span>
                     </div>
 
                     <button
@@ -619,12 +618,6 @@ export default function HossamChatWidget() {
                             </span>
                         </div>
 
-                        {/* Unread AI tag */}
-                        {hasUnread && (
-                            <span className="absolute -bottom-0.5 -start-0.5 bg-amber-400 text-slate-950 text-[9px] font-black px-1.5 py-0.5 rounded-full border-2 border-white shadow animate-pulse tracking-wider">
-                                AI
-                            </span>
-                        )}
                     </button>
                 </div>
             )}
@@ -1021,9 +1014,6 @@ export default function HossamChatWidget() {
                             </span>
                             <span className="concierge-pin font-bold hidden sm:inline">
                                 {conciergePin}
-                            </span>
-                            <span className="text-slate-300">
-                                {isRtl ? 'مدعوم بالذكاء الاصطناعي' : 'AI-powered'}
                             </span>
                         </div>
                     </form>

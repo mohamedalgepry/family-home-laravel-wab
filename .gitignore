@@ -22,6 +22,8 @@ yarn-error.log
 /.vscode
 /.agents
 /.gemini
+/.claude
+skills-lock.json
 /*.sqlite
 /*.sqlite-journal
 .DS_Store
