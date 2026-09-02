@@ -22,15 +22,6 @@ class CreateProjectAction
         $sanitized['name'] = $sanitized['name_en'] ?? '';
         $sanitized['description'] = $sanitized['description_en'] ?? null;
 
-        if (array_key_exists('latitude', $sanitized)) {
-            $sanitized['location_lat'] = $sanitized['latitude'];
-            unset($sanitized['latitude']);
-        }
-        if (array_key_exists('longitude', $sanitized)) {
-            $sanitized['location_lng'] = $sanitized['longitude'];
-            unset($sanitized['longitude']);
-        }
-
         $features = $sanitized['features'] ?? [];
         unset($sanitized['features']);
 

@@ -18,7 +18,7 @@ class Unit extends Model
     protected $fillable = [
         'project_id', 'name', 'name_ar', 'name_en', 'slug', 'slug_ar', 'slug_en', 'description', 'description_ar', 'description_en', 'type_id',
         'area_id', 'transaction', 'price', 'area_sqm', 'rooms', 'bathrooms',
-        'floor', 'alt_text', 'video_url', 'video_path', 'map_embed_url', 'location_lat', 'location_lng',
+        'floor', 'alt_text', 'video_url', 'video_path', 'map_embed_url', 'latitude', 'longitude',
         'location_address_ar', 'location_address_en', 'keywords_ar', 'keywords_en', 'meta_description_ar', 'meta_description_en',
         'views_count', 'auto_delete_at', 'payment_method', 'down_payment', 'installment_years', 'finishing_type_id',
     ];
