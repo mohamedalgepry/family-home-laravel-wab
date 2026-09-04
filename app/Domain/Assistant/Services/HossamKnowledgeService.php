@@ -77,8 +77,16 @@ class HossamKnowledgeService
                 return;
             }
 
-            // Do not store greeting or fallback messages
-            if (str_contains($reply, 'عشان ألاقيلك أفضل عقار') || str_contains($reply, 'To find you the perfect property')) {
+            // Do not store greeting, fallback, or apology messages
+            if (
+                str_contains($reply, 'عشان ألاقيلك أفضل عقار') ||
+                str_contains($reply, 'To find you the perfect property') ||
+                str_contains($reply, 'أهلاً بك! دي أفضل العقارات المتاحة حسب طلبك') ||
+                str_contains($reply, 'Here are the best available properties') ||
+                str_contains($reply, 'للأسف') ||
+                str_contains($reply, 'بعتذر') ||
+                str_contains($reply, 'معاك حق')
+            ) {
                 return;
             }
 
@@ -135,8 +143,8 @@ class HossamKnowledgeService
                     'quick_replies' => [
                         'Show me apartments with installments',
                         'Best investment opportunities',
+                        'Administrative offices',
                         'Projects in New Cairo',
-                        'I want to sell my property',
                     ],
                 ];
             }
@@ -148,8 +156,37 @@ class HossamKnowledgeService
                 'quick_replies' => [
                     'ورّيني شقق بنظام التقسيط',
                     'إيه أفضل فرص الاستثمار؟',
+                    'مكاتب ومحلات تجارية',
                     'مشاريع التجمع الخامس',
-                    'عايز اعرض عقار للبيع',
+                ],
+            ];
+        }
+
+        // 1b. Small Talk / كيف الحال والأخبار (الرد الودود بدون استبيانات)
+        if (preg_match('/^(اخبارك|اخبارك ايه|عامل ايه|شخبارك|كيف حالك|كيفك|ازي حضرتك|ازيك|كله تمام|طمني عنك|how are you|how is it going)/iu', $text)) {
+            if ($locale === 'en') {
+                return [
+                    'reply' => "Doing great, thank you for asking! 🤝 I'm ready to assist you with any property questions, price comparisons, or investment opportunities.\n\nAre you looking for a home or an investment property today?",
+                    'recommended_units' => [],
+                    'is_hot_lead' => false,
+                    'quick_replies' => [
+                        'Show me apartments with installments',
+                        'Best investment opportunities',
+                        'Administrative offices',
+                        'Projects in New Cairo',
+                    ],
+                ];
+            }
+
+            return [
+                'reply' => "الحمد لله كله تمام وبأفضل حال، تسلم لسؤالك! 🤝\n\nأنا هنا لمساعدتك في أي استفسار عقاري، أو مقارنة بين المشروعات وأنظمة السداد. بتدور على سكن خاص ولا فرصة استثمارية النهاردة؟",
+                'recommended_units' => [],
+                'is_hot_lead' => false,
+                'quick_replies' => [
+                    'ورّيني شقق بنظام التقسيط',
+                    'إيه أفضل فرص الاستثمار؟',
+                    'مكاتب ومحلات تجارية',
+                    'مشاريع العاصمة الإدارية',
                 ],
             ];
         }

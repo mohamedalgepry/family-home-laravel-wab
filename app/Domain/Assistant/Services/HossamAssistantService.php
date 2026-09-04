@@ -117,12 +117,16 @@ class HossamAssistantService
                             array_unshift($relevantProjects, $contextProject);
                         }
 
-                        $projectUnits = $contextProject->units->all();
-                        $existingIds = array_map(fn($u) => $u->id, $matchingUnits);
-                        foreach (array_reverse($projectUnits) as $pu) {
-                            if (!in_array($pu->id, $existingIds)) {
-                                array_unshift($matchingUnits, $pu);
-                                $existingIds[] = $pu->id;
+                        // Only inject project units if user didn't request a non-residential type (like office/administrative)
+                        $reqType = $searchResult['requested_type'] ?? null;
+                        if (! $hasSpecificConstraints || ($reqType === null || $reqType === 'apartment' || $reqType === 'residential')) {
+                            $projectUnits = $contextProject->units->all();
+                            $existingIds = array_map(fn($u) => $u->id, $matchingUnits);
+                            foreach (array_reverse($projectUnits) as $pu) {
+                                if (!in_array($pu->id, $existingIds)) {
+                                    array_unshift($matchingUnits, $pu);
+                                    $existingIds[] = $pu->id;
+                                }
                             }
                         }
                     }
@@ -189,22 +193,22 @@ class HossamAssistantService
 
         if (empty($reply)) {
             $candidateModels = array_values(array_unique(array_filter([
+                'minimax/minimax-m3:free',
                 $this->model,
-                'openrouter/free',
-                'google/gemma-4-31b-it:free',
-                'google/gemma-4-26b-a4b-it:free',
                 'minimax/minimax-m2.7:free',
-                'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
+                'google/gemma-4-31b-it:free',
+                'nvidia/nemotron-3.5-lightning:free',
+                'openrouter/free',
                 $this->fallbackModel,
             ])));
 
-            // Try top 2 fast models with 6s timeout each
+            // Try top 2 fast models with 8s timeout each
             $attempts = 0;
             foreach ($candidateModels as $candidate) {
                 if ($attempts >= 2) {
                     break;
                 }
-                $reply = $this->callOpenRouter($messages, $candidate, 6);
+                $reply = $this->callOpenRouter($messages, $candidate, 8);
                 $attempts++;
                 if (! empty($reply)) {
                     break;
@@ -214,19 +218,25 @@ class HossamAssistantService
 
         // 4b. Smart fallback: if AI failed or timed out, immediately build a helpful database-driven reply
         if (empty($reply)) {
-            $reply = $this->buildSmartFallback($matchingUnits, $message, $locale);
+            $reply = $this->buildSmartFallback($searchResult, $message, $locale);
         }
 
         // 5. Context-driven Property Cards Display
         // Show cards if the LLM explicitly tagged [SHOW_CARDS] or if the user explicitly asked to see listings/units
         $userExplicitlyWantsCards = (bool) preg_match('/(وريني|ابعتلي|عرض|شوف|عايز اشوف|عايز|لينك|لينكات|رابط|روابط|كروت|عقارات|شقق|شقه|فلل|فلا|فله|فيلا|وحدات|مشاريع|صور|تفاصيل|ميزانية|اسعار|أسعار|كام السعر|قسط|مقدم|عايز اشتري|عايز احجز|رشحلي|اقتراح|show me|send me|listings|properties|apartments|villas|units|projects|price|budget|recommend|suggest|available|options)/iu', $message);
 
+        $isCorrection = $searchResult['is_correction'] ?? false;
         $shouldShowCards = false;
         if (str_contains($reply, '[SHOW_CARDS]')) {
             $shouldShowCards = true;
             $reply = trim(str_replace(['[SHOW_CARDS]', '[show_cards]'], '', $reply));
         } elseif ($hasSpecificConstraints && $userExplicitlyWantsCards && ! empty($matchingUnits)) {
             $shouldShowCards = true;
+        }
+
+        // NEVER show cards if user corrected us about a property type mismatch or asked for offices when none exist in that area
+        if ($isCorrection || (($searchResult['requested_type'] ?? '') === 'administrative' && empty($searchResult['units']))) {
+            $shouldShowCards = false;
         }
 
         $isHotLead = false;
@@ -313,9 +323,6 @@ class HossamAssistantService
     }
 
     /**
-     * Search database for units matching user request.
-     */
-    /**
      * Search database for units matching user request with smart parametric extraction.
      */
     private function searchRelevantUnits(string $message, array $history, string $locale): array
@@ -389,56 +396,126 @@ class HossamAssistantService
                 $hasSpecificConstraints = true;
             }
 
-            // 2. Property Subtype Extraction — with common typos and colloquial Arabic
-            $subtypeKeywords = [
-                'شقة' => ['شقة', 'شقه', 'شأة', 'شأه', 'شقق', 'apartment', 'flat'],
-                'فيلا' => ['فيلا', 'فلا', 'فله', 'فيلات', 'فلل', 'villa', 'villas'],
-                'شاليه' => ['شاليه', 'شالية', 'شاليهات', 'chalet'],
-                'دوبلكس' => ['دوبلكس', 'دوبلكس', 'duplex'],
-                'استوديو' => ['استوديو', 'استديو', 'ستوديو', 'studio'],
-                'مكتب' => ['مكتب', 'مكاتب', 'office', 'إداري', 'اداري'],
-                'محل' => ['محل', 'محلات', 'تجاري', 'shop', 'commercial'],
-                'تاون هاوس' => ['تاون هاوس', 'تاون', 'توين هاوس', 'توين', 'townhouse', 'twin house'],
-                'بنتهاوس' => ['بنتهاوس', 'بنت هاوس', 'penthouse'],
-            ];
+            // 2. Correction & Negation Detection
+            $isCorrection = (bool) preg_match('/(دى شقه|دي شقه|دى شقق|دي شقق|مش شقه|مش شقة|مش سكني|مش سكنى|طالب مكتب|قايلك مكتب|قصدى مكتب|قصدي مكتب|عايز مكتب مش|أنا قايل مكتب|انا قايل مكتب|مش ده|مش دا|غلط)/iu', $message);
 
-            foreach ($subtypeKeywords as $key => $keywords) {
-                foreach ($keywords as $kw) {
-                    if (mb_stripos($lowerMessage, $kw) !== false) {
-                        $query->where(function ($q) use ($keywords) {
-                            foreach ($keywords as $w) {
-                                $q->orWhere('name', 'LIKE', "%{$w}%")
-                                  ->orWhere('description_ar', 'LIKE', "%{$w}%")
-                                  ->orWhere('description_en', 'LIKE', "%{$w}%");
-                            }
-                        });
-                        $hasSpecificConstraints = true;
-                        break 2;
-                    }
-                }
+            // 3. Property Subtype Extraction & Strict DB Mapping
+            $requestedType = null;
+            if ($isCorrection || preg_match('/(مكتب|مكاتب|إداري|اداري|office|administrative)/iu', $lowerMessage)) {
+                $requestedType = 'administrative';
+                $query->where(function ($q) {
+                    $q->where('type_id', 2)
+                      ->orWhereHas('type', fn($tq) => $tq->where('slug', 'administrative')->orWhere('name_ar', 'LIKE', '%إداري%'))
+                      ->orWhere('name', 'LIKE', '%مكتب%')
+                      ->orWhere('name', 'LIKE', '%إداري%')
+                      ->orWhere('name', 'LIKE', '%اداري%')
+                      ->orWhere('description_ar', 'LIKE', '%مكتب%')
+                      ->orWhere('description_ar', 'LIKE', '%إداري%');
+                });
+                $hasSpecificConstraints = true;
+            } elseif (preg_match('/(محل|محلات|تجاري|shop|commercial)/iu', $lowerMessage)) {
+                $requestedType = 'commercial';
+                $query->where(function ($q) {
+                    $q->where('name', 'LIKE', '%محل%')
+                      ->orWhere('name', 'LIKE', '%تجاري%')
+                      ->orWhere('description_ar', 'LIKE', '%محل%')
+                      ->orWhere('description_ar', 'LIKE', '%تجاري%');
+                });
+                $hasSpecificConstraints = true;
+            } elseif (preg_match('/(عيادة|عياده|طبي|clinic|medical)/iu', $lowerMessage)) {
+                $requestedType = 'medical';
+                $query->where(function ($q) {
+                    $q->where('type_id', 3)
+                      ->orWhereHas('type', fn($tq) => $tq->where('slug', 'medical')->orWhere('name_ar', 'LIKE', '%طبي%'))
+                      ->orWhere('name', 'LIKE', '%عياد%')
+                      ->orWhere('description_ar', 'LIKE', '%طبي%');
+                });
+                $hasSpecificConstraints = true;
+            } elseif (preg_match('/(فيلا|فلا|فله|فيلات|فلل|villa|villas)/iu', $lowerMessage) && !preg_match('/(مش فيلا|مش فلل)/iu', $message)) {
+                $requestedType = 'villa';
+                $query->where(function ($q) {
+                    $q->where('name', 'LIKE', '%فيلا%')
+                      ->orWhere('name', 'LIKE', '%فلا%')
+                      ->orWhere('name', 'LIKE', '%فله%')
+                      ->orWhere('description_ar', 'LIKE', '%فيلا%');
+                });
+                $hasSpecificConstraints = true;
+            } elseif (preg_match('/(دوبلكس|duplex)/iu', $lowerMessage)) {
+                $requestedType = 'duplex';
+                $query->where(function ($q) {
+                    $q->where('name', 'LIKE', '%دوبلكس%')
+                      ->orWhere('description_ar', 'LIKE', '%دوبلكس%');
+                });
+                $hasSpecificConstraints = true;
+            } elseif (preg_match('/(استوديو|استديو|ستوديو|studio)/iu', $lowerMessage)) {
+                $requestedType = 'studio';
+                $query->where(function ($q) {
+                    $q->where('name', 'LIKE', '%استوديو%')
+                      ->orWhere('name', 'LIKE', '%ستوديو%')
+                      ->orWhere('description_ar', 'LIKE', '%استوديو%');
+                });
+                $hasSpecificConstraints = true;
+            } elseif (!$isCorrection && preg_match('/(شقة|شقه|شأة|شأه|شقق|apartment|flat)/iu', $lowerMessage) && !preg_match('/(مش شقة|مش شقه|مش سكني|مش سكنى)/iu', $message)) {
+                $requestedType = 'apartment';
+                $query->where(function ($q) {
+                    $q->where('name', 'LIKE', '%شقة%')
+                      ->orWhere('name', 'LIKE', '%شقه%')
+                      ->orWhere('name', 'LIKE', '%شقق%')
+                      ->orWhere('description_ar', 'LIKE', '%شقة%');
+                });
+                $hasSpecificConstraints = true;
             }
 
-            // 3. Area Extraction
+            // 4. Area Extraction — Comprehensive matching with Egyptian Arabic variants
             $areas = Area::select('id', 'name_ar', 'name_en', 'slug')->get();
             $matchedAreaId = null;
+            $matchedAreaName = null;
             foreach ($areas as $area) {
                 if (($area->name_ar && mb_stripos($lowerMessage, $area->name_ar) !== false) ||
                     ($area->name_en && mb_stripos($lowerMessage, $area->name_en) !== false) ||
                     ($area->slug && mb_stripos($lowerMessage, $area->slug) !== false)) {
                     $matchedAreaId = $area->id;
+                    $matchedAreaName = $area->name_ar ?: $area->name;
                     break;
                 }
             }
             if (! $matchedAreaId) {
-                if (preg_match('/(تجمع|التجمع|new cairo|fifth settlement)/iu', $lowerMessage)) {
+                if (preg_match('/(عاصم|عاصمة|عاصمه|العاصمة|العاصمه|capital|new capital)/iu', $lowerMessage)) {
+                    $matchedArea = $areas->first(fn ($a) => mb_stripos($a->name_ar, 'عاصمة') !== false || mb_stripos($a->name_en, 'capital') !== false || $a->id === 6);
+                    $matchedAreaId = $matchedArea?->id ?: 6;
+                    $matchedAreaName = $matchedArea?->name_ar ?: 'العاصمة الإدارية';
+                } elseif (preg_match('/(تجمع|التجمع|new cairo|fifth settlement|القاهرة الجديدة)/iu', $lowerMessage)) {
                     $matchedArea = $areas->first(fn ($a) => mb_stripos($a->name_ar, 'تجمع') !== false || mb_stripos($a->name_en, 'cairo') !== false);
                     $matchedAreaId = $matchedArea?->id;
+                    $matchedAreaName = $matchedArea?->name_ar ?: 'التجمع الخامس';
                 } elseif (preg_match('/(زايد|الشيخ زايد|zayed)/iu', $lowerMessage)) {
                     $matchedArea = $areas->first(fn ($a) => mb_stripos($a->name_ar, 'زايد') !== false || mb_stripos($a->name_en, 'zayed') !== false);
                     $matchedAreaId = $matchedArea?->id;
+                    $matchedAreaName = $matchedArea?->name_ar ?: 'الشيخ زايد';
+                } elseif (preg_match('/(اكتوبر|أكتوبر|6 أكتوبر|6 اكتوبر|october)/iu', $lowerMessage)) {
+                    $matchedArea = $areas->first(fn ($a) => mb_stripos($a->name_ar, 'أكتوبر') !== false || mb_stripos($a->name_ar, 'اكتوبر') !== false || mb_stripos($a->name_en, 'october') !== false);
+                    $matchedAreaId = $matchedArea?->id;
+                    $matchedAreaName = $matchedArea?->name_ar ?: '6 أكتوبر';
+                } elseif (preg_match('/(مدينة نصر|مدينه نصر|nasr city)/iu', $lowerMessage)) {
+                    $matchedArea = $areas->first(fn ($a) => mb_stripos($a->name_ar, 'مدينة نصر') !== false || mb_stripos($a->name_en, 'nasr') !== false);
+                    $matchedAreaId = $matchedArea?->id;
+                    $matchedAreaName = $matchedArea?->name_ar ?: 'مدينة نصر';
+                } elseif (preg_match('/(معادي|المعادي|maadi)/iu', $lowerMessage)) {
+                    $matchedArea = $areas->first(fn ($a) => mb_stripos($a->name_ar, 'معادي') !== false || mb_stripos($a->name_en, 'maadi') !== false);
+                    $matchedAreaId = $matchedArea?->id;
+                    $matchedAreaName = $matchedArea?->name_ar ?: 'المعادي';
+                } elseif (preg_match('/(رحاب|الرحاب|rehab)/iu', $lowerMessage)) {
+                    $matchedArea = $areas->first(fn ($a) => mb_stripos($a->name_ar, 'رحاب') !== false || mb_stripos($a->name_en, 'rehab') !== false);
+                    $matchedAreaId = $matchedArea?->id;
+                    $matchedAreaName = $matchedArea?->name_ar ?: 'الرحاب';
                 } elseif (preg_match('/(ساحل|الساحل|north coast)/iu', $lowerMessage)) {
                     $matchedArea = $areas->first(fn ($a) => mb_stripos($a->name_ar, 'ساحل') !== false || mb_stripos($a->name_en, 'coast') !== false);
                     $matchedAreaId = $matchedArea?->id;
+                    $matchedAreaName = $matchedArea?->name_ar ?: 'الساحل الشمالي';
+                } elseif (preg_match('/(سخنة|السخنة|سخنه|sokhna)/iu', $lowerMessage)) {
+                    $matchedArea = $areas->first(fn ($a) => mb_stripos($a->name_ar, 'سخنة') !== false || mb_stripos($a->name_en, 'sokhna') !== false);
+                    $matchedAreaId = $matchedArea?->id;
+                    $matchedAreaName = $matchedArea?->name_ar ?: 'العين السخنة';
                 }
             }
             if ($matchedAreaId) {
@@ -446,7 +523,7 @@ class HossamAssistantService
                 $hasSpecificConstraints = true;
             }
 
-            // 4. Rooms Extraction
+            // 5. Rooms Extraction
             if (preg_match('/(\d+)\s*(?:غرف|غرفة|غرفه|نوم|rooms|bedrooms)/iu', $lowerMessage, $rm)) {
                 $query->where('rooms', (int) $rm[1]);
                 $hasSpecificConstraints = true;
@@ -458,7 +535,7 @@ class HossamAssistantService
                 $hasSpecificConstraints = true;
             }
 
-            // 5. Transaction & Payment
+            // 6. Transaction & Payment
             if (preg_match('/(إيجار|ايجار|أجر|rent|rental)/iu', $lowerMessage)) {
                 $query->where('transaction', 'rent');
                 $hasSpecificConstraints = true;
@@ -481,8 +558,8 @@ class HossamAssistantService
                 ->take(4)
                 ->get();
 
-            // Always ensure we have at least 3-4 top active listings to recommend
-            if ($units->count() < 3) {
+            // ONLY if user had NO specific constraints, ensure we have top featured listings to suggest
+            if (! $hasSpecificConstraints && $units->count() < 3) {
                 $fallback = Unit::query()
                     ->where('is_active', true)
                     ->with(['area', 'type', 'images', 'user', 'project'])
@@ -498,6 +575,9 @@ class HossamAssistantService
             return [
                 'units' => $units->all(),
                 'has_constraints' => $hasSpecificConstraints,
+                'requested_type' => $requestedType,
+                'matched_area_name' => $matchedAreaName,
+                'is_correction' => $isCorrection,
             ];
         } catch (\Throwable $e) {
             Log::warning('HossamAssistant: DB search error', ['error' => $e->getMessage()]);
@@ -505,6 +585,9 @@ class HossamAssistantService
             return [
                 'units' => [],
                 'has_constraints' => false,
+                'requested_type' => null,
+                'matched_area_name' => null,
+                'is_correction' => false,
             ];
         }
     }
@@ -688,28 +771,31 @@ PROMPT;
             
         $pageContext = '';
         if (!empty($contextUrl)) {
-            $pageContext = "\n\n=== سياق الصفحة الحالية (مهم جداً للرد على أسئلة العميل) ===\nالعميل يتصفح الآن الرابط التالي في الموقع: ({$contextUrl})\nوعنوان الصفحة: ({$contextTitle}).\n* إذا سألك العميل \"أين أنا؟\" أو \"ما هي هذه الصفحة؟\" أو أشار بكلمة \"هنا\" أو \"هذا العقار\"، أخبره بمعلومات هذه الصفحة التي يتصفحها. العميل يقصد مكانه في الموقع الإلكتروني وليس موقعه الجغرافي.\n====================================\n";
+            $pageContext = "\n\n=== صفحة التصفح الحالية للعميل (خلفية للاسترشاد فقط) ===\nالعميل يشاهد حالياً: ({$contextTitle}) على الرابط: ({$contextUrl}).\n* قاعدة صارمة جداً: ممنوع منعاً باتاً افتتاح ردك بـ «بما إنك تتصفح الآن صفحة كذا...» أو «أفترض أنك تسأل عن هذا المشروع...». هذا تصرف آلي مزعج وغير احترافي إطلاقاً.\n* استخدم معلومات هذه الصفحة فقط إذا سألك العميل صراحة عنها (مثل: «أنا في صفحة إيه؟»، أو «إيه تفاصيل هذا المشروع؟»، أو أشار بكلمة «هنا» أو «المشروع ده»).\n* إذا سأل العميل سؤالاً عاماً (مثل «إيه أفضل فرص الاستثمار؟»)، أجب مباشرة كخبير استثماري شامل عن أفضل الفرص بالسوق دون تقييد نفسك بالصفحة المعروضة.\n====================================\n";
         }
 
         return <<<PROMPT
 أنت «حسام»، المستشار العقاري والاستثماري الأول في شركة «فاميلي هوم (Family Home)».
 {$pageContext}
 الدور الأساسي
-أنت مستشار عقاري دقيق وعملي، ولست شات بوت عام. مهمتك فهم هدف العميل الحالي، الحفاظ على السياق المهم داخل المحادثة الحالية، الاعتماد فقط على بيانات العقارات المتاحة أدناه، ثم توجيه العميل إلى أفضل قرار عقاري ممكن بدون اختراع أي معلومة.
+أنت مستشار عقاري دقيق وعملي وذكي، ولست شات بوت عام. مهمتك فهم هدف العميل الحالي، الحفاظ على السياق المهم داخل المحادثة الحالية، الاعتماد فقط على بيانات العقارات المتاحة أدناه، ثم توجيه العميل إلى أفضل قرار عقاري ممكن بدون اختراع أي معلومة وبدون أي تصرف روبوتي غبي.
 
 اقتناص العملاء (مهم جداً)
 - إذا لاحظت أن العميل مهتم جداً بالشراء أو الحجز أو طلب تفاصيل محددة عن وحدة معينة، اطلب منه بلباقة ترك رقم هاتفه ليتواصل معه فريق المبيعات فوراً.
 - بمجرد أن يكتب العميل رقم هاتفه، اشكره وأكد له أن مستشاراً عقارياً سيتواصل معه قريباً جداً.
 
-اللغة والأسلوب (صارم جداً)
+اللغة والأسلوب البشري الذكي (صارم جداً)
 - يجب أن يكون ردك باللغة العربية حصراً.
 - ممنوع منعاً باتاً استخدام أي رموز أو كلمات أو أحرف صينية (Chinese characters) أو يابانية أو كورية في الرد.
 - لا تستخدم لغات أجنبية أخرى إلا إذا كان المصطلح اسماً لمشروع عقاري أو رابطاً أو مصطلحاً تقنياً لا مفر منه.
-- إذا كان العميل يتحدث بالعربية المصرية، ردّ بالعربية المصرية الطبيعية.
+- إذا كان العميل يتحدث بالعربية المصرية، ردّ بالعربية المصرية الطبيعية والذكية كإنسان حقيقي وليس كروبوت.
+- ممنوع التحقيق وسرد الاستبيانات: إياك وسرد استبيان بنقاط (مثل: ما نوع العقار؟ ما المنطقة؟ ما الميزانية؟ ما عدد الغرف؟). لا تسأل أكثر من سؤال واحد قصير وعملي في نهاية الرد.
+- تحيات ودردشة العميل: إذا قال العميل كلمة ترحيب أو اطمئنان (مثل «اخبارك»، «ازيك»، «عامل ايه»)، رد بجملة واحدة ودودة ومرحبة واسأله كيف تساعده، دون سرد أي قوائم أو شروط.
+- الدقة الصارمة في نوع العقار: المكتب الإداري هو «مكتب» وليس «شقة سكنية»! إذا طلب العميل «مكتب» في منطقة معينة (مثل العاصمة الإدارية) ولا يوجد مكاتب معروضة فيها في البيانات، قل بصدق واحترافية: «حالياً لا يتوفر مكاتب إدارية معروضة في العاصمة في محفظتنا، المتاح فيها سكني فقط. هل تحب أرشحلك مكاتب ممتازة في التجمع الخامس؟». إياك إطلاقاً أن ترشح شقة سكنية لعميل طلب مكتباً!
+- التعامل الذكي مع التصحيح والاعتراض: إذا قال لك العميل «دى شقه سكنى» أو «أنا طالب مكتب مش شقة»، اعتذر فوراً عن اللبس في جملة قصيرة: «معاك حق تماماً، بعتذر عن اللبس! حضرتك طلبت مكتب إداري...» وأجب بما يناسب المكاتب فقط.
 - استخدم لغة واضحة، مختصرة، طبيعية ومهنية.
 - لا تكرر الترحيب في كل رسالة.
 - لا تحول الرد إلى إعلان تسويقي مبالغ فيه.
-- لا تسأل أكثر من سؤال توضيحي واحد عندما يكون السؤال ضروريًا.
 - قدم المعلومة المفيدة أولًا.
 
 السياق داخل المحادثة — قاعدة أساسية
@@ -1062,6 +1148,9 @@ PROMPT;
             $areaName = $locale === 'en'
                 ? ($u->area?->name_en ?? $u->area?->name ?? 'Prime Location')
                 : ($u->area?->name_ar ?? $u->area?->name ?? 'موقع متميز');
+            $typeName = $locale === 'en'
+                ? ($u->type?->name ?? 'Residential')
+                : ($u->type?->name_ar ?? 'سكني');
             $priceFormatted = number_format((float) $u->price) . ' ' . $currency;
 
             $agentWhatsapp = $u->user?->whatsapp ?? $u->user?->phone ?? $settingsWhatsapp ?: $settingsPhone;
@@ -1074,7 +1163,7 @@ PROMPT;
                 $slug = $u->slug_en ?? $u->slug;
                 $url = '/' . $locale . '/units/' . $slug;
 
-                $list[] = '- Property: [' . $u->name . '](' . $url . ') | Price: ' . $priceFormatted . ' | Area: ' . $areaName . ' | Rooms: ' . $u->rooms . ' | Size: ' . $u->area_sqm . ' sqm | Payment: ' . $payment . $downPayment . $years . ' | Agent WhatsApp: ' . $agentContact . ' | Markdown link: [' . $u->name . '](' . $url . ')';
+                $list[] = '- Property: [' . $u->name . '](' . $url . ') | Type: ' . $typeName . ' | Price: ' . $priceFormatted . ' | Area: ' . $areaName . ' | Rooms: ' . $u->rooms . ' | Size: ' . $u->area_sqm . ' sqm | Payment: ' . $payment . $downPayment . $years . ' | Agent WhatsApp: ' . $agentContact . ' | Markdown link: [' . $u->name . '](' . $url . ')';
             } else {
                 $payment = $u->payment_method === 'installment' ? 'تقسيط' : ($u->payment_method === 'both' ? 'كاش أو تقسيط' : 'كاش');
                 $downPayment = $u->down_payment ? ' (مقدم: ' . number_format((float) $u->down_payment) . ' ' . $currency . ')' : '';
@@ -1082,7 +1171,7 @@ PROMPT;
                 $slug = $u->slug_ar ?? $u->slug;
                 $url = '/' . $locale . '/units/' . $slug;
 
-                $list[] = '- اسم العقار: [' . $u->name . '](' . $url . ') | السعر: ' . $priceFormatted . ' | المنطقة: ' . $areaName . ' | الغرف: ' . $u->rooms . ' | المساحة: ' . $u->area_sqm . ' م² | نظام الدفع: ' . $payment . $downPayment . $years . ' | واتساب الوكيل: ' . $agentContact . ' | رابط الماركداون: [' . $u->name . '](' . $url . ')';
+                $list[] = '- اسم العقار: [' . $u->name . '](' . $url . ') | النوع: ' . $typeName . ' | السعر: ' . $priceFormatted . ' | المنطقة: ' . $areaName . ' | الغرف: ' . $u->rooms . ' | المساحة: ' . $u->area_sqm . ' م² | نظام الدفع: ' . $payment . $downPayment . $years . ' | واتساب الوكيل: ' . $agentContact . ' | رابط الماركداون: [' . $u->name . '](' . $url . ')';
             }
         }
 
@@ -1093,30 +1182,55 @@ PROMPT;
      * Build a smart fallback reply when all AI models fail.
      * Uses DB search results to provide a helpful response instead of a generic greeting.
      */
-    private function buildSmartFallback(array $units, string $message, string $locale): string
+    private function buildSmartFallback(array $searchResult, string $message, string $locale): string
     {
         $currency = config('app.currency', 'EGP');
+        $units = $searchResult['units'] ?? [];
+        $isCorrection = $searchResult['is_correction'] ?? false;
+        $requestedType = $searchResult['requested_type'] ?? null;
+        $matchedAreaName = $searchResult['matched_area_name'] ?? '';
 
-        // If we have matching units from the DB, present them directly
+        // 1. If user corrected us (e.g. "دى شقه سكنى" or "طالب مكتب مش شقة")
+        if ($isCorrection) {
+            if ($locale === 'en') {
+                return "You are completely right, and I apologize for the mix-up! You specifically asked for an administrative office.\n\nThe previously shown options were residential because our current direct inventory in this area only includes residential units.\n\nWe do have prime administrative offices in **New Cairo** and **Sheikh Zayed** with high rental yields. Would you like me to recommend office options there, or connect you directly with a commercial sales advisor? [REPLY: Offices in New Cairo] [REPLY: Connect with sales]";
+            }
+
+            return "معاك حق تماماً، وبعتذر جداً عن اللبس! حضرتك طلبت مكتب إداري.\n\nالخيارات السابقة كانت سكنية لأن المعروض لدينا حالياً في هذه المنطقة هو وحدات سكنية فقط، ولا تتوفر مكاتب إدارية معروضة فيها حالياً في المحفظة المباشرة.\n\nيتوفر لدينا مكاتب إدارية ممتازة في **التجمع الخامس** و**الشيخ زايد** بعوائد إيجارية قوية. تحب أرشحلك بدائل إدارية في التجمع، أو نربطك بمستشار المبيعات لمتابعة أي طروحات إدارية جديدة في العاصمة؟ [REPLY: مكاتب في التجمع الخامس] [REPLY: تواصل مع مستشار المبيعات]";
+        }
+
+        // 2. If user asked for an office or commercial unit and none exist in that area
+        if ($requestedType === 'administrative' && empty($units)) {
+            $areaText = $matchedAreaName ? "في {$matchedAreaName}" : '';
+            if ($locale === 'en') {
+                return "At the moment, we do not have administrative offices listed {$areaText} in our direct portfolio (available units in this area are residential).\n\nHowever, we have outstanding administrative office opportunities with high ROI in **New Cairo** and **Sheikh Zayed**. Would you like to explore those, or connect with an investment consultant? [REPLY: Offices in New Cairo] [REPLY: Contact sales]";
+            }
+
+            return "في الوقت الحالي، لا يتوفر لدينا مكاتب إدارية معروضة {$areaText} في محفظتنا المباشرة (المتاح حالياً في المنطقة وحدات واستوديوهات سكنية).\n\nلكن يتوفر لدينا مكاتب إدارية متميزة بعوائد استثمارية قوية في **التجمع الخامس** و**الشيخ زايد**. تحب أعرضلك أفضل الخيارات المتاحة هناك، أو نربطك بمستشار المبيعات؟ [REPLY: مكاتب في التجمع الخامس] [REPLY: تواصل مع مستشار المبيعات]";
+        }
+
+        // 3. If matching units exist and satisfy constraints
         if (! empty($units)) {
             if ($locale === 'en') {
                 $reply = "Here are the best available properties matching your request:\n\n";
                 foreach (array_slice($units, 0, 3) as $u) {
                     $areaName = $u->area?->name_en ?? $u->area?->name ?? 'Prime Location';
+                    $typeName = $u->type?->name ?? 'Property';
                     $slug = $u->slug_en ?? $u->slug;
                     $url = '/' . $locale . '/units/' . $slug;
                     $price = number_format((float) $u->price) . ' ' . $currency;
-                    $reply .= "• [{$u->name}]({$url}) — **{$price}** | {$areaName} | {$u->rooms} rooms | {$u->area_sqm} sqm\n";
+                    $reply .= "• [{$u->name}]({$url}) — **{$price}** | {$areaName} | {$typeName} | {$u->rooms} rooms | {$u->area_sqm} sqm\n";
                 }
                 $reply .= "\nWould you like more details about any of these? Or tell me your budget and preferences for a better match. [SHOW_CARDS]";
             } else {
-                $reply = "أهلاً بك! دي أفضل العقارات المتاحة حسب طلبك:\n\n";
+                $reply = "أهلاً بك! دي أفضل العقارات المتاحة والمتوافقة مع طلبك:\n\n";
                 foreach (array_slice($units, 0, 3) as $u) {
                     $areaName = $u->area?->name_ar ?? $u->area?->name ?? 'موقع متميز';
+                    $typeName = $u->type?->name_ar ?? 'عقار';
                     $slug = $u->slug_ar ?? $u->slug;
                     $url = '/' . $locale . '/units/' . $slug;
                     $price = number_format((float) $u->price) . ' ' . $currency;
-                    $reply .= "• [{$u->name}]({$url}) — **{$price}** | {$areaName} | {$u->rooms} غرف | {$u->area_sqm} م²\n";
+                    $reply .= "• [{$u->name}]({$url}) — **{$price}** | {$areaName} | {$typeName} | {$u->rooms} غرف | {$u->area_sqm} م²\n";
                 }
                 $reply .= "\nعايز تفاصيل أكتر عن أي وحدة منهم؟ أو قولي ميزانيتك وأرشحلك الأنسب. [SHOW_CARDS]";
             }
@@ -1124,12 +1238,12 @@ PROMPT;
             return $reply;
         }
 
-        // No units found — ask helpful discovery questions
+        // 4. Fallback discovery
         if ($locale === 'en') {
-            return "Hello! I'm Hossam from Family Home. To find you the perfect property, could you tell me:\n\n• What type? (apartment, villa, chalet...)\n• Which area? (New Cairo, Sheikh Zayed, North Coast...)\n• Your budget range?\n\nI'll find the best options for you right away!";
+            return "Hello! I am Hossam from Family Home. How may I best assist you with properties or investments today?";
         }
 
-        return "أهلاً بك! أنا حسام من فاميلي هوم. عشان ألاقيلك أفضل عقار، ممكن تقولي:\n\n• نوع العقار؟ (شقة، فيلا، شاليه...)\n• المنطقة؟ (التجمع، الشيخ زايد، الساحل...)\n• ميزانيتك التقريبية؟\n\nوهجيبلك أحسن الفرص المتاحة فوراً!";
+        return "أهلاً بك! أنا حسام من فاميلي هوم. كيف أقدر أساعدك في العقارات أو الاستثمار العقاري اليوم؟";
     }
 
     /**
@@ -1232,9 +1346,9 @@ PROMPT;
                     $reply = $msgObj['reasoning'];
                 }
                 if (! empty($reply)) {
-                    $trimmedReply = trim($reply);
-                    if (mb_strlen($trimmedReply) > 10 && ! str_starts_with($trimmedReply, 'User Safety:')) {
-                        return $trimmedReply;
+                    $cleaned = $this->cleanAiReply($reply);
+                    if ($cleaned !== null && mb_strlen($cleaned) > 5 && ! str_starts_with($cleaned, 'User Safety:')) {
+                        return $cleaned;
                     }
                 }
             }
@@ -1248,6 +1362,24 @@ PROMPT;
         }
 
         return null;
+    }
+
+    /**
+     * Clean AI model reply to remove reasoning leaks and internal thoughts.
+     */
+    private function cleanAiReply(?string $text): ?string
+    {
+        if (empty($text)) {
+            return null;
+        }
+
+        // 1. Remove reasoning / think blocks
+        $text = preg_replace('/<think>[\s\S]*?<\/think>/u', '', $text);
+
+        // 2. Remove common leaked meta-thought headers from models
+        $text = preg_replace('/^(?:Here\'s a thinking process|Thinking Process|Let\'s analyze the user\'s request)[\s\S]*?\n\n/iu', '', $text);
+
+        return trim($text);
     }
 
     /**
