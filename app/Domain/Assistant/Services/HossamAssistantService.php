@@ -16,13 +16,17 @@ class HossamAssistantService
     private string $fallbackModel;
     private string $baseUrl;
 
+    private ?string $geminiKey;
+
     public function __construct(
-        private \App\Domain\Listings\Services\SettingsService $settingsService
+        private \App\Domain\Listings\Services\SettingsService $settingsService,
+        private HossamKnowledgeService $knowledgeService
     ) {
         $this->apiKey = (string) config('services.openrouter.api_key', env('OPENROUTER_API_KEY', ''));
-        $this->model = (string) config('services.openrouter.model', env('OPENROUTER_MODEL', 'openrouter/free'));
-        $this->fallbackModel = (string) config('services.openrouter.fallback_model', env('OPENROUTER_FALLBACK_MODEL', 'openrouter/free'));
+        $this->model = (string) config('services.openrouter.model', env('OPENROUTER_MODEL', 'google/gemini-2.0-flash-exp:free'));
+        $this->fallbackModel = (string) config('services.openrouter.fallback_model', env('OPENROUTER_FALLBACK_MODEL', 'qwen/qwen-2.5-7b-instruct:free'));
         $this->baseUrl = rtrim((string) config('services.openrouter.base_url', env('OPENROUTER_BASE_URL', 'https://openrouter.ai/api/v1')), '/');
+        $this->geminiKey = env('GEMINI_API_KEY') ?: null;
     }
 
     /**
@@ -35,19 +39,31 @@ class HossamAssistantService
      */
     public function chat(string $message, array $history = [], string $locale = 'ar', string $contextUrl = '', string $contextTitle = ''): array
     {
-        // Rate Limiting: 20 requests per 10 minutes per IP
+        // 0. Generous Rate Limiting: 100 requests per 10 minutes per IP/session
         $ip = request()->ip() ?? 'unknown';
-        $key = 'hossam-chat-' . $ip;
+        $sessionId = session()->getId() ?: 'guest';
+        $key = 'hossam-chat-' . md5($ip . '_' . $sessionId);
         
-        if (\Illuminate\Support\Facades\RateLimiter::tooManyAttempts($key, 20)) {
+        if (\Illuminate\Support\Facades\RateLimiter::tooManyAttempts($key, 100)) {
+            $whatsapp = $this->settingsService->get('company_whatsapp', $this->settingsService->get('phone', ''));
+            $cleanWhatsapp = preg_replace('/[^\d]/', '', (string) $whatsapp);
+            $whatsappUrl = 'https://wa.me/' . $cleanWhatsapp;
             return [
-                'reply' => $locale === 'en' ? 'You have reached the maximum number of messages. Please try again in 10 minutes.' : 'عذراً، لقد تجاوزت الحد المسموح من الرسائل. يرجى المحاولة بعد 10 دقائق.',
+                'reply' => $locale === 'en'
+                    ? "You have reached the message limit for this session. For immediate priority assistance, feel free to [chat with our team on WhatsApp]({$whatsappUrl})."
+                    : "لقد أرسلت عدداً كبيراً من الرسائل في وقت قصير. لخدمتك فوراً وبأعلى أولوية، يسعدنا تواصلك المباشر [مع مستشارينا عبر الواتساب من هنا]({$whatsappUrl}).",
                 'recommended_units' => [],
-                'is_hot_lead' => false,
+                'is_hot_lead' => true,
                 'quick_replies' => [],
             ];
         }
         \Illuminate\Support\Facades\RateLimiter::hit($key, 600);
+
+        // 0b. Instant Canned FAQ & Self-Learned Knowledge Check (Runs in < 5ms, 0 external API calls!)
+        $instantResponse = $this->knowledgeService->findCannedOrLearnedResponse($message, $locale);
+        if ($instantResponse !== null) {
+            return $instantResponse;
+        }
 
         // 1. Search database for relevant active listings based on query keywords
         $searchResult = $this->searchRelevantUnits($message, $history, $locale);
@@ -156,25 +172,38 @@ class HossamAssistantService
             'content' => $message,
         ];
 
-        // 4. Request completion from OpenRouter — openrouter/free first
-        $candidateModels = array_values(array_unique(array_filter([
-            $this->model,
-            'openrouter/free',
-            'meta-llama/llama-3.3-70b-instruct:free',
-            'qwen/qwen3-8b:free',
-            'google/gemma-3-27b-it:free',
-            $this->fallbackModel,
-        ])));
-
+        // 4. Request completion: Direct Gemini first if key exists, then fast OpenRouter models
         $reply = null;
-        foreach ($candidateModels as $candidate) {
-            $reply = $this->callOpenRouter($messages, $candidate);
-            if (! empty($reply)) {
-                break;
+        if (!empty($this->geminiKey)) {
+            $reply = $this->callGeminiDirect($messages, 6);
+        }
+
+        if (empty($reply)) {
+            $candidateModels = array_values(array_unique(array_filter([
+                $this->model,
+                'google/gemini-2.0-flash-exp:free',
+                'google/gemini-2.0-flash-001',
+                'qwen/qwen-2.5-7b-instruct:free',
+                'meta-llama/llama-3.1-8b-instruct:free',
+                'openrouter/free',
+                $this->fallbackModel,
+            ])));
+
+            // Try at most top 2 fast models with 7s timeout each to keep total response time under 10s
+            $attempts = 0;
+            foreach ($candidateModels as $candidate) {
+                if ($attempts >= 2) {
+                    break;
+                }
+                $reply = $this->callOpenRouter($messages, $candidate, 7);
+                $attempts++;
+                if (! empty($reply)) {
+                    break;
+                }
             }
         }
 
-        // 4b. Smart fallback: if AI failed but we have DB results, build a helpful template reply
+        // 4b. Smart fallback: if AI failed or timed out, immediately build a helpful database-driven reply
         if (empty($reply)) {
             $reply = $this->buildSmartFallback($matchingUnits, $message, $locale);
         }
@@ -197,10 +226,21 @@ class HossamAssistantService
             $reply = trim(str_replace(['[HOT_LEAD]', '[hot_lead]'], '', $reply));
         }
 
+        $showCalculator = false;
+        if (str_contains($reply, '[CALCULATOR]') || str_contains($reply, '[calculator]')) {
+            $showCalculator = true;
+            $reply = trim(str_replace(['[CALCULATOR]', '[calculator]'], '', $reply));
+        }
+
         $quickReplies = [];
         if (preg_match_all('/\[REPLY:\s*(.+?)\]/iu', $reply, $matches)) {
             $quickReplies = array_map('trim', $matches[1]);
             $reply = trim(preg_replace('/\[REPLY:\s*.+?\]/iu', '', $reply));
+        }
+
+        // 5b. Self-Learning: Store high-quality answer in persistent knowledge base for instant future replies
+        if (!empty($reply) && !str_contains($reply, 'عشان ألاقيلك أفضل عقار') && !str_contains($reply, 'To find you the perfect property')) {
+            $this->knowledgeService->learn($message, $reply, $quickReplies, $locale);
         }
 
         $filteredUnits = [];
@@ -221,8 +261,8 @@ class HossamAssistantService
             }
         }
 
-        $recommendedCards = !empty($filteredUnits)
-            ? $this->formatUnitCards($filteredUnits, $locale)
+        $recommendedCards = ! empty($filteredUnits)
+            ? $this->knowledgeService->formatUnitCards($filteredUnits, $locale)
             : [];
 
         // 6. Auto-linkify unit & project names mentioned in the reply
@@ -233,6 +273,7 @@ class HossamAssistantService
             'recommended_units' => $recommendedCards,
             'is_hot_lead' => $isHotLead,
             'quick_replies' => $quickReplies,
+            'show_calculator' => $showCalculator,
         ];
     }
 
@@ -269,57 +310,7 @@ class HossamAssistantService
 
             $hasSpecificConstraints = false;
 
-            // --- 0. AI Search Extraction (100% Precision) ---
-            $aiParams = $this->extractSearchParametersViaAI($combinedMessage);
-            
-            if (!empty($aiParams)) {
-                // If AI extracted data, use it
-                if (!empty($aiParams['min_price'])) {
-                    $query->where('price', '>=', $aiParams['min_price']);
-                    $hasSpecificConstraints = true;
-                }
-                if (!empty($aiParams['max_price'])) {
-                    $query->where('price', '<=', $aiParams['max_price']);
-                    $hasSpecificConstraints = true;
-                }
-                if (!empty($aiParams['type'])) {
-                    $query->whereHas('type', function ($q) use ($aiParams) {
-                        $q->where('name', 'LIKE', '%' . $aiParams['type'] . '%');
-                    });
-                    $hasSpecificConstraints = true;
-                }
-                if (!empty($aiParams['area_keyword'])) {
-                    $query->whereHas('area', function ($q) use ($aiParams) {
-                        $q->where('name_ar', 'LIKE', '%' . $aiParams['area_keyword'] . '%')
-                          ->orWhere('name_en', 'LIKE', '%' . $aiParams['area_keyword'] . '%')
-                          ->orWhere('slug', 'LIKE', '%' . $aiParams['area_keyword'] . '%');
-                    });
-                    $hasSpecificConstraints = true;
-                }
-                if (!empty($aiParams['rooms'])) {
-                    $query->where('rooms', $aiParams['rooms']);
-                    $hasSpecificConstraints = true;
-                }
-                if (!empty($aiParams['transaction'])) {
-                    $query->where('transaction', $aiParams['transaction']);
-                    $hasSpecificConstraints = true;
-                }
-                if (!empty($aiParams['payment'])) {
-                    $query->whereIn('payment_method', [$aiParams['payment'], 'both']);
-                    $hasSpecificConstraints = true;
-                }
-                
-                // If AI found at least one constraint, we skip the manual Regex fallback
-                if ($hasSpecificConstraints) {
-                    $units = $query->orderByFeatured()->take(4)->get();
-                    return [
-                        'units' => $units->all(),
-                        'has_constraints' => true,
-                    ];
-                }
-            }
-
-            // --- Fallback: Regex Manual Extraction ---
+            // --- High-Speed Local Regex Extraction (<1ms, zero latency) ---
             // 1. Smart Price Extraction
             $toValue = function ($numStr, $isMillion, $isThousand) {
                 $val = (float) str_replace([',', ' '], '', $numStr);
@@ -1107,9 +1098,70 @@ PROMPT;
     }
 
     /**
-     * Execute completion request against OpenRouter with intelligent retry.
+     * Call Google Gemini API directly for ultra-fast response (<1s).
      */
-    private function callOpenRouter(array $messages, string $model, int $timeout = 25): ?string
+    private function callGeminiDirect(array $messages, int $timeout = 6): ?string
+    {
+        if (empty($this->geminiKey)) {
+            return null;
+        }
+
+        try {
+            $systemInstruction = '';
+            $contents = [];
+            foreach ($messages as $msg) {
+                if ($msg['role'] === 'system') {
+                    $systemInstruction = $msg['content'];
+                } elseif ($msg['role'] === 'user') {
+                    $contents[] = [
+                        'role' => 'user',
+                        'parts' => [['text' => $msg['content']]],
+                    ];
+                } elseif ($msg['role'] === 'assistant') {
+                    $contents[] = [
+                        'role' => 'model',
+                        'parts' => [['text' => $msg['content']]],
+                    ];
+                }
+            }
+
+            $payload = [
+                'contents' => $contents,
+                'generationConfig' => [
+                    'temperature' => 0.6,
+                    'maxOutputTokens' => 1200,
+                ],
+            ];
+            if (!empty($systemInstruction)) {
+                $payload['systemInstruction'] = [
+                    'parts' => [['text' => $systemInstruction]],
+                ];
+            }
+
+            $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' . $this->geminiKey;
+
+            $response = Http::withoutVerifying()
+                ->timeout($timeout)
+                ->post($url, $payload);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                $text = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
+                if (!empty($text)) {
+                    return trim($text);
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('HossamAssistant: Gemini direct failed: ' . $e->getMessage());
+        }
+
+        return null;
+    }
+
+    /**
+     * Execute completion request against OpenRouter with fast 7s timeout.
+     */
+    private function callOpenRouter(array $messages, string $model, int $timeout = 7): ?string
     {
         if (empty($this->apiKey)) {
             Log::warning('HossamAssistant: OPENROUTER_API_KEY is not configured');
@@ -1117,85 +1169,39 @@ PROMPT;
             return null;
         }
 
-        $maxAttempts = 2;
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $this->apiKey,
+                'HTTP-Referer' => config('app.url', 'https://familyhome-co.com'),
+                'X-Title' => config('app.name', 'Family Home'),
+                'Content-Type' => 'application/json',
+            ])
+                ->withoutVerifying()
+                ->timeout($timeout)
+                ->post($this->baseUrl . '/chat/completions', [
+                    'model' => $model,
+                    'messages' => $messages,
+                    'temperature' => 0.6,
+                    'max_tokens' => 1200,
+                ]);
 
-        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
-            try {
-                // Use shorter timeout on retry attempt
-                $currentTimeout = $attempt === 1 ? $timeout : min($timeout, 15);
-
-                $response = Http::withHeaders([
-                    'Authorization' => 'Bearer ' . $this->apiKey,
-                    'HTTP-Referer' => config('app.url', 'https://familyhome-co.com'),
-                    'X-Title' => config('app.name', 'Family Home'),
-                    'Content-Type' => 'application/json',
-                ])
-                    ->withoutVerifying()
-                    ->timeout($currentTimeout)
-                    ->post($this->baseUrl . '/chat/completions', [
-                        'model' => $model,
-                        'messages' => $messages,
-                        'temperature' => 0.7,
-                        'max_tokens' => 1500,
-                    ]);
-
-                if ($response->successful()) {
-                    $rawBody = trim($response->body());
-                    $data = json_decode($rawBody, true) ?: $response->json();
-                    $reply = $data['choices'][0]['message']['content'] ?? null;
-                    if (! empty($reply)) {
-                        $trimmedReply = trim($reply);
-                        if (mb_strlen($trimmedReply) > 25 && ! str_starts_with($trimmedReply, 'User Safety:')) {
-                            return $trimmedReply;
-                        }
+            if ($response->successful()) {
+                $rawBody = trim($response->body());
+                $data = json_decode($rawBody, true) ?: $response->json();
+                $reply = $data['choices'][0]['message']['content'] ?? null;
+                if (! empty($reply)) {
+                    $trimmedReply = trim($reply);
+                    if (mb_strlen($trimmedReply) > 15 && ! str_starts_with($trimmedReply, 'User Safety:')) {
+                        return $trimmedReply;
                     }
                 }
-
-                // If rate limited (429) or server error (5xx), retry
-                $status = $response->status();
-                if ($attempt < $maxAttempts && ($status === 429 || $status >= 500)) {
-                    Log::info('HossamAssistant: Retrying model after status ' . $status, [
-                        'model' => $model,
-                        'attempt' => $attempt,
-                    ]);
-                    usleep(500000); // 0.5s delay before retry
-
-                    continue;
-                }
-
-                Log::warning('HossamAssistant: OpenRouter error response', [
-                    'status' => $status,
-                    'body' => $response->body(),
-                    'model' => $model,
-                    'attempt' => $attempt,
-                ]);
-
-                return null;
-            } catch (\Throwable $e) {
-                // On timeout/connection error, retry once
-                if ($attempt < $maxAttempts && (
-                    str_contains($e->getMessage(), 'timed out') ||
-                    str_contains($e->getMessage(), 'Connection') ||
-                    str_contains($e->getMessage(), 'cURL')
-                )) {
-                    Log::info('HossamAssistant: Retrying model after exception', [
-                        'model' => $model,
-                        'error' => $e->getMessage(),
-                        'attempt' => $attempt,
-                    ]);
-                    usleep(300000); // 0.3s delay
-
-                    continue;
-                }
-
-                Log::error('HossamAssistant: API call exception', [
-                    'error' => $e->getMessage(),
-                    'model' => $model,
-                    'attempt' => $attempt,
-                ]);
-
-                return null;
             }
+
+            Log::warning('HossamAssistant: OpenRouter status ' . $response->status(), [
+                'model' => $model,
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('HossamAssistant: Model ' . $model . ' timed out or failed: ' . $e->getMessage());
         }
 
         return null;

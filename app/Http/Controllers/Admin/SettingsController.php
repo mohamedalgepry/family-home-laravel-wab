@@ -90,16 +90,16 @@ class SettingsController extends Controller
                     $w = imagesx($srcImg);
                     $h = imagesy($srcImg);
 
-                    $maxW = $field === 'hero_image' ? 1400 : ($field === 'site_logo' ? 240 : 800);
+                    $maxW = $field === 'hero_image' ? 1920 : ($field === 'site_logo' ? 240 : 800);
                     if ($w > $maxW) {
                         $targetW = $maxW;
                         $targetH = (int) round(($h / $w) * $targetW);
                         $dstImg = imagecreatetruecolor($targetW, $targetH);
                         imagecopyresampled($dstImg, $srcImg, 0, 0, 0, 0, $targetW, $targetH, $w, $h);
-                        imagewebp($dstImg, $fullWebpPath, 82);
+                        imagewebp($dstImg, $fullWebpPath, 88);
                         imagedestroy($dstImg);
                     } else {
-                        imagewebp($srcImg, $fullWebpPath, 82);
+                        imagewebp($srcImg, $fullWebpPath, 88);
                     }
 
                     // إذا كانت الصورة الرئيسية للهيرو، ننشئ نسخة مخصصة للموبايل أيضاً

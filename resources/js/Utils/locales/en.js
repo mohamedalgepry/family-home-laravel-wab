@@ -250,6 +250,7 @@ const en = {
         sidebar_points: 'Points',
         sidebar_users: 'Users',
         sidebar_assistant_leads: 'Assistant Leads',
+        sidebar_assistant_knowledge: 'AI Knowledge Base',
         sidebar_messages: 'Messages',
         message_details: 'Message Details',
         client_name: 'Client Name',
@@ -614,6 +615,19 @@ const en = {
         assistant_whatsapp: 'WhatsApp',
         assistant_clear: 'New Chat',
         assistant_close: 'Close',
+        assistant_calculator: 'Installment Calculator',
+        assistant_calculator_title: 'Smart Mortgage & Installment Calculator',
+        assistant_property_price: 'Estimated Property Price',
+        assistant_down_payment: 'Down Payment',
+        assistant_installment_duration: 'Payment Duration',
+        assistant_monthly_installment: 'Approx. Monthly Installment',
+        assistant_quarterly_installment: 'Quarterly Installment',
+        assistant_search_matching_units: 'Find Units with this Budget',
+        assistant_proactive_project: 'Exploring {name}? Would you like to see available payment plans and prices?',
+        assistant_proactive_unit: 'Interested in this property? I can calculate your monthly installments or arrange a visit.',
+        assistant_proactive_deals: 'Looking for exclusive investment deals? Check out our top picks.',
+        assistant_proactive_cta: 'Chat with Hossam',
+        years: 'Years',
 }
 
 export default en

@@ -10,7 +10,7 @@
   "resources/js/Components/UI/ArticleCard.jsx": [],
   "resources/js/Components/UI/Button.jsx": [],
   "resources/js/Components/UI/HossamChatWidget.jsx": [
-    "/build/assets/HossamChatWidget-BtIqNxn-.js"
+    "/build/assets/HossamChatWidget-DCHVtlv2.js"
   ],
   "resources/js/Components/UI/IconByName.jsx": [],
   "resources/js/Components/UI/InputField.jsx": [],
@@ -34,6 +34,7 @@
   "resources/js/Pages/Admin/Areas/Index.jsx": [],
   "resources/js/Pages/Admin/Articles/Form.jsx": [],
   "resources/js/Pages/Admin/Articles/Index.jsx": [],
+  "resources/js/Pages/Admin/Assistant/Knowledge.jsx": [],
   "resources/js/Pages/Admin/AssistantLeads/Index.jsx": [],
   "resources/js/Pages/Admin/Categories/Index.jsx": [],
   "resources/js/Pages/Admin/Dashboard.jsx": [],
@@ -75,10 +76,10 @@
   "resources/js/Utils/contact.js": [],
   "resources/js/Utils/image.js": [],
   "resources/js/Utils/locales/ar.js": [
-    "/build/assets/ar-DFpe374a.js"
+    "/build/assets/ar-sMZxFwX7.js"
   ],
   "resources/js/Utils/locales/en.js": [
-    "/build/assets/en-DtIjoEx5.js"
+    "/build/assets/en-CL0gB737.js"
   ],
   "resources/js/Utils/location.js": [],
   "resources/js/Utils/route.js": [],

@@ -9,13 +9,13 @@ use Intervention\Image\ImageManager;
 
 class ImageOptimizerService
 {
-    private const MAX_WIDTH_PX = 1600;
+    private const MAX_WIDTH_PX = 1920;
 
     private ?ImageManager $manager = null;
 
     private bool $initialized = false;
 
-    public function convertToWebp(string $sourcePath, string $outputPath, int $quality = 80): bool
+    public function convertToWebp(string $sourcePath, string $outputPath, int $quality = 85): bool
     {
         try {
             if (! file_exists($sourcePath)) {
@@ -32,10 +32,11 @@ class ImageOptimizerService
             $dir = dirname($outputPath);
             $filename = pathinfo($outputPath, PATHINFO_FILENAME);
 
+            // Responsive variants: thumb (mobile cards), medium (tablets/grids), large (desktop cards/full views)
             $variants = ['thumb' => 480, 'medium' => 960, 'large' => 1440];
             foreach ($variants as $prefix => $width) {
                 try {
-                    $variantImg = $image->scaleDown(width: $width);
+                    $variantImg = (clone $image)->scaleDown(width: $width);
                     $varEncoded = $variantImg->encode(new WebpEncoder(quality: $quality));
                     file_put_contents("$dir/{$prefix}_{$filename}.webp", (string) $varEncoded);
                 } catch (\Throwable $e) {
@@ -43,8 +44,9 @@ class ImageOptimizerService
                 }
             }
 
-            $image = $image->scaleDown(width: self::MAX_WIDTH_PX);
-            $encoded = $image->encode(new WebpEncoder(quality: $quality));
+            // Main desktop high-res image (never mutate source before variants!)
+            $mainImg = (clone $image)->scaleDown(width: self::MAX_WIDTH_PX);
+            $encoded = $mainImg->encode(new WebpEncoder(quality: $quality));
 
             file_put_contents($outputPath, (string) $encoded);
 

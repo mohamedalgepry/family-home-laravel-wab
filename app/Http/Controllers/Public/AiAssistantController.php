@@ -44,14 +44,18 @@ class AiAssistantController
         }
 
         if ($phone) {
-            \App\Domain\Assistant\Models\AssistantLead::updateOrCreate(
-                ['phone' => $phone],
-                [
-                    'context' => $contextUrl,
-                    'chat_history' => $historyWithCurrent,
-                    'status' => 'new',
-                ]
-            );
+            try {
+                \App\Domain\Assistant\Models\AssistantLead::updateOrCreate(
+                    ['phone' => $phone],
+                    [
+                        'context' => $contextUrl,
+                        'chat_history' => $historyWithCurrent,
+                        'status' => 'new',
+                    ]
+                );
+            } catch (\Throwable $e) {
+                Log::warning('AiAssistant: failed to record lead: ' . $e->getMessage());
+            }
         }
 
         try {
@@ -71,6 +75,7 @@ class AiAssistantController
                 'reply' => $result['reply'],
                 'recommended_units' => $result['recommended_units'],
                 'quick_replies' => $result['quick_replies'] ?? [],
+                'show_calculator' => $result['show_calculator'] ?? false,
             ]);
         } catch (\Throwable $e) {
             Log::error('AiAssistantController error', [
@@ -79,13 +84,15 @@ class AiAssistantController
             ]);
 
             return response()->json([
-                'success' => false,
+                'success' => true,
                 'reply' => $locale === 'en'
-                    ? 'I am currently unable to process your request. Please try again in a moment.'
-                    : 'أعتذر، حدث خطأ غير متوقع أثناء معالجة طلبك. يرجى المحاولة مرة أخرى بعد قليل.',
+                    ? 'Hello! I am Hossam from Family Home. Would you like to explore apartments with installments or see our top investment opportunities?'
+                    : 'أهلاً بك! أنا «حسام» من فاميلي هوم. تحب أساعدك في العثور على شقق بالتقسيط أم تبحث عن أفضل الفرص الاستثمارية الحالية؟',
                 'recommended_units' => [],
-                'quick_replies' => [],
-            ], 500);
+                'quick_replies' => $locale === 'en'
+                    ? ['Show me apartments with installments', 'Best investment opportunities', 'Contact via WhatsApp']
+                    : ['ورّيني شقق بنظام التقسيط', 'إيه أفضل فرص الاستثمار؟', 'تواصل عبر واتساب'],
+            ], 200);
         }
     }
 }

@@ -37,8 +37,8 @@ return [
 
     'openrouter' => [
         'api_key' => env('OPENROUTER_API_KEY'),
-        'model' => env('OPENROUTER_MODEL', 'google/gemma-4-31b-it:free'),
-        'fallback_model' => env('OPENROUTER_FALLBACK_MODEL', 'openrouter/free'),
+        'model' => env('OPENROUTER_MODEL', 'google/gemini-2.0-flash-exp:free'),
+        'fallback_model' => env('OPENROUTER_FALLBACK_MODEL', 'qwen/qwen-2.5-7b-instruct:free'),
         'base_url' => env('OPENROUTER_BASE_URL', 'https://openrouter.ai/api/v1'),
     ],
 

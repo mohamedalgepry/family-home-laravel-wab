@@ -44,7 +44,8 @@ export default function ProjectShow({ project, projectUnits, similarProjects, re
     const mainImageIndex = Math.max(images.indexOf(mainImage), 0)
     const selectedImageIndex = activeImageIndex ?? mainImageIndex
     const selectedImage = images[selectedImageIndex] || mainImage
-    const thumbnail = getStorageUrl(selectedImage?.url || selectedImage?.path, PLACEHOLDER)
+    const mainImageUrl = getStorageUrl(selectedImage?.large_url || selectedImage?.url || selectedImage?.path, PLACEHOLDER)
+    const mainImageSrcSet = selectedImage?.srcset || undefined
 
     const jsonLd = useMemo(() => {
         if (!project) return null
@@ -138,7 +139,9 @@ export default function ProjectShow({ project, projectUnits, similarProjects, re
                         <div className="bg-white rounded-2xl shadow-sm border border-secondary-100 overflow-hidden relative group">
                             <div className="relative overflow-hidden aspect-[16/10] sm:aspect-[16/9]">
                                 <img
-                                    src={thumbnail}
+                                    src={mainImageUrl}
+                                    srcSet={mainImageSrcSet}
+                                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 100vw, 850px"
                                     alt={project.alt_text || project.name}
                                     width={1200}
                                     height={900}

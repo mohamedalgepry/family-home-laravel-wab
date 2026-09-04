@@ -35,7 +35,11 @@ class AreaPublicResource extends JsonResource
             'latitude' => (string) $this->latitude,
             'longitude' => (string) $this->longitude,
             'image_path' => $this->image_path ? (str_starts_with($this->image_path, 'http') ? $this->image_path : asset('storage/'.ltrim($this->image_path, '/'))) : null,
+            'image_thumb_url' => $this->resolveVariantUrl($this->image_path, 'thumb'),
+            'image_medium_url' => $this->resolveVariantUrl($this->image_path, 'medium'),
             'hero_image' => $this->hero_image ? (str_starts_with($this->hero_image, 'http') ? $this->hero_image : asset('storage/'.ltrim($this->hero_image, '/'))) : null,
+            'hero_medium_url' => $this->resolveVariantUrl($this->hero_image, 'medium'),
+            'hero_large_url' => $this->resolveVariantUrl($this->hero_image, 'large'),
             'gallery' => $this->gallery ? array_map(fn ($path) => str_starts_with($path, 'http') ? $path : asset('storage/'.ltrim($path, '/')), is_string($this->gallery) ? json_decode($this->gallery, true) : $this->gallery) : [],
             'projects_count' => $this->projects_count,
             'units_count' => $this->units_count,
@@ -84,5 +88,28 @@ class AreaPublicResource extends JsonResource
                 });
             }),
         ];
+    }
+
+    private function resolveVariantUrl(?string $path, string $variant): ?string
+    {
+        if (! $path || str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return null;
+        }
+
+        $clean = ltrim($path, '/');
+        if (str_starts_with($clean, 'storage/')) {
+            $clean = substr($clean, 8);
+        }
+
+        $dir = dirname($clean);
+        $filename = pathinfo($clean, PATHINFO_FILENAME);
+        $prefix = $dir !== '.' ? $dir.'/' : '';
+        $variantPath = $prefix."{$variant}_{$filename}.webp";
+
+        if (\Illuminate\Support\Facades\Storage::disk('public')->exists($variantPath)) {
+            return asset('storage/'.$variantPath);
+        }
+
+        return null;
     }
 }

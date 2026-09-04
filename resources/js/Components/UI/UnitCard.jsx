@@ -39,6 +39,7 @@ function UnitCard({ unit, loading = false, priority = false }) {
     const mainImage = unit?.images?.find(img => img.is_main || img.is_primary) || unit?.images?.[0]
     const thumbnail = getThumbUrl(mainImage?.thumb_url || mainImage?.url || mainImage?.path, PLACEHOLDER)
     const originalUrl = getStorageUrl(mainImage?.url || mainImage?.path, null)
+    const displaySrc = originalUrl || thumbnail
     const srcSet = mainImage?.srcset || (originalUrl && thumbnail && originalUrl !== thumbnail 
         ? `${thumbnail} 480w, ${originalUrl} 1600w` 
         : undefined)
@@ -60,7 +61,7 @@ function UnitCard({ unit, loading = false, priority = false }) {
                 {/* Image */}
                 <Link href={localizedPath(`/units/${unitSlug}`, locale)} className="block relative overflow-hidden aspect-[4/3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
                     <OptimizedImage
-                        src={thumbnail}
+                        src={displaySrc}
                         srcSet={srcSet}
                         alt={imageAlt}
                         width={400}

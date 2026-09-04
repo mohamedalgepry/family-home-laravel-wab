@@ -43,6 +43,10 @@ trait HasImageAttributes
             }
         }
 
+        if ($this->url && ! in_array($this->url, array_map(fn ($s) => explode(' ', $s)[0], $sources))) {
+            $sources[] = "{$this->url} 1920w";
+        }
+
         return $sources === [] ? null : implode(', ', $sources);
     }
 

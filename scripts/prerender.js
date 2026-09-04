@@ -27,9 +27,9 @@ async function main() {
 
     // Launch SSR server
     console.log('[Prerender] Spawning SSR server process...')
-    const ssrProcess = spawn('node', [ssrBundlePath], {
+    const ssrProcess = spawn(process.execPath, [ssrBundlePath], {
         stdio: 'inherit',
-        shell: true,
+        shell: false,
         env: { ...process.env, PORT: SSR_PORT },
     })
 

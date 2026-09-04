@@ -93,7 +93,7 @@ class CompressAllImagesCommand extends Command
                     
                     $absNewPath = $disk->path($newPath);
                     
-                    if ($optimizer->convertToWebp($absPath, $absNewPath, 80)) {
+                    if ($optimizer->convertToWebp($absPath, $absNewPath, 85)) {
                         // Clean up old file if name changed
                         if ($path !== $newPath && file_exists($absPath)) {
                             @unlink($absPath);
@@ -145,7 +145,7 @@ class CompressAllImagesCommand extends Command
 
                 $absNewPath = $disk->path($newPath);
                 
-                if ($optimizer->convertToWebp($absPath, $absNewPath, 80)) {
+                if ($optimizer->convertToWebp($absPath, $absNewPath, 85)) {
                     if ($file !== $newPath && file_exists($absPath)) {
                         @unlink($absPath);
                         // Update settings DB if it's a setting

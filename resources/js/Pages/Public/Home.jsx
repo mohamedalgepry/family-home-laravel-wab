@@ -124,16 +124,21 @@ export default function Home({ featuredUnits, latestUnits, latestProjects, popul
                             {areas?.map(area => {
                                 const areaName = isRtl ? (area.name_ar || area.name_en || area.name) : (area.name_en || area.name_ar || area.name)
                                 const areaSlug = area.slug || area.id
-                                const areaImg = getThumbUrl(area.image_path || area.hero_image)
+                                const rawPath = area.image_path || area.hero_image
+                                const areaImg = area.image_medium_url || getStorageUrl(rawPath, '')
+                                const areaThumb = area.image_thumb_url || getThumbUrl(rawPath, '')
+                                const areaSrcSet = areaThumb && areaImg && areaThumb !== areaImg ? `${areaThumb} 480w, ${areaImg} 960w` : undefined
                                 return (
                                     <Link
                                         key={area.id}
                                         href={localizedPath(`/areas/${areaSlug}`, locale)}
                                         className="group relative shrink-0 w-[180px] md:w-[220px] h-[240px] bg-gradient-to-br from-secondary-900 via-secondary-800 to-primary-950 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-[transform,box-shadow] duration-300 snap-center"
                                     >
-                                        {(area.image_path || area.hero_image) ? (
+                                        {rawPath ? (
                                             <img 
-                                                src={areaImg}
+                                                src={areaImg || areaThumb}
+                                                srcSet={areaSrcSet}
+                                                sizes="(max-width: 640px) 180px, 220px"
                                                 alt={areaName}
                                                 width={220}
                                                 height={240}

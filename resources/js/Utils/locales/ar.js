@@ -249,6 +249,7 @@ const ar = {
         sidebar_points: 'النقاط',
         sidebar_users: 'المستخدمين',
         sidebar_assistant_leads: 'عملاء المساعد الذكي',
+        sidebar_assistant_knowledge: 'إدارة الذكاء الاصطناعي',
         sidebar_messages: 'الرسائل',
         message_details: 'تفاصيل الرسالة',
         client_name: 'اسم العميل',
@@ -612,6 +613,19 @@ const ar = {
         assistant_whatsapp: 'واتساب',
         assistant_clear: 'محادثة جديدة',
         assistant_close: 'إغلاق',
+        assistant_calculator: 'حاسبة الأقساط',
+        assistant_calculator_title: 'حاسبة الأقساط والتمويل الذكية',
+        assistant_property_price: 'سعر العقار التقديري',
+        assistant_down_payment: 'المقدم',
+        assistant_installment_duration: 'مدة التقسيط',
+        assistant_monthly_installment: 'القسط الشهري التقريبي',
+        assistant_quarterly_installment: 'القسط الربع سنوي',
+        assistant_search_matching_units: 'ابحث عن وحدات بهذه الميزانية',
+        assistant_proactive_project: 'بتتصفح مشروع {name}؟ تحب تشوف أنظمة السداد والأسعار المتاحة؟',
+        assistant_proactive_unit: 'مهتم بالوحدة دي؟ ممكن أساعدك تحسب قسطها أو أرتبلك معاينة مباشرة.',
+        assistant_proactive_deals: 'بتدور على عروض وفرص لقطة؟ عندنا اختيارات استثمارية مميزة.',
+        assistant_proactive_cta: 'تحدث مع حسام',
+        years: 'سنوات',
 }
 
 export default ar

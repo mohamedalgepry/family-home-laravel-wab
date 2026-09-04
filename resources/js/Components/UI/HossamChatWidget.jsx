@@ -31,6 +31,162 @@ const formatTime = (date, locale) =>
         minute: '2-digit',
     })
 
+function InstallmentCalculatorCard({ isRtl, trans, onApplyBudget, onClose }) {
+    const [price, setPrice] = useState(4000000)
+    const [downPercent, setDownPercent] = useState(10)
+    const [years, setYears] = useState(7)
+
+    const downPayment = useMemo(() => price * (downPercent / 100), [price, downPercent])
+    const remaining = useMemo(() => Math.max(0, price - downPayment), [price, downPayment])
+    const monthly = useMemo(() => (years > 0 ? remaining / (years * 12) : 0), [remaining, years])
+    const quarterly = useMemo(() => (years > 0 ? remaining / (years * 4) : 0), [remaining, years])
+
+    const quickPrices = [2500000, 4000000, 6000000, 10000000, 15000000]
+
+    return (
+        <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-2xl p-4 my-2.5 shadow-lg border border-slate-700/60 w-full max-w-[96%]">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-700/50 mb-3">
+                <div className="flex items-center gap-1.5">
+                    <span className="text-base">🧮</span>
+                    <h4 className="text-xs font-bold text-white tracking-wide">
+                        {trans('assistant_calculator_title')}
+                    </h4>
+                </div>
+                {onClose && (
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="text-slate-400 hover:text-white text-xs px-1"
+                    >
+                        ✕
+                    </button>
+                )}
+            </div>
+
+            {/* Price control */}
+            <div className="mb-3">
+                <div className="flex items-center justify-between text-[11px] mb-1">
+                    <span className="text-slate-300">{trans('assistant_property_price')}</span>
+                    <span className="font-bold text-amber-400 font-mono text-xs">
+                        {Number(price).toLocaleString()} ج.م
+                    </span>
+                </div>
+                <input
+                    type="range"
+                    min="1000000"
+                    max="25000000"
+                    step="250000"
+                    value={price}
+                    onChange={(e) => setPrice(Number(e.target.value))}
+                    className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-[#CC0000]"
+                />
+                <div className="flex flex-wrap gap-1 mt-1.5">
+                    {quickPrices.map((qp) => (
+                        <button
+                            key={qp}
+                            type="button"
+                            onClick={() => setPrice(qp)}
+                            className={`text-[9.5px] px-1.5 py-0.5 rounded border transition-colors ${
+                                price === qp
+                                    ? 'bg-amber-400/20 border-amber-400 text-amber-300 font-bold'
+                                    : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
+                            }`}
+                        >
+                            {(qp / 1000000)}M
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Down payment & years row */}
+            <div className="grid grid-cols-2 gap-3 mb-3 pt-2 border-t border-slate-700/40">
+                <div>
+                    <div className="flex items-center justify-between text-[11px] mb-1">
+                        <span className="text-slate-300">{trans('assistant_down_payment')}</span>
+                        <span className="font-bold text-emerald-400 font-mono text-xs">{downPercent}%</span>
+                    </div>
+                    <div className="flex gap-1">
+                        {[10, 15, 20, 25].map((pct) => (
+                            <button
+                                key={pct}
+                                type="button"
+                                onClick={() => setDownPercent(pct)}
+                                className={`flex-1 text-[10px] py-1 rounded border transition-colors ${
+                                    downPercent === pct
+                                        ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 font-bold'
+                                        : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
+                                }`}
+                            >
+                                {pct}%
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div>
+                    <div className="flex items-center justify-between text-[11px] mb-1">
+                        <span className="text-slate-300">{trans('assistant_installment_duration')}</span>
+                        <span className="font-bold text-sky-400 font-mono text-xs">{years} {trans('years')}</span>
+                    </div>
+                    <div className="flex gap-1">
+                        {[5, 7, 8, 10].map((yr) => (
+                            <button
+                                key={yr}
+                                type="button"
+                                onClick={() => setYears(yr)}
+                                className={`flex-1 text-[10px] py-1 rounded border transition-colors ${
+                                    years === yr
+                                        ? 'bg-sky-500/20 border-sky-500 text-sky-300 font-bold'
+                                        : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
+                                }`}
+                            >
+                                {yr}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {/* Summary cards */}
+            <div className="grid grid-cols-3 gap-1.5 p-2 bg-slate-950/60 rounded-xl mb-3 text-center border border-slate-800">
+                <div className="p-1">
+                    <p className="text-[9px] text-slate-400">{trans('assistant_down_payment')}</p>
+                    <p className="text-[11px] font-bold text-emerald-400 font-mono truncate">
+                        {Math.round(downPayment).toLocaleString()}
+                    </p>
+                </div>
+                <div className="p-1 border-x border-slate-800">
+                    <p className="text-[9px] text-slate-400">{trans('assistant_monthly_installment')}</p>
+                    <p className="text-[11px] font-bold text-amber-400 font-mono truncate">
+                        {Math.round(monthly).toLocaleString()}
+                    </p>
+                </div>
+                <div className="p-1">
+                    <p className="text-[9px] text-slate-400">{trans('assistant_quarterly_installment')}</p>
+                    <p className="text-[11px] font-bold text-sky-400 font-mono truncate">
+                        {Math.round(quarterly).toLocaleString()}
+                    </p>
+                </div>
+            </div>
+
+            {/* Action button */}
+            <button
+                type="button"
+                onClick={() => {
+                    const prompt = isRtl
+                        ? `عايز شقق بمقدم حوالي ${Math.round(downPayment).toLocaleString()} وقسط شهري في حدود ${Math.round(monthly).toLocaleString()} على ${years} سنوات`
+                        : `Looking for units with down payment around ${Math.round(downPayment).toLocaleString()} and monthly installments of ${Math.round(monthly).toLocaleString()} over ${years} years`
+                    onApplyBudget(prompt)
+                }}
+                className="w-full py-2 bg-[#CC0000] hover:bg-[#b30000] text-white text-xs font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5"
+            >
+                <span>🔍</span>
+                <span>{trans('assistant_search_matching_units')}</span>
+            </button>
+        </div>
+    )
+}
+
 export default function HossamChatWidget() {
     const pageProps = usePage()?.props || {}
     const locale = pageProps.locale || (typeof document !== 'undefined' ? document.documentElement.lang : 'ar') || 'ar'
@@ -77,6 +233,9 @@ export default function HossamChatWidget() {
     const [isListening, setIsListening] = useState(false)
     const [isSpeaking, setIsSpeaking] = useState(false)
     const [audioEnabled, setAudioEnabled] = useState(false)
+    const [showCalculator, setShowCalculator] = useState(false)
+    const [proactivePill, setProactivePill] = useState(null)
+    const streamIntervalRef = useRef(null)
 
     const welcomeTimestamp = useMemo(() => formatTime(new Date(), locale), [locale])
 
@@ -145,6 +304,35 @@ export default function HossamChatWidget() {
     useEffect(() => {
         scrollToBottom()
     }, [messages, isLoading, scrollToBottom])
+
+    /* ---------- context-aware proactivity ---------- */
+    useEffect(() => {
+        if (isOpen || typeof window === 'undefined') return
+
+        const currentPath = window.location.pathname
+        let inviteText = null
+
+        if (pageProps.project?.name) {
+            inviteText = isRtl
+                ? `بتتصفح مشروع ${pageProps.project.name}؟ تحب تشوف أنظمة السداد والأسعار المتاحة؟`
+                : `Exploring ${pageProps.project.name}? Want to see payment plans and prices?`
+        } else if (pageProps.unit?.name) {
+            inviteText = isRtl
+                ? `مهتم بالوحدة دي؟ ممكن أساعدك تحسب القسط الشهري أو أرتبلك معاينة.`
+                : `Interested in this unit? I can calculate monthly installments or book a visit.`
+        } else if (currentPath.includes('/units/deals')) {
+            inviteText = isRtl
+                ? `بتدور على صفقات استثمارية ولقطات؟ عندنا خيارات حصرية بخصم كاش وتقسيط!`
+                : `Looking for top investment deals? Check out our exclusive properties!`
+        }
+
+        if (inviteText) {
+            const timer = setTimeout(() => {
+                setProactivePill(inviteText)
+            }, 7500)
+            return () => clearTimeout(timer)
+        }
+    }, [isOpen, pageProps, isRtl])
 
     /* ---------- speech synthesis (TTS) ---------- */
     const speakMessage = useCallback((text) => {
@@ -280,7 +468,7 @@ export default function HossamChatWidget() {
         }
         const controller = new AbortController()
         abortControllerRef.current = controller
-        const timeoutId = setTimeout(() => controller.abort(), 45000) // 45s timeout
+        const timeoutId = setTimeout(() => controller.abort(), 25000) // 25s max timeout
 
         const maxAttempts = 2
         let lastError = null
@@ -328,22 +516,65 @@ export default function HossamChatWidget() {
                 const data = await response.json()
                 if (data && data.success) {
                     const newBotId = 'bot_' + Date.now()
-                    setStreamedMessageId(newBotId)
-                    setMessages(prev => [
-                        ...prev,
-                        {
-                            id: newBotId,
-                            role: 'assistant',
-                            content: data.reply,
-                            recommended_units: data.recommended_units || [],
-                            quick_replies: data.quick_replies || [],
-                            timestamp: formatTime(new Date(), locale),
+                    const fullReply = data.reply || ''
+                    const words = fullReply.split(' ')
+
+                    if (data.show_calculator) {
+                        setShowCalculator(true)
+                    }
+
+                    if (words.length <= 4) {
+                        setMessages(prev => [
+                            ...prev,
+                            {
+                                id: newBotId,
+                                role: 'assistant',
+                                content: fullReply,
+                                recommended_units: data.recommended_units || [],
+                                quick_replies: data.quick_replies || [],
+                                show_calculator: data.show_calculator || false,
+                                timestamp: formatTime(new Date(), locale),
+                            }
+                        ])
+                        if (audioEnabled) {
+                            speakMessage(fullReply)
                         }
-                    ])
-                    setTimeout(() => setStreamedMessageId(null), 300)
-                    
-                    if (audioEnabled) {
-                        speakMessage(data.reply)
+                    } else {
+                        // Progressive word-by-word streaming
+                        setStreamedMessageId(newBotId)
+                        setMessages(prev => [
+                            ...prev,
+                            {
+                                id: newBotId,
+                                role: 'assistant',
+                                content: '',
+                                recommended_units: data.recommended_units || [],
+                                quick_replies: data.quick_replies || [],
+                                show_calculator: data.show_calculator || false,
+                                timestamp: formatTime(new Date(), locale),
+                            }
+                        ])
+
+                        let wordIdx = 0
+                        const chunkSize = words.length > 60 ? 3 : 2
+                        const intervalMs = Math.max(14, Math.min(30, Math.floor(900 / (words.length / chunkSize))))
+
+                        if (streamIntervalRef.current) clearInterval(streamIntervalRef.current)
+                        streamIntervalRef.current = setInterval(() => {
+                            wordIdx += chunkSize
+                            if (wordIdx >= words.length) {
+                                clearInterval(streamIntervalRef.current)
+                                streamIntervalRef.current = null
+                                setMessages(prev => prev.map(m => m.id === newBotId ? { ...m, content: fullReply } : m))
+                                setStreamedMessageId(null)
+                                if (audioEnabled) {
+                                    speakMessage(fullReply)
+                                }
+                            } else {
+                                const partial = words.slice(0, wordIdx).join(' ')
+                                setMessages(prev => prev.map(m => m.id === newBotId ? { ...m, content: partial } : m))
+                            }
+                        }, intervalMs)
                     }
 
                     clearTimeout(timeoutId)
@@ -579,6 +810,49 @@ export default function HossamChatWidget() {
             {/* =================== FAB =================== */}
             {!isOpen && (
                 <div className="relative flex items-center">
+                    {/* Contextual Proactive Invitation Pill */}
+                    {proactivePill && (
+                        <div
+                            className={`absolute bottom-full mb-3 ${
+                                isRtl ? 'end-0' : 'start-0'
+                            } w-72 sm:w-80 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl p-3.5 shadow-2xl transition-all duration-300 z-50`}
+                        >
+                            <div className="flex items-start justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                    <span className="w-6 h-6 rounded-full bg-[#1A1A1A] text-white flex items-center justify-center font-bold text-xs shrink-0">H</span>
+                                    <span className="text-xs font-bold text-slate-900">{trans('assistant_name')}</span>
+                                    <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        setProactivePill(null)
+                                    }}
+                                    className="text-slate-400 hover:text-slate-600 text-xs p-1"
+                                    aria-label="Close"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                            <p className="text-xs text-slate-700 mt-2 leading-relaxed font-medium">
+                                {proactivePill}
+                            </p>
+                            <div className="mt-2.5 flex items-center justify-end gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setIsOpen(true)
+                                        setProactivePill(null)
+                                    }}
+                                    className="px-3 py-1 bg-[#1A1A1A] hover:bg-[#CC0000] text-white text-[11px] font-bold rounded-lg transition-colors shadow-xs"
+                                >
+                                    {trans('assistant_proactive_cta')}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Hover Tooltip (Desktop) */}
                     <div
                         className={`hidden sm:flex absolute ${
@@ -700,6 +974,17 @@ export default function HossamChatWidget() {
                                     )}
                                 </button>
                                 <button
+                                    type="button"
+                                    onClick={() => setShowCalculator(prev => !prev)}
+                                    className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+                                        showCalculator ? 'bg-amber-100 text-amber-800' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
+                                    }`}
+                                    title={trans('assistant_calculator')}
+                                    aria-label={trans('assistant_calculator')}
+                                >
+                                    <span className="text-sm">🧮</span>
+                                </button>
+                                <button
                                     onClick={resetChat}
                                     className="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-900 flex items-center justify-center transition-colors"
                                     title={trans('assistant_clear')}
@@ -730,6 +1015,21 @@ export default function HossamChatWidget() {
                             </span>
                         </div>
                     </header>
+
+                    {/* Collapsible Calculator Drawer */}
+                    {showCalculator && (
+                        <div className="px-4 py-3 bg-slate-900 border-b border-slate-700">
+                            <InstallmentCalculatorCard
+                                isRtl={isRtl}
+                                trans={trans}
+                                onApplyBudget={(prompt) => {
+                                    setShowCalculator(false)
+                                    handleSendMessage(prompt)
+                                }}
+                                onClose={() => setShowCalculator(false)}
+                            />
+                        </div>
+                    )}
 
                     {/* ========== Messages area — warm paper ========== */}
                     <div
@@ -892,6 +1192,17 @@ export default function HossamChatWidget() {
                                             </div>
                                         )}
 
+                                        {/* Inline Calculator Card */}
+                                        {msg.show_calculator && (
+                                            <div className="w-full mt-3 max-w-[96%]">
+                                                <InstallmentCalculatorCard
+                                                    isRtl={isRtl}
+                                                    trans={trans}
+                                                    onApplyBudget={(prompt) => handleSendMessage(prompt)}
+                                                />
+                                            </div>
+                                        )}
+
                                         {/* Dynamic Quick Replies */}
                                         {!isUser && !isStreaming && msg.quick_replies && msg.quick_replies.length > 0 && !isLoading && (
                                             <div className="flex flex-wrap gap-1.5 mt-3 ms-1 w-full max-w-[96%]">
@@ -933,9 +1244,19 @@ export default function HossamChatWidget() {
                     {/* ========== Quick question chips (first message only) ========== */}
                     {showQuickQuestions && (
                         <div className="px-4 sm:px-5 py-3 bg-white border-t concierge-rule shrink-0">
-                            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400 mb-2">
-                                {isRtl ? 'اقتراحات سريعة' : 'Quick start'}
-                            </p>
+                            <div className="flex items-center justify-between mb-2">
+                                <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
+                                    {isRtl ? 'اقتراحات سريعة' : 'Quick start'}
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowCalculator(prev => !prev)}
+                                    className="text-[11px] font-bold text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200/80 px-2 py-0.5 rounded-lg flex items-center gap-1 transition-colors"
+                                >
+                                    <span>🧮</span>
+                                    <span>{trans('assistant_calculator')}</span>
+                                </button>
+                            </div>
                             <div className="flex flex-wrap gap-1.5">
                                 {quickQuestions.map((q, qIdx) => (
                                     <button

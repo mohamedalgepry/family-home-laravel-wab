@@ -175,7 +175,7 @@ Route::prefix('{locale}')->whereIn('locale', ['ar', 'en'])->middleware(SetLocale
         ->middleware('throttle:contact-form');
 
     Route::post('/assistant/chat', [AiAssistantController::class, 'chat'])
-        ->middleware('throttle:30,1')
+        ->middleware('throttle:60,1')
         ->name('assistant.chat');
 });
 
@@ -241,6 +241,15 @@ Route::prefix('admin')->middleware(['auth', 'role:admin,manager,agent'])->group(
         Route::get('/', [App\Http\Controllers\Admin\AssistantLeadController::class, 'index'])->name('index');
         Route::post('/{lead}/contacted', [App\Http\Controllers\Admin\AssistantLeadController::class, 'markAsContacted'])->name('mark-contacted');
         Route::delete('/{lead}', [App\Http\Controllers\Admin\AssistantLeadController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::prefix('assistant-knowledge')->name('admin.assistant-knowledge.')->middleware('role:admin')->group(function () {
+        Route::get('/', [App\Http\Controllers\Admin\AiKnowledgeController::class, 'index'])->name('index');
+        Route::post('/', [App\Http\Controllers\Admin\AiKnowledgeController::class, 'store'])->name('store');
+        Route::put('/{id}', [App\Http\Controllers\Admin\AiKnowledgeController::class, 'update'])->name('update');
+        Route::delete('/{id}', [App\Http\Controllers\Admin\AiKnowledgeController::class, 'destroy'])->name('destroy');
+        Route::post('/{id}/toggle', [App\Http\Controllers\Admin\AiKnowledgeController::class, 'toggleActive'])->name('toggle');
+        Route::post('/clear-cache', [App\Http\Controllers\Admin\AiKnowledgeController::class, 'clearCache'])->name('clear-cache');
     });
 
     Route::prefix('notifications')->name('admin.notifications.')->group(function () {

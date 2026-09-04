@@ -108,7 +108,8 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
 
     const images = unit?.images ?? []
     const selectedImage = images[activeImageIndex] || images[0]
-    const thumbnail = getStorageUrl(selectedImage?.url || selectedImage?.path, PLACEHOLDER)
+    const mainImageUrl = getStorageUrl(selectedImage?.large_url || selectedImage?.url || selectedImage?.path, PLACEHOLDER)
+    const mainImageSrcSet = selectedImage?.srcset || undefined
 
     function handleSubmit(e) {
         e.preventDefault()
@@ -173,7 +174,9 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                                 <div className="bg-white rounded-2xl shadow-sm border border-secondary-100 overflow-hidden relative group">
                                     <div className="relative overflow-hidden aspect-[16/10] sm:aspect-[16/9]">
                                         <img
-                                            src={thumbnail}
+                                            src={mainImageUrl}
+                                            srcSet={mainImageSrcSet}
+                                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 100vw, 850px"
                                             alt={unit.alt_text || unit.name}
                                             width={1200}
                                             height={900}

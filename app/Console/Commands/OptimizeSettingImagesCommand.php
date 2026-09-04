@@ -27,15 +27,15 @@ class OptimizeSettingImagesCommand extends Command
                 $w = imagesx($srcImg);
                 $h = imagesy($srcImg);
 
-                // Desktop WebP (max 1400px)
-                $targetW = min($w, 1400);
+                // Desktop WebP (max 1920px for crystal-clear desktop screens)
+                $targetW = min($w, 1920);
                 $targetH = (int) round(($h / $w) * $targetW);
                 $dstDesktop = imagecreatetruecolor($targetW, $targetH);
                 imagecopyresampled($dstDesktop, $srcImg, 0, 0, 0, 0, $targetW, $targetH, $w, $h);
 
                 $desktopWebpPath = 'settings/hero_'.uniqid().'.webp';
                 $fullDesktopPath = $disk->path($desktopWebpPath);
-                imagewebp($dstDesktop, $fullDesktopPath, 82);
+                imagewebp($dstDesktop, $fullDesktopPath, 88);
                 imagedestroy($dstDesktop);
 
                 // Mobile WebP (max 640px)

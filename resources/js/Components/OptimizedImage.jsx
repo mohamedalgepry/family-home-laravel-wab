@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function OptimizedImage({
     src,
@@ -10,11 +10,16 @@ export default function OptimizedImage({
     fallbackSrc = '/images/fallback.webp',
     role,
     srcSet,
-    sizes = '(max-width: 480px) 400px, (max-width: 768px) 400px, (max-width: 1024px) 400px, 800px',
+    sizes = '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1536px) 33vw, 500px',
     ...props
 }) {
     const [imgSrc, setImgSrc] = useState(src);
     const [hasError, setHasError] = useState(false);
+
+    useEffect(() => {
+        setImgSrc(src);
+        setHasError(false);
+    }, [src]);
 
     const handleError = () => {
         if (!hasError) {
@@ -25,19 +30,16 @@ export default function OptimizedImage({
 
     const finalAlt = alt !== undefined ? alt : '';
 
-    // Use explicit srcSet if passed, otherwise fall back to standard src to avoid 404 thumbnail errors
-    const computedSrcSet = srcSet;
-
     return (
         <img
             src={imgSrc}
-            srcSet={computedSrcSet}
-            sizes={computedSrcSet ? sizes : undefined}
+            srcSet={srcSet || undefined}
+            sizes={srcSet ? sizes : undefined}
             alt={finalAlt}
             width={width}
             height={height}
             loading={lazy ? 'lazy' : 'eager'}
-            fetchpriority={!lazy ? 'high' : undefined}
+            fetchPriority={!lazy ? 'high' : undefined}
             decoding={lazy ? 'async' : 'sync'}
             className={className}
             onError={handleError}

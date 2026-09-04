@@ -73,7 +73,7 @@ export function getThumbUrl(path, fallback = PLACEHOLDER) {
  * @param {number} [options.quality=0.85] - WebP / JPEG output quality (0 to 1)
  * @returns {Promise<File>} Compressed File or original file if compression is not needed / supported
  */
-export async function compressImage(file, { maxWidth = 1920, maxHeight = 1920, quality = 0.85 } = {}) {
+export async function compressImage(file, { maxWidth = 2048, maxHeight = 2048, quality = 0.88 } = {}) {
     if (!file || !(file instanceof File) || !file.type || !file.type.startsWith('image/')) {
         return file;
     }

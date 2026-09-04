@@ -118,8 +118,8 @@ class GoogleMapsUrlResolverService
                     'on_headers' => function (ResponseInterface $response) {
                         if ($response->hasHeader('Content-Length')) {
                             $length = (int) $response->getHeaderLine('Content-Length');
-                            if ($length > 1024 * 1024) { // 1MB limit
-                                throw new \Exception('Response size exceeds 1MB limit');
+                            if ($length > 3 * 1024 * 1024) { // 3MB limit
+                                throw new \Exception('Response size exceeds 3MB limit');
                             }
                         }
                     },
@@ -127,7 +127,7 @@ class GoogleMapsUrlResolverService
                     'User-Agent' => 'Mozilla/5.0 (compatible; FamilyHome/1.0)',
                 ])->get($current);
 
-                // FR-2.6: Read body in chunks to enforce 1MB limit for chunked responses
+                // FR-2.6: Read body in chunks to enforce 3MB limit for chunked responses
                 $body = $response->getBody();
                 $downloadedBytes = 0;
                 $html = '';
@@ -137,15 +137,15 @@ class GoogleMapsUrlResolverService
                     }
                     $chunk = $body->read(8192); // 8KB chunks
                     $downloadedBytes += strlen($chunk);
-                    if ($downloadedBytes > 1024 * 1024) {
-                        throw new \Exception('Response size exceeds 1MB limit (chunked)');
+                    if ($downloadedBytes > 3 * 1024 * 1024) {
+                        throw new \Exception('Response size exceeds 3MB limit (chunked)');
                     }
                     $html .= $chunk;
                 }
                 $body->close();
 
             } catch (\Throwable $e) {
-                Log::error('GoogleMapsUrlResolverService error: '.$e->getMessage());
+                Log::warning('GoogleMapsUrlResolverService warning: '.$e->getMessage());
 
                 return null;
             }

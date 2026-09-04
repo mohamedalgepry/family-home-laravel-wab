@@ -30,7 +30,9 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
     const unitsCount = area?.units_count || (units?.total ?? units?.data?.length ?? 0)
     const projectsCount = area?.projects_count || (projects?.total ?? projects?.data?.length ?? 0)
 
-    const heroImage = getStorageUrl(area?.image_path || area?.hero_image)
+    const heroImage = area?.hero_large_url || area?.hero_medium_url || getStorageUrl(area?.hero_image || area?.image_path)
+    const heroImageThumb = area?.hero_thumb_url || area?.image_thumb_url || getThumbUrl(area?.hero_image || area?.image_path)
+    const heroSrcSet = heroImageThumb && heroImage && heroImageThumb !== heroImage ? `${heroImageThumb} 640w, ${heroImage} 1920w` : undefined
 
     const pageTitle = seo?.title || `${heroTitle} - ${trans('app_name')}`
     const pageDescription = seo?.description || heroDesc
@@ -55,6 +57,8 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                         {(area?.image_path || area?.hero_image) && (
                             <img 
                                 src={heroImage} 
+                                srcSet={heroSrcSet}
+                                sizes="100vw"
                                 alt={heroTitle} 
                                 onError={(e) => { e.currentTarget.style.display = 'none'; }}
                                 className="w-full h-full object-cover object-center scale-105 animate-subtle-zoom opacity-50" 

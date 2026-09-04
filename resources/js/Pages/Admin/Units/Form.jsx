@@ -3,6 +3,7 @@ import { usePage, useForm, Link, router, Head } from '@inertiajs/react'
 import { useTrans } from '../../../Utils/trans'
 import { useState, useEffect, useRef } from 'react'
 import AdminSidebar from '../../../Components/Layout/AdminSidebar'
+import { compressImage as compressImageUtil } from '../../../Utils/image'
 
 const STEPS = [
     { key: 'basic', title_key: 'basic_info' },
@@ -403,50 +404,9 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
         setDirty(true)
     }
 
-    // ضغط صورة واحدة
-    function compressImage(file, maxWidth = 1920, quality = 0.82) {
-        return new Promise(resolve => {
-            if (!file || !file.type.startsWith('image/') || file.type.includes('svg')) {
-                resolve(file)
-                return
-            }
-            const img = new Image()
-            const url = URL.createObjectURL(file)
-            img.onload = () => {
-                URL.revokeObjectURL(url)
-                let width = img.width
-                let height = img.height
-                // صور صغيرة لا تحتاج ضغط
-                if (width <= maxWidth && file.size < 800 * 1024) {
-                    resolve(file)
-                    return
-                }
-                if (width > maxWidth) {
-                    height = Math.round((height * maxWidth) / width)
-                    width = maxWidth
-                }
-                const canvas = document.createElement('canvas')
-                canvas.width = width
-                canvas.height = height
-                canvas.getContext('2d').drawImage(img, 0, 0, width, height)
-                canvas.toBlob(
-                    blob => {
-                        if (!blob || blob.size >= file.size) {
-                            resolve(file)
-                        } else {
-                            resolve(new File([blob], file.name.replace(/\.[^/.]+$/, '.jpg'), {
-                                type: 'image/jpeg',
-                                lastModified: Date.now(),
-                            }))
-                        }
-                    },
-                    'image/jpeg',
-                    quality
-                )
-            }
-            img.onerror = () => resolve(file)
-            img.src = url
-        })
+    // ضغط صورة واحدة بأعلى دقة WebP للكمبيوتر والموبايل
+    function compressImage(file) {
+        return compressImageUtil(file, { maxWidth: 2048, maxHeight: 2048, quality: 0.88 })
     }
 
     // الصورة الرئيسية
