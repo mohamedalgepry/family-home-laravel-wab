@@ -65,6 +65,15 @@ class HossamAssistantService
             return $instantResponse;
         }
 
+        // 0c. Super-fast in-memory cache for common questions (< 5ms response!)
+        $cacheKey = 'hossam_chat_turn_' . md5(mb_strtolower(trim($message)) . '_' . $locale);
+        if (empty($history) && \Illuminate\Support\Facades\Cache::has($cacheKey)) {
+            $cached = \Illuminate\Support\Facades\Cache::get($cacheKey);
+            if (!empty($cached) && is_array($cached)) {
+                return $cached;
+            }
+        }
+
         // 1. Search database for relevant active listings based on query keywords
         $searchResult = $this->searchRelevantUnits($message, $history, $locale);
         $matchingUnits = $searchResult['units'];
@@ -181,21 +190,21 @@ class HossamAssistantService
         if (empty($reply)) {
             $candidateModels = array_values(array_unique(array_filter([
                 $this->model,
-                'google/gemini-2.0-flash-exp:free',
-                'google/gemini-2.0-flash-001',
-                'qwen/qwen-2.5-7b-instruct:free',
-                'meta-llama/llama-3.1-8b-instruct:free',
                 'openrouter/free',
+                'google/gemma-4-31b-it:free',
+                'google/gemma-4-26b-a4b-it:free',
+                'minimax/minimax-m2.7:free',
+                'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
                 $this->fallbackModel,
             ])));
 
-            // Try at most top 2 fast models with 7s timeout each to keep total response time under 10s
+            // Try top 2 fast models with 6s timeout each
             $attempts = 0;
             foreach ($candidateModels as $candidate) {
                 if ($attempts >= 2) {
                     break;
                 }
-                $reply = $this->callOpenRouter($messages, $candidate, 7);
+                $reply = $this->callOpenRouter($messages, $candidate, 6);
                 $attempts++;
                 if (! empty($reply)) {
                     break;
@@ -209,7 +218,7 @@ class HossamAssistantService
         }
 
         // 5. Context-driven Property Cards Display
-        // Show cards ONLY if the LLM explicitly tagged [SHOW_CARDS] or if the user explicitly asked to see/view/send listings/links
+        // Show cards if the LLM explicitly tagged [SHOW_CARDS] or if the user explicitly asked to see listings/units
         $userExplicitlyWantsCards = (bool) preg_match('/(وريني|ابعتلي|عرض|شوف|عايز اشوف|عايز|لينك|لينكات|رابط|روابط|كروت|عقارات|شقق|شقه|فلل|فلا|فله|فيلا|وحدات|مشاريع|صور|تفاصيل|ميزانية|اسعار|أسعار|كام السعر|قسط|مقدم|عايز اشتري|عايز احجز|رشحلي|اقتراح|show me|send me|listings|properties|apartments|villas|units|projects|price|budget|recommend|suggest|available|options)/iu', $message);
 
         $shouldShowCards = false;
@@ -226,8 +235,10 @@ class HossamAssistantService
             $reply = trim(str_replace(['[HOT_LEAD]', '[hot_lead]'], '', $reply));
         }
 
+        // Auto-detect calculator intent: either via [CALCULATOR] tag or user explicitly asking about installments/down payment
+        $userAskedForCalculator = (bool) preg_match('/(قسط|تقسيط|مقدم|احسبلي|احسب|حاسبة|حاسبه|كم شهري|كام شهري|كم القسط|كام القسط|تمويل|سداد|جدول السداد|installment|down payment|monthly payment|mortgage|calculator)/iu', $message);
         $showCalculator = false;
-        if (str_contains($reply, '[CALCULATOR]') || str_contains($reply, '[calculator]')) {
+        if ($userAskedForCalculator || str_contains($reply, '[CALCULATOR]') || str_contains($reply, '[calculator]')) {
             $showCalculator = true;
             $reply = trim(str_replace(['[CALCULATOR]', '[calculator]'], '', $reply));
         }
@@ -236,6 +247,23 @@ class HossamAssistantService
         if (preg_match_all('/\[REPLY:\s*(.+?)\]/iu', $reply, $matches)) {
             $quickReplies = array_map('trim', $matches[1]);
             $reply = trim(preg_replace('/\[REPLY:\s*.+?\]/iu', '', $reply));
+        }
+
+        // Smart dynamic quick replies if none produced by LLM
+        if (empty($quickReplies)) {
+            if ($showCalculator) {
+                $quickReplies = $locale === 'en'
+                    ? ['Show matching units', 'Best cash discounts', 'Speak with an advisor']
+                    : ['ورّيني وحدات بالميزانية دي', 'عروض الكاش بخصم كبير', 'تواصل مع مستشار'];
+            } elseif (!empty($matchingUnits)) {
+                $quickReplies = $locale === 'en'
+                    ? ['Calculate installment plan', 'Book a site visit', 'Explore other areas']
+                    : ['احسب القسط بالحاسبة', 'حجز موعد معاينة', 'شوف مناطق تانية'];
+            } else {
+                $quickReplies = $locale === 'en'
+                    ? ['Apartments with installments', 'Top investment opportunities', 'Contact via WhatsApp']
+                    : ['شقق بنظام التقسيط', 'أفضل فرص الاستثمار', 'تواصل عبر واتساب'];
+            }
         }
 
         // 5b. Self-Learning: Store high-quality answer in persistent knowledge base for instant future replies
@@ -268,13 +296,20 @@ class HossamAssistantService
         // 6. Auto-linkify unit & project names mentioned in the reply
         $reply = $this->injectUnitLinks($reply, $matchingUnits, $locale);
 
-        return [
+        $finalResponse = [
             'reply' => $reply,
             'recommended_units' => $recommendedCards,
             'is_hot_lead' => $isHotLead,
             'quick_replies' => $quickReplies,
             'show_calculator' => $showCalculator,
         ];
+
+        // Cache single-turn general answers for 20 minutes to give instant sub-millisecond response
+        if (empty($history) && !$isHotLead && !empty($reply)) {
+            \Illuminate\Support\Facades\Cache::put($cacheKey, $finalResponse, 1200);
+        }
+
+        return $finalResponse;
     }
 
     /**
@@ -1159,9 +1194,9 @@ PROMPT;
     }
 
     /**
-     * Execute completion request against OpenRouter with fast 7s timeout.
+     * Execute completion request against OpenRouter with fast timeout and fallback extraction.
      */
-    private function callOpenRouter(array $messages, string $model, int $timeout = 7): ?string
+    private function callOpenRouter(array $messages, string $model, int $timeout = 6): ?string
     {
         if (empty($this->apiKey)) {
             Log::warning('HossamAssistant: OPENROUTER_API_KEY is not configured');
@@ -1170,6 +1205,14 @@ PROMPT;
         }
 
         try {
+            $payload = [
+                'model' => $model,
+                'messages' => $messages,
+                'temperature' => 0.6,
+                'max_tokens' => 800,
+                'include_reasoning' => false,
+            ];
+
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $this->apiKey,
                 'HTTP-Referer' => config('app.url', 'https://familyhome-co.com'),
@@ -1178,20 +1221,19 @@ PROMPT;
             ])
                 ->withoutVerifying()
                 ->timeout($timeout)
-                ->post($this->baseUrl . '/chat/completions', [
-                    'model' => $model,
-                    'messages' => $messages,
-                    'temperature' => 0.6,
-                    'max_tokens' => 1200,
-                ]);
+                ->post($this->baseUrl . '/chat/completions', $payload);
 
             if ($response->successful()) {
                 $rawBody = trim($response->body());
                 $data = json_decode($rawBody, true) ?: $response->json();
-                $reply = $data['choices'][0]['message']['content'] ?? null;
+                $msgObj = $data['choices'][0]['message'] ?? [];
+                $reply = $msgObj['content'] ?? null;
+                if (empty($reply) && !empty($msgObj['reasoning'])) {
+                    $reply = $msgObj['reasoning'];
+                }
                 if (! empty($reply)) {
                     $trimmedReply = trim($reply);
-                    if (mb_strlen($trimmedReply) > 15 && ! str_starts_with($trimmedReply, 'User Safety:')) {
+                    if (mb_strlen($trimmedReply) > 10 && ! str_starts_with($trimmedReply, 'User Safety:')) {
                         return $trimmedReply;
                     }
                 }
@@ -1199,6 +1241,7 @@ PROMPT;
 
             Log::warning('HossamAssistant: OpenRouter status ' . $response->status(), [
                 'model' => $model,
+                'body' => mb_substr($response->body(), 0, 150),
             ]);
         } catch (\Throwable $e) {
             Log::warning('HossamAssistant: Model ' . $model . ' timed out or failed: ' . $e->getMessage());

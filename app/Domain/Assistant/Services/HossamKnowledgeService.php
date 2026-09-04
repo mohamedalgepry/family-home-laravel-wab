@@ -32,18 +32,34 @@ class HossamKnowledgeService
             return null;
         }
 
+        $res = null;
+
         // 1. Check built-in Canned FAQ Knowledge (Hardened, immediate responses)
         $canned = $this->matchCannedFaq($normalized, $locale);
         if ($canned) {
             $this->recordQuestionFrequency($normalized);
-            return $canned;
+            $res = $canned;
+        } elseif ($learned = $this->matchLearnedKnowledge($normalized, $locale)) {
+            // 2. Check Self-Learned Knowledge Base (from past successful interactions)
+            $this->recordQuestionFrequency($normalized);
+            $res = $learned;
         }
 
-        // 2. Check Self-Learned Knowledge Base (from past successful interactions)
-        $learned = $this->matchLearnedKnowledge($normalized, $locale);
-        if ($learned) {
-            $this->recordQuestionFrequency($normalized);
-            return $learned;
+        if ($res !== null) {
+            if (!isset($res['show_calculator'])) {
+                $isCalculatorQuery = (bool) preg_match('/(قسط|تقسيط|مقدم|احسب|حاسبة|حاسبه|كم شهري|كام شهري|كم القسط|installment|down payment|calculator|mortgage)/iu', $message);
+                $res['show_calculator'] = $isCalculatorQuery;
+            }
+            if (!isset($res['recommended_units'])) {
+                $res['recommended_units'] = [];
+            }
+            if (!isset($res['quick_replies'])) {
+                $res['quick_replies'] = [];
+            }
+            if (!isset($res['is_hot_lead'])) {
+                $res['is_hot_lead'] = false;
+            }
+            return $res;
         }
 
         return null;
