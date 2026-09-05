@@ -293,41 +293,38 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                             </h2>
                             <div className="w-full h-[300px] md:h-[400px] bg-secondary-100 rounded-3xl overflow-hidden border border-secondary-200 shadow-sm relative">
                                 {(area?.latitude && area?.longitude && area?.latitude != '0' && area?.longitude != '0') ? (
-                                    <div>
-                                            <iframe
-                                                width="100%"
-                                                height="100%"
-                                                style={{ border: 0 }}
-                                                src={`https://maps.google.com/maps?q=${area.latitude},${area.longitude}&z=14&output=embed`}
-                                                allowFullScreen
-                                                loading="lazy"
-                                                referrerPolicy="no-referrer-when-downgrade"
-                                                title="Google Map Location"
-                                            />
-                                        <div className="mt-3 flex justify-end">
-                                            <a
-                                                href={`https://www.google.com/maps/search/?api=1&query=${area.latitude},${area.longitude}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="inline-flex items-center gap-2 text-sm font-medium text-primary-700 hover:text-primary-900 transition-colors"
-                                            >
-                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                </svg>
-                                                {isRtl ? 'فتح في خرائط جوجل' : 'Open in Google Maps'}
-                                            </a>
-                                        </div>
-                                    </div>
+                                    <iframe
+                                        className="absolute inset-0 w-full h-full"
+                                        style={{ border: 0 }}
+                                        src={`https://maps.google.com/maps?q=${area.latitude},${area.longitude}&z=14&output=embed`}
+                                        allowFullScreen
+                                        loading="lazy"
+                                        referrerPolicy="no-referrer-when-downgrade"
+                                        title="Google Map Location"
+                                    />
                                 ) : (
-                                    <div className="w-full h-[300px] md:h-[400px] bg-secondary-100 rounded-3xl overflow-hidden border border-secondary-200 shadow-sm relative">
-                                        <div className="absolute inset-0 flex items-center justify-center text-secondary-400 flex-col gap-2">
-                                            <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>
-                                            <span>{trans('map_not_available')}</span>
-                                        </div>
+                                    <div className="absolute inset-0 flex items-center justify-center text-secondary-400 flex-col gap-2">
+                                        <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>
+                                        <span>{trans('map_not_available')}</span>
                                     </div>
                                 )}
                             </div>
+                            {(area?.latitude && area?.longitude && area?.latitude != '0' && area?.longitude != '0') && (
+                                <div className="mt-3 flex justify-end">
+                                    <a
+                                        href={`https://www.google.com/maps/search/?api=1&query=${area.latitude},${area.longitude}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-2 text-sm font-medium text-primary-700 hover:text-primary-900 transition-colors"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        </svg>
+                                        {isRtl ? 'فتح في خرائط جوجل' : 'Open in Google Maps'}
+                                    </a>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </section>
