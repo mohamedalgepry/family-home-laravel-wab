@@ -136,10 +136,40 @@ class NotificationService
         $this->clearUserCache($user);
     }
 
-    private function clearUserCache(User $user): void
+    /**
+     * حذف إشعارات كيان معين وإبطال كاش جميع المستلمين.
+     */
+    public function removeEntityNotifications(string $entityColumn, int $entityId, array $types = []): void
     {
-        Cache::forget(str_replace('{id}', $user->id, self::CACHE_KEY_UNREAD_COUNT));
-        Cache::forget(str_replace('{id}', $user->id, self::CACHE_KEY_NOTIFICATIONS_PAGE));
-        Cache::forget(str_replace('{id}', $user->id, self::CACHE_KEY_RECENT));
+        $query = DatabaseNotification::query();
+        if (! empty($types)) {
+            $query->whereIn('type', $types);
+        }
+
+        $notifications = $query->get()->filter(function (DatabaseNotification $notification) use ($entityColumn, $entityId) {
+            return ($notification->data[$entityColumn] ?? null) == $entityId;
+        });
+
+        $userIds = $notifications->pluck('notifiable_id')->unique();
+
+        foreach ($notifications as $notification) {
+            $notification->delete();
+        }
+
+        foreach ($userIds as $uid) {
+            $this->clearCacheForUserId((int) $uid);
+        }
+    }
+
+    public function clearUserCache(User $user): void
+    {
+        $this->clearCacheForUserId($user->id);
+    }
+
+    public function clearCacheForUserId(int $userId): void
+    {
+        Cache::forget("user_{$userId}_unread_count");
+        Cache::forget("user_{$userId}_notifications_page");
+        Cache::forget("user_{$userId}_recent_notifications");
     }
 }

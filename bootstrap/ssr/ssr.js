@@ -15453,7 +15453,7 @@ function CompareBar() {
 }
 //#endregion
 //#region resources/js/Components/Layout/Footer.jsx
-var HossamChatWidget = lazy(() => import("./assets/HossamChatWidget-BkMGWlJF.js"));
+var HossamChatWidget = lazy(() => import("./assets/HossamChatWidget-BHbmT-DJ.js"));
 var QUICK_LINKS = [
 	{
 		key: "home",

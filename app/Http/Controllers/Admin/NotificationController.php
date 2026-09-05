@@ -135,6 +135,12 @@ class NotificationController extends Controller
         dispatch(new RegenerateSitemapJob)->afterCommit();
         $this->clearListingsCache();
 
+        // Clean up obsolete expiry notifications across all recipients
+        $this->notificationService->removeEntityNotifications(
+            'unit_id',
+            $unit->id,
+            [\App\Domain\Listings\Notifications\UnitExpiryNotification::class]
+        );
         $this->notificationService->markEntityNotificationsAsRead($request->user(), 'unit_id', $unit->id);
 
         // Notify unit owner if exists and different from admin
