@@ -42,9 +42,8 @@ export default function SearchBar({
     const [showAdvanced, setShowAdvanced] = useState(false)
 
     useEffect(() => {
-        if (!showAdvanced) return
         function handleKeyDown(e) {
-            if (e.key === 'Escape') {
+            if (e.key === 'Escape' && showAdvanced) {
                 setShowAdvanced(false)
             }
         }

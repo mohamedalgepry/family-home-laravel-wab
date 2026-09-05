@@ -90,32 +90,32 @@ class UnitController
 
         $similarUnits = $this->listingService->getSimilarUnits($unit);
 
-        $relatedArticles = Article::where('is_published', true)
-            ->with(['images', 'category'])
-            ->orderByDesc('published_at')
-            ->limit(4)
-            ->get();
+        // المقالات هي نفسها بصرف النظر عن الوحدة — cache مشترك بدلاً من cache لكل unit
+        $relatedArticles = \Illuminate\Support\Facades\Cache::remember(
+            'latest_published_articles_4',
+            600,
+            fn () => Article::where('is_published', true)
+                ->with(['images', 'category'])
+                ->orderByDesc('published_at')
+                ->limit(4)
+                ->get()
+        );
 
-        $relatedProjects = Project::where('is_active', true)
-            ->when($unit->project_id, fn ($q) => $q->where('id', '!=', $unit->project_id))
-            ->when($unit->area_id, fn ($q) => $q->where('area_id', $unit->area_id))
-            ->with(['area', 'images', 'user.profile'])
-            ->withCount(['units' => fn ($q) => $q->active()])
-            ->orderByDesc('created_at')
-            ->limit(4)
-            ->get();
-
-        if ($relatedProjects->count() < 4) {
-            $fallbackProjects = Project::where('is_active', true)
-                ->when($unit->project_id, fn ($q) => $q->where('id', '!=', $unit->project_id))
-                ->whereNotIn('id', $relatedProjects->pluck('id'))
-                ->with(['area', 'images', 'user.profile'])
-                ->withCount(['units' => fn ($q) => $q->active()])
-                ->orderByDesc('created_at')
-                ->limit(4 - $relatedProjects->count())
-                ->get();
-            $relatedProjects = $relatedProjects->concat($fallbackProjects);
-        }
+        $relatedProjects = \Illuminate\Support\Facades\Cache::remember(
+            "unit_show_projects_{$unit->id}_v{$this->listingService->version()}",
+            300,
+            function () use ($unit) {
+                return Project::where('is_active', true)
+                    ->when($unit->project_id, fn ($q) => $q->where('id', '!=', $unit->project_id))
+                    ->with(['area', 'images', 'user.profile'])
+                    ->withCount(['units' => fn ($q) => $q->active()])
+                    // ترتيب: المنطقة المطابقة أولاً، ثم الأحدث
+                    ->orderByRaw('CASE WHEN area_id = ? THEN 0 ELSE 1 END', [$unit->area_id ?? 0])
+                    ->orderByDesc('created_at')
+                    ->limit(4)
+                    ->get();
+            }
+        );
 
         $meta = $this->seoMetaService->forListing($unit, 'units');
 

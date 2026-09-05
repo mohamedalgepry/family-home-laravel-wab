@@ -84,7 +84,7 @@ class HandleInertiaRequests extends Middleware
                     'name' => $user->name,
                     'email' => $user->email,
                     'role' => $user->role,
-                    'avatar' => $user->loadMissing('profile')->profile?->avatar,
+                    'avatar' => $user->profile?->avatar,
                     'phone' => $user->profile?->phone,
                     'whatsapp' => $user->profile?->whatsapp,
                     'facebook' => $user->profile?->facebook,

@@ -81,32 +81,31 @@ class ProjectController
             ->orderByFeatured()
             ->get();
 
-        $similarProjects = Project::where('is_active', true)
-            ->where('id', '!=', $project->id)
-            ->when($project->area_id, fn ($q) => $q->where('area_id', $project->area_id))
-            ->with(['area', 'images', 'user.profile'])
-            ->withCount(['units' => fn ($q) => $q->active()])
-            ->orderByDesc('created_at')
-            ->limit(4)
-            ->get();
+        // BUG-005 FIX: query واحدة تُفضّل المنطقة المطابقة ثم الأحدث — بدلاً من query + fallback
+        $similarProjects = \Illuminate\Support\Facades\Cache::remember(
+            "project_show_similar_{$project->id}_v{$this->listingService->version()}",
+            300,
+            function () use ($project) {
+                return Project::where('is_active', true)
+                    ->where('id', '!=', $project->id)
+                    ->with(['area', 'images', 'user.profile'])
+                    ->withCount(['units' => fn ($q) => $q->active()])
+                    ->orderByRaw('CASE WHEN area_id = ? THEN 0 ELSE 1 END', [$project->area_id ?? 0])
+                    ->orderByDesc('created_at')
+                    ->limit(4)
+                    ->get();
+            }
+        );
 
-        if ($similarProjects->count() < 4) {
-            $moreProjects = Project::where('is_active', true)
-                ->where('id', '!=', $project->id)
-                ->whereNotIn('id', $similarProjects->pluck('id'))
-                ->with(['area', 'images', 'user.profile'])
-                ->withCount(['units' => fn ($q) => $q->active()])
-                ->orderByDesc('created_at')
-                ->limit(4 - $similarProjects->count())
-                ->get();
-            $similarProjects = $similarProjects->concat($moreProjects);
-        }
-
-        $relatedArticles = Article::where('is_published', true)
-            ->with(['images', 'category'])
-            ->orderByDesc('published_at')
-            ->limit(4)
-            ->get();
+        $relatedArticles = \Illuminate\Support\Facades\Cache::remember(
+            'latest_published_articles_4',
+            600,
+            fn () => Article::where('is_published', true)
+                ->with(['images', 'category'])
+                ->orderByDesc('published_at')
+                ->limit(4)
+                ->get()
+        );
 
         $meta = $this->seoMetaService->forListing($project, 'projects');
 

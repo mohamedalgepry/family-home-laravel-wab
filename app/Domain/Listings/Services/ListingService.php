@@ -18,7 +18,7 @@ class ListingService
 
     public const CACHE_VERSION_KEY = 'listing_cache_version';
 
-    private function version(): int
+    public function version(): int
     {
         return Cache::rememberForever(self::CACHE_VERSION_KEY, fn () => 1);
     }
@@ -36,7 +36,7 @@ class ListingService
 
         return Cache::remember(self::CACHE_PREFIX."featured_{$limit}_{$pageName}_{$page}_v{$this->version()}", self::CACHE_TTL, function () use ($limit, $pageName) {
             return Unit::featured()
-                ->with(['type', 'area', 'images', 'user.profile'])
+                ->with(['type', 'area', 'images'])
                 ->paginate($limit, ['*'], $pageName);
         });
     }
@@ -67,7 +67,9 @@ class ListingService
 
     private function unitBaseQuery(): Builder
     {
-        return Unit::active()->with(['type', 'area', 'images', 'user.profile', 'project.user.profile']);
+        // لا نُحمّل user.profile هنا — UnitCard لا تعرض بيانات المستخدم في listing pages
+        // project.user.profile تُحمَّل فقط في show() عبر getUnitBySlug()
+        return Unit::active()->with(['type', 'area', 'images']);
     }
 
     private function applyUnitFilters($query, array $filters): void

@@ -106,6 +106,9 @@ class ArticleService
             'published_at' => $article->is_published ? null : now(),
         ]);
 
+        // إبطال cache المقالات الأحدث المُستخدم في صفحات الوحدات والمشاريع
+        \Illuminate\Support\Facades\Cache::forget('latest_published_articles_4');
+
         $this->sitemapService->regenerate();
 
         return $article->fresh()->load(['category', 'images']);

@@ -26,7 +26,7 @@ class HossamAssistantService
         $this->model = (string) config('services.openrouter.model', env('OPENROUTER_MODEL', 'google/gemini-2.0-flash-exp:free'));
         $this->fallbackModel = (string) config('services.openrouter.fallback_model', env('OPENROUTER_FALLBACK_MODEL', 'qwen/qwen-2.5-7b-instruct:free'));
         $this->baseUrl = rtrim((string) config('services.openrouter.base_url', env('OPENROUTER_BASE_URL', 'https://openrouter.ai/api/v1')), '/');
-        $this->geminiKey = env('GEMINI_API_KEY') ?: null;
+        $this->geminiKey = config('services.gemini.key') ?: null;
     }
 
     /**
@@ -467,7 +467,9 @@ class HossamAssistantService
             }
 
             // 4. Area Extraction — Comprehensive matching with Egyptian Arabic variants
-            $areas = Area::select('id', 'name_ar', 'name_en', 'slug')->get();
+            $areas = \Illuminate\Support\Facades\Cache::remember('assistant_areas_lookup', 3600, function () {
+                return Area::select('id', 'name_ar', 'name_en', 'slug')->get();
+            });
             $matchedAreaId = null;
             $matchedAreaName = null;
             foreach ($areas as $area) {

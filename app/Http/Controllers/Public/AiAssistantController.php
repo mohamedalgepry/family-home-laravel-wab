@@ -85,6 +85,7 @@ class AiAssistantController
 
             return response()->json([
                 'success' => true,
+                'is_fallback' => true,
                 'reply' => $locale === 'en'
                     ? 'Hello! I am Hossam from Family Home. Would you like to explore apartments with installments or see our top investment opportunities?'
                     : 'أهلاً بك! أنا «حسام» من فاميلي هوم. تحب أساعدك في العثور على شقق بالتقسيط أم تبحث عن أفضل الفرص الاستثمارية الحالية؟',
