@@ -41,6 +41,11 @@ class UpdateUnitAction
 
         if (array_key_exists('is_active', $sanitized)) {
             $unit->is_active = $sanitized['is_active'];
+            if ($unit->is_active && (! $unit->auto_delete_at || $unit->auto_delete_at->isPast())) {
+                $days = (int) \App\Domain\Listings\Models\Setting::getValue('auto_delete_days', '30');
+                $days = $days > 0 ? $days : 30;
+                $unit->auto_delete_at = now()->addDays($days);
+            }
         }
 
         if (array_key_exists('user_id', $sanitized)) {

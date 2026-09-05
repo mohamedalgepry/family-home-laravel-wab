@@ -56,6 +56,7 @@ class UnitController extends Controller
             'areas' => $areas,
             'unitTypes' => $unitTypes,
             'filters' => $filters,
+            'autoDeleteDays' => (int) \App\Domain\Listings\Models\Setting::getValue('auto_delete_days', '30'),
         ]);
     }
 

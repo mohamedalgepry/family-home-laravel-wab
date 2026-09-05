@@ -7074,6 +7074,17 @@ var TYPE_META = {
 			en: "Unit Expired"
 		}
 	},
+	unit_extended: {
+		icon: "clock",
+		gradient: "from-emerald-500 to-teal-500",
+		bg: "bg-emerald-50",
+		border: "border-emerald-200",
+		text: "text-emerald-800",
+		label: {
+			ar: "تم تمديد مدة الوحدة",
+			en: "Unit Extended"
+		}
+	},
 	unit_permanently_deleted: {
 		icon: "trash",
 		gradient: "from-rose-600 to-red-700",
@@ -7622,9 +7633,9 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 														className: "px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition-colors",
 														children: isRtl ? "موافقة ونشر" : "Approve & publish"
 													}),
-													(isUnitExpiry || isUnitExpired) && item.unit_id && isAdmin && /* @__PURE__ */ jsxs("button", {
+													(isUnitExpiry || isUnitExpired) && item.unit_id && (isAdmin || isManager) && (isUnread ? /* @__PURE__ */ jsxs("button", {
 														onClick: () => openExtendModal(item.unit_id, item.unit_name || item.title),
-														className: "px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1",
+														className: "px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1 shadow-xs",
 														children: [/* @__PURE__ */ jsx("svg", {
 															className: "w-3.5 h-3.5",
 															fill: "none",
@@ -7637,10 +7648,24 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 																d: "M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
 															})
 														}), trans("extend")]
-													}),
-													isProjectExpiry && item.project_id && isAdmin && /* @__PURE__ */ jsxs("button", {
+													}) : /* @__PURE__ */ jsxs("span", {
+														className: "inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg",
+														children: [/* @__PURE__ */ jsx("svg", {
+															className: "w-3 h-3",
+															fill: "none",
+															viewBox: "0 0 24 24",
+															stroke: "currentColor",
+															strokeWidth: 2,
+															children: /* @__PURE__ */ jsx("path", {
+																strokeLinecap: "round",
+																strokeLinejoin: "round",
+																d: "M5 13l4 4L19 7"
+															})
+														}), isRtl ? "تمت المعالجة / التمديد" : "Resolved / Extended"]
+													})),
+													isProjectExpiry && item.project_id && isAdmin && (isUnread ? /* @__PURE__ */ jsxs("button", {
 														onClick: () => handleExtendProject(item.project_id),
-														className: "px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1",
+														className: "px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1 shadow-xs",
 														children: [/* @__PURE__ */ jsx("svg", {
 															className: "w-3.5 h-3.5",
 															fill: "none",
@@ -7653,7 +7678,21 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 																d: "M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
 															})
 														}), trans("extend")]
-													}),
+													}) : /* @__PURE__ */ jsxs("span", {
+														className: "inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg",
+														children: [/* @__PURE__ */ jsx("svg", {
+															className: "w-3 h-3",
+															fill: "none",
+															viewBox: "0 0 24 24",
+															stroke: "currentColor",
+															strokeWidth: 2,
+															children: /* @__PURE__ */ jsx("path", {
+																strokeLinecap: "round",
+																strokeLinejoin: "round",
+																d: "M5 13l4 4L19 7"
+															})
+														}), isRtl ? "تم التمديد" : "Extended"]
+													})),
 													(isUnitExpiry || isUnitExpired) && item.unit_id && isAdmin && (confirmDeleteId === item.id ? /* @__PURE__ */ jsxs("div", {
 														className: "flex items-center gap-1",
 														children: [/* @__PURE__ */ jsx("button", {
@@ -13280,7 +13319,7 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 //#endregion
 //#region resources/js/Pages/Admin/Units/Index.jsx
 var Index_exports$4 = /* @__PURE__ */ __exportAll({ default: () => AdminUnitsIndex });
-function AdminUnitsIndex({ units, stats, areas, unitTypes, filters }) {
+function AdminUnitsIndex({ units, stats, areas, unitTypes, filters, autoDeleteDays = 30 }) {
 	const { locale, auth } = usePage().props;
 	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
@@ -13292,6 +13331,28 @@ function AdminUnitsIndex({ units, stats, areas, unitTypes, filters }) {
 	const [showAdjustPointsModal, setShowAdjustPointsModal] = useState(false);
 	const [unitToAdjust, setUnitToAdjust] = useState(null);
 	const { data: pointsData, setData: setPointsData, post: postPoints, processing: pointsProcessing, reset: resetPoints, errors: pointsErrors } = useForm({ points: "" });
+	const [extendModalUnit, setExtendModalUnit] = useState(null);
+	const [selectedDuration, setSelectedDuration] = useState("auto_delete_setting");
+	const [customDays, setCustomDays] = useState("");
+	const [isExtending, setIsExtending] = useState(false);
+	function openExtendModal(unit) {
+		setExtendModalUnit(unit);
+		setSelectedDuration("auto_delete_setting");
+		setCustomDays("");
+	}
+	function submitExtendUnit() {
+		if (!extendModalUnit) return;
+		setIsExtending(true);
+		const payload = { duration_type: selectedDuration };
+		if (selectedDuration === "custom") payload.days = parseInt(customDays, 10) || autoDeleteDays || 30;
+		router.post(`/admin/units/${extendModalUnit.id}/extend-expiry`, payload, {
+			preserveScroll: true,
+			onFinish: () => {
+				setIsExtending(false);
+				setExtendModalUnit(null);
+			}
+		});
+	}
 	function openAdjustPoints(unit) {
 		setUnitToAdjust(unit);
 		setPointsData("points", unit.priority_points);
@@ -13730,9 +13791,26 @@ function AdminUnitsIndex({ units, stats, areas, unitTypes, filters }) {
 														href: `/admin/units/${unit.id}/edit`,
 														className: "text-secondary-950 hover:text-[#CC0000] font-bold text-xs block truncate max-w-[200px] transition-colors",
 														children: unit.name
-													}), /* @__PURE__ */ jsxs("span", {
-														className: "text-[10px] text-secondary-400 font-mono block mt-0.5",
-														children: ["#", unit.id]
+													}), /* @__PURE__ */ jsxs("div", {
+														className: "flex items-center gap-1.5 mt-0.5",
+														children: [/* @__PURE__ */ jsxs("span", {
+															className: "text-[10px] text-secondary-400 font-mono",
+															children: ["#", unit.id]
+														}), unit.auto_delete_at && (() => {
+															const isExp = new Date(unit.auto_delete_at) <= /* @__PURE__ */ new Date();
+															const daysLeft = Math.ceil((new Date(unit.auto_delete_at) - /* @__PURE__ */ new Date()) / (1e3 * 60 * 60 * 24));
+															if (isExp) return /* @__PURE__ */ jsx("span", {
+																className: "px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-rose-50 text-rose-700 border border-rose-200",
+																title: new Date(unit.auto_delete_at).toLocaleDateString(),
+																children: isRtl ? "منتهية" : "Expired"
+															});
+															if (daysLeft <= 5) return /* @__PURE__ */ jsx("span", {
+																className: "px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-amber-50 text-amber-700 border border-amber-200",
+																title: new Date(unit.auto_delete_at).toLocaleDateString(),
+																children: isRtl ? `متبقي ${daysLeft} يوم` : `${daysLeft}d left`
+															});
+															return null;
+														})()]
 													})]
 												})]
 											})
@@ -13884,6 +13962,24 @@ function AdminUnitsIndex({ units, stats, areas, unitTypes, filters }) {
 													}),
 													role !== "agent" && /* @__PURE__ */ jsx("button", {
 														type: "button",
+														onClick: () => openExtendModal(unit),
+														className: "p-1.5 text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg transition-all border border-amber-200 active:scale-95 shadow-2xs",
+														title: isRtl ? "تمديد الصلاحية" : "Extend listing duration",
+														children: /* @__PURE__ */ jsx("svg", {
+															className: "w-3.5 h-3.5",
+															fill: "none",
+															viewBox: "0 0 24 24",
+															stroke: "currentColor",
+															strokeWidth: 2,
+															children: /* @__PURE__ */ jsx("path", {
+																strokeLinecap: "round",
+																strokeLinejoin: "round",
+																d: "M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
+															})
+														})
+													}),
+													role !== "agent" && /* @__PURE__ */ jsx("button", {
+														type: "button",
 														onClick: () => deleteUnit(unit),
 														className: "p-1.5 text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-all border border-red-200 active:scale-95 shadow-2xs",
 														title: trans("delete"),
@@ -14022,39 +14118,60 @@ function AdminUnitsIndex({ units, stats, areas, unitTypes, filters }) {
 								]
 							}), /* @__PURE__ */ jsxs("div", {
 								className: "flex items-center gap-1",
-								children: [/* @__PURE__ */ jsx("a", {
-									href: `/${locale}/units/${unit.slug || unit.id}`,
-									target: "_blank",
-									rel: "noreferrer",
-									className: "p-1.5 text-secondary-700 bg-surface border border-secondary-200 rounded-lg",
-									children: /* @__PURE__ */ jsx("svg", {
-										className: "w-3.5 h-3.5",
-										fill: "none",
-										viewBox: "0 0 24 24",
-										stroke: "currentColor",
-										strokeWidth: 2,
-										children: /* @__PURE__ */ jsx("path", {
-											strokeLinecap: "round",
-											strokeLinejoin: "round",
-											d: "M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"
+								children: [
+									/* @__PURE__ */ jsx("a", {
+										href: `/${locale}/units/${unit.slug || unit.id}`,
+										target: "_blank",
+										rel: "noreferrer",
+										className: "p-1.5 text-secondary-700 bg-surface border border-secondary-200 rounded-lg",
+										children: /* @__PURE__ */ jsx("svg", {
+											className: "w-3.5 h-3.5",
+											fill: "none",
+											viewBox: "0 0 24 24",
+											stroke: "currentColor",
+											strokeWidth: 2,
+											children: /* @__PURE__ */ jsx("path", {
+												strokeLinecap: "round",
+												strokeLinejoin: "round",
+												d: "M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"
+											})
+										})
+									}),
+									/* @__PURE__ */ jsx(Link, {
+										href: `/admin/units/${unit.id}/edit`,
+										className: "p-1.5 text-blue-700 bg-blue-50 border border-blue-200 rounded-lg",
+										children: /* @__PURE__ */ jsx("svg", {
+											className: "w-3.5 h-3.5",
+											fill: "none",
+											viewBox: "0 0 24 24",
+											stroke: "currentColor",
+											strokeWidth: 2,
+											children: /* @__PURE__ */ jsx("path", {
+												strokeLinecap: "round",
+												strokeLinejoin: "round",
+												d: "M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"
+											})
+										})
+									}),
+									role !== "agent" && /* @__PURE__ */ jsx("button", {
+										type: "button",
+										onClick: () => openExtendModal(unit),
+										className: "p-1.5 text-amber-700 bg-amber-50 border border-amber-200 rounded-lg",
+										title: isRtl ? "تمديد الصلاحية" : "Extend listing duration",
+										children: /* @__PURE__ */ jsx("svg", {
+											className: "w-3.5 h-3.5",
+											fill: "none",
+											viewBox: "0 0 24 24",
+											stroke: "currentColor",
+											strokeWidth: 2,
+											children: /* @__PURE__ */ jsx("path", {
+												strokeLinecap: "round",
+												strokeLinejoin: "round",
+												d: "M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
+											})
 										})
 									})
-								}), /* @__PURE__ */ jsx(Link, {
-									href: `/admin/units/${unit.id}/edit`,
-									className: "p-1.5 text-blue-700 bg-blue-50 border border-blue-200 rounded-lg",
-									children: /* @__PURE__ */ jsx("svg", {
-										className: "w-3.5 h-3.5",
-										fill: "none",
-										viewBox: "0 0 24 24",
-										stroke: "currentColor",
-										strokeWidth: 2,
-										children: /* @__PURE__ */ jsx("path", {
-											strokeLinecap: "round",
-											strokeLinejoin: "round",
-											d: "M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"
-										})
-									})
-								})]
+								]
 							})]
 						})]
 					}, unit.id);
@@ -14175,6 +14292,136 @@ function AdminUnitsIndex({ units, stats, areas, unitTypes, filters }) {
 							})]
 						})]
 					})]
+				})
+			}),
+			extendModalUnit && /* @__PURE__ */ jsx("div", {
+				className: "fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in",
+				onClick: () => setExtendModalUnit(null),
+				children: /* @__PURE__ */ jsxs("div", {
+					className: "bg-white rounded-2xl shadow-2xl border border-secondary-100 max-w-md w-full p-6 space-y-5 animate-scale-up",
+					onClick: (e) => e.stopPropagation(),
+					children: [
+						/* @__PURE__ */ jsxs("div", {
+							className: "flex items-start justify-between gap-3 border-b border-secondary-100 pb-4",
+							children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("h3", {
+								className: "text-lg font-bold text-secondary-900",
+								children: isRtl ? "تمديد مدة الوحدة" : "Extend Unit Listing"
+							}), /* @__PURE__ */ jsx("p", {
+								className: "text-xs text-secondary-500 mt-1 line-clamp-1",
+								children: extendModalUnit.name
+							})] }), /* @__PURE__ */ jsx("button", {
+								onClick: () => setExtendModalUnit(null),
+								className: "text-secondary-400 hover:text-secondary-600 p-1 rounded-lg hover:bg-secondary-50 transition-colors",
+								children: /* @__PURE__ */ jsx("svg", {
+									className: "w-5 h-5",
+									fill: "none",
+									viewBox: "0 0 24 24",
+									stroke: "currentColor",
+									strokeWidth: 2,
+									children: /* @__PURE__ */ jsx("path", {
+										strokeLinecap: "round",
+										strokeLinejoin: "round",
+										d: "M6 18L18 6M6 6l12 12"
+									})
+								})
+							})]
+						}),
+						/* @__PURE__ */ jsxs("div", {
+							className: "space-y-3",
+							children: [
+								/* @__PURE__ */ jsx("label", {
+									className: "text-xs font-bold text-secondary-700 uppercase tracking-wider block",
+									children: isRtl ? "اختر مدة التمديد" : "Select Extension Duration"
+								}),
+								/* @__PURE__ */ jsx("div", {
+									className: "space-y-2",
+									children: [
+										{
+											id: "7_days",
+											label: isRtl ? "7 أيام" : "7 Days"
+										},
+										{
+											id: "15_days",
+											label: isRtl ? "15 يوماً" : "15 Days"
+										},
+										{
+											id: "30_days",
+											label: isRtl ? "30 يوماً" : "30 Days"
+										},
+										{
+											id: "auto_delete_setting",
+											label: isRtl ? `مدة الحذف التلقائي الإفتراضية: ${autoDeleteDays} يوم` : `Default Auto-Delete Period: ${autoDeleteDays} Days`
+										},
+										{
+											id: "custom",
+											label: isRtl ? "مدة مخصصة (بالأيام)" : "Custom Duration (in days)"
+										}
+									].map((opt) => /* @__PURE__ */ jsxs("label", {
+										className: `flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${selectedDuration === opt.id ? "border-primary-900 bg-primary-50/50 text-primary-950 font-semibold shadow-sm" : "border-secondary-200 hover:border-secondary-300 text-secondary-700"}`,
+										children: [/* @__PURE__ */ jsx("input", {
+											type: "radio",
+											name: "duration_type",
+											value: opt.id,
+											checked: selectedDuration === opt.id,
+											onChange: () => setSelectedDuration(opt.id),
+											className: "w-4 h-4 text-primary-900 border-secondary-300 focus:ring-primary-900"
+										}), /* @__PURE__ */ jsx("span", {
+											className: "text-sm",
+											children: opt.label
+										})]
+									}, opt.id))
+								}),
+								selectedDuration === "custom" && /* @__PURE__ */ jsxs("div", {
+									className: "pt-2 animate-fade-in",
+									children: [/* @__PURE__ */ jsx("label", {
+										className: "text-xs font-semibold text-secondary-600 block mb-1",
+										children: isRtl ? "عدد الأيام (1 - 365):" : "Number of days (1 - 365):"
+									}), /* @__PURE__ */ jsx("input", {
+										type: "number",
+										min: "1",
+										max: "365",
+										value: customDays,
+										onChange: (e) => setCustomDays(e.target.value),
+										placeholder: isRtl ? "مثال: 45" : "e.g. 45",
+										className: "w-full px-3.5 py-2.5 bg-secondary-50 border border-secondary-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 transition-colors",
+										autoFocus: true
+									})]
+								})
+							]
+						}),
+						/* @__PURE__ */ jsxs("div", {
+							className: "flex items-center justify-end gap-2.5 pt-4 border-t border-secondary-100",
+							children: [/* @__PURE__ */ jsx("button", {
+								type: "button",
+								onClick: () => setExtendModalUnit(null),
+								disabled: isExtending,
+								className: "px-4 py-2 text-sm font-semibold text-secondary-600 hover:text-secondary-800 hover:bg-secondary-100 rounded-xl transition-colors",
+								children: isRtl ? "إلغاء" : "Cancel"
+							}), /* @__PURE__ */ jsx("button", {
+								type: "button",
+								onClick: submitExtendUnit,
+								disabled: isExtending || selectedDuration === "custom" && (!customDays || parseInt(customDays, 10) < 1),
+								className: "px-5 py-2 text-sm font-semibold text-white bg-primary-900 hover:bg-primary-800 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl shadow-sm transition-colors flex items-center gap-1.5",
+								children: isExtending ? /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsxs("svg", {
+									className: "w-4 h-4 animate-spin",
+									fill: "none",
+									viewBox: "0 0 24 24",
+									children: [/* @__PURE__ */ jsx("circle", {
+										className: "opacity-25",
+										cx: "12",
+										cy: "12",
+										r: "10",
+										stroke: "currentColor",
+										strokeWidth: "4"
+									}), /* @__PURE__ */ jsx("path", {
+										className: "opacity-75",
+										fill: "currentColor",
+										d: "M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+									})]
+								}), /* @__PURE__ */ jsx("span", { children: isRtl ? "جاري التمديد..." : "Extending..." })] }) : /* @__PURE__ */ jsx("span", { children: isRtl ? "تأكيد التمديد" : "Confirm Extension" })
+							})]
+						})
+					]
 				})
 			})
 		]

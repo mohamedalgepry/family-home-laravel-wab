@@ -145,6 +145,23 @@ class UnitService
         $unit = Unit::findOrFail($unitId);
         $wasActive = $unit->is_active;
         $unit->is_active = ! $wasActive;
+
+        // Auto-extend expiration if activating an expired or near-expired unit
+        if (! $wasActive && $unit->is_active) {
+            if (! $unit->auto_delete_at || $unit->auto_delete_at->isPast()) {
+                $days = (int) \App\Domain\Listings\Models\Setting::getValue('auto_delete_days', '30');
+                $days = $days > 0 ? $days : 30;
+                $unit->auto_delete_at = now()->addDays($days);
+            }
+
+            // Remove any stale expiry warning notifications for this unit
+            app(\App\Domain\Users\Services\NotificationService::class)->removeEntityNotifications(
+                'unit_id',
+                $unit->id,
+                [\App\Domain\Listings\Notifications\UnitExpiryNotification::class]
+            );
+        }
+
         $unit->save();
 
         $this->clearListingsCache();

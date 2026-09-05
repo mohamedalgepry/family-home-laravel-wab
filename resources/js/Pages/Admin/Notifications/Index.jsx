@@ -7,6 +7,7 @@ import AdminSidebar from '../../../Components/Layout/AdminSidebar'
 const TYPE_META = {
     unit_expiry_warning: { icon: 'clock', gradient: 'from-amber-500 to-orange-500', bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-800', label: { ar: 'تنبيه انتهاء وحدة', en: 'Unit Expiry Warning' } },
     unit_expired: { icon: 'exclamation', gradient: 'from-red-500 to-rose-500', bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-800', label: { ar: 'وحدة منتهية', en: 'Unit Expired' } },
+    unit_extended: { icon: 'clock', gradient: 'from-emerald-500 to-teal-500', bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-800', label: { ar: 'تم تمديد مدة الوحدة', en: 'Unit Extended' } },
     unit_permanently_deleted: { icon: 'trash', gradient: 'from-rose-600 to-red-700', bg: 'bg-rose-50', border: 'border-rose-200', text: 'text-rose-800', label: { ar: 'حذف نهائي لوحدة', en: 'Unit Permanently Deleted' } },
     project_expiry_warning: { icon: 'clock', gradient: 'from-amber-500 to-orange-500', bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-800', label: { ar: 'تنبيه انتهاء مشروع', en: 'Project Expiry Warning' } },
     project_permanently_deleted: { icon: 'trash', gradient: 'from-rose-600 to-red-700', bg: 'bg-rose-50', border: 'border-rose-200', text: 'text-rose-800', label: { ar: 'حذف نهائي لمشروع', en: 'Project Permanently Deleted' } },
@@ -440,28 +441,46 @@ export default function NotificationsIndex({ notifications, unreadCount, autoDel
                                                                     </button>
                                                                 )}
 
-                                                                {(isUnitExpiry || isUnitExpired) && item.unit_id && isAdmin && (
-                                                                    <button
-                                                                        onClick={() => openExtendModal(item.unit_id, item.unit_name || item.title)}
-                                                                        className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1"
-                                                                    >
-                                                                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                                        </svg>
-                                                                        {trans('extend')}
-                                                                    </button>
+                                                                {(isUnitExpiry || isUnitExpired) && item.unit_id && (isAdmin || isManager) && (
+                                                                    isUnread ? (
+                                                                        <button
+                                                                            onClick={() => openExtendModal(item.unit_id, item.unit_name || item.title)}
+                                                                            className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1 shadow-xs"
+                                                                        >
+                                                                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                            </svg>
+                                                                            {trans('extend')}
+                                                                        </button>
+                                                                    ) : (
+                                                                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg">
+                                                                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                                            </svg>
+                                                                            {isRtl ? 'تمت المعالجة / التمديد' : 'Resolved / Extended'}
+                                                                        </span>
+                                                                    )
                                                                 )}
 
                                                                 {isProjectExpiry && item.project_id && isAdmin && (
-                                                                    <button
-                                                                        onClick={() => handleExtendProject(item.project_id)}
-                                                                        className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1"
-                                                                    >
-                                                                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                                        </svg>
-                                                                        {trans('extend')}
-                                                                    </button>
+                                                                    isUnread ? (
+                                                                        <button
+                                                                            onClick={() => handleExtendProject(item.project_id)}
+                                                                            className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1 shadow-xs"
+                                                                        >
+                                                                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                            </svg>
+                                                                            {trans('extend')}
+                                                                        </button>
+                                                                    ) : (
+                                                                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg">
+                                                                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                                            </svg>
+                                                                            {isRtl ? 'تم التمديد' : 'Extended'}
+                                                                        </span>
+                                                                    )
                                                                 )}
 
                                                                 {(isUnitExpiry || isUnitExpired) && item.unit_id && isAdmin && (
