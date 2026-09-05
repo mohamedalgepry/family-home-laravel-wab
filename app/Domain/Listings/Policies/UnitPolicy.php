@@ -83,6 +83,15 @@ class UnitPolicy
         return $user->isManager() && $this->isOwnedByTeam($user, $unit);
     }
 
+    public function extendExpiry(User $user, Unit $unit): bool
+    {
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        return $user->isManager() && $this->isOwnedByTeam($user, $unit);
+    }
+
     private function isOwnedByTeam(User $user, Unit $unit): bool
     {
         return $this->isOwnedBy($user, $unit)

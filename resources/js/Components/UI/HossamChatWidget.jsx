@@ -306,13 +306,14 @@ export default function HossamChatWidget() {
     const [feedback, setFeedback] = useState({}) // { [messageId]: 'up' | 'down' | null }
     const [streamedMessageId, setStreamedMessageId] = useState(null) // for caret animation
     
-    // Voice state
     const [isListening, setIsListening] = useState(false)
     const [isSpeaking, setIsSpeaking] = useState(false)
     const [audioEnabled, setAudioEnabled] = useState(false)
     const [showCalculator, setShowCalculator] = useState(false)
     const [proactivePill, setProactivePill] = useState(null)
+    const [typingStage, setTypingStage] = useState(0) // 0=dots, 1=searching DB, 2=preparing reply
     const streamIntervalRef = useRef(null)
+    const typingTimerRef = useRef(null)
 
     const welcomeTimestamp = useMemo(() => formatTime(new Date(), locale), [locale])
 
@@ -538,6 +539,11 @@ export default function HossamChatWidget() {
         }
         setInputMessage('')
         setIsLoading(true)
+        setTypingStage(0)
+        // C1: Progressive typing messages after delays
+        if (typingTimerRef.current) clearTimeout(typingTimerRef.current)
+        typingTimerRef.current = setTimeout(() => setTypingStage(1), 2200)
+        const typingTimer2 = setTimeout(() => setTypingStage(2), 5000)
 
         // AbortController for fetch timeout
         if (abortControllerRef.current) {
@@ -656,6 +662,9 @@ export default function HossamChatWidget() {
 
                     clearTimeout(timeoutId)
                     abortControllerRef.current = null
+                    if (typingTimerRef.current) clearTimeout(typingTimerRef.current)
+                    clearTimeout(typingTimer2)
+                    setTypingStage(0)
                     setIsLoading(false)
                     return // Success — exit
                 } else {

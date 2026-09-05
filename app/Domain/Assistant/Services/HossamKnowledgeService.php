@@ -135,9 +135,29 @@ class HossamKnowledgeService
 
         // 1. Greetings / الترحيب
         if (preg_match('/^(سلام|السلام عليكم|سلام عليكم|مرحبا|مرحب|ازيك|اهلا|أهلا|أهلاً|صباح الخير|مساء الخير|هاي|مين انت|انت مين|بتعمل ايه|hello|hi|hey|who are you)/iu', $text)) {
+            // B2: Time-based greeting
+            $hour = (int) date('G'); // 0-23 in Egypt timezone (UTC+2 typically)
+            if ($locale === 'ar') {
+                if ($hour >= 6 && $hour < 12) {
+                    $timeGreeting = 'صباح الخير! ☀️';
+                } elseif ($hour >= 12 && $hour < 18) {
+                    $timeGreeting = 'مساء الخير! 🌤️';
+                } else {
+                    $timeGreeting = 'مساء النور! 🌙';
+                }
+            } else {
+                if ($hour >= 6 && $hour < 12) {
+                    $timeGreeting = 'Good morning! ☀️';
+                } elseif ($hour >= 12 && $hour < 18) {
+                    $timeGreeting = 'Good afternoon! 🌤️';
+                } else {
+                    $timeGreeting = 'Good evening! 🌙';
+                }
+            }
+
             if ($locale === 'en') {
                 return [
-                    'reply' => "Hello and welcome! I am **Hossam**, your private real estate advisor at **Family Home**. 🤝\n\nI am here to help you discover the finest properties, projects, and flexible payment plans across Egypt (New Cairo, New Administrative Capital, Sheikh Zayed, and the North Coast).\n\nHow may I assist your property journey today?",
+                    'reply' => "{$timeGreeting} Welcome! I am **Hossam**, your private real estate advisor at **Family Home**. 🤝\n\nI'm here to help you discover the finest properties, projects, and flexible payment plans across Egypt (New Cairo, New Administrative Capital, Sheikh Zayed, and the North Coast).\n\nHow may I assist your property journey today?",
                     'recommended_units' => [],
                     'is_hot_lead' => false,
                     'quick_replies' => [
@@ -150,7 +170,7 @@ class HossamKnowledgeService
             }
 
             return [
-                'reply' => "أهلاً ومرحباً بك! أنا «حسام»، المستشار العقاري والاستثماري لشركة **فاميلي هوم (Family Home)**. 🤝\n\nأنا هنا لمساعدتك في العثور على أفضل العقارات، والمشاريع، وأنظمة السداد المناسبة لميزانيتك في أميز مناطق مصر (التجمع الخامس، العاصمة الإدارية، الشيخ زايد، والساحل الشمالي).\n\nتحب نبدأ بإيه النهاردة؟",
+                'reply' => "{$timeGreeting} أهلاً ومرحباً بك! أنا «حسام»، المستشار العقاري والاستثماري لشركة **فاميلي هوم (Family Home)**. 🤝\n\nأنا هنا لمساعدتك في العثور على أفضل العقارات، والمشاريع، وأنظمة السداد المناسبة لميزانيتك في أميز مناطق مصر (التجمع الخامس، العاصمة الإدارية، الشيخ زايد، والساحل الشمالي).\n\nتحب نبدأ بإيه النهاردة؟",
                 'recommended_units' => [],
                 'is_hot_lead' => false,
                 'quick_replies' => [
@@ -161,6 +181,7 @@ class HossamKnowledgeService
                 ],
             ];
         }
+
 
         // 1b. Small Talk / كيف الحال والأخبار (الرد الودود بدون استبيانات)
         if (preg_match('/^(اخبارك|اخبارك ايه|عامل ايه|شخبارك|كيف حالك|كيفك|ازي حضرتك|ازيك|كله تمام|طمني عنك|how are you|how is it going)/iu', $text)) {
@@ -393,6 +414,92 @@ class HossamKnowledgeService
                     ],
                 ];
             }
+        }
+
+        // 9. Site Visit / Book Appointment / معاينة ميدانية
+        if (preg_match('/(معاينة|معاينه|زيارة موقع|احجز معاينة|احجز معاينه|اتفرج على|عايز اشوف|book.*visit|site.*visit|schedule.*viewing)/iu', $text)) {
+            if ($locale === 'en') {
+                return [
+                    'reply' => "Great decision — seeing a property in person is always the best way to decide! 🏠\n\nTo schedule a **free site visit**:\n1. Contact our team via WhatsApp: [{$whatsapp}]({$whatsappUrl})\n2. Tell them the property name and your available dates.\n3. Our consultant will meet you at the location and guide you through.\n\nSite visits are **100% free** with no obligations.",
+                    'recommended_units' => [],
+                    'is_hot_lead' => true,
+                    'quick_replies' => ['Chat on WhatsApp to book a visit', 'Show me available properties'],
+                ];
+            }
+            return [
+                'reply' => "قرار ممتاز — المعاينة الميدانية هي أفضل طريقة لاتخاذ قرار الشراء الصح! 🏠\n\nلحجز **معاينة مجانية**:\n1. تواصل مع فريقنا عبر واتساب: [اضغط هنا للتواصل معنا]({$whatsappUrl})\n2. أخبرهم باسم العقار والمواعيد المناسبة.\n3. مستشارنا سيرافقك في الزيارة ويشرحلك كل التفاصيل.\n\nالمعاينة **مجانية 100%** بدون أي التزامات.",
+                'recommended_units' => [],
+                'is_hot_lead' => true,
+                'quick_replies' => ['تواصل واتساب لحجز معاينة', 'ورّيني أحدث الوحدات المتاحة'],
+            ];
+        }
+
+        // 10. Registration Fees / مصاريف التسجيل والعقد
+        if (preg_match('/(مصاريف التسجيل|تكاليف التسجيل|رسوم التسجيل|رسوم الشهر العقاري|الشهر العقاري|عقد الشراء|registration fees|legal fees|notary)/iu', $text)) {
+            if ($locale === 'en') {
+                return [
+                    'reply' => "**Property Registration & Legal Fees in Egypt (2024-2025):**\n\n📋 **Breakdown:**\n• **Notarization:** ~1.5% to 3% of declared value at Notary Office\n• **Real Estate Registration (Shahr Aqari):** 2.5% of stated value\n• **Stamp Duty:** 0.3% of contract value\n• **Lawyer Fees (optional):** 1% to 2%\n\n💡 Always keep original contracts & receipts. Off-plan units may have deferred registration timelines.",
+                    'recommended_units' => [],
+                    'is_hot_lead' => false,
+                    'quick_replies' => ['Connect with legal advisor', 'Ready-to-register properties', 'Cash discount properties'],
+                ];
+            }
+            return [
+                'reply' => "**مصاريف التسجيل العقاري في مصر (2024-2025):**\n\n📋 **التفاصيل:**\n• **رسوم التوثيق:** حوالي 1.5% إلى 3% من القيمة المُعلنة\n• **رسوم الشهر العقاري:** 2.5% من القيمة المُسجلة\n• **رسوم الدمغة:** 0.3% من قيمة العقد\n• **أتعاب المحامي (اختياري):** 1% إلى 2%\n\n💡 احتفظ دائماً بالعقود الأصلية والإيصالات. الوحدات على الخريطة قد يكون لها مواعيد تسجيل مؤجلة.",
+                'recommended_units' => [],
+                'is_hot_lead' => false,
+                'quick_replies' => ['أحتاج مستشار قانوني', 'وحدات جاهزة للتسجيل', 'شقق بخصم كاش'],
+            ];
+        }
+
+        // 11. Bank Mortgage / تمويل بنكي
+        if (preg_match('/(تمويل بنكي|قرض بنكي|قرض عقاري|رهن عقاري|mortgage|bank loan|bank finance)/iu', $text)) {
+            if ($locale === 'en') {
+                return [
+                    'reply' => "**Bank Mortgage Financing in Egypt:**\n\n🏦 Key facts:\n• **Loan-to-Value:** Up to 80% for ready units\n• **Duration:** 5 to 20 years\n• **Interest Rate:** 10%–16% annually (declining balance)\n• **Eligibility:** Registered units with clear title deed\n\n⚠️ Off-plan units typically don't qualify until full registration.\n\n💡 Most of our developer partners offer **0% interest internal installment plans** — often a better deal than bank loans.",
+                    'recommended_units' => [],
+                    'is_hot_lead' => false,
+                    'quick_replies' => ['Show installment properties', 'Compare loan vs installments', 'Connect with financial advisor'],
+                ];
+            }
+            return [
+                'reply' => "**التمويل العقاري البنكي في مصر:**\n\n🏦 أهم المعلومات:\n• **نسبة التمويل:** تصل إلى 80% للوحدات الجاهزة\n• **مدة التمويل:** من 5 إلى 20 سنة\n• **سعر الفائدة:** 10% إلى 16% سنوياً (متناقص)\n• **الوحدات المؤهلة:** وحدات مسجلة بسند واضح\n\n⚠️ الوحدات على الخريطة عادةً لا تؤهل للتمويل إلا بعد اكتمال التسجيل.\n\n💡 معظم شركاء المطورين يقدمون **أقساطاً داخلية بدون فوائد** وهي غالباً أفضل من القرض البنكي.",
+                'recommended_units' => [],
+                'is_hot_lead' => false,
+                'quick_replies' => ['وحدات بالتقسيط بدون فوائد', 'قارن التقسيط مع القرض', 'تحدث مع مستشار مالي'],
+            ];
+        }
+
+        // 12. Immediate Delivery / استلام فوري
+        if (preg_match('/(استلام فوري|استلام حالي|تسليم فوري|تسليم حالي|جاهز للسكن|شقق جاهزة|وحدات جاهزة|ready to move|immediate delivery)/iu', $text)) {
+            $units = Unit::where('is_active', true)
+                ->where(fn($q) => $q->where('delivery_date', '<=', now()->addMonths(6))->orWhereNull('delivery_date'))
+                ->with(['area', 'type', 'images', 'user', 'project'])
+                ->orderByDesc('is_pinned')
+                ->orderByDesc('priority_points')
+                ->take(4)
+                ->get();
+
+            $formattedCards = $this->formatUnitCards($units->all(), $locale);
+
+            if ($locale === 'en') {
+                return [
+                    'reply' => !$units->isEmpty()
+                        ? "Great choice — ready-to-move units give you **immediate rental income** without construction delays! Here are available units: [SHOW_CARDS]"
+                        : "Ready unit availability changes frequently. Contact our team for the latest: [{$whatsapp}]({$whatsappUrl})",
+                    'recommended_units' => $formattedCards,
+                    'is_hot_lead' => true,
+                    'quick_replies' => ['Book a site visit', 'Calculate installments', 'Contact sales team'],
+                ];
+            }
+            return [
+                'reply' => !$units->isEmpty()
+                    ? "خيار ممتاز — الوحدات الجاهزة تمنحك **دخلاً إيجارياً فورياً** بدون انتظار! إليك الوحدات الجاهزة المتاحة: [SHOW_CARDS]"
+                    : "توافر الوحدات الجاهزة يتغير باستمرار. تواصل مع فريقنا لأحدث ما لدينا: [اضغط هنا للواتساب]({$whatsappUrl})",
+                'recommended_units' => $formattedCards,
+                'is_hot_lead' => true,
+                'quick_replies' => ['احجز معاينة', 'احسب القسط الشهري', 'تحدث مع المبيعات'],
+            ];
         }
 
         return null;

@@ -328,16 +328,16 @@ class HossamAssistantService
     private function searchRelevantUnits(string $message, array $history, string $locale): array
     {
         try {
-            // Combine the last 3 user messages to build search context to avoid losing previous constraints
+            // Combine the last 3 user messages to build search context
             $contextMessages = [];
-            $trimmedHistory = array_slice($history, -6); // Get last 6 turns
+            $trimmedHistory = array_slice($history, -6);
             foreach ($trimmedHistory as $turn) {
                 if (isset($turn['role']) && $turn['role'] === 'user') {
                     $contextMessages[] = $turn['content'];
                 }
             }
             $contextMessages[] = $message;
-            $contextMessages = array_slice($contextMessages, -3); // Keep only the last 3 user messages
+            $contextMessages = array_slice($contextMessages, -3);
             $combinedMessage = implode(' ', $contextMessages);
 
             // Normalize Arabic digits (٠-٩) to English digits
@@ -358,10 +358,11 @@ class HossamAssistantService
                 $val = (float) str_replace([',', ' '], '', $numStr);
                 if ($isMillion) return $val * 1000000;
                 if ($isThousand) return $val * 1000;
-                if ($val < 100) return $val * 1000000; // e.g. "5" in "اقل من 5" means 5 million
+                if ($val < 100) return $val * 1000000;
                 return $val;
             };
 
+            $budgetApplied = false;
             // Range: "بين X و Y" / "من X إلى Y"
             if (preg_match('/(?:بين|من)\s*(\d+(?:\.\d+)?)\s*(مليون|الف|ألف)?\s*(?:و|إلى|الي|لـ|ل)\s*(\d+(?:\.\d+)?)\s*(مليون|الف|ألف)?/u', $lowerMessage, $m)) {
                 $isMil1 = ! empty($m[2]) && mb_strpos($m[2], 'مليون') !== false;
@@ -370,42 +371,75 @@ class HossamAssistantService
                 $maxPrice = $toValue($m[3], $isMil2, false);
                 $query->whereBetween('price', [$minPrice, $maxPrice]);
                 $hasSpecificConstraints = true;
+                $budgetApplied = true;
             }
-            // Max Price: "أقل من X" / "تحت X" / "حد أقصى X" / "مش أكتر من X"
+            // Max Price
             elseif (preg_match('/(?:أقل\s*من|اقل\s*من|تحت|حد\s*أقصى|حد\s*اقصى|مش\s*أكتر\s*من|مش\s*اكتر\s*من|اقل|أقل|max|under|below|less\s*than)\s*(\d+(?:\.\d+)?)\s*(مليون|الف|ألف|k|m)?/u', $lowerMessage, $m)) {
                 $isMil = (! empty($m[2]) && (mb_strpos($m[2], 'مليون') !== false || mb_strpos($m[2], 'm') !== false)) || (float) $m[1] < 100;
                 $isK = ! empty($m[2]) && (mb_strpos($m[2], 'الف') !== false || mb_strpos($m[2], 'ألف') !== false || mb_strpos($m[2], 'k') !== false);
                 $maxPrice = $toValue($m[1], $isMil, $isK);
                 $query->where('price', '<=', $maxPrice);
                 $hasSpecificConstraints = true;
+                $budgetApplied = true;
             }
-            // Min Price: "أكثر من X" / "اكتر من X" / "فوق X" / "حد أدنى X"
+            // Min Price
             elseif (preg_match('/(?:أكثر\s*من|اكتر\s*من|فوق|حد\s*أدنى|حد\s*ادنى|أزيد\s*من|ازيد\s*من|more\s*than|above|min)\s*(\d+(?:\.\d+)?)\s*(مليون|الف|ألف|k|m)?/u', $lowerMessage, $m)) {
                 $isMil = (! empty($m[2]) && (mb_strpos($m[2], 'مليون') !== false || mb_strpos($m[2], 'm') !== false)) || (float) $m[1] < 100;
                 $isK = ! empty($m[2]) && (mb_strpos($m[2], 'الف') !== false || mb_strpos($m[2], 'ألف') !== false || mb_strpos($m[2], 'k') !== false);
                 $minPrice = $toValue($m[1], $isMil, $isK);
                 $query->where('price', '>=', $minPrice);
                 $hasSpecificConstraints = true;
+                $budgetApplied = true;
             }
-            // Target Budget: "ميزانية X" / "معايا X" / "في حدود X" / "بسعر X"
+            // Target Budget
             elseif (preg_match('/(?:ميزانية|ميزانيتي|معايا|معي|بميزانية|في\s*حدود|سعر|بـ|بحوالي|حوالي|budget)\s*(\d+(?:\.\d+)?)\s*(مليون|الف|ألف|k|m)?/u', $lowerMessage, $m)) {
                 $isMil = (! empty($m[2]) && (mb_strpos($m[2], 'مليون') !== false || mb_strpos($m[2], 'm') !== false)) || (float) $m[1] < 100;
                 $isK = ! empty($m[2]) && (mb_strpos($m[2], 'الف') !== false || mb_strpos($m[2], 'ألف') !== false || mb_strpos($m[2], 'k') !== false);
                 $targetVal = $toValue($m[1], $isMil, $isK);
                 $query->whereBetween('price', [$targetVal * 0.7, $targetVal * 1.25]);
                 $hasSpecificConstraints = true;
+                $budgetApplied = true;
+            }
+
+            // A7: Budget Memory — إذا لم يُحدَّد budget في الرسالة الحالية، ابحث في تاريخ المحادثة
+            if (!$budgetApplied && !empty($history)) {
+                $allUserMsgs = array_values(array_filter(array_map(
+                    fn($t) => ($t['role'] ?? '') === 'user'
+                        ? str_replace($eastern, $western, mb_strtolower($t['content'] ?? '', 'UTF-8'))
+                        : null,
+                    $history
+                )));
+                foreach (array_reverse($allUserMsgs) as $histMsg) {
+                    if (preg_match('/(?:ميزانية|ميزانيتي|معايا|معي|بميزانية|في\s*حدود|حوالي|budget)\s*(\d+(?:\.\d+)?)\s*(مليون|الف|ألف)?/u', $histMsg, $hm)) {
+                        $isMilH = (! empty($hm[2]) && mb_strpos($hm[2], 'مليون') !== false) || (float) $hm[1] < 100;
+                        $isKH = ! empty($hm[2]) && (mb_strpos($hm[2], 'الف') !== false || mb_strpos($hm[2], 'ألف') !== false);
+                        $histBudget = $toValue($hm[1], $isMilH, $isKH);
+                        if ($histBudget > 100000) {
+                            $query->whereBetween('price', [$histBudget * 0.7, $histBudget * 1.3]);
+                            break;
+                        }
+                    }
+                }
             }
 
             // 2. Correction & Negation Detection
             $isCorrection = (bool) preg_match('/(دى شقه|دي شقه|دى شقق|دي شقق|مش شقه|مش شقة|مش سكني|مش سكنى|طالب مكتب|قايلك مكتب|قصدى مكتب|قصدي مكتب|عايز مكتب مش|أنا قايل مكتب|انا قايل مكتب|مش ده|مش دا|غلط)/iu', $message);
 
-            // 3. Property Subtype Extraction & Strict DB Mapping
+            // 3. Property Subtype Extraction — A1: Dynamic type_id (no hard-coded IDs)
+            $unitTypes = \Illuminate\Support\Facades\Cache::remember('assistant_unit_types_lookup', 3600, function () {
+                return \App\Domain\Listings\Models\UnitType::select('id', 'slug', 'name_ar', 'name_en')->get();
+            });
+            $getTypeId = function (string $slug) use ($unitTypes): ?int {
+                return $unitTypes->first(fn($t) => $t->slug === $slug)?->id;
+            };
+
             $requestedType = null;
             if ($isCorrection || preg_match('/(مكتب|مكاتب|إداري|اداري|office|administrative)/iu', $lowerMessage)) {
                 $requestedType = 'administrative';
-                $query->where(function ($q) {
-                    $q->where('type_id', 2)
-                      ->orWhereHas('type', fn($tq) => $tq->where('slug', 'administrative')->orWhere('name_ar', 'LIKE', '%إداري%'))
+                $adminTypeId = $getTypeId('administrative');
+                $query->where(function ($q) use ($adminTypeId) {
+                    if ($adminTypeId) $q->where('type_id', $adminTypeId);
+                    $q->orWhereHas('type', fn($tq) => $tq->where('slug', 'administrative')->orWhere('name_ar', 'LIKE', '%إداري%'))
                       ->orWhere('name', 'LIKE', '%مكتب%')
                       ->orWhere('name', 'LIKE', '%إداري%')
                       ->orWhere('name', 'LIKE', '%اداري%')
@@ -424,9 +458,10 @@ class HossamAssistantService
                 $hasSpecificConstraints = true;
             } elseif (preg_match('/(عيادة|عياده|طبي|clinic|medical)/iu', $lowerMessage)) {
                 $requestedType = 'medical';
-                $query->where(function ($q) {
-                    $q->where('type_id', 3)
-                      ->orWhereHas('type', fn($tq) => $tq->where('slug', 'medical')->orWhere('name_ar', 'LIKE', '%طبي%'))
+                $medicalTypeId = $getTypeId('medical');
+                $query->where(function ($q) use ($medicalTypeId) {
+                    if ($medicalTypeId) $q->where('type_id', $medicalTypeId);
+                    $q->orWhereHas('type', fn($tq) => $tq->where('slug', 'medical')->orWhere('name_ar', 'LIKE', '%طبي%'))
                       ->orWhere('name', 'LIKE', '%عياد%')
                       ->orWhere('description_ar', 'LIKE', '%طبي%');
                 });
@@ -466,14 +501,24 @@ class HossamAssistantService
                 $hasSpecificConstraints = true;
             }
 
-            // 4. Area Extraction — Comprehensive matching with Egyptian Arabic variants
+            // 4. Area Extraction — A2: Arabic normalization (توحيد تاء مربوطة/ألف/ياء)
+            $normalizeAr = function (string $text): string {
+                $text = mb_strtolower($text, 'UTF-8');
+                $text = str_replace(['ة', 'ه'], 'ه', $text);
+                $text = str_replace(['أ', 'إ', 'آ'], 'ا', $text);
+                $text = str_replace(['ى'], 'ي', $text);
+                return $text;
+            };
+            $normalizedLower = $normalizeAr($lowerMessage);
+
             $areas = \Illuminate\Support\Facades\Cache::remember('assistant_areas_lookup', 3600, function () {
                 return Area::select('id', 'name_ar', 'name_en', 'slug')->get();
             });
             $matchedAreaId = null;
             $matchedAreaName = null;
             foreach ($areas as $area) {
-                if (($area->name_ar && mb_stripos($lowerMessage, $area->name_ar) !== false) ||
+                $normAr = $area->name_ar ? $normalizeAr($area->name_ar) : null;
+                if (($normAr && mb_stripos($normalizedLower, $normAr) !== false) ||
                     ($area->name_en && mb_stripos($lowerMessage, $area->name_en) !== false) ||
                     ($area->slug && mb_stripos($lowerMessage, $area->slug) !== false)) {
                     $matchedAreaId = $area->id;
@@ -486,11 +531,11 @@ class HossamAssistantService
                     $matchedArea = $areas->first(fn ($a) => mb_stripos($a->name_ar, 'عاصمة') !== false || mb_stripos($a->name_en, 'capital') !== false || $a->id === 6);
                     $matchedAreaId = $matchedArea?->id ?: 6;
                     $matchedAreaName = $matchedArea?->name_ar ?: 'العاصمة الإدارية';
-                } elseif (preg_match('/(تجمع|التجمع|new cairo|fifth settlement|القاهرة الجديدة)/iu', $lowerMessage)) {
+                } elseif (preg_match('/(تجمع|التجمع|new cairo|fifth settlement|القاهرة الجديدة|القاهره الجديده)/iu', $lowerMessage)) {
                     $matchedArea = $areas->first(fn ($a) => mb_stripos($a->name_ar, 'تجمع') !== false || mb_stripos($a->name_en, 'cairo') !== false);
                     $matchedAreaId = $matchedArea?->id;
                     $matchedAreaName = $matchedArea?->name_ar ?: 'التجمع الخامس';
-                } elseif (preg_match('/(زايد|الشيخ زايد|zayed)/iu', $lowerMessage)) {
+                } elseif (preg_match('/(زايد|الشيخ زايد|sheikh zayed|zayed)/iu', $lowerMessage)) {
                     $matchedArea = $areas->first(fn ($a) => mb_stripos($a->name_ar, 'زايد') !== false || mb_stripos($a->name_en, 'zayed') !== false);
                     $matchedAreaId = $matchedArea?->id;
                     $matchedAreaName = $matchedArea?->name_ar ?: 'الشيخ زايد';
@@ -525,7 +570,7 @@ class HossamAssistantService
                 $hasSpecificConstraints = true;
             }
 
-            // 5. Rooms Extraction
+            // 5. Rooms Extraction — A3: Range + descriptive expressions
             if (preg_match('/(\d+)\s*(?:غرف|غرفة|غرفه|نوم|rooms|bedrooms)/iu', $lowerMessage, $rm)) {
                 $query->where('rooms', (int) $rm[1]);
                 $hasSpecificConstraints = true;
@@ -534,6 +579,12 @@ class HossamAssistantService
                 $hasSpecificConstraints = true;
             } elseif (preg_match('/(غرفة واحدة|غرفه واحده|1 غرفة)/iu', $lowerMessage)) {
                 $query->where('rooms', 1);
+                $hasSpecificConstraints = true;
+            } elseif (preg_match('/(شقة كبيرة|شقه كبيره|شقة واسعة|شقه واسعه|large|spacious)/iu', $lowerMessage)) {
+                $query->where('rooms', '>=', 3);
+                $hasSpecificConstraints = true;
+            } elseif (preg_match('/(شقة صغيرة|شقه صغيره|small unit|compact)/iu', $lowerMessage)) {
+                $query->where('rooms', '<=', 2);
                 $hasSpecificConstraints = true;
             }
 
@@ -550,6 +601,45 @@ class HossamAssistantService
                 $hasSpecificConstraints = true;
             } elseif (preg_match('/(كاش|نقدي|cash)/iu', $lowerMessage)) {
                 $query->whereIn('payment_method', ['cash', 'both']);
+                $hasSpecificConstraints = true;
+            }
+
+            // 7. A8: Size Filter — "شقة 150 متر" / "مساحة 200" / "اكبر من 120 متر"
+            if (preg_match('/(?:مساحة|مساحه|اكبر\s*من|أكبر\s*من|larger\s*than|over)\s*(\d+)\s*(?:متر|م²|sqm|m2)?/iu', $lowerMessage, $sm)) {
+                $query->where('area_sqm', '>=', (int) $sm[1]);
+                $hasSpecificConstraints = true;
+            } elseif (preg_match('/(?:اصغر\s*من|أصغر\s*من|smaller\s*than|under)\s*(\d+)\s*(?:متر|م²|sqm|m2)?/iu', $lowerMessage, $sm)) {
+                $query->where('area_sqm', '<=', (int) $sm[1]);
+                $hasSpecificConstraints = true;
+            } elseif (preg_match('/(\d{2,3})\s*(?:متر|م²|sqm|m2)/iu', $lowerMessage, $sm) && (int) $sm[1] >= 30) {
+                $sqm = (int) $sm[1];
+                $query->whereBetween('area_sqm', [round($sqm * 0.8), round($sqm * 1.25)]);
+                $hasSpecificConstraints = true;
+            }
+
+            // 8. A4: Floor / Finishing / Deal Filters
+            if (preg_match('/(مش\s*(?:عايز\s*)?(?:دور\s*)?(?:أرضي|ارضي)|avoid\s*ground|no\s*ground)/iu', $lowerMessage)) {
+                $query->where(function ($q) { $q->where('floor', '>', 0)->orWhereNull('floor'); });
+            } elseif (preg_match('/(?:^|\s)(?:دور\s*)?(?:أرضي|ارضي)(?:\s|$)|ground\s*floor/iu', $lowerMessage) && !preg_match('/(مش|لا)/iu', $lowerMessage)) {
+                $query->where('floor', 0);
+                $hasSpecificConstraints = true;
+            }
+
+            if (preg_match('/(لقطة|لقطه|عرض\s*خاص|أوفر|اوفر|صفقة|deal|special\s*offer)/iu', $lowerMessage)) {
+                $query->where('is_deal', true);
+                $hasSpecificConstraints = true;
+            }
+
+            if (preg_match('/(تشطيب\s*(?:كامل|سوبر|فاخر)|super\s*lux|full\s*finish)/iu', $lowerMessage)) {
+                $query->whereHas('finishingType', fn($q) => $q->where('slug', 'LIKE', '%full%')->orWhere('name_ar', 'LIKE', '%كامل%')->orWhere('name_ar', 'LIKE', '%سوبر%'));
+            } elseif (preg_match('/(لب\s*فقط|بدون\s*تشطيب|core.*shell|without\s*finish)/iu', $lowerMessage)) {
+                $query->whereHas('finishingType', fn($q) => $q->where('slug', 'LIKE', '%core%')->orWhere('name_ar', 'LIKE', '%لب%')->orWhere('name_ar', 'LIKE', '%بدون%'));
+            }
+
+            if (preg_match('/(استلام\s*فوري|استلام\s*حالي|تسليم\s*فوري|جاهز\s*للسكن|ready\s*to\s*move|immediate\s*delivery)/iu', $lowerMessage)) {
+                $query->where(function ($q) {
+                    $q->where('delivery_date', '<=', now()->addMonths(3))->orWhereNull('delivery_date');
+                });
                 $hasSpecificConstraints = true;
             }
 
