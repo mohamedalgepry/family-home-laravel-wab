@@ -16298,9 +16298,8 @@ function SearchBar({ areas: rawAreas = [], unitTypes: rawUnitTypes = [], feature
 	const [isSearching, setIsSearching] = useState(false);
 	const [showAdvanced, setShowAdvanced] = useState(false);
 	useEffect(() => {
-		if (!showAdvanced) return;
 		function handleKeyDown(e) {
-			if (e.key === "Escape") setShowAdvanced(false);
+			if (e.key === "Escape" && showAdvanced) setShowAdvanced(false);
 		}
 		window.addEventListener("keydown", handleKeyDown);
 		return () => window.removeEventListener("keydown", handleKeyDown);
