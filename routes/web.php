@@ -175,7 +175,7 @@ Route::prefix('{locale}')->whereIn('locale', ['ar', 'en'])->middleware(SetLocale
         ->middleware('throttle:contact-form');
 
     Route::post('/assistant/chat', [AiAssistantController::class, 'chat'])
-        ->middleware('throttle:60,1')
+        ->middleware('throttle:assistant_chat')
         ->name('assistant.chat');
 });
 

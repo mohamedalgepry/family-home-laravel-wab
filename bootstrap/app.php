@@ -33,8 +33,6 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
         $middleware->validateCsrfTokens(except: [
             'csp-report',
-            'assistant/chat',
-            '*/assistant/chat',
         ]);
         $middleware->web(append: [
             HttpCacheControl::class,

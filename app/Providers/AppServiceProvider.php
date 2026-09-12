@@ -42,7 +42,10 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        $this->app->bind(
+            \App\Domain\Assistant\Contracts\AssistantCatalogRepositoryInterface::class,
+            \App\Domain\Assistant\Repositories\AssistantCatalogRepository::class
+        );
     }
 
     public function boot(): void
@@ -106,6 +109,10 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('property-search', function (Request $request) {
             return Limit::perMinute(30)->by($request->ip());
+        });
+
+        RateLimiter::for('assistant_chat', function (Request $request) {
+            return Limit::perMinute(10)->by($request->ip() ?: 'unknown');
         });
     }
 }

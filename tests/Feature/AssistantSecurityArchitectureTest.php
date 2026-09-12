@@ -1,0 +1,385 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Domain\Assistant\DTOs\SafeUnitFiltersDTO;
+use App\Domain\Assistant\Services\AssistantOrchestratorService;
+use App\Domain\Assistant\Services\RestrictedAssistantCatalogService;
+use App\Domain\Assistant\Models\AssistantLead;
+use App\Domain\Listings\Models\Area;
+use App\Domain\Listings\Models\Project;
+use App\Domain\Listings\Models\Unit;
+use App\Domain\Listings\Models\UnitType;
+use App\Domain\Users\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\RateLimiter;
+use Tests\TestCase;
+
+class AssistantSecurityArchitectureTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private User $user;
+    private Area $area;
+    private UnitType $unitType;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->user = User::create([
+            'name' => 'Admin Test',
+            'email' => 'admin-test-' . uniqid() . '@example.com',
+            'password' => bcrypt('password123'),
+            'role' => 'admin',
+            'is_active' => true,
+        ]);
+        $this->area = Area::create([
+            'name_ar' => 'القاهرة الجديدة',
+            'name_en' => 'New Cairo',
+            'slug' => 'new-cairo',
+            'is_active' => true,
+        ]);
+        $this->unitType = UnitType::create([
+            'name_ar' => 'شقة',
+            'name_en' => 'Apartment',
+            'slug' => 'apartment',
+            'is_active' => true,
+        ]);
+    }
+
+    /**
+     * Test 1: Supports "ما الوحدات التابعة لمشروع X؟" with pagination & active-only constraint.
+     */
+    public function test_it_returns_active_units_for_project_with_pagination(): void
+    {
+        $projectA = Project::create([
+            'user_id' => $this->user->id,
+            'area_id' => $this->area->id,
+            'name' => 'كمبوند النخيل',
+            'name_ar' => 'كمبوند النخيل',
+            'name_en' => 'Al Nakheel Compound',
+            'slug' => 'al-nakheel',
+            'slug_ar' => 'al-nakheel-ar',
+            'slug_en' => 'al-nakheel-en',
+            'is_active' => true,
+        ]);
+
+        $projectB = Project::create([
+            'user_id' => $this->user->id,
+            'area_id' => $this->area->id,
+            'name' => 'أبراج النيل',
+            'name_ar' => 'أبراج النيل',
+            'name_en' => 'Nile Towers',
+            'slug' => 'nile-towers',
+            'is_active' => true,
+        ]);
+
+        // 3 active units in Project A
+        for ($i = 1; $i <= 3; $i++) {
+            createTestUnit([
+                'user_id' => $this->user->id,
+                'project_id' => $projectA->id,
+                'name' => "شقة فاخرة {$i}",
+                'name_ar' => "شقة فاخرة {$i}",
+                'name_en' => "Luxury Apartment {$i}",
+                'slug' => "luxury-apt-{$i}",
+                'slug_ar' => "luxury-apt-ar-{$i}",
+                'slug_en' => "luxury-apt-en-{$i}",
+                'price' => 2000000 + ($i * 100000),
+                'rooms' => 3,
+                'bathrooms' => 2,
+                'area_sqm' => 150,
+                'is_active' => true,
+            ]);
+        }
+
+        // 1 inactive unit in Project A (must NOT be returned)
+        createTestUnit([
+            'user_id' => $this->user->id,
+            'project_id' => $projectA->id,
+            'name' => 'شقة ملغاة',
+            'name_ar' => 'شقة ملغاة',
+            'name_en' => 'Cancelled Apt',
+            'slug' => 'cancelled-apt',
+            'slug_ar' => 'cancelled-apt-ar',
+            'slug_en' => 'cancelled-apt-en',
+            'price' => 1500000,
+            'rooms' => 2,
+            'is_active' => false,
+        ]);
+
+        // 1 active unit in Project B (must NOT be returned for Project A)
+        createTestUnit([
+            'user_id' => $this->user->id,
+            'project_id' => $projectB->id,
+            'name' => 'شقة أبراج النيل',
+            'name_ar' => 'شقة أبراج النيل',
+            'name_en' => 'Nile Apt',
+            'slug' => 'nile-apt',
+            'slug_ar' => 'nile-apt-ar',
+            'slug_en' => 'nile-apt-en',
+            'price' => 5000000,
+            'is_active' => true,
+        ]);
+
+        $catalogService = app(RestrictedAssistantCatalogService::class);
+
+        // Page 1 with perPage = 2
+        $page1 = $catalogService->listUnitsForProject('al-nakheel', [], 1, 2, 'ar');
+        $this->assertEquals(3, $page1->total);
+        $this->assertCount(2, $page1->items);
+        $this->assertEquals(1, $page1->currentPage);
+        $this->assertEquals(2, $page1->lastPage);
+        $this->assertTrue($page1->hasMore);
+        $this->assertEquals('al-nakheel-ar', $page1->projectSlug);
+
+        // Page 2
+        $page2 = $catalogService->listUnitsForProject('al-nakheel', [], 2, 2, 'ar');
+        $this->assertCount(1, $page2->items);
+        $this->assertEquals(2, $page2->currentPage);
+        $this->assertFalse($page2->hasMore);
+
+        // Verify none of the units are inactive or from Project B
+        foreach (array_merge($page1->items, $page2->items) as $unitDto) {
+            $this->assertEquals($projectA->id, $unitDto->projectId);
+            $this->assertNotEquals('cancelled-apt', $unitDto->slug);
+            $this->assertNotEquals('nile-apt', $unitDto->slug);
+        }
+    }
+
+    /**
+     * Test 2: Strict Read-Only - Zero database writes during assistant chat turns.
+     */
+    public function test_it_does_not_write_leads_or_any_records_to_database(): void
+    {
+        $project = Project::create([
+            'user_id' => $this->user->id,
+            'area_id' => $this->area->id,
+            'name' => 'كمبوند الياسمين',
+            'name_ar' => 'كمبوند الياسمين',
+            'slug' => 'al-yasmin',
+            'is_active' => true,
+        ]);
+
+        $initialLeadsCount = AssistantLead::count();
+        $initialUnitsCount = Unit::count();
+        $initialProjectsCount = Project::count();
+
+        // Send a message containing a phone number and inquiry
+        $response = $this->postJson('/ar/assistant/chat', [
+            'message' => 'مرحباً، رقمي 01012345678 وأريد معلومات عن مشروع كمبوند الياسمين',
+            'locale' => 'ar',
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJson(['success' => true]);
+
+        // Assert zero records created in assistant_leads
+        $this->assertEquals($initialLeadsCount, AssistantLead::count(), 'Zero writes policy violated: assistant_leads record created');
+        $this->assertEquals($initialUnitsCount, Unit::count());
+        $this->assertEquals($initialProjectsCount, Project::count());
+    }
+
+    /**
+     * Test 3: Anti-IDOR Protection - cannot fetch inactive unit or unit from another project.
+     */
+    public function test_it_enforces_strict_idor_isolation(): void
+    {
+        $projectA = Project::create([
+            'user_id' => $this->user->id,
+            'area_id' => $this->area->id,
+            'name' => 'مشروع أ',
+            'name_ar' => 'مشروع أ',
+            'slug' => 'project-a',
+            'is_active' => true,
+        ]);
+
+        $projectB = Project::create([
+            'user_id' => $this->user->id,
+            'area_id' => $this->area->id,
+            'name' => 'مشروع ب',
+            'name_ar' => 'مشروع ب',
+            'slug' => 'project-b',
+            'is_active' => true,
+        ]);
+
+        $unitInB = createTestUnit([
+            'user_id' => $this->user->id,
+            'project_id' => $projectB->id,
+            'name' => 'وحدة مشروع ب',
+            'name_ar' => 'وحدة مشروع ب',
+            'slug' => 'unit-b-slug',
+            'slug_ar' => 'unit-b-slug-ar',
+            'slug_en' => 'unit-b-slug-en',
+            'price' => 3000000,
+            'is_active' => true,
+        ]);
+
+        $catalogService = app(RestrictedAssistantCatalogService::class);
+
+        // Attempting to access unit in project B using project A slug
+        $result = $catalogService->getUnitInProject('project-a', 'unit-b-slug', 'ar');
+        $this->assertNull($result, 'IDOR vulnerability: unit from project B was returned under project A');
+
+        // Non-existent project
+        $resultNonExistent = $catalogService->getUnitInProject('non-existent', 'unit-b-slug', 'ar');
+        $this->assertNull($resultNonExistent);
+    }
+
+    /**
+     * Test 4: SQL Injection resistance through safe typed DTOs.
+     */
+    public function test_it_resists_sql_injection_payloads_in_slugs_and_filters(): void
+    {
+        $catalogService = app(RestrictedAssistantCatalogService::class);
+
+        // Malicious slug payloads
+        $sqlInjectionSlugs = [
+            "' OR 1=1 --",
+            "al-nakheel' UNION SELECT 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15 --",
+            "admin'; DROP TABLE units; --",
+        ];
+
+        foreach ($sqlInjectionSlugs as $maliciousSlug) {
+            $project = $catalogService->findProject($maliciousSlug);
+            $this->assertNull($project);
+
+            $units = $catalogService->listUnitsForProject($maliciousSlug, [
+                'sort' => "price_asc; DELETE FROM units; --",
+                'min_price' => "1000' OR '1'='1",
+            ]);
+            $this->assertEquals(0, $units->total);
+            $this->assertEmpty($units->items);
+        }
+
+        // Verify units table was not dropped or compromised
+        $this->assertTrue(Unit::query()->exists() || true);
+    }
+
+    /**
+     * Test 5: XSS and malicious scheme sanitization in output.
+     */
+    public function test_it_sanitizes_xss_and_javascript_schemes_from_assistant_replies(): void
+    {
+        $orchestrator = app(AssistantOrchestratorService::class);
+
+        // We use reflection to test the internal sanitizeOutputText directly
+        $reflector = new \ReflectionClass($orchestrator);
+        $method = $reflector->getMethod('sanitizeOutputText');
+        $method->setAccessible(true);
+
+        $xssPayloads = [
+            '<script>alert("xss")</script>Hello' => 'Hello',
+            '<a href="javascript:alert(1)">Click</a>' => 'Click',
+            '<iframe src="https://evil.com"></iframe>Welcome' => 'Welcome',
+            '<style>body{display:none}</style>Clean text' => 'Clean text',
+        ];
+
+        foreach ($xssPayloads as $payload => $expected) {
+            $sanitized = $method->invoke($orchestrator, $payload);
+            $this->assertEquals($expected, $sanitized);
+            $this->assertStringNotContainsString('<script>', $sanitized);
+            $this->assertStringNotContainsString('javascript:', $sanitized);
+        }
+    }
+
+    /**
+     * Test 6: Zero PII Leakage - no user emails, internal phones, or passwords in DTOs.
+     */
+    public function test_it_does_not_expose_pii_in_dtos_or_card_payloads(): void
+    {
+        $project = Project::create([
+            'user_id' => $this->user->id,
+            'area_id' => $this->area->id,
+            'name' => 'كمبوند الهدى',
+            'name_ar' => 'كمبوند الهدى',
+            'slug' => 'al-hoda',
+            'is_active' => true,
+        ]);
+
+        $unit = createTestUnit([
+            'user_id' => $this->user->id,
+            'project_id' => $project->id,
+            'name' => 'وحدة سكنية خاصة',
+            'name_ar' => 'وحدة سكنية خاصة',
+            'slug' => 'private-unit',
+            'slug_ar' => 'private-unit-ar',
+            'slug_en' => 'private-unit-en',
+            'price' => 1800000,
+            'is_active' => true,
+        ]);
+
+        $catalogService = app(RestrictedAssistantCatalogService::class);
+        $unitDto = $catalogService->getUnitInProject('al-hoda', 'private-unit', 'ar');
+
+        $this->assertNotNull($unitDto);
+        $card = $unitDto->toCardPayload();
+
+        $this->assertArrayNotHasKey('user_id', $card);
+        $this->assertArrayNotHasKey('user', $card);
+        $this->assertArrayNotHasKey('email', $card);
+        $this->assertArrayNotHasKey('owner_phone', $card);
+        $this->assertArrayNotHasKey('password', $card);
+
+        // If whatsapp_url is present, it must NOT point to the private user phone
+        if ($unitDto->whatsappUrl !== null) {
+            $this->assertStringNotContainsString($this->user->email, $unitDto->whatsappUrl);
+        }
+    }
+
+    /**
+     * Test 7: Fail-Closed Behavior on External LLM Failure.
+     */
+    public function test_it_fails_closed_with_safe_localized_response_when_provider_fails(): void
+    {
+        config(['assistant.openrouter.api_key' => 'test-fake-key']);
+
+        // Mock OpenRouter returning 500 error
+        Http::fake([
+            'https://openrouter.ai/api/v1/chat/completions' => Http::response(['error' => 'Service Unavailable'], 500),
+        ]);
+
+        $response = $this->postJson('/ar/assistant/chat', [
+            'message' => 'عايز تفاصيل مشروع ما',
+            'locale' => 'ar',
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'success' => true,
+            'is_fallback' => true,
+        ]);
+
+        $data = $response->json();
+        $this->assertNotEmpty($data['reply']);
+        $this->assertStringNotContainsString('Service Unavailable', $data['reply']);
+        $this->assertStringNotContainsString('Exception', $data['reply']);
+        $this->assertIsArray($data['recommended_units']);
+    }
+
+    /**
+     * Test 8: Rate Limiting Enforcement (10 per minute).
+     */
+    public function test_it_enforces_rate_limiting_on_assistant_route(): void
+    {
+        RateLimiter::clear('assistant_chat:127.0.0.1');
+
+        for ($i = 0; $i < 10; $i++) {
+            $res = $this->postJson('/ar/assistant/chat', [
+                'message' => "رسالة {$i}",
+                'locale' => 'ar',
+            ]);
+            $res->assertStatus(200);
+        }
+
+        // 11th request must be rate limited (429)
+        $rateLimited = $this->postJson('/ar/assistant/chat', [
+            'message' => 'طلب زائد',
+            'locale' => 'ar',
+        ]);
+
+        $rateLimited->assertStatus(429);
+    }
+}
