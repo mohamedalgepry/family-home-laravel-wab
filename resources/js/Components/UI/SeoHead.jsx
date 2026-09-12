@@ -30,8 +30,8 @@ export default function SeoHead({
             .replace(/<\/?[^>]+(>|$)/g, '')
             .replace(/\*{1,3}([^*]*)\*{1,3}/g, '$1')
             .replace(/#{1,6}\s*/g, '')
-            .replace(/^[\s\-\*\+]\s+/gm, '')
-            .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')
+            .replace(/[\s\-*+]\s+/gm, '')
+            .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
             .replace(/`{1,3}[^`]*`{1,3}/g, '')
             .replace(/_{1,2}([^_]*)_{1,2}/g, '$1')
             .replace(/[\r\n]+/g, ' ')
@@ -47,7 +47,8 @@ export default function SeoHead({
     const rawKeywords = keywords || seo_meta?.keywords || (pageSeo ? (isRtl ? pageSeo.meta_keywords_ar : pageSeo.meta_keywords_en) : null);
     const keywordsString = Array.isArray(rawKeywords) ? rawKeywords.filter(Boolean).join(', ') : (typeof rawKeywords === 'string' ? rawKeywords : null);
 
-    const hasFilterQuery = typeof url === 'string' && url.includes('?') && /[?&](price_|size_|features|transaction|search|finishing_type|payment_method)/.test(url);
+    const hasFilterQuery = typeof url === 'string' && url.includes('?') &&
+        /[?&](area_id|type_id|page|price_|size_|features|transaction|search|finishing_type|payment_method|rooms|bathrooms|sort|direction)/.test(url);
     const finalRobots = robots || seo_meta?.robots || (hasFilterQuery ? 'noindex, follow' : null);
 
     // Clean canonical URL without query string
@@ -102,9 +103,9 @@ export default function SeoHead({
             <link head-key="canonical" rel="canonical" href={finalCanonical} />
             
             {/* Hreflang */}
-            <link head-key="hreflang-ar" rel="alternate" hreflang="ar" href={urlAr} />
-            <link head-key="hreflang-en" rel="alternate" hreflang="en" href={urlEn} />
-            <link head-key="hreflang-x-default" rel="alternate" hreflang="x-default" href={urlAr} />
+            <link head-key="hreflang-ar" rel="alternate" hrefLang="ar" href={urlAr} />
+            <link head-key="hreflang-en" rel="alternate" hrefLang="en" href={urlEn} />
+            <link head-key="hreflang-x-default" rel="alternate" hrefLang="x-default" href={urlAr} />
 
             {/* Structured Data (Schema.org) */}
             {jsonLdData && (
