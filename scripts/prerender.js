@@ -37,7 +37,7 @@ async function main() {
     const serverReady = await waitForServer(SSR_PORT, 15000)
     if (!serverReady) {
         console.error(`[Prerender] Error: SSR server did not start on port ${SSR_PORT} within 15 seconds.`)
-        try { ssrProcess.kill('SIGTERM') } catch {}
+        try { ssrProcess.kill('SIGTERM') } catch { }
         process.exit(1)
     }
 

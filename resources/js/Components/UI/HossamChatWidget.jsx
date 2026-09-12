@@ -31,238 +31,7 @@ const formatTime = (date, locale) =>
         minute: '2-digit',
     })
 
-function CalculatorIcon({ className = "w-4 h-4" }) {
-    return (
-        <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <rect x="4" y="2" width="16" height="20" rx="3" />
-            <line x1="8" y1="6" x2="16" y2="6" />
-            <circle cx="8.5" cy="10.5" r="0.85" fill="currentColor" />
-            <circle cx="12" cy="10.5" r="0.85" fill="currentColor" />
-            <circle cx="15.5" cy="10.5" r="0.85" fill="currentColor" />
-            <circle cx="8.5" cy="14" r="0.85" fill="currentColor" />
-            <circle cx="12" cy="14" r="0.85" fill="currentColor" />
-            <circle cx="15.5" cy="14" r="0.85" fill="currentColor" />
-            <circle cx="8.5" cy="17.5" r="0.85" fill="currentColor" />
-            <circle cx="12" cy="17.5" r="0.85" fill="currentColor" />
-            <circle cx="15.5" cy="17.5" r="0.85" fill="currentColor" />
-        </svg>
-    )
-}
 
-function InstallmentCalculatorCard({ isRtl, trans, onApplyBudget, onClose }) {
-    const [price, setPrice] = useState(4000000)
-    const [downPercent, setDownPercent] = useState(10)
-    const [years, setYears] = useState(7)
-
-    const downPayment = useMemo(() => price * (downPercent / 100), [price, downPercent])
-    const remaining = useMemo(() => Math.max(0, price - downPayment), [price, downPayment])
-    const monthly = useMemo(() => (years > 0 ? remaining / (years * 12) : 0), [remaining, years])
-    const quarterly = useMemo(() => (years > 0 ? remaining / (years * 4) : 0), [remaining, years])
-
-    const quickPrices = [2500000, 4000000, 6000000, 10000000, 15000000, 20000000]
-
-    // Calculate percentage fill for the custom range track
-    const minPrice = 1000000
-    const maxPrice = 25000000
-    const sliderPercent = Math.min(100, Math.max(0, ((price - minPrice) / (maxPrice - minPrice)) * 100))
-
-    const trackGradient = isRtl
-        ? `linear-gradient(to left, #CC0000 0%, #CC0000 ${sliderPercent}%, #E2E8F0 ${sliderPercent}%, #E2E8F0 100%)`
-        : `linear-gradient(to right, #CC0000 0%, #CC0000 ${sliderPercent}%, #E2E8F0 ${sliderPercent}%, #E2E8F0 100%)`
-
-    return (
-        <div className="bg-white text-slate-900 rounded-2xl p-4 sm:p-4.5 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.08)] border border-slate-200/90 w-full transition-all">
-            {/* Header: Title + Advisor Badge + Close */}
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3.5">
-                <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-8 h-8 rounded-xl bg-[#FFF5F5] border border-[#FFE3E3] text-[#CC0000] flex items-center justify-center shrink-0 shadow-2xs">
-                        <CalculatorIcon className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                            <h4 className="text-[13px] font-black text-slate-900 leading-tight tracking-tight">
-                                {trans('assistant_calculator_title')}
-                            </h4>
-                            <span className="text-[9px] font-bold text-[#8B0000] bg-[#FFF5F5] border border-[#FFE3E3] px-1.5 py-0.5 rounded">
-                                {isRtl ? 'حساب فوري' : 'Live Calc'}
-                            </span>
-                        </div>
-                        <p className="text-[10px] text-slate-400 font-medium truncate mt-0.5">
-                            {isRtl ? 'محاكاة خطط السداد ومطابقة الميزانية' : 'Simulate plans & match your budget'}
-                        </p>
-                    </div>
-                </div>
-                {onClose && (
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="w-7 h-7 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 flex items-center justify-center transition-colors shrink-0 ms-1"
-                        aria-label={trans('assistant_close')}
-                        title={trans('assistant_close')}
-                    >
-                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round">
-                            <line x1="18" y1="6" x2="6" y2="18" />
-                            <line x1="6" y1="6" x2="18" y2="18" />
-                        </svg>
-                    </button>
-                )}
-            </div>
-
-            {/* Price section */}
-            <div className="mb-3.5">
-                <div className="flex items-baseline justify-between mb-1.5">
-                    <span className="text-[11px] font-semibold text-slate-500">
-                        {trans('assistant_property_price')}
-                    </span>
-                    <div className="flex items-baseline gap-1 font-mono">
-                        <span className="text-lg sm:text-xl font-black text-slate-950 tabular-nums tracking-tight">
-                            {Number(price).toLocaleString()}
-                        </span>
-                        <span className="text-[10.5px] font-bold text-[#CC0000] bg-[#FFF5F5] border border-[#FFE3E3] px-1.5 py-0.5 rounded">
-                            {isRtl ? 'ج.م' : 'EGP'}
-                        </span>
-                    </div>
-                </div>
-
-                {/* Range Slider */}
-                <div className="py-1">
-                    <input
-                        type="range"
-                        min={minPrice}
-                        max={maxPrice}
-                        step="250000"
-                        value={price}
-                        onChange={(e) => setPrice(Number(e.target.value))}
-                        className="w-full h-2 rounded-full appearance-none cursor-pointer accent-[#CC0000] focus:outline-none transition-all"
-                        style={{ background: trackGradient }}
-                        aria-label={trans('assistant_property_price')}
-                    />
-                </div>
-
-                {/* Quick Presets */}
-                <div className="flex flex-wrap gap-1 mt-2">
-                    {quickPrices.map((qp) => {
-                        const isSelected = price === qp
-                        const label = qp >= 1000000 ? `${qp / 1000000}M` : `${qp / 1000}K`
-                        return (
-                            <button
-                                key={qp}
-                                type="button"
-                                onClick={() => setPrice(qp)}
-                                className={`text-[10px] px-2 py-0.5 rounded-lg border transition-all font-mono ${
-                                    isSelected
-                                        ? 'bg-[#1A1A1A] border-[#1A1A1A] text-white font-bold shadow-xs'
-                                        : 'bg-slate-50 border-slate-200/80 text-slate-600 hover:bg-slate-100 hover:text-slate-900 hover:border-slate-300'
-                                }`}
-                            >
-                                {label}
-                            </button>
-                        )
-                    })}
-                </div>
-            </div>
-
-            {/* Down payment & years row */}
-            <div className="grid grid-cols-2 gap-2.5 mb-3 pt-3 border-t border-slate-100">
-                {/* Down Payment % */}
-                <div className="bg-slate-50/70 p-2 rounded-xl border border-slate-200/60">
-                    <div className="flex items-center justify-between text-[11px] mb-1.5">
-                        <span className="text-slate-500 font-medium">{trans('assistant_down_payment')}</span>
-                        <span className="font-black text-[#CC0000] font-mono text-xs tabular-nums">{downPercent}%</span>
-                    </div>
-                    <div className="grid grid-cols-4 gap-1">
-                        {[10, 15, 20, 25].map((pct) => (
-                            <button
-                                key={pct}
-                                type="button"
-                                onClick={() => setDownPercent(pct)}
-                                className={`text-[10px] py-1 rounded-md border font-semibold transition-all ${
-                                    downPercent === pct
-                                        ? 'bg-[#CC0000] border-[#CC0000] text-white font-bold shadow-xs'
-                                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                                }`}
-                            >
-                                {pct}%
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Duration */}
-                <div className="bg-slate-50/70 p-2 rounded-xl border border-slate-200/60">
-                    <div className="flex items-center justify-between text-[11px] mb-1.5">
-                        <span className="text-slate-500 font-medium">{trans('assistant_installment_duration')}</span>
-                        <span className="font-black text-slate-900 font-mono text-xs tabular-nums">{years} {trans('years')}</span>
-                    </div>
-                    <div className="grid grid-cols-4 gap-1">
-                        {[5, 7, 8, 10].map((yr) => (
-                            <button
-                                key={yr}
-                                type="button"
-                                onClick={() => setYears(yr)}
-                                className={`text-[10px] py-1 rounded-md border font-semibold transition-all ${
-                                    years === yr
-                                        ? 'bg-[#1A1A1A] border-[#1A1A1A] text-white font-bold shadow-xs'
-                                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                                }`}
-                            >
-                                {yr}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            </div>
-
-            {/* Financial Summary (3 Cards) */}
-            <div className="grid grid-cols-3 gap-1.5 mb-3.5">
-                {/* Down payment amount */}
-                <div className="p-2 rounded-xl bg-slate-50 border border-slate-200/70 text-center">
-                    <p className="text-[9.5px] font-medium text-slate-500 truncate">{trans('assistant_down_payment')}</p>
-                    <p className="text-xs sm:text-[13px] font-black text-slate-900 font-mono truncate mt-0.5 tabular-nums">
-                        {Math.round(downPayment).toLocaleString()}
-                    </p>
-                    <p className="text-[8.5px] text-slate-400 mt-0.5">{downPercent}% {isRtl ? 'مقدم' : 'down'}</p>
-                </div>
-
-                {/* Monthly installment — Hero Card */}
-                <div className="p-2 rounded-xl bg-[#FFF5F5] border border-[#FFE3E3] text-center relative overflow-hidden shadow-2xs">
-                    <div className="absolute top-0 inset-x-0 h-0.5 bg-[#CC0000]" />
-                    <p className="text-[9.5px] font-bold text-[#8B0000] truncate">{trans('assistant_monthly_installment')}</p>
-                    <p className="text-xs sm:text-[14px] font-black text-[#CC0000] font-mono truncate mt-0.5 tabular-nums">
-                        {Math.round(monthly).toLocaleString()}
-                    </p>
-                    <p className="text-[8.5px] font-bold text-[#8B0000]/70 mt-0.5">{isRtl ? 'شهرياً' : 'Monthly'}</p>
-                </div>
-
-                {/* Quarterly installment */}
-                <div className="p-2 rounded-xl bg-slate-50 border border-slate-200/70 text-center">
-                    <p className="text-[9.5px] font-medium text-slate-500 truncate">{trans('assistant_quarterly_installment')}</p>
-                    <p className="text-xs sm:text-[13px] font-black text-slate-900 font-mono truncate mt-0.5 tabular-nums">
-                        {Math.round(quarterly).toLocaleString()}
-                    </p>
-                    <p className="text-[8.5px] text-slate-400 mt-0.5">{isRtl ? 'كل ٣ أشهر' : 'Quarterly'}</p>
-                </div>
-            </div>
-
-            {/* Action CTA Button */}
-            <button
-                type="button"
-                onClick={() => {
-                    const prompt = isRtl
-                        ? `عايز شقق بمقدم حوالي ${Math.round(downPayment).toLocaleString()} وقسط شهري في حدود ${Math.round(monthly).toLocaleString()} على ${years} سنوات`
-                        : `Looking for units with down payment around ${Math.round(downPayment).toLocaleString()} and monthly installments of ${Math.round(monthly).toLocaleString()} over ${years} years`
-                    onApplyBudget(prompt)
-                }}
-                className="w-full h-11 min-h-[44px] bg-[#CC0000] hover:bg-[#B00000] active:scale-[0.98] text-white text-xs sm:text-[13px] font-bold rounded-xl transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center gap-2 outline-none focus:ring-2 focus:ring-[#CC0000]/30"
-            >
-                <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2} aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <span>{trans('assistant_search_matching_units')}</span>
-            </button>
-        </div>
-    )
-}
 
 export default function HossamChatWidget() {
     const pageProps = usePage()?.props || {}
@@ -309,7 +78,6 @@ export default function HossamChatWidget() {
     const [isListening, setIsListening] = useState(false)
     const [isSpeaking, setIsSpeaking] = useState(false)
     const [audioEnabled, setAudioEnabled] = useState(false)
-    const [showCalculator, setShowCalculator] = useState(false)
     const [proactivePill, setProactivePill] = useState(null)
     const [typingStage, setTypingStage] = useState(0) // 0=dots, 1=searching DB, 2=preparing reply
     const streamIntervalRef = useRef(null)
@@ -396,8 +164,8 @@ export default function HossamChatWidget() {
                 : `Exploring ${pageProps.project.name}? Want to see payment plans and prices?`
         } else if (pageProps.unit?.name) {
             inviteText = isRtl
-                ? `مهتم بالوحدة دي؟ ممكن أساعدك تحسب القسط الشهري أو أرتبلك معاينة.`
-                : `Interested in this unit? I can calculate monthly installments or book a visit.`
+                ? `مهتم بالوحدة دي؟ ممكن أساعدك في معلومات السعر أو أرتبلك معاينة.`
+                : `Interested in this unit? I can help with pricing info or book a visit.`
         } else if (currentPath.includes('/units/deals')) {
             inviteText = isRtl
                 ? `بتدور على صفقات استثمارية ولقطات؟ عندنا خيارات حصرية بخصم كاش وتقسيط!`
@@ -602,10 +370,6 @@ export default function HossamChatWidget() {
                     const fullReply = data.reply || ''
                     const words = fullReply.split(' ')
 
-                    if (data.show_calculator) {
-                        setShowCalculator(true)
-                    }
-
                     if (words.length <= 4) {
                         setMessages(prev => [
                             ...prev,
@@ -615,7 +379,6 @@ export default function HossamChatWidget() {
                                 content: fullReply,
                                 recommended_units: data.recommended_units || [],
                                 quick_replies: data.quick_replies || [],
-                                show_calculator: data.show_calculator || false,
                                 timestamp: formatTime(new Date(), locale),
                             }
                         ])
@@ -633,7 +396,6 @@ export default function HossamChatWidget() {
                                 content: '',
                                 recommended_units: data.recommended_units || [],
                                 quick_replies: data.quick_replies || [],
-                                show_calculator: data.show_calculator || false,
                                 timestamp: formatTime(new Date(), locale),
                             }
                         ])
@@ -745,10 +507,35 @@ export default function HossamChatWidget() {
         return parts.map((part, pIdx) => {
             const linkMatch = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/)
             if (linkMatch) {
+                const rawUrl = (linkMatch[2] || '').trim()
+                // Strict validation: Only allow safe relative URLs (starting with /) or trusted protocols (https://wa.me, tel:, mailto:)
+                const isSafeUrl = rawUrl.startsWith('/') ||
+                    /^https:\/\/wa\.me\//i.test(rawUrl) ||
+                    /^tel:[+0-9\s-]+$/i.test(rawUrl) ||
+                    /^mailto:[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/i.test(rawUrl)
+
+                if (!isSafeUrl) {
+                    return <span key={pIdx} className="font-semibold text-slate-800">{linkMatch[1]}</span>
+                }
+
+                if (rawUrl.startsWith('https://wa.me/') || rawUrl.startsWith('tel:') || rawUrl.startsWith('mailto:')) {
+                    return (
+                        <a
+                            key={pIdx}
+                            href={rawUrl}
+                            target={rawUrl.startsWith('https://') ? "_blank" : undefined}
+                            rel={rawUrl.startsWith('https://') ? "noopener noreferrer" : undefined}
+                            className="text-[#CC0000] font-bold underline underline-offset-2 decoration-[#CC0000]/30 hover:text-[#990000] hover:decoration-[#990000]/60 transition-colors"
+                        >
+                            {linkMatch[1]}
+                        </a>
+                    )
+                }
+
                 return (
                     <Link
                         key={pIdx}
-                        href={linkMatch[2]}
+                        href={rawUrl}
                         onClick={handleUnitLinkClick}
                         className="text-[#CC0000] font-bold underline underline-offset-2 decoration-[#CC0000]/30 hover:text-[#990000] hover:decoration-[#990000]/60 transition-colors"
                     >
@@ -1060,20 +847,6 @@ export default function HossamChatWidget() {
                                     )}
                                 </button>
                                 <button
-                                    type="button"
-                                    onClick={() => setShowCalculator(prev => !prev)}
-                                    className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 ${
-                                        showCalculator
-                                            ? 'bg-[#1A1A1A] text-white shadow-xs'
-                                            : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
-                                    }`}
-                                    title={trans('assistant_calculator')}
-                                    aria-label={trans('assistant_calculator')}
-                                    aria-expanded={showCalculator}
-                                >
-                                    <CalculatorIcon className="w-4 h-4" />
-                                </button>
-                                <button
                                     onClick={resetChat}
                                     className="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-900 flex items-center justify-center transition-colors"
                                     title={trans('assistant_clear')}
@@ -1104,21 +877,6 @@ export default function HossamChatWidget() {
                             </span>
                         </div>
                     </header>
-
-                    {/* Collapsible Calculator Drawer */}
-                    {showCalculator && (
-                        <div className="px-3.5 py-3 bg-slate-50/95 border-b border-slate-200/80 backdrop-blur-sm transition-all duration-200">
-                            <InstallmentCalculatorCard
-                                isRtl={isRtl}
-                                trans={trans}
-                                onApplyBudget={(prompt) => {
-                                    setShowCalculator(false)
-                                    handleSendMessage(prompt)
-                                }}
-                                onClose={() => setShowCalculator(false)}
-                            />
-                        </div>
-                    )}
 
                     {/* ========== Messages area — warm paper ========== */}
                     <div
@@ -1281,17 +1039,6 @@ export default function HossamChatWidget() {
                                             </div>
                                         )}
 
-                                        {/* Inline Calculator Card */}
-                                        {msg.show_calculator && (
-                                            <div className="w-full mt-3 max-w-[96%]">
-                                                <InstallmentCalculatorCard
-                                                    isRtl={isRtl}
-                                                    trans={trans}
-                                                    onApplyBudget={(prompt) => handleSendMessage(prompt)}
-                                                />
-                                            </div>
-                                        )}
-
                                         {/* Dynamic Quick Replies */}
                                         {!isUser && !isStreaming && msg.quick_replies && msg.quick_replies.length > 0 && !isLoading && (
                                             <div className="flex flex-wrap gap-1.5 mt-3 ms-1 w-full max-w-[96%]">
@@ -1337,14 +1084,6 @@ export default function HossamChatWidget() {
                                 <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
                                     {isRtl ? 'اقتراحات سريعة' : 'Quick start'}
                                 </p>
-                                <button
-                                    type="button"
-                                    onClick={() => setShowCalculator(prev => !prev)}
-                                    className="text-[11.5px] font-bold text-slate-700 hover:text-[#CC0000] bg-slate-50 hover:bg-[#FFF5F5] border border-slate-200/80 hover:border-[#FFE3E3] px-2.5 py-1 rounded-full flex items-center gap-1.5 transition-all shadow-2xs"
-                                >
-                                    <CalculatorIcon className="w-3.5 h-3.5 text-[#CC0000]" />
-                                    <span>{trans('assistant_calculator')}</span>
-                                </button>
                             </div>
                             <div className="flex flex-wrap gap-1.5">
                                 {quickQuestions.map((q, qIdx) => (
