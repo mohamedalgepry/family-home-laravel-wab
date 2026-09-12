@@ -56,9 +56,30 @@ trait HasImageAttributes
             return null;
         }
 
-        $path = $this->variantRelativePath($variant);
+        $path = $this->resolveVariantPath($variant);
 
-        return $this->variantExists($variant, $path) ? '/storage/'.$path : null;
+        return $path ? '/storage/'.$path : null;
+    }
+
+    private function resolveVariantPath(string $variant): ?string
+    {
+        return Cache::remember(
+            "image_variant_exists:{$variant}:{$this->path}",
+            now()->addDay(),
+            function () use ($variant) {
+                $webpPath = $this->variantRelativePath($variant);
+                if (Storage::disk('public')->exists($webpPath)) {
+                    return $webpPath;
+                }
+
+                $legacyPath = $this->legacyVariantRelativePath($variant);
+                if ($legacyPath !== $webpPath && Storage::disk('public')->exists($legacyPath)) {
+                    return $legacyPath;
+                }
+
+                return null;
+            }
+        );
     }
 
     private function variantRelativePath(string $variant): string
@@ -70,13 +91,14 @@ trait HasImageAttributes
         return $prefix."{$variant}_{$filename}.webp";
     }
 
-    private function variantExists(string $variant, string $path): bool
+    private function legacyVariantRelativePath(string $variant): string
     {
-        return Cache::remember(
-            "image_variant_exists:{$variant}:{$this->path}",
-            now()->addDay(),
-            fn () => Storage::disk('public')->exists($path)
-        );
+        $dir = dirname($this->path);
+        $filename = pathinfo($this->path, PATHINFO_FILENAME);
+        $extension = pathinfo($this->path, PATHINFO_EXTENSION);
+        $prefix = $dir !== '.' ? $dir.'/' : '';
+
+        return $prefix."{$variant}_{$filename}".($extension ? ".{$extension}" : '');
     }
 
     private function isExternalOrAbsolutePath(string $path): bool

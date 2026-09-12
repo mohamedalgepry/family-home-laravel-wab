@@ -125,6 +125,9 @@ Route::post('/csp-report', function (\Illuminate\Http\Request $request) {
     return response()->noContent();
 })->name('csp.report');
 
+Route::post('/units/{unit:slug}/contact', [MessageController::class, 'store'])
+    ->middleware('throttle:contact-form');
+
 Route::prefix('{locale}')->whereIn('locale', ['ar', 'en'])->middleware(SetLocale::class)->group(function () {
     Route::get('/', HomeController::class)->name('home');
 
@@ -175,7 +178,7 @@ Route::prefix('{locale}')->whereIn('locale', ['ar', 'en'])->middleware(SetLocale
         ->middleware('throttle:contact-form');
 
     Route::post('/assistant/chat', [AiAssistantController::class, 'chat'])
-        ->middleware('throttle:20,1')
+        ->middleware('throttle:assistant_chat')
         ->name('assistant.chat');
 });
 
@@ -335,9 +338,6 @@ Route::prefix('admin')->middleware(['auth', 'role:admin,manager,agent'])->group(
 
     Route::prefix('seo-pages')->name('admin.seo-pages.')->middleware('role:admin')->group(function () {
         Route::get('/', [PageSeoController::class, 'index'])->name('index');
-        Route::put('/{pageSeo}', [PageSeoController::class, 'update'])->name('update');
-    });
-});
         Route::put('/{pageSeo}', [PageSeoController::class, 'update'])->name('update');
     });
 });

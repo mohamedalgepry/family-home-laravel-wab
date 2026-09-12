@@ -139,7 +139,7 @@ class ListingQueryBuilder
         return true;
     }
 
-    public static function perPage(array $filters, int $default = 15, int $max = 100): int
+    public static function perPage(array $filters, int $default = 15, int $max = 50): int
     {
         $perPage = (int) ($filters['per_page'] ?? $default);
 
