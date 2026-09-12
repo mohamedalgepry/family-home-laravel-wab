@@ -107,7 +107,7 @@ class UnitController
             function () use ($unit) {
                 return Project::where('is_active', true)
                     ->when($unit->project_id, fn ($q) => $q->where('id', '!=', $unit->project_id))
-                    ->with(['area', 'images', 'user.profile'])
+                    ->with(['area', 'images'])
                     ->withCount(['units' => fn ($q) => $q->active()])
                     // ترتيب: المنطقة المطابقة أولاً، ثم الأحدث
                     ->orderByRaw('CASE WHEN area_id = ? THEN 0 ELSE 1 END', [$unit->area_id ?? 0])

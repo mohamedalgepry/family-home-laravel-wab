@@ -34,15 +34,30 @@ class SearchService
             return;
         }
 
-        PopularSearch::upsert(
-            [
-                ['keyword' => $keyword, 'search_count' => 1, 'last_searched_at' => now()],
-            ],
-            ['keyword'],
-            ['search_count' => \DB::raw('search_count + 1'), 'last_searched_at']
-        );
+        $record = function () use ($keyword) {
+            try {
+                PopularSearch::upsert(
+                    [
+                        ['keyword' => $keyword, 'search_count' => 1, 'last_searched_at' => now()],
+                    ],
+                    ['keyword'],
+                    ['search_count' => \Illuminate\Support\Facades\DB::raw('search_count + 1'), 'last_searched_at']
+                );
 
-        // أي بحث جديد يجعل نسخة الكاش الحالية قديمة فوراً لتظهر البيانات المحدّثة
-        Cache::increment(self::CACHE_VERSION_KEY);
+                // Debounce cache version invalidation: update version at most once every 300 seconds
+                if (!Cache::has('popular_searches_debounce')) {
+                    Cache::put('popular_searches_debounce', true, 300);
+                    Cache::increment(self::CACHE_VERSION_KEY);
+                }
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Failed to record popular search: ' . $e->getMessage());
+            }
+        };
+
+        if (app()->runningInConsole()) {
+            $record();
+        } else {
+            dispatch($record)->afterResponse();
+        }
     }
 }

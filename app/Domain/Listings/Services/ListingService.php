@@ -93,7 +93,7 @@ class ListingService
 
         return Cache::remember($key, self::CACHE_TTL, function () use ($filters, $perPage) {
             $query = Project::where('is_active', true)
-                ->with('area', 'images', 'user.profile')
+                ->with(['area', 'images'])
                 ->withCount(['units' => function ($q) {
                     $q->active();
                 }]);
@@ -110,7 +110,7 @@ class ListingService
 
         return Cache::remember(self::CACHE_PREFIX."latest_projects_{$limit}_{$pageName}_{$page}_v{$this->version()}", self::CACHE_TTL, function () use ($limit, $pageName) {
             return Project::where('is_active', true)
-                ->with(['area', 'images', 'user.profile'])
+                ->with(['area', 'images'])
                 ->withCount(['units' => function ($q) {
                     $q->active();
                 }])
