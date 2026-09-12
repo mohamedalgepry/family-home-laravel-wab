@@ -15700,7 +15700,7 @@ function CompareBar() {
 }
 //#endregion
 //#region resources/js/Components/Layout/Footer.jsx
-var HossamChatWidget = lazy(() => import("./assets/HossamChatWidget-BHbmT-DJ.js"));
+var HossamChatWidget = lazy(() => import("./assets/HossamChatWidget-B2Qdn2J9.js"));
 var QUICK_LINKS = [
 	{
 		key: "home",
@@ -18473,7 +18473,7 @@ function ArticleShow({ article, relatedArticles, suggestedUnits }) {
 									})
 								}),
 								/* @__PURE__ */ jsx("div", {
-									className: "prose prose-base sm:prose-lg max-w-none text-secondary-800 leading-loose font-sans\n                            prose-headings:font-black prose-headings:text-secondary-950 prose-headings:mt-12 prose-headings:mb-4 prose-headings:tracking-tight\n                            prose-p:text-secondary-800 prose-p:leading-loose prose-p:mb-6 prose-p:font-medium\n                            prose-img:rounded-3xl prose-img:my-8 prose-img:w-full prose-img:object-cover prose-img:shadow-sm\n                            prose-blockquote:bg-primary-50/70 prose-blockquote:p-6 prose-blockquote:rounded-3xl prose-blockquote:text-secondary-950 prose-blockquote:font-semibold prose-blockquote:not-italic prose-blockquote:border border-primary-100\n                            prose-a:text-primary-900 prose-a:font-bold prose-a:underline hover:prose-a:text-primary-950",
+									className: "prose prose-base sm:prose-lg max-w-none text-secondary-800 leading-loose font-sans\r\n                            prose-headings:font-black prose-headings:text-secondary-950 prose-headings:mt-12 prose-headings:mb-4 prose-headings:tracking-tight\r\n                            prose-p:text-secondary-800 prose-p:leading-loose prose-p:mb-6 prose-p:font-medium\r\n                            prose-img:rounded-3xl prose-img:my-8 prose-img:w-full prose-img:object-cover prose-img:shadow-sm\r\n                            prose-blockquote:bg-primary-50/70 prose-blockquote:p-6 prose-blockquote:rounded-3xl prose-blockquote:text-secondary-950 prose-blockquote:font-semibold prose-blockquote:not-italic prose-blockquote:border border-primary-100\r\n                            prose-a:text-primary-900 prose-a:font-bold prose-a:underline hover:prose-a:text-primary-950",
 									dangerouslySetInnerHTML: { __html: normalizedContent }
 								}),
 								unusedMiddleImages.length > 0 && /* @__PURE__ */ jsx("div", {
