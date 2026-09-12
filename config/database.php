@@ -75,6 +75,7 @@ return [
             'url' => env('DB_READONLY_URL'),
             'host' => env('DB_READONLY_HOST', env('DB_HOST', '127.0.0.1')),
             'port' => env('DB_READONLY_PORT', env('DB_PORT', '3306')),
+            'database' => env('DB_READONLY_DATABASE', env('DB_DATABASE', 'laravel')),
             // Dedicated read-only DB user. Fallback to default app credentials is intentionally forbidden.
             'username' => env('DB_READONLY_USERNAME'),
             'password' => env('DB_READONLY_PASSWORD'),
