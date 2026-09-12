@@ -213,8 +213,9 @@ export default function AdminAreasIndex({ areas, filters }) {
                                             ? 'bg-transparent text-secondary-300 cursor-not-allowed' 
                                             : 'bg-white text-secondary-700 hover:bg-secondary-50 border border-secondary-200'
                                 }`}
-                                children={link.label.replace(/&laquo;|&lsaquo;/g, '«').replace(/&raquo;|&rsaquo;/g, '»')}
-                            />
+                            >
+                                {link.label.replace(/&laquo;|&lsaquo;/g, '«').replace(/&raquo;|&rsaquo;/g, '»')}
+                            </Link>
                         ))}
                     </div>
                 )}

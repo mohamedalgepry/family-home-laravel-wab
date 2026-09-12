@@ -17,9 +17,8 @@ import axios from 'axios'
 const FONT_SIZES = ['12px', '14px', '16px', '18px', '20px', '24px', '28px', '32px']
 
 function MenuBar({ editor, trans, isRtl = false }) {
-    if (!editor) return null
-
     const setLink = useCallback(() => {
+        if (!editor) return
         const previousUrl = editor.getAttributes('link').href
         let url = window.prompt(trans('enter_url') || 'أدخل الرابط (URL):', previousUrl || '')
 
@@ -69,6 +68,8 @@ function MenuBar({ editor, trans, isRtl = false }) {
             e.target.value = ''
         })
     }, [editor])
+
+    if (!editor) return null
 
     return (
         <div className="flex flex-wrap gap-1 p-2 border-b border-secondary-200 bg-surface/50 items-center">

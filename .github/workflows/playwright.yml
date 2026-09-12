@@ -1,24 +1,67 @@
-name: Playwright Tests
+name: CI & Playwright Tests
+
 on:
   push:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
+
 jobs:
   test:
     timeout-minutes: 60
     runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+          MYSQL_DATABASE: family_testing
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
     steps:
     - uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.3'
+        extensions: mbstring, xml, ctype, iconv, intl, pdo, pdo_mysql, gd, fileinfo
+        coverage: none
+
+    - name: Copy .env.example
+      run: cp -n .env.example .env || true
+
+    - name: Install Composer dependencies
+      run: composer install --prefer-dist --no-interaction --no-progress
+
+    - name: Generate App Key
+      run: php artisan key:generate
+
+    - name: Run PHP Tests
+      run: php artisan test
+
     - uses: actions/setup-node@v4
       with:
         node-version: lts/*
-    - name: Install dependencies
+
+    - name: Install Node dependencies
       run: npm ci
+
+    - name: Run ESLint
+      run: npm run lint
+
+    - name: Build Assets
+      run: npm run build
+
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps
+
     - name: Run Playwright tests
       run: npx playwright test
+
     - uses: actions/upload-artifact@v4
       if: ${{ !cancelled() }}
       with:

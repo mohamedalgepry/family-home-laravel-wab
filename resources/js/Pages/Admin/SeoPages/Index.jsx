@@ -64,7 +64,7 @@ export default function SeoPagesIndex({ pages }) {
     const handleSubmit = (e) => {
         e.preventDefault()
         if (!activePage) return
-        put(route('admin.seo-pages.update', activePage.id))
+        put(`/admin/seo-pages/${activePage.id}`)
     }
 
     return (
