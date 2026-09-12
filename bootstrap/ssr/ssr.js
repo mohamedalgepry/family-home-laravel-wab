@@ -3569,8 +3569,8 @@ var FONT_SIZES = [
 	"32px"
 ];
 function MenuBar({ editor, trans, isRtl = false }) {
-	if (!editor) return null;
 	const setLink = useCallback(() => {
+		if (!editor) return;
 		const previousUrl = editor.getAttributes("link").href;
 		let url = window.prompt(trans("enter_url") || "أدخل الرابط (URL):", previousUrl || "");
 		if (url === null) return;
@@ -3604,6 +3604,7 @@ function MenuBar({ editor, trans, isRtl = false }) {
 			e.target.value = "";
 		});
 	}, [editor]);
+	if (!editor) return null;
 	return /* @__PURE__ */ jsxs("div", {
 		className: "flex flex-wrap gap-1 p-2 border-b border-secondary-200 bg-surface/50 items-center",
 		children: [
@@ -10973,7 +10974,7 @@ function SeoPagesIndex({ pages }) {
 	const handleSubmit = (e) => {
 		e.preventDefault();
 		if (!activePage) return;
-		put(route("admin.seo-pages.update", activePage.id));
+		put(`/admin/seo-pages/${activePage.id}`);
 	};
 	return /* @__PURE__ */ jsxs(AdminSidebar, { children: [/* @__PURE__ */ jsx(Head, { title: trans("seo_pages_title") + " — " + trans("app_name") }), /* @__PURE__ */ jsxs("div", {
 		dir: isRtl ? "rtl" : "ltr",
@@ -15700,7 +15701,7 @@ function CompareBar() {
 }
 //#endregion
 //#region resources/js/Components/Layout/Footer.jsx
-var HossamChatWidget = lazy(() => import("./assets/HossamChatWidget-B2Qdn2J9.js"));
+var HossamChatWidget = lazy(() => import("./assets/HossamChatWidget-BLdzr0jh.js"));
 var QUICK_LINKS = [
 	{
 		key: "home",
@@ -15931,14 +15932,14 @@ function SeoHead({ title, description, keywords, ogImage, ogType = "website", ca
 	const pageSeo = seo_page || null;
 	const cleanMetaDescription = (text) => {
 		if (!text) return "";
-		let clean = String(text).replace(/<\/?[^>]+(>|$)/g, "").replace(/\*{1,3}([^*]*)\*{1,3}/g, "$1").replace(/#{1,6}\s*/g, "").replace(/^[\s\-\*\+]\s+/gm, "").replace(/\[([^\]]+)\]\([^\)]+\)/g, "$1").replace(/`{1,3}[^`]*`{1,3}/g, "").replace(/_{1,2}([^_]*)_{1,2}/g, "$1").replace(/[\r\n]+/g, " ").replace(/\s+/g, " ").trim();
+		let clean = String(text).replace(/<\/?[^>]+(>|$)/g, "").replace(/\*{1,3}([^*]*)\*{1,3}/g, "$1").replace(/#{1,6}\s*/g, "").replace(/[\s\-*+]\s+/gm, "").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/`{1,3}[^`]*`{1,3}/g, "").replace(/_{1,2}([^_]*)_{1,2}/g, "$1").replace(/[\r\n]+/g, " ").replace(/\s+/g, " ").trim();
 		return clean.length > 160 ? clean.substring(0, 157) + "..." : clean;
 	};
 	const finalTitle = pageSeo ? isRtl ? pageSeo.meta_title_ar || title : pageSeo.meta_title_en || title : seo_meta?.title || title;
 	const finalDescription = cleanMetaDescription(pageSeo ? isRtl ? pageSeo.meta_description_ar || description : pageSeo.meta_description_en || description : seo_meta?.description || description);
 	const rawKeywords = keywords || seo_meta?.keywords || (pageSeo ? isRtl ? pageSeo.meta_keywords_ar : pageSeo.meta_keywords_en : null);
 	const keywordsString = Array.isArray(rawKeywords) ? rawKeywords.filter(Boolean).join(", ") : typeof rawKeywords === "string" ? rawKeywords : null;
-	const hasFilterQuery = typeof url === "string" && url.includes("?") && /[?&](price_|size_|features|transaction|search|finishing_type|payment_method)/.test(url);
+	const hasFilterQuery = typeof url === "string" && url.includes("?") && /[?&](area_id|type_id|page|price_|size_|features|transaction|search|finishing_type|payment_method|rooms|bathrooms|sort|direction)/.test(url);
 	const finalRobots = robots || seo_meta?.robots || (hasFilterQuery ? "noindex, follow" : null);
 	const finalCanonical = (canonical || seo_meta?.canonical || (baseUrl ? `${baseUrl}${cleanPath}` : cleanPath)).split("?")[0];
 	const urlAr = hreflang?.ar || seo_meta?.hreflang?.ar || baseUrl + (pathWithoutLocale === "/" ? "/ar" : `/ar${pathWithoutLocale === "/" ? "" : pathWithoutLocale}`);
@@ -16037,19 +16038,19 @@ function SeoHead({ title, description, keywords, ogImage, ogType = "website", ca
 		/* @__PURE__ */ jsx("link", {
 			"head-key": "hreflang-ar",
 			rel: "alternate",
-			hreflang: "ar",
+			hrefLang: "ar",
 			href: urlAr
 		}),
 		/* @__PURE__ */ jsx("link", {
 			"head-key": "hreflang-en",
 			rel: "alternate",
-			hreflang: "en",
+			hrefLang: "en",
 			href: urlEn
 		}),
 		/* @__PURE__ */ jsx("link", {
 			"head-key": "hreflang-x-default",
 			rel: "alternate",
-			hreflang: "x-default",
+			hrefLang: "x-default",
 			href: urlAr
 		}),
 		jsonLdData && /* @__PURE__ */ jsx("script", {
@@ -24332,13 +24333,10 @@ http.createServer(async (req, res) => {
 		res.end(JSON.stringify({ error: "Not found" }));
 		return;
 	}
-	console.log(`[SSR] Received request to /render`);
 	const chunks = [];
 	try {
 		for await (const chunk of req) chunks.push(Buffer.from(chunk));
-		console.log(`[SSR] Finished reading body`);
 	} catch (e) {
-		console.log(`[SSR] Error reading body: ${e.message}`);
 		res.writeHead(400, { "Content-Type": "application/json" });
 		res.end(JSON.stringify({ error: "Failed to read request body" }));
 		return;
@@ -24352,13 +24350,11 @@ http.createServer(async (req, res) => {
 		return;
 	}
 	try {
-		console.log(`[SSR] Rendering page: ${page?.url || "unknown"}`);
 		const result = await renderPage(page);
-		console.log(`[SSR] Render complete: ${page?.url || "unknown"}`);
 		res.writeHead(200, { "Content-Type": "application/json" });
 		res.end(JSON.stringify(result));
 	} catch (e) {
-		console.log(`[SSR] Render error: ${e.message}`);
+		console.error(`[SSR] Render error: ${e.message}`);
 		res.writeHead(500, { "Content-Type": "application/json" });
 		res.end(JSON.stringify({
 			error: e.message,
@@ -24367,7 +24363,7 @@ http.createServer(async (req, res) => {
 		}));
 	}
 }).listen(PORT, "127.0.0.1", () => {
-	console.log(`Custom SSR server listening on port ${PORT}...`);
+	if (process.env.NODE_ENV !== "production") console.log(`Custom SSR server listening on port ${PORT}...`);
 });
 //#endregion
 export { useTrans as t };
