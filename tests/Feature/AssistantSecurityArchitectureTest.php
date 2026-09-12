@@ -382,4 +382,49 @@ class AssistantSecurityArchitectureTest extends TestCase
 
         $rateLimited->assertStatus(429);
     }
+
+    /**
+     * Test 9: Strict Database Connection & Table Allowlist Isolation.
+     */
+    public function test_it_enforces_read_only_isolation_and_rejects_unauthorized_tables_or_writes(): void
+    {
+        $repo = app(\App\Domain\Assistant\Contracts\AssistantCatalogRepositoryInterface::class);
+        $service = app(\App\Domain\Assistant\Services\RestrictedAssistantCatalogService::class);
+
+        // 1. Connection name in production configuration is assistant_readonly
+        $this->assertEquals('assistant_readonly', config('assistant.db_connection'));
+        $this->assertArrayHasKey('assistant_readonly', config('database.connections'));
+
+        // 2. Repository interface has strictly zero write methods (insert, update, delete)
+        $ref = new \ReflectionClass(\App\Domain\Assistant\Contracts\AssistantCatalogRepositoryInterface::class);
+        $methods = array_map(fn($m) => $m->getName(), $ref->getMethods());
+        $this->assertNotContains('create', $methods);
+        $this->assertNotContains('insert', $methods);
+        $this->assertNotContains('update', $methods);
+        $this->assertNotContains('delete', $methods);
+
+        // 3. Service allowlist tools only accept projects & units
+        $orchestrator = app(\App\Domain\Assistant\Services\AssistantOrchestratorService::class);
+        $refOrch = new \ReflectionMethod($orchestrator, 'getToolDefinitions');
+        $allowedTools = $refOrch->invoke($orchestrator);
+        $toolNames = array_map(fn($t) => $t['function']['name'], $allowedTools);
+        $this->assertContains('find_project', $toolNames);
+        $this->assertContains('list_units_for_project', $toolNames);
+        $this->assertContains('get_unit_in_project', $toolNames);
+        $this->assertContains('list_projects', $toolNames);
+        $this->assertNotContains('get_users', $toolNames);
+        $this->assertNotContains('get_settings', $toolNames);
+        $this->assertNotContains('get_messages', $toolNames);
+        $this->assertNotContains('get_leads', $toolNames);
+
+        // 4. Executing an unknown or unauthorized tool fails closed
+        $unknownResult = $service->executeTool('get_users', []);
+        $this->assertArrayHasKey('error', $unknownResult);
+        $this->assertEquals('Disallowed or unknown tool', $unknownResult['error']);
+
+        $settingsResult = $service->executeTool('query_settings', []);
+        $this->assertArrayHasKey('error', $settingsResult);
+        $this->assertEquals('Disallowed or unknown tool', $settingsResult['error']);
+    }
 }
+

@@ -124,9 +124,21 @@ export default function HossamChatWidget() {
     useEffect(() => {
         if (typeof window === 'undefined') return
         try {
+            // Sanitize sensitive phone numbers before storing in localStorage (max 12 messages)
+            const safeMessages = messages.slice(-12).map(m => ({
+                id: m.id,
+                role: m.role,
+                content: typeof m.content === 'string'
+                    ? m.content.replace(/\b(?:\+?20|0)?1[0125]\d{8}\b/g, '[رقم هاتف]')
+                    : m.content,
+                timestamp: m.timestamp,
+                recommended_units: m.recommended_units || [],
+                quick_replies: m.quick_replies || [],
+            }))
+
             window.localStorage.setItem(
                 STORAGE_KEY,
-                JSON.stringify({ messages, isOpen, isFullscreen, savedAt: Date.now() })
+                JSON.stringify({ messages: safeMessages, isOpen, isFullscreen, savedAt: Date.now() })
             )
         } catch (e) {
             // localStorage may be full or disabled — fail silently
@@ -313,22 +325,27 @@ export default function HossamChatWidget() {
         typingTimerRef.current = setTimeout(() => setTypingStage(1), 2200)
         const typingTimer2 = setTimeout(() => setTypingStage(2), 5000)
 
-        // AbortController for fetch timeout
+        // AbortController for fetch timeout (8s budget)
         if (abortControllerRef.current) {
             abortControllerRef.current.abort()
         }
         const controller = new AbortController()
         abortControllerRef.current = controller
-        const timeoutId = setTimeout(() => controller.abort(), 25000) // 25s max timeout
+        const timeoutId = setTimeout(() => controller.abort(), 8000) // 8s max timeout
 
-        const maxAttempts = 2
+        const maxAttempts = 1
         let lastError = null
 
         for (let attempt = 1; attempt <= maxAttempts; attempt++) {
             try {
-                const historyPayload = newMessages
-                    .filter(m => m.id !== 'welcome' && !String(m.id).startsWith('welcome_'))
-                    .map(m => ({ role: m.role, content: m.content }))
+                // Slice prior history to last 6 messages and exclude current text & welcome messages
+                const historyPayload = messages
+                    .filter(m => m.id !== 'welcome' && !String(m.id).startsWith('welcome_') && m.role && m.content)
+                    .slice(-6)
+                    .map(m => ({
+                        role: m.role,
+                        content: String(m.content).replace(/\b(?:\+?20|0)?1[0125]\d{8}\b/g, '[رقم هاتف]').slice(0, 500)
+                    }))
 
                 const csrfToken = typeof document !== 'undefined'
                     ? (document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '')
@@ -356,10 +373,8 @@ export default function HossamChatWidget() {
                 })
 
                 if (!response.ok) {
-                    // On 429 (rate limit) or 5xx, retry
-                    if (attempt < maxAttempts && (response.status === 429 || response.status >= 500)) {
-                        await new Promise(r => setTimeout(r, 1000))
-                        continue
+                    if (response.status === 429) {
+                        throw new Error('429_TOO_MANY_REQUESTS')
                     }
                     throw new Error(`HTTP error! status: ${response.status}`)
                 }
@@ -508,13 +523,14 @@ export default function HossamChatWidget() {
             const linkMatch = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/)
             if (linkMatch) {
                 const rawUrl = (linkMatch[2] || '').trim()
-                // Strict validation: Only allow safe relative URLs (starting with /) or trusted protocols (https://wa.me, tel:, mailto:)
-                const isSafeUrl = rawUrl.startsWith('/') ||
-                    /^https:\/\/wa\.me\//i.test(rawUrl) ||
+                // Strict validation: Block protocol-relative links (//), enforce single / with allowed internal paths or trusted protocols
+                const isInternalSafe = rawUrl.startsWith('/') && !rawUrl.startsWith('//') &&
+                    /^\/(?:(?:ar|en)\/)?(?:units|projects|about|contact)(?:[/?#]|$)/i.test(rawUrl)
+                const isExternalSafe = /^https:\/\/wa\.me\//i.test(rawUrl) ||
                     /^tel:[+0-9\s-]+$/i.test(rawUrl) ||
                     /^mailto:[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/i.test(rawUrl)
 
-                if (!isSafeUrl) {
+                if (!isInternalSafe && !isExternalSafe) {
                     return <span key={pIdx} className="font-semibold text-slate-800">{linkMatch[1]}</span>
                 }
 

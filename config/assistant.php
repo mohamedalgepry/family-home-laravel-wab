@@ -25,8 +25,8 @@ return [
         'model' => env('GEMINI_MODEL', 'gemini-1.5-flash'),
     ],
 
-    // Client request timeout in seconds
-    'timeout_seconds' => (int) env('ASSISTANT_TIMEOUT_SECONDS', 10),
+    // Client request timeout in seconds (tight budget to prevent cascading delays)
+    'timeout_seconds' => (int) env('ASSISTANT_TIMEOUT_SECONDS', 6),
 
     // Maximum tool execution turns per request
     'max_tool_iterations' => 2,
@@ -40,6 +40,10 @@ return [
     // Default pagination limit for listings
     'default_per_page' => 6,
     'max_per_page' => 12,
+
+    // Dedicated database connection enforcing read-only queries
+    'db_connection' => env('ASSISTANT_DB_CONNECTION', 'assistant_readonly'),
+    'db_connection_testing' => env('ASSISTANT_DB_CONNECTION_TESTING', null),
 
     // Company public WhatsApp for safe referral fallback
     'default_whatsapp' => env('COMPANY_WHATSAPP', '201000000000'),

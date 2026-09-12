@@ -160,22 +160,6 @@ class AssistantOrchestratorService
             if ($response->successful()) {
                 return $response->json();
             }
-
-            // Retry once with fallback model if defined and primary failed
-            if (!empty($this->fallbackModel) && $this->fallbackModel !== $this->model) {
-                $payload['model'] = $this->fallbackModel;
-                $fallbackResponse = Http::timeout($this->timeout)
-                    ->withHeaders([
-                        'Authorization' => 'Bearer ' . $this->apiKey,
-                        'HTTP-Referer' => 'https://familyhome-co.com',
-                        'X-Title' => 'Family Home Real Estate Assistant',
-                    ])
-                    ->post("{$this->baseUrl}/chat/completions", $payload);
-
-                if ($fallbackResponse->successful()) {
-                    return $fallbackResponse->json();
-                }
-            }
         } catch (\Throwable $e) {
             Log::info('LLM call failure: ' . $e->getMessage());
         }

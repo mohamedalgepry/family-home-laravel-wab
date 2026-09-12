@@ -29,6 +29,23 @@ class AssistantCatalogRepository implements AssistantCatalogRepositoryInterface
         'location_address_ar', 'location_address_en', 'is_active',
     ];
 
+    public function __construct(
+        private readonly ?string $connectionName = null,
+    ) {}
+
+    public function getConnectionName(): string
+    {
+        if ($this->connectionName) {
+            return $this->connectionName;
+        }
+
+        if (app()->environment('testing')) {
+            return config('assistant.db_connection_testing') ?: config('database.default', 'mysql');
+        }
+
+        return config('assistant.db_connection') ?: 'assistant_readonly';
+    }
+
     /**
      * Resolve an active project by slug.
      */
@@ -39,7 +56,7 @@ class AssistantCatalogRepository implements AssistantCatalogRepositoryInterface
             return null;
         }
 
-        $project = Project::query()
+        $project = Project::on($this->getConnectionName())
             ->select(self::PROJECT_SELECT_COLUMNS)
             ->where('is_active', true)
             ->where(function ($q) use ($cleanSlug) {
@@ -59,7 +76,7 @@ class AssistantCatalogRepository implements AssistantCatalogRepositoryInterface
     {
         $safeLimit = max(1, min(12, $limit));
 
-        $projects = Project::query()
+        $projects = Project::on($this->getConnectionName())
             ->select(self::PROJECT_SELECT_COLUMNS)
             ->where('is_active', true)
             ->orderBy('id', 'desc')
@@ -94,10 +111,10 @@ class AssistantCatalogRepository implements AssistantCatalogRepositoryInterface
             );
         }
 
-        $safePage = max(1, $page);
+        $safePage = max(1, min(5, $page));
         $safePerPage = max(1, min(12, $perPage));
 
-        $query = Unit::query()
+        $query = Unit::on($this->getConnectionName())
             ->select(self::UNIT_SELECT_COLUMNS)
             ->where('project_id', $project->id)
             ->where('is_active', true);
@@ -185,7 +202,7 @@ class AssistantCatalogRepository implements AssistantCatalogRepositoryInterface
         }
 
         // 2. Strict IDOR protection: unit MUST belong to this project and be active
-        $unit = Unit::query()
+        $unit = Unit::on($this->getConnectionName())
             ->select(self::UNIT_SELECT_COLUMNS)
             ->where('project_id', $project->id)
             ->where('is_active', true)
