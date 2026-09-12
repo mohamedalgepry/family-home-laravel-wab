@@ -26,7 +26,13 @@ return [
     ],
 
     // Client request timeout in seconds (tight budget to prevent cascading delays)
-    'timeout_seconds' => (int) env('ASSISTANT_TIMEOUT_SECONDS', 6),
+    'timeout_seconds' => (int) env('ASSISTANT_TIMEOUT_SECONDS', 3),
+
+    // Real overall server timeout budget across entire chat turn (seconds)
+    'total_budget_seconds' => (float) env('ASSISTANT_TOTAL_BUDGET_SECONDS', 6.0),
+
+    // Ceiling per individual LLM request call (seconds)
+    'per_request_timeout_seconds' => (float) env('ASSISTANT_PER_REQUEST_TIMEOUT_SECONDS', 3.0),
 
     // Maximum tool execution turns per request
     'max_tool_iterations' => 2,

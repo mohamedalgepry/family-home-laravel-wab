@@ -12,7 +12,8 @@ class AssistantOrchestratorService
     private string $model;
     private string $fallbackModel;
     private string $baseUrl;
-    private int $timeout;
+    private float $totalBudget;
+    private float $perRequestTimeout;
     private int $maxIterations;
 
     public function __construct(
@@ -22,8 +23,17 @@ class AssistantOrchestratorService
         $this->model = (string) config('assistant.openrouter.model', config('services.openrouter.model', 'google/gemini-2.0-flash-exp:free'));
         $this->fallbackModel = (string) config('assistant.openrouter.fallback_model', config('services.openrouter.fallback_model', 'qwen/qwen-2.5-7b-instruct:free'));
         $this->baseUrl = rtrim((string) config('assistant.openrouter.base_url', config('services.openrouter.base_url', 'https://openrouter.ai/api/v1')), '/');
-        $this->timeout = (int) config('assistant.timeout_seconds', 10);
+        $this->totalBudget = (float) config('assistant.total_budget_seconds', 6.0);
+        $this->perRequestTimeout = (float) config('assistant.per_request_timeout_seconds', 3.0);
         $this->maxIterations = (int) config('assistant.max_tool_iterations', 2);
+    }
+
+    /**
+     * Sanitize and redact sensitive phone numbers from text before transmitting to external LLMs.
+     */
+    public function sanitizePhoneNumbers(string $text): string
+    {
+        return preg_replace('/\b(?:\+?20|0)?1[0125]\d{8}\b/', '[رقم هاتف]', $text);
     }
 
     /**
@@ -39,8 +49,12 @@ class AssistantOrchestratorService
         array $history = [],
         string $locale = 'ar'
     ): array {
+        $startTime = microtime(true);
         $locale = in_array($locale, ['ar', 'en'], true) ? $locale : 'ar';
         $cleanMessage = mb_substr(trim($message), 0, (int) config('assistant.max_message_chars', 1000));
+        
+        // Strict redaction of phone numbers from current user message BEFORE any external dispatch
+        $cleanMessage = $this->sanitizePhoneNumbers($cleanMessage);
 
         // Quick heuristic check for common project inquiries without waiting for API if needed,
         // or route directly to structured tool-assisted LLM.
@@ -54,7 +68,7 @@ class AssistantOrchestratorService
         }
 
         try {
-            return $this->orchestrateLlmTurn($cleanMessage, $history, $locale);
+            return $this->orchestrateLlmTurn($cleanMessage, $history, $locale, $startTime);
         } catch (\Throwable $e) {
             // Fail-closed: log structured telemetry without user message or sensitive PII
             Log::warning('AssistantOrchestrator failure, activating fail-closed fallback', [
@@ -67,7 +81,7 @@ class AssistantOrchestratorService
         }
     }
 
-    private function orchestrateLlmTurn(string $userMessage, array $history, string $locale): array
+    private function orchestrateLlmTurn(string $userMessage, array $history, string $locale, float $startTime): array
     {
         $sanitizedHistory = $this->sanitizeHistory($history);
         $systemPrompt = $this->buildSystemPrompt($locale);
@@ -86,7 +100,21 @@ class AssistantOrchestratorService
         $collectedReply = '';
 
         for ($iteration = 0; $iteration < $this->maxIterations; $iteration++) {
-            $response = $this->callModel($messages, $tools);
+            $elapsed = microtime(true) - $startTime;
+            $remainingBudget = $this->totalBudget - $elapsed;
+
+            // If less than 1.2 seconds remain of our total budget, stop further LLM calls to protect browser timeout
+            if ($remainingBudget < 1.2) {
+                Log::info('Assistant turn budget boundary reached, terminating iteration early', [
+                    'elapsed' => round($elapsed, 3),
+                    'iteration' => $iteration,
+                ]);
+                break;
+            }
+
+            // Cap per-request timeout to 3s and never exceed remaining turn budget
+            $requestTimeout = max(1.0, min($this->perRequestTimeout, $remainingBudget));
+            $response = $this->callModel($messages, $tools, $requestTimeout);
 
             if (!$response || !isset($response['choices'][0]['message'])) {
                 break;
@@ -137,7 +165,7 @@ class AssistantOrchestratorService
         ];
     }
 
-    private function callModel(array $messages, array $tools): ?array
+    private function callModel(array $messages, array $tools, float $timeout = 3.0): ?array
     {
         $payload = [
             'model' => $this->model,
@@ -149,7 +177,7 @@ class AssistantOrchestratorService
         ];
 
         try {
-            $response = Http::timeout($this->timeout)
+            $response = Http::timeout((int) ceil($timeout))
                 ->withHeaders([
                     'Authorization' => 'Bearer ' . $this->apiKey,
                     'HTTP-Referer' => 'https://familyhome-co.com',
@@ -182,6 +210,9 @@ class AssistantOrchestratorService
 
             // Strip control characters
             $content = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $content);
+
+            // Redact phone numbers from history turns
+            $content = $this->sanitizePhoneNumbers($content);
 
             $clean[] = [
                 'role' => $role,

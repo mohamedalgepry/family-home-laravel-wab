@@ -394,6 +394,10 @@ class AssistantSecurityArchitectureTest extends TestCase
         // 1. Connection name in production configuration is assistant_readonly
         $this->assertEquals('assistant_readonly', config('assistant.db_connection'));
         $this->assertArrayHasKey('assistant_readonly', config('database.connections'));
+        $this->assertNull(
+            config('database.connections.assistant_readonly.username'),
+            'assistant_readonly username must be null when DB_READONLY_USERNAME is unset (no fallback to DB_USERNAME)'
+        );
 
         // 2. Repository interface has strictly zero write methods (insert, update, delete)
         $ref = new \ReflectionClass(\App\Domain\Assistant\Contracts\AssistantCatalogRepositoryInterface::class);
@@ -425,6 +429,30 @@ class AssistantSecurityArchitectureTest extends TestCase
         $settingsResult = $service->executeTool('query_settings', []);
         $this->assertArrayHasKey('error', $settingsResult);
         $this->assertEquals('Disallowed or unknown tool', $settingsResult['error']);
+    }
+
+    /**
+     * Test 10: PII Redaction and Real Time Budget Bounds.
+     */
+    public function test_it_sanitizes_phone_numbers_and_enforces_tight_per_request_budget(): void
+    {
+        $orchestrator = app(\App\Domain\Assistant\Services\AssistantOrchestratorService::class);
+
+        // 1. Phone number redaction on both current message and history turns
+        $samplePhoneMessage = 'أريد التواصل ورقمي 01012345678 أو +201123456789 للمعاينة';
+        $sanitized = $orchestrator->sanitizePhoneNumbers($samplePhoneMessage);
+        $this->assertStringNotContainsString('01012345678', $sanitized);
+        $this->assertStringNotContainsString('+201123456789', $sanitized);
+        $this->assertStringContainsString('[رقم هاتف]', $sanitized);
+
+        // 2. Budget configuration verification
+        $this->assertLessThanOrEqual(6.0, config('assistant.total_budget_seconds'));
+        $this->assertLessThanOrEqual(3.0, config('assistant.per_request_timeout_seconds'));
+        $this->assertLessThan(
+            8.0,
+            config('assistant.total_budget_seconds'),
+            'Server budget must be strictly less than browser 8s AbortController timeout'
+        );
     }
 }
 
