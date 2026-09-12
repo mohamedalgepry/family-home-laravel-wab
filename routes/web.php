@@ -175,7 +175,7 @@ Route::prefix('{locale}')->whereIn('locale', ['ar', 'en'])->middleware(SetLocale
         ->middleware('throttle:contact-form');
 
     Route::post('/assistant/chat', [AiAssistantController::class, 'chat'])
-        ->middleware('throttle:assistant_chat')
+        ->middleware('throttle:20,1')
         ->name('assistant.chat');
 });
 
@@ -335,6 +335,9 @@ Route::prefix('admin')->middleware(['auth', 'role:admin,manager,agent'])->group(
 
     Route::prefix('seo-pages')->name('admin.seo-pages.')->middleware('role:admin')->group(function () {
         Route::get('/', [PageSeoController::class, 'index'])->name('index');
+        Route::put('/{pageSeo}', [PageSeoController::class, 'update'])->name('update');
+    });
+});
         Route::put('/{pageSeo}', [PageSeoController::class, 'update'])->name('update');
     });
 });
