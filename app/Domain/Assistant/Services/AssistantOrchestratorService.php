@@ -509,11 +509,20 @@ class AssistantOrchestratorService
 
     private function buildSystemPrompt(string $locale, array $preloadedUnits = [], array $pageContext = []): string
     {
+        // Fetch verified company contact info
+        $companyContactSection = \App\Domain\Assistant\Services\AssistantContactResolver::formatCompanyPromptSection($locale);
+
         $inventoryContext = '';
         if (!empty($preloadedUnits)) {
             $items = [];
             foreach ($preloadedUnits as $u) {
-                $items[] = "• **{$u->name}** | السعر: " . number_format($u->price) . " ج.م | الغرف: {$u->rooms} | المساحة: {$u->areaSqm} م² | الدفع: {$u->paymentMethod} | الرابط: {$u->url}";
+                $line = "• **{$u->name}** | السعر: " . number_format($u->price) . " ج.م | الغرف: {$u->rooms} | المساحة: {$u->areaSqm} م² | الدفع: {$u->paymentMethod} | الرابط: {$u->url}";
+                if (!empty($u->agentName)) {
+                    $line .= " | الوكيل: {$u->agentName}";
+                    if (!empty($u->agentPhone)) $line .= " (هاتف: {$u->agentPhone})";
+                    if (!empty($u->agentWhatsapp)) $line .= " (واتساب: {$u->agentWhatsapp})";
+                }
+                $items[] = $line;
             }
             $inventoryContext = "\n\nالوحدات العقارية المتاحة فعلياً في كتالوج الشركة والمطابقة لبحث العميل:\n" . implode("\n", $items);
         }
@@ -522,16 +531,32 @@ class AssistantOrchestratorService
         if (!empty($pageContext['page_type']) && $pageContext['page_type'] !== 'unknown') {
             $desc = [];
             if (!empty($pageContext['project_name'])) {
-                $desc[] = "المشروع المعروض بالصفحة الحالية: «{$pageContext['project_name']}» (Slug: {$pageContext['project_slug']})";
+                $pLine = "المشروع المعروض بالصفحة الحالية: «{$pageContext['project_name']}» (Slug: {$pageContext['project_slug']})";
+                if (!empty($pageContext['agent_name'])) {
+                    $pLine .= " | الوكيل العقاري المسؤول: {$pageContext['agent_name']}";
+                    if (!empty($pageContext['agent_phone'])) $pLine .= " (هاتف: {$pageContext['agent_phone']})";
+                    if (!empty($pageContext['agent_whatsapp'])) $pLine .= " (واتساب: {$pageContext['agent_whatsapp']})";
+                }
+                $desc[] = $pLine;
                 if (!empty($pageContext['summary'])) {
                     $s = $pageContext['summary'];
-                    $desc[] = "الموقع: {$s['location']} | نطاق الأسعار: {$s['price_range']} | إجمالي الوحدات: {$s['units_count']}";
+                    $parts = [];
+                    if (!empty($s['location'])) $parts[] = "الموقع: {$s['location']}";
+                    if (!empty($s['price_range'])) $parts[] = "نطاق الأسعار: {$s['price_range']}";
+                    if (!empty($s['units_count'])) $parts[] = "إجمالي الوحدات: {$s['units_count']}";
+                    if (!empty($parts)) $desc[] = implode(' | ', $parts);
                 }
             }
             if (!empty($pageContext['unit_name'])) {
-                $desc[] = "الوحدة المعروضة بالصفحة الحالية: «{$pageContext['unit_name']}»" .
+                $uLine = "الوحدة المعروضة بالصفحة الحالية: «{$pageContext['unit_name']}»" .
                     (!empty($pageContext['unit_price']) ? " | السعر: " . number_format((float)$pageContext['unit_price']) . " ج.م" : "") .
                     (!empty($pageContext['unit_rooms']) ? " | الغرف: {$pageContext['unit_rooms']}" : "");
+                if (!empty($pageContext['agent_name'])) {
+                    $uLine .= " | الوكيل العقاري المسؤول: {$pageContext['agent_name']}";
+                    if (!empty($pageContext['agent_phone'])) $uLine .= " (هاتف: {$pageContext['agent_phone']})";
+                    if (!empty($pageContext['agent_whatsapp'])) $uLine .= " (واتساب: {$pageContext['agent_whatsapp']})";
+                }
+                $desc[] = $uLine;
             }
             if (!empty($pageContext['title'])) {
                 $desc[] = "عنوان الصفحة: {$pageContext['title']}";
@@ -615,6 +640,7 @@ Use these tools proactively when you need data:
 **User:** "Tell me about New Cairo projects"
 **Good Response:** Use list_projects tool → filter New Cairo → present with area context → highlight growth potential → suggest top picks
 {$pageContextSection}
+{$companyContactSection}
 {$inventoryContext}
 EOT;
         }
@@ -674,10 +700,11 @@ EOT;
 **الرد الجيد:** استخدم أداة list_projects ← فلتر التجمع ← اعرض مع سياق المنطقة ← وضّح إمكانات النمو ← رشّح أفضل الخيارات
 
 # تعليمات الأمان والخصوصية
-- لا تشارك أرقام هواتف أو بيانات شخصية لأي عميل
-- لا تخترع أسعار أو مشاريع غير موجودة في قاعدة البيانات
-- حافظ على سرية وأمان بيانات العملاء
+- لا تشارك أرقام هواتف أو بيانات شخصية لأي مشتري أو عميل آخر (حافظ على سرية بيانات العملاء تماماً).
+- أما بيانات التواصل الرسمية للشركة والوكيل العقاري المسؤول المرفوعة باسمه الوحدة/المشروع، فتشاركها بكل دقة عند الطلب أو الرغبة في المعاينة والتواصل.
+- لا تخترع أبداً أرقام هواتف أو إيميلات أو بيانات تواصل أو أسعار وهمية غير موجودة في قاعدة البيانات.
 {$pageContextSection}
+{$companyContactSection}
 {$inventoryContext}
 EOT;
     }
@@ -785,8 +812,11 @@ EOT;
     {
         $cleanMsg = trim($message);
         $lowerMsg = mb_strtolower($cleanMsg);
-        $cleanWhatsapp = preg_replace('/[^\d]/', '', (string) config('assistant.default_whatsapp', '201000000000'));
-        $whatsappUrl = 'https://wa.me/' . $cleanWhatsapp . '?text=' . urlencode($locale === 'en' ? 'Hello Family Home, I would like to inquire about properties' : 'مرحباً فاميلي هوم، أود الاستفسار عن العقارات المتاحة');
+        $companyContact = \App\Domain\Assistant\Services\AssistantContactResolver::getCompanyContact();
+        $whatsappUrl = $companyContact['whatsapp_url'] ?: ('https://wa.me/' . preg_replace('/[^\d]/', '', (string) config('assistant.default_whatsapp', '201000000000')) . '?text=' . urlencode($locale === 'en' ? 'Hello Family Home, I would like to inquire about properties' : 'مرحباً فاميلي هوم، أود الاستفسار عن العقارات المتاحة'));
+        $companyPhone = $companyContact['phone'] ?: '';
+        $companyEmail = $companyContact['email'] ?: '';
+        $companyAddress = $companyContact['address'] ?: '';
 
         // 0. Inquiry about Current Page / Location
         if (preg_match('/(أنا فين|انا فين|في أي صفحة|في اي صفحه|أنا في أي صفحة|انا في اي صفحه|في انهي صفحة|في انهي صفحه|انهي صفحة|انهي صفحه|اي صفحه|أي صفحة|بتصفح إيه|بتصفح ايه|تعرف الصفحة|تعرف الصفحه|الصفحة اللي أنا فيها|الصفحه الى انا فيها|الصفحة الحالية|الصفحه الحاليه|مكاني فين|وين أنا|وين انا|where am i|what page|current page|which page)/iu', $cleanMsg)) {
@@ -949,11 +979,43 @@ EOT;
             ];
         }
 
-        // 1. WhatsApp / Customer Support inquiry
-        if (preg_match('/(تواصل عبر واتساب|واتساب|تواصل معي|تواصل مع|خدمة العملاء|خدمه العملاء|رقم التليفون|رقم الهاتف|ارقامكم|عنوانكم|مقركم|فين مكتبكم|whatsapp|contact us|phone number)/iu', $cleanMsg)) {
-            $reply = $locale === 'en'
-                ? "We are delighted to connect you directly with our specialized real estate advisory team at **Family Home**.\n\n💬 **Direct WhatsApp Support:** [Click here to chat on WhatsApp]({$whatsappUrl})\n\nOur team is available daily to answer your inquiries and schedule free property site visits."
-                : "يسعدنا تواصلك المباشر مع فريق مستشاري **فاميلي هوم** العقاري لتقديم أفضل الاستشارات وترتيب معاينات ميدانية مجانية.\n\n💬 **واتساب المبيعات المباشر:** [اضغط هنا للتواصل عبر واتساب مباشرة]({$whatsappUrl})\n\nفريقنا متواجد يومياً لمساعدتك في اختيار أنسب خطة سداد وعقار يلائم ميزانيتك.";
+        // 1. WhatsApp / Customer Support / Agent Contact inquiry
+        if (preg_match('/(تواصل عبر واتساب|واتساب|تواصل معي|تواصل مع|خدمة العملاء|خدمه العملاء|رقم التليفون|رقم الهاتف|ارقامكم|عنوانكم|مقركم|فين مكتبكم|بيانات التواصل|معلومات التواصل|تواصل معاكم|رقم الوكيل|مين الوكيل|المستشار العقاري|whatsapp|contact us|phone number|broker|agent)/iu', $cleanMsg)) {
+            // Check if user specifically asked about the agent or broker of the current page's unit/project
+            $hasAgentQuery = preg_match('/(الوكيل|المسؤول|المستشار|صاحب|مالك|agent|broker)/iu', $cleanMsg);
+            $agentName = $pageContext['agent_name'] ?? null;
+            $agentPhone = $pageContext['agent_phone'] ?? null;
+            $agentWa = $pageContext['agent_whatsapp'] ?? null;
+
+            if ($hasAgentQuery && !empty($agentName)) {
+                $cleanAgentWa = $agentWa ? preg_replace('/[^\d]/', '', $agentWa) : null;
+                $agentWaUrl = $cleanAgentWa ? "https://wa.me/{$cleanAgentWa}" : null;
+
+                $details = [];
+                if ($agentPhone) $details[] = ($locale === 'en' ? "📞 **Phone:** {$agentPhone}" : "📞 **الهاتف المباشر:** {$agentPhone}");
+                if ($agentWaUrl) $details[] = ($locale === 'en' ? "💬 **WhatsApp:** [Chat on WhatsApp]({$agentWaUrl})" : "💬 **واتساب المباشر:** [اضغط هنا للمحادثة عبر واتساب]({$agentWaUrl})");
+
+                if (!empty($details)) {
+                    $reply = $locale === 'en'
+                        ? "The real estate advisor managing this property is **{$agentName}**:\n\n" . implode("\n", $details) . "\n\nYou can reach out directly to coordinate details or book an inspection!"
+                        : "الوكيل العقاري المسؤول عن هذا العقار هو **{$agentName}**:\n\n" . implode("\n", $details) . "\n\nيمكنك التواصل معه مباشرة لتنسيق كافة التفاصيل أو حجز موعد معاينة ميدانية!";
+                } else {
+                    $reply = $locale === 'en'
+                        ? "The advisor assigned to this property is **{$agentName}**. For immediate assistance, our central sales team will connect you directly:\n\n💬 **WhatsApp:** [Chat with Family Home]({$whatsappUrl})" . ($companyPhone ? "\n📞 **Phone:** {$companyPhone}" : "")
+                        : "الوكيل العقاري المسؤول عن هذا العقار هو **{$agentName}**. للتواصل الفوري، يقوم فريق مبيعات فاميلي هوم المركزي بربطك به مباشرة:\n\n💬 **واتساب فاميلي هوم:** [اضغط هنا للمحادثة الفورية]({$whatsappUrl})" . ($companyPhone ? "\n📞 **هاتف الإدارة:** {$companyPhone}" : "");
+                }
+            } else {
+                // Official company contact details
+                $companyDetails = [];
+                if ($companyPhone) $companyDetails[] = ($locale === 'en' ? "📞 **Phone:** {$companyPhone}" : "📞 **الهاتف:** {$companyPhone}");
+                $companyDetails[] = ($locale === 'en' ? "💬 **Direct WhatsApp:** [Chat on WhatsApp]({$whatsappUrl})" : "💬 **واتساب المبيعات والدعم:** [اضغط هنا للتواصل عبر واتساب مباشرة]({$whatsappUrl})");
+                if ($companyEmail) $companyDetails[] = ($locale === 'en' ? "✉️ **Email:** {$companyEmail}" : "✉️ **البريد الإلكتروني:** {$companyEmail}");
+                if ($companyAddress) $companyDetails[] = ($locale === 'en' ? "📍 **Address:** {$companyAddress}" : "📍 **المقر الرئيسي:** {$companyAddress}");
+
+                $reply = $locale === 'en'
+                    ? "We are delighted to assist you directly through **Family Home** official verified contacts:\n\n" . implode("\n", $companyDetails) . "\n\nOur advisory team is available daily to help you find the ideal property and schedule free site viewings."
+                    : "يسعدنا تواصلك المباشر مع شركة **فاميلي هوم** عبر قنوات الاتصال الرسمية والمعتمدة:\n\n" . implode("\n", $companyDetails) . "\n\nفريق مستشارينا متواجد يومياً لمساعدتك في اختيار أنسب عقار وترتيب معاينات ميدانية مجانية.";
+            }
 
             return [
                 'reply' => $reply,
@@ -1281,7 +1343,10 @@ EOT;
             'unit_price' => $pageContext['unit_price'] ?? null,
             'unit_rooms' => $pageContext['unit_rooms'] ?? null,
             'area_name' => $pageContext['area_name'] ?? null,
-            'page_type' => 'unknown',
+            'agent_name' => $pageContext['agent_name'] ?? null,
+            'agent_phone' => $pageContext['agent_phone'] ?? null,
+            'agent_whatsapp' => $pageContext['agent_whatsapp'] ?? null,
+            'page_type' => $pageContext['page_type'] ?? 'unknown',
             'summary' => null,
         ];
 
@@ -1315,16 +1380,42 @@ EOT;
                         'location' => $projectDto->locationAddress,
                         'installment_years' => $projectDto->installmentYears,
                         'down_payment' => $projectDto->downPayment,
+                        'agent_name' => $projectDto->agentName,
+                        'agent_phone' => $projectDto->agentPhone,
+                        'agent_whatsapp' => $projectDto->agentWhatsapp,
                     ];
                     if (empty($normalized['project_name'])) {
                         $normalized['project_name'] = $projectDto->name;
                     }
+                    $normalized['agent_name'] = $projectDto->agentName;
+                    $normalized['agent_phone'] = $projectDto->agentPhone;
+                    $normalized['agent_whatsapp'] = $projectDto->agentWhatsapp;
                 }
             } catch (\Throwable $e) {
                 // Ignore DB error
             }
         } elseif (!empty($normalized['unit_slug'])) {
             $normalized['page_type'] = 'unit';
+            try {
+                $unitDto = $this->catalogService->findUnit($normalized['unit_slug'], $locale);
+                if ($unitDto) {
+                    if (empty($normalized['unit_name'])) {
+                        $normalized['unit_name'] = $unitDto->name;
+                    }
+                    if (empty($normalized['unit_price'])) {
+                        $normalized['unit_price'] = $unitDto->price;
+                    }
+                    if (empty($normalized['unit_rooms'])) {
+                        $normalized['unit_rooms'] = $unitDto->rooms;
+                    }
+                    $normalized['agent_name'] = $unitDto->agentName;
+                    $normalized['agent_phone'] = $unitDto->agentPhone;
+                    $normalized['agent_whatsapp'] = $unitDto->agentWhatsapp;
+                    $normalized['whatsapp_url'] = $unitDto->whatsappUrl;
+                }
+            } catch (\Throwable $e) {
+                // Ignore DB error
+            }
         } elseif (str_contains($path, '/units/deals')) {
             $normalized['page_type'] = 'deals';
         } elseif (preg_match('~/(?:ar|en)?/?units/?$~i', $path)) {

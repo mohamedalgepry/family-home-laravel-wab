@@ -22,6 +22,9 @@ class UnitPublicDTO
         public readonly ?string $paymentMethod,
         public readonly ?string $descriptionSnippet,
         public readonly ?string $whatsappUrl,
+        public readonly ?string $agentName,
+        public readonly ?string $agentPhone,
+        public readonly ?string $agentWhatsapp,
     ) {}
 
     public static function fromModel(object $unit, string $locale = 'ar', ?string $companyWhatsapp = null): self
@@ -49,8 +52,20 @@ class UnitPublicDTO
         $currency = $locale === 'ar' ? 'ج.م' : 'EGP';
         $priceFormatted = number_format($price, 0, '.', ',');
 
-        // Company WhatsApp (never individual owner's private phone)
-        $cleanPhone = preg_replace('/[^\d]/', '', (string) ($companyWhatsapp ?: config('assistant.default_whatsapp', '201000000000')));
+        // Load agent/broker info if available via safe contact resolver
+        $agent = !empty($unit->user_id)
+            ? \App\Domain\Assistant\Services\AssistantContactResolver::resolveAgentContact((int) $unit->user_id)
+            : null;
+
+        $agentName = $agent['name'] ?? null;
+        $agentPhone = $agent['phone'] ?? null;
+        $agentWhatsapp = $agent['whatsapp'] ?? null;
+
+        // WhatsApp inquiry URL: prefer direct agent WhatsApp if available, otherwise company WhatsApp
+        $targetWa = !empty($agentWhatsapp)
+            ? $agentWhatsapp
+            : (string) ($companyWhatsapp ?: config('assistant.default_whatsapp', '201000000000'));
+        $cleanPhone = preg_replace('/[^\d]/', '', (string) $targetWa);
         $waText = urlencode($locale === 'ar'
             ? "مرحباً، أود الاستفسار عن الوحدة: {$name}"
             : "Hello, I would like to inquire about unit: {$name}");
@@ -74,6 +89,9 @@ class UnitPublicDTO
             paymentMethod: $unit->payment_method ? (string) $unit->payment_method : null,
             descriptionSnippet: $cleanSnippet ?: null,
             whatsappUrl: $whatsappUrl,
+            agentName: $agentName,
+            agentPhone: $agentPhone,
+            agentWhatsapp: $agentWhatsapp,
         );
     }
 
@@ -95,12 +113,15 @@ class UnitPublicDTO
             'transaction' => $this->transaction,
             'payment_method' => $this->paymentMethod,
             'whatsapp_url' => $this->whatsappUrl,
+            'agent_name' => $this->agentName,
+            'agent_phone' => $this->agentPhone,
+            'agent_whatsapp' => $this->agentWhatsapp,
         ];
     }
 
     public function toLlmSnippet(): array
     {
-        return [
+        $snippet = [
             'name' => $this->name,
             'slug' => $this->slug,
             'price' => $this->priceFormatted . ' ' . $this->currency,
@@ -110,6 +131,19 @@ class UnitPublicDTO
             'transaction' => $this->transaction,
             'payment_method' => $this->paymentMethod,
             'description' => $this->descriptionSnippet,
+            'location' => $this->location,
         ];
+
+        if ($this->agentName) {
+            $snippet['agent_name'] = $this->agentName;
+        }
+        if ($this->agentPhone) {
+            $snippet['agent_phone'] = $this->agentPhone;
+        }
+        if ($this->agentWhatsapp) {
+            $snippet['agent_whatsapp'] = $this->agentWhatsapp;
+        }
+
+        return $snippet;
     }
 }

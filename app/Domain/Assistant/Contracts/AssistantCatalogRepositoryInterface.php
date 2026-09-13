@@ -15,6 +15,11 @@ interface AssistantCatalogRepositoryInterface
     public function findActiveProjectBySlug(string $slug, string $locale = 'ar'): ?ProjectPublicDTO;
 
     /**
+     * Resolve an active unit by slug across catalog.
+     */
+    public function findActiveUnitBySlug(string $slug, string $locale = 'ar'): ?UnitPublicDTO;
+
+    /**
      * List active projects for general exploration.
      *
      * @return ProjectPublicDTO[]

@@ -13,7 +13,7 @@ use App\Domain\Listings\Models\Unit;
 class AssistantCatalogRepository implements AssistantCatalogRepositoryInterface
 {
     private const PROJECT_SELECT_COLUMNS = [
-        'id', 'name', 'name_ar', 'name_en',
+        'id', 'user_id', 'name', 'name_ar', 'name_en',
         'slug', 'slug_ar', 'slug_en',
         'description', 'description_ar', 'description_en',
         'payment_method', 'down_payment', 'installment_years',
@@ -21,7 +21,7 @@ class AssistantCatalogRepository implements AssistantCatalogRepositoryInterface
     ];
 
     private const UNIT_SELECT_COLUMNS = [
-        'id', 'project_id', 'name', 'name_ar', 'name_en',
+        'id', 'project_id', 'user_id', 'name', 'name_ar', 'name_en',
         'slug', 'slug_ar', 'slug_en',
         'description', 'description_ar', 'description_en',
         'transaction', 'price', 'area_sqm', 'rooms', 'bathrooms',
@@ -75,6 +75,29 @@ class AssistantCatalogRepository implements AssistantCatalogRepositoryInterface
             ->first();
 
         return $project ? ProjectPublicDTO::fromModel($project, $locale) : null;
+    }
+
+    /**
+     * Resolve an active unit by slug across catalog.
+     */
+    public function findActiveUnitBySlug(string $slug, string $locale = 'ar'): ?UnitPublicDTO
+    {
+        $cleanSlug = trim($slug);
+        if (empty($cleanSlug)) {
+            return null;
+        }
+
+        $unit = Unit::on($this->getConnectionName())
+            ->select(self::UNIT_SELECT_COLUMNS)
+            ->where('is_active', true)
+            ->where(function ($q) use ($cleanSlug) {
+                $q->where('slug', $cleanSlug)
+                  ->orWhere('slug_ar', $cleanSlug)
+                  ->orWhere('slug_en', $cleanSlug);
+            })
+            ->first();
+
+        return $unit ? UnitPublicDTO::fromModel($unit, $locale) : null;
     }
 
     /**

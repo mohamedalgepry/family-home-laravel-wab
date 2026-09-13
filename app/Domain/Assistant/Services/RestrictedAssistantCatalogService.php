@@ -24,6 +24,14 @@ class RestrictedAssistantCatalogService
     }
 
     /**
+     * Retrieves public details of a single active unit by its slug across the catalog.
+     */
+    public function findUnit(string $unitSlug, string $locale = 'ar'): ?UnitPublicDTO
+    {
+        return $this->repository->findActiveUnitBySlug($unitSlug, $locale);
+    }
+
+    /**
      * Tool 2: list_units_for_project
      * Retrieves active units belonging to a specific active project with pagination and safe filters.
      * Supports: "ما الوحدات التابعة لمشروع X؟"
