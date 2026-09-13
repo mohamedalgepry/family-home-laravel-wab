@@ -74,8 +74,6 @@ export default function HossamChatWidget() {
     const [isHovered, setIsHovered] = useState(false)
     const [feedback, setFeedback] = useState({}) // { [messageId]: 'up' | 'down' | null }
     const [streamedMessageId, setStreamedMessageId] = useState(null) // for caret animation
-    
-    const [isListening, setIsListening] = useState(false)
     const [isSpeaking, setIsSpeaking] = useState(false)
     const [audioEnabled, setAudioEnabled] = useState(false)
     const [proactivePill, setProactivePill] = useState(null)
@@ -221,47 +219,6 @@ export default function HossamChatWidget() {
             return next
         })
     }, [])
-
-    /* ---------- speech recognition (STT) ---------- */
-    const SpeechRecognition = typeof window !== 'undefined' ? (window.SpeechRecognition || window.webkitSpeechRecognition) : null
-    const recognitionRef = useRef(null)
-
-    useEffect(() => {
-        if (!SpeechRecognition) return
-        const recognition = new SpeechRecognition()
-        recognition.continuous = false
-        recognition.interimResults = true
-        recognition.lang = locale === 'ar' ? 'ar-EG' : 'en-US'
-
-        recognition.onresult = (event) => {
-            let finalTranscript = ''
-            for (let i = event.resultIndex; i < event.results.length; ++i) {
-                if (event.results[i].isFinal) {
-                    finalTranscript += event.results[i][0].transcript
-                }
-            }
-            if (finalTranscript) {
-                setInputMessage(prev => (prev + ' ' + finalTranscript).trim())
-            }
-        }
-
-        recognition.onerror = () => setIsListening(false)
-        recognition.onend = () => setIsListening(false)
-        
-        recognitionRef.current = recognition
-    }, [SpeechRecognition, locale])
-
-    const toggleListening = useCallback(() => {
-        if (!recognitionRef.current) return
-        if (isListening) {
-            recognitionRef.current.stop()
-            setIsListening(false)
-        } else {
-            setInputMessage('')
-            recognitionRef.current.start()
-            setIsListening(true)
-        }
-    }, [isListening])
 
     /* ---------- keyboard shortcuts ---------- */
     useEffect(() => {
@@ -833,7 +790,7 @@ export default function HossamChatWidget() {
                             </div>
                             {/* Header actions */}
                             <div className="flex items-center gap-0.5 shrink-0">
-                                {SpeechRecognition && (
+                                {typeof window !== 'undefined' && 'speechSynthesis' in window && (
                                     <button
                                         onClick={toggleAudio}
                                         className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
@@ -1144,27 +1101,12 @@ export default function HossamChatWidget() {
                                         handleSendMessage()
                                     }
                                 }}
-                                placeholder={isListening ? (isRtl ? 'جاري الاستماع...' : 'Listening...') : trans('assistant_placeholder')}
-                                disabled={isLoading || isListening}
+                                placeholder={trans('assistant_placeholder')}
+                                disabled={isLoading}
                                 rows={1}
                                 className="flex-1 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus:outline-none focus:border-0 focus:shadow-none resize-none text-[13.5px] text-slate-900 placeholder:text-slate-400 leading-relaxed max-h-24 disabled:opacity-60 px-1 py-1 shadow-none"
                                 style={{ minHeight: '24px', outline: 'none', boxShadow: 'none' }}
                             />
-                            {SpeechRecognition && (
-                                <button
-                                    type="button"
-                                    onClick={toggleListening}
-                                    disabled={isLoading}
-                                    className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all shrink-0 ${
-                                        isListening ? 'bg-red-100 text-[#CC0000] animate-pulse' : 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700'
-                                    }`}
-                                    aria-label={isRtl ? 'تحدث' : 'Speak'}
-                                >
-                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                                    </svg>
-                                </button>
-                            )}
                             <button
                                 type="submit"
                                 disabled={!inputMessage.trim() || isLoading}
