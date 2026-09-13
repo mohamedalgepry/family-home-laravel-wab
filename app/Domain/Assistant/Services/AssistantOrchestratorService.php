@@ -513,14 +513,69 @@ EOT;
             }
         }
 
-        // 8. General search by unit keyword (e.g. "فيلا", "شقة", "مكتب", "محل", "التجمع", "زايد")
-        if (preg_match('/(فيلا|فيلات|فلل|شقة|شقق|دوبلكس|بنتهاوس|مكتب|مكاتب|محل|محلات|التجمع|زايد|العاصمة|الساحل|villa|apartment|office|shop)/iu', $cleanMsg)) {
-            $matchedUnits = $this->catalogService->listUnits([], 4, $locale);
+        // 8. General search by unit keyword & budget (e.g. "عايز شقه بسعر 5 مليون", "فيلا", "شقة", "مكتب", "محل", "التجمع", "زايد")
+        if (preg_match('/(فيلا|فيلات|فلل|شقة|شقه|شقق|دوبلكس|بنتهاوس|استوديو|ستوديو|مكتب|مكاتب|محل|محلات|وحدة|وحدات|التجمع|زايد|العاصمة|الساحل|مدينة نصر|سعر|بسعر|بمبلغ|ميزانية|ميزانيه|مليون|ملايين|villa|apartment|apt|studio|office|shop|budget|price)/iu', $cleanMsg)) {
+            $filters = [];
+            $maxPrice = null;
+            $minPrice = null;
+
+            // Extract budget in Millions (e.g. "5 مليون", "3.5 مليون", "5م")
+            if (preg_match('/(\d+(?:\.\d+)?)\s*(?:مليون|ملايين|م)/iu', $cleanMsg, $m)) {
+                $val = (float) $m[1] * 1000000;
+                if (preg_match('/(أكثر من|اكثر من|فوق|أعلى من|اعلى من|above|more than)/iu', $cleanMsg)) {
+                    $minPrice = $val;
+                } else {
+                    $maxPrice = $val;
+                }
+            } elseif (preg_match('/(\d+(?:\.\d+)?)\s*(?:ألف|الف|k)/iu', $cleanMsg, $m)) {
+                $val = (float) $m[1] * 1000;
+                if (preg_match('/(أكثر من|اكثر من|فوق|أعلى من|اعلى من|above|more than)/iu', $cleanMsg)) {
+                    $minPrice = $val;
+                } else {
+                    $maxPrice = $val;
+                }
+            } elseif (preg_match('/(?:بسعر|سعر|بـ|بمبلغ|حدود|ميزانية|ميزانيه)\s*(\d{5,})/iu', $cleanMsg, $m)) {
+                $maxPrice = (float) $m[1];
+            }
+
+            if ($maxPrice !== null) {
+                $filters['max_price'] = $maxPrice;
+                $filters['sort'] = 'price_desc';
+            }
+            if ($minPrice !== null) {
+                $filters['min_price'] = $minPrice;
+                $filters['sort'] = 'price_asc';
+            }
+
+            // Detect rent vs sale
+            if (preg_match('/(إيجار|ايجار|للايجار|للإيجار|rent)/iu', $cleanMsg)) {
+                $filters['transaction'] = 'rent';
+            }
+
+            $matchedUnits = $this->catalogService->listUnits($filters, 4, $locale);
+            if (empty($matchedUnits) && ($maxPrice !== null || $minPrice !== null)) {
+                // If no exact price match, fallback to general active units
+                $matchedUnits = $this->catalogService->listUnits([], 4, $locale);
+            }
+
             if (!empty($matchedUnits)) {
                 $unitCards = array_map(fn($u) => $u->toCardPayload(), $matchedUnits);
-                $reply = $locale === 'en'
-                    ? "Based on your search, here are top matching properties available in our portfolio:"
-                    : "بناءً على طلبك، إليك مجموعة من أفضل الوحدات العقارية المتاحة لدينا:";
+                
+                if ($maxPrice !== null) {
+                    $formattedPrice = number_format($maxPrice, 0, '.', ',');
+                    $reply = $locale === 'en'
+                        ? "Here are our best available properties within your budget of **{$formattedPrice} EGP**:"
+                        : "إليك أفضل الشقق والوحدات العقارية المتاحة لدينا في حدود ميزانية **{$formattedPrice} ج.م** (مرتبة من الأعلى قيمة):";
+                } elseif ($minPrice !== null) {
+                    $formattedPrice = number_format($minPrice, 0, '.', ',');
+                    $reply = $locale === 'en'
+                        ? "Here are properties starting from **{$formattedPrice} EGP**:"
+                        : "إليك أفضل العقارات المتاحة بدءاً من **{$formattedPrice} ج.م** فما فوق:";
+                } else {
+                    $reply = $locale === 'en'
+                        ? "Based on your search, here are top matching properties available in our portfolio:"
+                        : "بناءً على طلبك، إليك مجموعة من أفضل الوحدات العقارية المتاحة لدينا:";
+                }
 
                 return [
                     'reply' => $reply,

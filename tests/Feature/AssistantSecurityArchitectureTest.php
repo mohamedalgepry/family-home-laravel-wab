@@ -523,5 +523,37 @@ class AssistantSecurityArchitectureTest extends TestCase
         $this->assertStringContainsString('wa.me', $res['reply']);
         $this->assertStringContainsString('واتساب', $res['reply']);
     }
+
+    /**
+     * Test 15: Budget extraction and filtering (e.g. 'عايز شقه بسعر 5 مليون').
+     */
+    public function test_it_handles_budget_inquiry_with_price_filtering(): void
+    {
+        $project = Project::create([
+            'user_id' => $this->user->id,
+            'area_id' => $this->area->id,
+            'name' => 'مشروع الأمل',
+            'name_ar' => 'مشروع الأمل',
+            'slug' => 'al-amal-budget',
+            'is_active' => true,
+        ]);
+
+        createTestUnit([
+            'user_id' => $this->user->id,
+            'project_id' => $project->id,
+            'name' => 'شقة 5 مليون',
+            'name_ar' => 'شقة 5 مليون',
+            'slug' => 'apt-5m',
+            'price' => 4500000,
+            'is_active' => true,
+        ]);
+
+        $orchestrator = app(AssistantOrchestratorService::class);
+        $res = $orchestrator->chat('عايز شقه بسعر 5 مليون', [], 'ar');
+
+        $this->assertTrue($res['is_fallback'] ?? false);
+        $this->assertStringContainsString('5,000,000', $res['reply']);
+        $this->assertNotEmpty($res['recommended_units']);
+    }
 }
 
