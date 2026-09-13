@@ -16,9 +16,28 @@
         }
     }
 
-    if (empty($image)) {
-        $siteLogo = app(\App\Domain\Listings\Services\SettingsService::class)->get('site_logo');
-        $image = $siteLogo ? asset('storage/' . ltrim($siteLogo, '/')) : asset('icon.webp');
+    // WhatsApp and Facebook require JPG or PNG under 300KB (WebP is rejected by WhatsApp link preview).
+    // If image is empty or points to a WebP logo, use the high-res 1200x630 og-familyhome.png banner.
+    $ogDefaultImage = file_exists(public_path('images/og-familyhome.png'))
+        ? asset('images/og-familyhome.png')
+        : asset('icon.png');
+
+    if (empty($image) || str_contains($image, 'icon.webp') || str_contains($image, 'logo_')) {
+        $image = $ogDefaultImage;
+    }
+
+    $imageType = 'image/png';
+    if (preg_match('/\.(jpe?g)$/i', $image)) {
+        $imageType = 'image/jpeg';
+    } elseif (preg_match('/\.webp$/i', $image)) {
+        $imageType = 'image/webp';
+    }
+
+    $imageWidth = 1200;
+    $imageHeight = 630;
+    if (str_contains($image, 'icon.png')) {
+        $imageWidth = 500;
+        $imageHeight = 500;
     }
 
     $canonical = $meta['canonical'] ?? url()->current();
@@ -55,9 +74,13 @@
 <meta property="og:description" content="{{ $description }}" inertia head-key="og:description">
 <meta property="og:image" content="{{ $image }}" inertia head-key="og:image">
 <meta property="og:image:secure_url" content="{{ $image }}" inertia head-key="og:image:secure_url">
-<meta property="og:image:width" content="1200" inertia head-key="og:image:width">
-<meta property="og:image:height" content="630" inertia head-key="og:image:height">
+<meta property="og:image:type" content="{{ $imageType }}" inertia head-key="og:image:type">
+<meta property="og:image:width" content="{{ $imageWidth }}" inertia head-key="og:image:width">
+<meta property="og:image:height" content="{{ $imageHeight }}" inertia head-key="og:image:height">
+<meta property="og:image:alt" content="{{ $title }}" inertia head-key="og:image:alt">
 <meta property="og:site_name" content="{{ config('app.name') }}" inertia head-key="og:site_name">
+<link rel="image_src" href="{{ $image }}" inertia head-key="image_src">
+<meta itemprop="image" content="{{ $image }}" inertia head-key="itemprop:image">
 
 <!-- Twitter Cards -->
 <meta name="twitter:card" content="summary_large_image" inertia head-key="twitter:card">

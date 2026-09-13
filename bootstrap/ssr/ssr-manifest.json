@@ -14,6 +14,7 @@
   ],
   "resources/js/Components/UI/IconByName.jsx": [],
   "resources/js/Components/UI/InputField.jsx": [],
+  "resources/js/Components/UI/LazyMapEmbed.jsx": [],
   "resources/js/Components/UI/Pagination.jsx": [],
   "resources/js/Components/UI/PaymentTerms.jsx": [],
   "resources/js/Components/UI/ProjectCard.jsx": [],

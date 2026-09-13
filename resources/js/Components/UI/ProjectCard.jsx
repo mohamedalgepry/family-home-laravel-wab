@@ -39,7 +39,8 @@ function ProjectCard({ project, loading = false, priority = false }) {
     const mainImage = project?.images?.find(img => img.is_main || img.is_primary) || project?.images?.[0]
     const thumbnail = getThumbUrl(mainImage?.thumb_url || mainImage?.url || mainImage?.path, PLACEHOLDER)
     const originalUrl = getStorageUrl(mainImage?.url || mainImage?.path, null)
-    const displaySrc = originalUrl || thumbnail
+    // Use lightweight thumbnail or medium variant for card grids; fallback to originalUrl
+    const displaySrc = thumbnail || originalUrl || PLACEHOLDER
     const srcSet = mainImage?.srcset || (originalUrl && thumbnail && originalUrl !== thumbnail 
         ? `${thumbnail} 480w, ${originalUrl} 1600w` 
         : undefined)
@@ -53,7 +54,7 @@ function ProjectCard({ project, loading = false, priority = false }) {
     return (
         <article 
             dir={isRtl ? 'rtl' : 'ltr'} 
-            className="bg-white rounded-2xl shadow-card hover:shadow-2xl hover:-translate-y-1.5 hover:scale-[1.02] transition-all duration-300 overflow-hidden group border border-secondary-100/80 flex flex-col h-full"
+            className="bg-white rounded-2xl shadow-card hover:shadow-2xl md:hover:-translate-y-1.5 md:hover:scale-[1.02] transition-all duration-300 transform-gpu overflow-hidden group border border-secondary-100/80 flex flex-col h-full"
         >
             {/* Image Container */}
             <div className="relative overflow-hidden aspect-[4/3] bg-secondary-100">
@@ -64,12 +65,13 @@ function ProjectCard({ project, loading = false, priority = false }) {
                     <OptimizedImage
                         src={displaySrc}
                         srcSet={srcSet}
+                        sizes="(max-width: 640px) calc(100vw - 32px), (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 400px"
                         alt={imageAlt}
                         width={480}
                         height={360}
                         lazy={!priority}
                         fallbackSrc={PLACEHOLDER}
-                        className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-500 ease-out"
+                        className="w-full h-full object-cover md:group-hover:scale-108 transition-transform duration-500 ease-out"
                     />
                 </Link>
 

@@ -10,7 +10,7 @@ export default function OptimizedImage({
     fallbackSrc = '/images/fallback.webp',
     role,
     srcSet,
-    sizes = '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1536px) 33vw, 500px',
+    sizes = '(max-width: 640px) calc(100vw - 32px), (max-width: 1024px) 50vw, (max-width: 1536px) 33vw, 480px',
     ...props
 }) {
     const [imgSrc, setImgSrc] = useState(src);
@@ -40,7 +40,7 @@ export default function OptimizedImage({
             height={height}
             loading={lazy ? 'lazy' : 'eager'}
             fetchPriority={!lazy ? 'high' : undefined}
-            decoding={lazy ? 'async' : 'sync'}
+            decoding="async"
             className={className}
             onError={handleError}
             role={role}

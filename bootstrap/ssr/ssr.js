@@ -3513,6 +3513,62 @@ function Select({ value, onChange, children, className = "", disabled = false, r
 	});
 }
 //#endregion
+//#region resources/js/Components/UI/LazyMapEmbed.jsx
+function LazyMapEmbed({ latitude, longitude, locale = "ar", title = "Google Map Location", className = "" }) {
+	const [shouldLoad, setShouldLoad] = useState(false);
+	const containerRef = useRef(null);
+	useEffect(() => {
+		if (!containerRef.current || typeof IntersectionObserver === "undefined") {
+			setShouldLoad(true);
+			return;
+		}
+		const observer = new IntersectionObserver(([entry]) => {
+			if (entry.isIntersecting && entry.intersectionRatio > 0) {
+				setShouldLoad(true);
+				observer.disconnect();
+			}
+		}, { rootMargin: "250px 0px" });
+		observer.observe(containerRef.current);
+		return () => observer.disconnect();
+	}, []);
+	if (!latitude || !longitude || latitude === "0" || longitude === "0") return null;
+	const mapSrc = `https://maps.google.com/maps?q=${latitude},${longitude}&hl=${locale}&z=14&output=embed`;
+	return /* @__PURE__ */ jsx("div", {
+		ref: containerRef,
+		className: `relative w-full aspect-[16/9] rounded-xl overflow-hidden bg-secondary-100 border border-secondary-200 ${className}`,
+		children: shouldLoad ? /* @__PURE__ */ jsx("iframe", {
+			src: mapSrc,
+			className: "w-full h-full border-0 animate-fade-in",
+			allowFullScreen: true,
+			loading: "lazy",
+			referrerPolicy: "no-referrer-when-downgrade",
+			title
+		}) : /* @__PURE__ */ jsxs("div", {
+			className: "absolute inset-0 flex flex-col items-center justify-center gap-2 text-secondary-400 bg-secondary-50",
+			children: [/* @__PURE__ */ jsxs("svg", {
+				className: "w-8 h-8 text-secondary-300 animate-pulse",
+				fill: "none",
+				viewBox: "0 0 24 24",
+				stroke: "currentColor",
+				children: [/* @__PURE__ */ jsx("path", {
+					strokeLinecap: "round",
+					strokeLinejoin: "round",
+					strokeWidth: 1.5,
+					d: "M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"
+				}), /* @__PURE__ */ jsx("path", {
+					strokeLinecap: "round",
+					strokeLinejoin: "round",
+					strokeWidth: 1.5,
+					d: "M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
+				})]
+			}), /* @__PURE__ */ jsx("span", {
+				className: "text-xs font-semibold text-secondary-400",
+				children: locale === "ar" ? "جارٍ تحميل الخريطة..." : "Loading map..."
+			})]
+		})
+	});
+}
+//#endregion
 //#region resources/js/Components/UI/WhatsAppIcon.jsx
 function WhatsAppIcon({ className = "w-5 h-5", "aria-hidden": ariaHidden = true, ...props }) {
 	return /* @__PURE__ */ jsx("svg", {
@@ -15327,7 +15383,7 @@ function AdminUsersIndex({ users, managers, filters }) {
 }
 //#endregion
 //#region resources/js/Components/OptimizedImage.jsx
-function OptimizedImage({ src, alt = "", width, height, className = "", lazy = true, fallbackSrc = "/images/fallback.webp", role, srcSet, sizes = "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1536px) 33vw, 500px", ...props }) {
+function OptimizedImage({ src, alt = "", width, height, className = "", lazy = true, fallbackSrc = "/images/fallback.webp", role, srcSet, sizes = "(max-width: 640px) calc(100vw - 32px), (max-width: 1024px) 50vw, (max-width: 1536px) 33vw, 480px", ...props }) {
 	const [imgSrc, setImgSrc] = useState(src);
 	const [hasError, setHasError] = useState(false);
 	useEffect(() => {
@@ -15349,7 +15405,7 @@ function OptimizedImage({ src, alt = "", width, height, className = "", lazy = t
 		height,
 		loading: lazy ? "lazy" : "eager",
 		fetchPriority: !lazy ? "high" : void 0,
-		decoding: lazy ? "async" : "sync",
+		decoding: "async",
 		className,
 		onError: handleError,
 		role,
@@ -15950,13 +16006,15 @@ function SeoHead({ title, description, keywords, ogImage, ogType = "website", ca
 			const cleanImgPath = finalOgImage.startsWith("/") ? finalOgImage : `/${finalOgImage}`;
 			finalOgImage = baseUrl ? `${baseUrl}${cleanImgPath}` : cleanImgPath;
 		}
-	} else {
-		const siteLogo = settings?.site_logo;
-		if (siteLogo) {
-			const logoPath = siteLogo.startsWith("/") ? siteLogo : `/storage/${siteLogo}`;
-			finalOgImage = baseUrl ? `${baseUrl}${logoPath}` : logoPath;
-		} else finalOgImage = baseUrl ? `${baseUrl}/icon.webp` : "/icon.webp";
 	}
+	const defaultOgPath = "/images/og-familyhome.png";
+	if (!finalOgImage || finalOgImage.includes("icon.webp") || finalOgImage.includes("logo_")) finalOgImage = baseUrl ? `${baseUrl}${defaultOgPath}` : defaultOgPath;
+	const isJpg = finalOgImage.endsWith(".jpg") || finalOgImage.endsWith(".jpeg");
+	const isPng = finalOgImage.endsWith(".png");
+	const ogImageType = isJpg ? "image/jpeg" : isPng ? "image/png" : "image/webp";
+	const isSquareLogo = finalOgImage.includes("icon.png");
+	const ogImageWidth = isSquareLogo ? 500 : 1200;
+	const ogImageHeight = isSquareLogo ? 500 : 630;
 	const jsonLdData = jsonLd || seo_meta?.schema || null;
 	return /* @__PURE__ */ jsxs(Head, { children: [
 		finalTitle && /* @__PURE__ */ jsx("title", { children: finalTitle }),
@@ -16005,10 +16063,40 @@ function SeoHead({ title, description, keywords, ogImage, ogType = "website", ca
 			property: "og:image",
 			content: finalOgImage
 		}),
+		finalOgImage && /* @__PURE__ */ jsx("meta", {
+			"head-key": "og:image:secure_url",
+			property: "og:image:secure_url",
+			content: finalOgImage
+		}),
+		finalOgImage && /* @__PURE__ */ jsx("meta", {
+			"head-key": "og:image:type",
+			property: "og:image:type",
+			content: ogImageType
+		}),
+		finalOgImage && /* @__PURE__ */ jsx("meta", {
+			"head-key": "og:image:width",
+			property: "og:image:width",
+			content: String(ogImageWidth)
+		}),
+		finalOgImage && /* @__PURE__ */ jsx("meta", {
+			"head-key": "og:image:height",
+			property: "og:image:height",
+			content: String(ogImageHeight)
+		}),
+		finalTitle && /* @__PURE__ */ jsx("meta", {
+			"head-key": "og:image:alt",
+			property: "og:image:alt",
+			content: finalTitle
+		}),
 		/* @__PURE__ */ jsx("meta", {
 			"head-key": "og:url",
 			property: "og:url",
 			content: finalCanonical
+		}),
+		finalOgImage && /* @__PURE__ */ jsx("link", {
+			"head-key": "image_src",
+			rel: "image_src",
+			href: finalOgImage
 		}),
 		/* @__PURE__ */ jsx("meta", {
 			"head-key": "twitter:card",
@@ -16173,7 +16261,7 @@ function UnitCard({ unit, loading = false, priority = false }) {
 	const mainImage = unit?.images?.find((img) => img.is_main || img.is_primary) || unit?.images?.[0];
 	const thumbnail = getThumbUrl(mainImage?.thumb_url || mainImage?.url || mainImage?.path, PLACEHOLDER$2);
 	const originalUrl = getStorageUrl(mainImage?.url || mainImage?.path, null);
-	const displaySrc = originalUrl || thumbnail;
+	const displaySrc = thumbnail || originalUrl || "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 600\"%3E%3Crect fill=\"%23F0F0F0\" width=\"800\" height=\"600\"/%3E%3C/svg%3E";
 	const srcSet = mainImage?.srcset || (originalUrl && thumbnail && originalUrl !== thumbnail ? `${thumbnail} 480w, ${originalUrl} 1600w` : void 0);
 	const isCompared = compareList.includes(unit?.id);
 	const whatsappLink = `https://wa.me/${getAgentContacts(unit?.user || unit?.project?.user, settings).whatsapp}?text=${encodeURIComponent(trans("unit_whatsapp_inquiry", { name: unit?.name || "" }))}`;
@@ -16182,7 +16270,7 @@ function UnitCard({ unit, loading = false, priority = false }) {
 	const unitSlug = isRtl && unit.slug_ar ? unit.slug_ar : unit.slug_en || unit.slug || unit.id;
 	return /* @__PURE__ */ jsxs("article", {
 		dir: isRtl ? "rtl" : "ltr",
-		className: "bg-white rounded-2xl shadow-card overflow-hidden hover:shadow-2xl transition-all duration-300 group border border-secondary-100/70 hover:-translate-y-1.5 hover:scale-[1.02] flex flex-col justify-between",
+		className: "bg-white rounded-2xl shadow-card overflow-hidden hover:shadow-2xl transition-all duration-300 transform-gpu group border border-secondary-100/70 md:hover:-translate-y-1.5 md:hover:scale-[1.02] flex flex-col justify-between",
 		children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsxs(Link, {
 			href: localizedPath(`/units/${unitSlug}`, locale),
 			className: "block relative overflow-hidden aspect-[4/3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
@@ -16190,12 +16278,13 @@ function UnitCard({ unit, loading = false, priority = false }) {
 				/* @__PURE__ */ jsx(OptimizedImage, {
 					src: displaySrc,
 					srcSet,
+					sizes: "(max-width: 640px) calc(100vw - 32px), (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 360px",
 					alt: imageAlt,
 					width: 400,
 					height: 360,
 					lazy: !priority,
 					fallbackSrc: PLACEHOLDER$2,
-					className: "w-full h-full object-cover group-hover:scale-108 transition-transform duration-700 ease-out"
+					className: "w-full h-full object-cover md:group-hover:scale-108 transition-transform duration-500 ease-out"
 				}),
 				/* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-gradient-to-t from-secondary-950/60 via-transparent to-black/20 opacity-80 group-hover:opacity-60 transition-opacity" }),
 				/* @__PURE__ */ jsx("div", {
@@ -17278,7 +17367,7 @@ function ProjectCard({ project, loading = false, priority = false }) {
 	const mainImage = project?.images?.find((img) => img.is_main || img.is_primary) || project?.images?.[0];
 	const thumbnail = getThumbUrl(mainImage?.thumb_url || mainImage?.url || mainImage?.path, PLACEHOLDER$2);
 	const originalUrl = getStorageUrl(mainImage?.url || mainImage?.path, null);
-	const displaySrc = originalUrl || thumbnail;
+	const displaySrc = thumbnail || originalUrl || "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 600\"%3E%3Crect fill=\"%23F0F0F0\" width=\"800\" height=\"600\"/%3E%3C/svg%3E";
 	const srcSet = mainImage?.srcset || (originalUrl && thumbnail && originalUrl !== thumbnail ? `${thumbnail} 480w, ${originalUrl} 1600w` : void 0);
 	const isCompared = compareList.includes(project?.id);
 	const areaName = project.area?.name || project.area_name || (isRtl ? "مصر" : "Egypt");
@@ -17287,7 +17376,7 @@ function ProjectCard({ project, loading = false, priority = false }) {
 	const projectSlug = isRtl && project.slug_ar ? project.slug_ar : project.slug_en || project.slug || project.id;
 	return /* @__PURE__ */ jsxs("article", {
 		dir: isRtl ? "rtl" : "ltr",
-		className: "bg-white rounded-2xl shadow-card hover:shadow-2xl hover:-translate-y-1.5 hover:scale-[1.02] transition-all duration-300 overflow-hidden group border border-secondary-100/80 flex flex-col h-full",
+		className: "bg-white rounded-2xl shadow-card hover:shadow-2xl md:hover:-translate-y-1.5 md:hover:scale-[1.02] transition-all duration-300 transform-gpu overflow-hidden group border border-secondary-100/80 flex flex-col h-full",
 		children: [/* @__PURE__ */ jsxs("div", {
 			className: "relative overflow-hidden aspect-[4/3] bg-secondary-100",
 			children: [
@@ -17297,12 +17386,13 @@ function ProjectCard({ project, loading = false, priority = false }) {
 					children: /* @__PURE__ */ jsx(OptimizedImage, {
 						src: displaySrc,
 						srcSet,
+						sizes: "(max-width: 640px) calc(100vw - 32px), (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 400px",
 						alt: imageAlt,
 						width: 480,
 						height: 360,
 						lazy: !priority,
 						fallbackSrc: PLACEHOLDER$2,
-						className: "w-full h-full object-cover group-hover:scale-108 transition-transform duration-500 ease-out"
+						className: "w-full h-full object-cover md:group-hover:scale-108 transition-transform duration-500 ease-out"
 					})
 				}),
 				/* @__PURE__ */ jsxs("div", {
@@ -17519,10 +17609,13 @@ function AreaShow({ area, relatedAreas, units, projects, seo, areas, unitTypes, 
 								srcSet: heroSrcSet,
 								sizes: "100vw",
 								alt: heroTitle,
+								loading: "eager",
+								fetchPriority: "high",
+								decoding: "async",
 								onError: (e) => {
 									e.currentTarget.style.display = "none";
 								},
-								className: "w-full h-full object-cover object-center scale-105 animate-subtle-zoom opacity-50"
+								className: "w-full h-full object-cover object-center scale-105 md:animate-subtle-zoom opacity-50"
 							}), /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-gradient-to-t from-secondary-950 via-secondary-950/70 to-black/40" })]
 						}), /* @__PURE__ */ jsxs("div", {
 							className: "relative z-10 max-w-container mx-auto px-4 w-full",
@@ -17789,31 +17882,26 @@ function AreaShow({ area, relatedAreas, units, projects, seo, areas, unitTypes, 
 											children: address
 										})]
 									}),
-									/* @__PURE__ */ jsx("div", {
-										className: "w-full h-[300px] md:h-[400px] bg-secondary-100 rounded-3xl overflow-hidden border border-secondary-200 shadow-sm relative",
-										children: area?.latitude && area?.longitude && area?.latitude != "0" && area?.longitude != "0" ? /* @__PURE__ */ jsx("iframe", {
-											className: "absolute inset-0 w-full h-full",
-											style: { border: 0 },
-											src: `https://maps.google.com/maps?q=${area.latitude},${area.longitude}&z=14&output=embed`,
-											allowFullScreen: true,
-											loading: "lazy",
-											referrerPolicy: "no-referrer-when-downgrade",
-											title: "Google Map Location"
-										}) : /* @__PURE__ */ jsxs("div", {
-											className: "absolute inset-0 flex items-center justify-center text-secondary-400 flex-col gap-2",
-											children: [/* @__PURE__ */ jsx("svg", {
-												className: "w-12 h-12",
-												fill: "none",
-												viewBox: "0 0 24 24",
-												stroke: "currentColor",
-												children: /* @__PURE__ */ jsx("path", {
-													strokeLinecap: "round",
-													strokeLinejoin: "round",
-													strokeWidth: 1,
-													d: "M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"
-												})
-											}), /* @__PURE__ */ jsx("span", { children: trans("map_not_available") })]
-										})
+									area?.latitude && area?.longitude && area?.latitude != "0" && area?.longitude != "0" ? /* @__PURE__ */ jsx(LazyMapEmbed, {
+										latitude: area.latitude,
+										longitude: area.longitude,
+										locale,
+										title: "Google Map Location",
+										className: "!rounded-3xl shadow-sm h-[300px] md:h-[400px]"
+									}) : /* @__PURE__ */ jsxs("div", {
+										className: "w-full h-[300px] md:h-[400px] bg-secondary-100 rounded-3xl overflow-hidden border border-secondary-200 shadow-sm flex items-center justify-center text-secondary-400 flex-col gap-2",
+										children: [/* @__PURE__ */ jsx("svg", {
+											className: "w-12 h-12",
+											fill: "none",
+											viewBox: "0 0 24 24",
+											stroke: "currentColor",
+											children: /* @__PURE__ */ jsx("path", {
+												strokeLinecap: "round",
+												strokeLinejoin: "round",
+												strokeWidth: 1,
+												d: "M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"
+											})
+										}), /* @__PURE__ */ jsx("span", { children: trans("map_not_available") })]
 									}),
 									area?.latitude && area?.longitude && area?.latitude != "0" && area?.longitude != "0" && /* @__PURE__ */ jsx("div", {
 										className: "mt-3 flex justify-end",
@@ -20170,7 +20258,7 @@ function ProjectsIndex({ projects, filters, areas, features, finishingTypes }) {
 							className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6",
 							children: projects.data.map((project, i) => /* @__PURE__ */ jsx(ProjectCard_default, {
 								project,
-								priority: i < 4
+								priority: i === 0
 							}, project.id))
 						}), /* @__PURE__ */ jsx(Pagination, {
 							meta: projects.meta || projects,
@@ -20253,15 +20341,43 @@ function PaymentTerms({ item }) {
 //#endregion
 //#region resources/js/Components/UI/VideoPlayer.jsx
 function VideoPlayer({ embedUrl, title = "Video Tour", className = "" }) {
+	const [isPlaying, setIsPlaying] = useState(false);
 	if (!embedUrl) return null;
+	let videoId = null;
+	const match = embedUrl.match(/(?:embed\/|v=|\/vi\/|youtu\.be\/|\/v\/)([^#&?]*)/);
+	if (match && match[1] && match[1].length === 11) videoId = match[1];
+	const autoplayUrl = embedUrl.includes("?") ? `${embedUrl}&autoplay=1` : `${embedUrl}?autoplay=1`;
 	return /* @__PURE__ */ jsx("div", {
-		className: `relative w-full aspect-video rounded-xl overflow-hidden bg-black shadow-inner ${className}`,
-		children: /* @__PURE__ */ jsx("iframe", {
-			src: embedUrl,
+		className: `relative w-full aspect-video rounded-xl overflow-hidden bg-black shadow-inner group ${className}`,
+		children: isPlaying ? /* @__PURE__ */ jsx("iframe", {
+			src: autoplayUrl,
 			title,
-			className: "w-full h-full border-0",
+			className: "w-full h-full border-0 animate-fade-in",
 			allow: "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share",
 			allowFullScreen: true
+		}) : /* @__PURE__ */ jsxs("button", {
+			type: "button",
+			onClick: () => setIsPlaying(true),
+			className: "relative w-full h-full flex items-center justify-center cursor-pointer outline-none focus-visible:ring-4 focus-visible:ring-primary-500",
+			"aria-label": `Play ${title}`,
+			children: [
+				videoId && /* @__PURE__ */ jsx("img", {
+					src: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+					alt: title,
+					loading: "lazy",
+					decoding: "async",
+					className: "absolute inset-0 w-full h-full object-cover opacity-85 group-hover:opacity-95 group-hover:scale-105 transition-all duration-300"
+				}),
+				/* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-black/30 group-hover:bg-black/20 transition-colors" }),
+				/* @__PURE__ */ jsx("div", {
+					className: "relative z-10 w-16 h-11 md:w-20 md:h-14 bg-[#CC0000] hover:bg-red-700 text-white rounded-2xl flex items-center justify-center shadow-2xl transition-transform duration-200 group-hover:scale-110 active:scale-95",
+					children: /* @__PURE__ */ jsx("svg", {
+						className: "w-7 h-7 md:w-9 md:h-9 fill-current ps-1",
+						viewBox: "0 0 24 24",
+						children: /* @__PURE__ */ jsx("path", { d: "M8 5v14l11-7z" })
+					})
+				})
+			]
 		})
 	});
 }
@@ -20938,16 +21054,11 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 											})]
 										})]
 									}),
-									hasValidCoords(project) && /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("div", {
-										className: "rounded-xl overflow-hidden border border-secondary-200 aspect-[16/9]",
-										children: /* @__PURE__ */ jsx("iframe", {
-											src: `https://maps.google.com/maps?q=${project.latitude},${project.longitude}&hl=${locale}&z=14&output=embed`,
-											className: "w-full h-full border-0",
-											allowFullScreen: true,
-											loading: "lazy",
-											referrerPolicy: "no-referrer-when-downgrade",
-											title: "Google Map Location"
-										})
+									hasValidCoords(project) && /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx(LazyMapEmbed, {
+										latitude: project.latitude,
+										longitude: project.longitude,
+										locale,
+										title: "Google Map Location"
 									}), /* @__PURE__ */ jsx("div", {
 										className: "text-center pt-1",
 										children: /* @__PURE__ */ jsxs("a", {
@@ -21139,16 +21250,11 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 											})]
 										})]
 									}),
-									hasValidCoords(project) && /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("div", {
-										className: "rounded-xl overflow-hidden border border-secondary-200 aspect-[16/9]",
-										children: /* @__PURE__ */ jsx("iframe", {
-											src: `https://maps.google.com/maps?q=${project.latitude},${project.longitude}&hl=${locale}&z=14&output=embed`,
-											className: "w-full h-full border-0",
-											allowFullScreen: true,
-											loading: "lazy",
-											referrerPolicy: "no-referrer-when-downgrade",
-											title: "Google Map Location Mobile Project"
-										})
+									hasValidCoords(project) && /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx(LazyMapEmbed, {
+										latitude: project.latitude,
+										longitude: project.longitude,
+										locale,
+										title: "Google Map Location Mobile Project"
 									}), /* @__PURE__ */ jsx("div", {
 										className: "text-center pt-1",
 										children: /* @__PURE__ */ jsxs("a", {
@@ -21513,7 +21619,7 @@ function UnitsIndex({ units, filters, areas, unitTypes, features, finishingTypes
 							className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6",
 							children: units.data.map((unit, i) => /* @__PURE__ */ jsx(UnitCard_default, {
 								unit,
-								priority: i < 4
+								priority: i === 0
 							}, unit.id))
 						}), /* @__PURE__ */ jsx(Pagination, {
 							meta: units.meta || units,
@@ -22591,16 +22697,11 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 												})]
 											})]
 										}),
-										hasValidCoords(unit) && /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("div", {
-											className: "rounded-xl overflow-hidden border border-secondary-200 aspect-[16/9]",
-											children: /* @__PURE__ */ jsx("iframe", {
-												src: `https://maps.google.com/maps?q=${unit.latitude},${unit.longitude}&hl=${locale}&z=14&output=embed`,
-												className: "w-full h-full border-0",
-												allowFullScreen: true,
-												loading: "lazy",
-												referrerPolicy: "no-referrer-when-downgrade",
-												title: "Google Map Location"
-											})
+										hasValidCoords(unit) && /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx(LazyMapEmbed, {
+											latitude: unit.latitude,
+											longitude: unit.longitude,
+											locale,
+											title: "Google Map Location"
 										}), /* @__PURE__ */ jsx("div", {
 											className: "text-center pt-1",
 											children: /* @__PURE__ */ jsxs("a", {
@@ -22896,16 +22997,11 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 												})]
 											})]
 										}),
-										hasValidCoords(unit) && /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("div", {
-											className: "rounded-xl overflow-hidden border border-secondary-200 aspect-[16/9]",
-											children: /* @__PURE__ */ jsx("iframe", {
-												src: `https://maps.google.com/maps?q=${unit.latitude},${unit.longitude}&hl=${locale}&z=14&output=embed`,
-												className: "w-full h-full border-0",
-												allowFullScreen: true,
-												loading: "lazy",
-												referrerPolicy: "no-referrer-when-downgrade",
-												title: "Google Map Location Mobile"
-											})
+										hasValidCoords(unit) && /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx(LazyMapEmbed, {
+											latitude: unit.latitude,
+											longitude: unit.longitude,
+											locale,
+											title: "Google Map Location Mobile"
 										}), /* @__PURE__ */ jsx("div", {
 											className: "text-center pt-1",
 											children: /* @__PURE__ */ jsxs("a", {

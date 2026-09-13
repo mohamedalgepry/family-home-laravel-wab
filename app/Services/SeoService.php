@@ -119,7 +119,9 @@ class SeoService
         ];
 
         $siteLogo = $this->settingsService->get('site_logo');
-        $imageUrl = $siteLogo ? asset('storage/'.$siteLogo) : asset('icon.png');
+        $imageUrl = ($siteLogo && !str_contains($siteLogo, '.webp'))
+            ? asset('storage/'.$siteLogo)
+            : (file_exists(public_path('images/og-familyhome.png')) ? asset('images/og-familyhome.png') : asset('icon.png'));
 
         $schemas = [];
         if ($pageKey === 'home') {
@@ -235,7 +237,7 @@ class SeoService
             'title' => $params['title'] ?? config('app.name'),
             'description' => $params['description'] ?? '',
             'keywords' => $params['keywords'] ?? '',
-            'image' => $params['image'] ?? asset('icon.png'),
+            'image' => $params['image'] ?? (file_exists(public_path('images/og-familyhome.png')) ? asset('images/og-familyhome.png') : asset('icon.png')),
             'canonical' => $params['canonical'] ?? url()->current(),
             'hreflang' => $params['hreflang'] ?? [],
             'og_type' => $params['og_type'] ?? 'website',

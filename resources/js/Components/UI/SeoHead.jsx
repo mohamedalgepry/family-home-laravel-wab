@@ -65,15 +65,20 @@ export default function SeoHead({
             const cleanImgPath = finalOgImage.startsWith('/') ? finalOgImage : `/${finalOgImage}`;
             finalOgImage = baseUrl ? `${baseUrl}${cleanImgPath}` : cleanImgPath;
         }
-    } else {
-        const siteLogo = settings?.site_logo;
-        if (siteLogo) {
-            const logoPath = siteLogo.startsWith('/') ? siteLogo : `/storage/${siteLogo}`;
-            finalOgImage = baseUrl ? `${baseUrl}${logoPath}` : logoPath;
-        } else {
-            finalOgImage = baseUrl ? `${baseUrl}/icon.webp` : '/icon.webp';
-        }
     }
+
+    // WhatsApp and Facebook social share: avoid WebP for site logo/default, use PNG banner
+    const defaultOgPath = '/images/og-familyhome.png';
+    if (!finalOgImage || finalOgImage.includes('icon.webp') || finalOgImage.includes('logo_')) {
+        finalOgImage = baseUrl ? `${baseUrl}${defaultOgPath}` : defaultOgPath;
+    }
+
+    const isJpg = finalOgImage.endsWith('.jpg') || finalOgImage.endsWith('.jpeg');
+    const isPng = finalOgImage.endsWith('.png');
+    const ogImageType = isJpg ? 'image/jpeg' : (isPng ? 'image/png' : 'image/webp');
+    const isSquareLogo = finalOgImage.includes('icon.png');
+    const ogImageWidth = isSquareLogo ? 500 : 1200;
+    const ogImageHeight = isSquareLogo ? 500 : 630;
 
     const jsonLdData = jsonLd || seo_meta?.schema || null;
 
@@ -91,7 +96,13 @@ export default function SeoHead({
             <meta head-key="og:type" property="og:type" content={ogType} />
             <meta head-key="og:site_name" property="og:site_name" content={siteName} />
             {finalOgImage && <meta head-key="og:image" property="og:image" content={finalOgImage} />}
+            {finalOgImage && <meta head-key="og:image:secure_url" property="og:image:secure_url" content={finalOgImage} />}
+            {finalOgImage && <meta head-key="og:image:type" property="og:image:type" content={ogImageType} />}
+            {finalOgImage && <meta head-key="og:image:width" property="og:image:width" content={String(ogImageWidth)} />}
+            {finalOgImage && <meta head-key="og:image:height" property="og:image:height" content={String(ogImageHeight)} />}
+            {finalTitle && <meta head-key="og:image:alt" property="og:image:alt" content={finalTitle} />}
             <meta head-key="og:url" property="og:url" content={finalCanonical} />
+            {finalOgImage && <link head-key="image_src" rel="image_src" href={finalOgImage} />}
 
             {/* Twitter Card */}
             <meta head-key="twitter:card" name="twitter:card" content="summary_large_image" />

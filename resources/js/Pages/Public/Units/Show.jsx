@@ -14,7 +14,7 @@ import { getYouTubeEmbedUrl } from '../../../Utils/youtube'
 import { getStorageUrl, PLACEHOLDER } from '../../../Utils/image'
 import { getAgentContacts } from '../../../Utils/contact'
 import { hasValidCoords } from '../../../Utils/location'
-import { WhatsAppIcon } from '../../../Components/UI'
+import { WhatsAppIcon, LazyMapEmbed } from '../../../Components/UI'
 import { useState, useEffect, useMemo } from 'react'
 
 export default function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
@@ -793,16 +793,12 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
 
                                         {hasValidCoords(unit) && (
                                             <>
-                                                <div className="rounded-xl overflow-hidden border border-secondary-200 aspect-[16/9]">
-                                                    <iframe
-                                                        src={`https://maps.google.com/maps?q=${unit.latitude},${unit.longitude}&hl=${locale}&z=14&output=embed`}
-                                                        className="w-full h-full border-0"
-                                                        allowFullScreen
-                                                        loading="lazy"
-                                                        referrerPolicy="no-referrer-when-downgrade"
-                                                        title="Google Map Location"
-                                                    />
-                                                </div>
+                                                <LazyMapEmbed
+                                                    latitude={unit.latitude}
+                                                    longitude={unit.longitude}
+                                                    locale={locale}
+                                                    title="Google Map Location"
+                                                />
 
                                                 <div className="text-center pt-1">
                                                     <a
@@ -985,16 +981,12 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
 
                                     {hasValidCoords(unit) && (
                                         <>
-                                            <div className="rounded-xl overflow-hidden border border-secondary-200 aspect-[16/9]">
-                                                <iframe
-                                                    src={`https://maps.google.com/maps?q=${unit.latitude},${unit.longitude}&hl=${locale}&z=14&output=embed`}
-                                                    className="w-full h-full border-0"
-                                                    allowFullScreen
-                                                    loading="lazy"
-                                                    referrerPolicy="no-referrer-when-downgrade"
-                                                    title="Google Map Location Mobile"
-                                                />
-                                            </div>
+                                            <LazyMapEmbed
+                                                latitude={unit.latitude}
+                                                longitude={unit.longitude}
+                                                locale={locale}
+                                                title="Google Map Location Mobile"
+                                            />
                                             <div className="text-center pt-1">
                                                 <a
                                                     href={`https://www.google.com/maps/search/?api=1&query=${unit.latitude},${unit.longitude}`}
