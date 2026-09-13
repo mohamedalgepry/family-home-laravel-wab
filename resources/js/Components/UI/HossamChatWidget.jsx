@@ -74,8 +74,6 @@ export default function HossamChatWidget() {
     const [isHovered, setIsHovered] = useState(false)
     const [feedback, setFeedback] = useState({}) // { [messageId]: 'up' | 'down' | null }
     const [streamedMessageId, setStreamedMessageId] = useState(null) // for caret animation
-    const [isSpeaking, setIsSpeaking] = useState(false)
-    const [audioEnabled, setAudioEnabled] = useState(false)
     const [proactivePill, setProactivePill] = useState(null)
     const [typingStage, setTypingStage] = useState(0) // 0=dots, 1=searching DB, 2=preparing reply
     const streamIntervalRef = useRef(null)
@@ -191,33 +189,11 @@ export default function HossamChatWidget() {
         }
     }, [isOpen, pageProps, isRtl])
 
-    /* ---------- speech synthesis (TTS) ---------- */
-    const speakMessage = useCallback((text) => {
-        if (!audioEnabled || typeof window === 'undefined' || !window.speechSynthesis) return
-
-        window.speechSynthesis.cancel() // Stop previous speech
-        const speech = new SpeechSynthesisUtterance(text)
-        speech.lang = locale === 'ar' ? 'ar-EG' : 'en-US'
-        speech.rate = 1.05
-        speech.pitch = 1
-        
-        speech.onstart = () => setIsSpeaking(true)
-        speech.onend = () => setIsSpeaking(false)
-        speech.onerror = () => setIsSpeaking(false)
-        
-        window.speechSynthesis.speak(speech)
-    }, [audioEnabled, locale])
-
-    // Toggle audio
-    const toggleAudio = useCallback(() => {
-        setAudioEnabled(prev => {
-            const next = !prev
-            if (!next && window.speechSynthesis) {
-                window.speechSynthesis.cancel()
-                setIsSpeaking(false)
-            }
-            return next
-        })
+    /* ---------- ensure speech synthesis is cancelled / disabled ---------- */
+    useEffect(() => {
+        if (typeof window !== 'undefined' && window.speechSynthesis) {
+            window.speechSynthesis.cancel()
+        }
     }, [])
 
     /* ---------- keyboard shortcuts ---------- */
@@ -388,9 +364,6 @@ export default function HossamChatWidget() {
                                 streamIntervalRef.current = null
                                 setMessages(prev => prev.map(m => m.id === newBotId ? { ...m, content: fullReply } : m))
                                 setStreamedMessageId(null)
-                                if (audioEnabled) {
-                                    speakMessage(fullReply)
-                                }
                             } else {
                                 const partial = words.slice(0, wordIdx).join(' ')
                                 setMessages(prev => prev.map(m => m.id === newBotId ? { ...m, content: partial } : m))
@@ -790,27 +763,6 @@ export default function HossamChatWidget() {
                             </div>
                             {/* Header actions */}
                             <div className="flex items-center gap-0.5 shrink-0">
-                                {typeof window !== 'undefined' && 'speechSynthesis' in window && (
-                                    <button
-                                        onClick={toggleAudio}
-                                        className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
-                                            audioEnabled ? 'text-[#CC0000] bg-red-50' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
-                                        }`}
-                                        title={audioEnabled ? (isRtl ? 'إيقاف الصوت' : 'Mute') : (isRtl ? 'تشغيل الصوت' : 'Unmute')}
-                                        aria-label={audioEnabled ? (isRtl ? 'إيقاف الصوت' : 'Mute') : (isRtl ? 'تشغيل الصوت' : 'Unmute')}
-                                    >
-                                        {audioEnabled ? (
-                                            <svg className={`w-3.5 h-3.5 ${isSpeaking ? 'animate-pulse' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                                            </svg>
-                                        ) : (
-                                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
-                                            </svg>
-                                        )}
-                                    </button>
-                                )}
                                 <button
                                     onClick={() => setIsFullscreen(prev => !prev)}
                                     className="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-900 flex items-center justify-center transition-colors"
