@@ -354,12 +354,100 @@ EOT;
      */
     private function handleLocalRuleBasedResponse(string $message, string $locale, array $preloadedUnits = []): array
     {
-        $lowerMsg = mb_strtolower($message);
+        $cleanMsg = trim($message);
+        $lowerMsg = mb_strtolower($cleanMsg);
+        $cleanWhatsapp = preg_replace('/[^\d]/', '', (string) config('assistant.default_whatsapp', '201000000000'));
+        $whatsappUrl = 'https://wa.me/' . $cleanWhatsapp . '?text=' . urlencode($locale === 'en' ? 'Hello Family Home, I would like to inquire about properties' : 'مرحباً فاميلي هوم، أود الاستفسار عن العقارات المتاحة');
 
-        // Check if user is asking about units of a project
-        // Regex patterns for Arabic & English inquiries
-        $projectFound = null;
+        // 1. WhatsApp / Customer Support inquiry
+        if (preg_match('/(تواصل عبر واتساب|واتساب|تواصل معي|تواصل مع|خدمة العملاء|خدمه العملاء|رقم التليفون|رقم الهاتف|ارقامكم|عنوانكم|مقركم|فين مكتبكم|whatsapp|contact us|phone number)/iu', $cleanMsg)) {
+            $reply = $locale === 'en'
+                ? "We are delighted to connect you directly with our specialized real estate advisory team at **Family Home**.\n\n💬 **Direct WhatsApp Support:** [Click here to chat on WhatsApp]({$whatsappUrl})\n\nOur team is available daily to answer your inquiries and schedule free property site visits."
+                : "يسعدنا تواصلك المباشر مع فريق مستشاري **فاميلي هوم** العقاري لتقديم أفضل الاستشارات وترتيب معاينات ميدانية مجانية.\n\n💬 **واتساب المبيعات المباشر:** [اضغط هنا للتواصل عبر واتساب مباشرة]({$whatsappUrl})\n\nفريقنا متواجد يومياً لمساعدتك في اختيار أنسب خطة سداد وعقار يلائم ميزانيتك.";
+
+            return [
+                'reply' => $reply,
+                'recommended_units' => [],
+                'quick_replies' => $locale === 'en'
+                    ? ['Featured projects', 'Apartments for sale', 'Best investment areas']
+                    : ['المشاريع المميزة', 'شقق للبيع بالتقسيط', 'أفضل مناطق الاستثمار'],
+                'is_fallback' => true,
+            ];
+        }
+
+        // 2. Installments & Payment Plans inquiry (e.g. "شقق للبيع بالتقسيط")
+        if (preg_match('/(شقق للبيع بالتقسيط|شقق بنظام التقسيط|شقق بالتقسيط|شقق تقسيط|شقق قسط|عايز شقه قسط|عايز شقة قسط|أنظمة السداد|انظمة السداد|نظام التقسيط|انظمه التقسيط|أطول فترة سداد|اطول فتره سداد|أقل مقدم|اقل مقدم|اقساط|أقساط|installment|down payment)/iu', $cleanMsg)) {
+            $installmentUnits = $this->catalogService->listUnits(['payment_method' => 'installment'], 4, $locale);
+            $unitCards = array_map(fn($u) => $u->toCardPayload(), $installmentUnits);
+
+            $reply = $locale === 'en'
+                ? "At **Family Home**, we provide a prime portfolio of apartments and residential units with flexible, bank-interest-free payment plans:\n\n• **Down Payment:** Typically starting from 10% to 15%.\n• **Payment Terms:** Spread over 6, 8, and up to 10 years in equal installments.\n• **Handover:** Diverse options ranging from immediate delivery to 1–3 years.\n\nHere are some of our top available installment units:"
+                : "نوفر في **فاميلي هوم** باقة مميزة من أفضل الشقق والوحدات السكنية بأنظمة تقسيط مريحة تناسب ميزانيتك وبدون فوائد بنكية:\n\n• **المقدم:** يبدأ من 10% إلى 15% فقط.\n• **فترة السداد:** تمتد من 6 إلى 8 سنوات وتصل حتى 10 سنوات بأقساط متساوية.\n• **الاستلام:** خيارات متنوعة تشمل الاستلام الفوري، أو خلال 1 إلى 3 سنوات.\n\nإليك باقة من أبرز الوحدات المتاحة للتقسيط حالياً:";
+
+            return [
+                'reply' => $reply,
+                'recommended_units' => $unitCards,
+                'quick_replies' => $locale === 'en'
+                    ? ['Featured projects', 'Best investment areas', 'Contact via WhatsApp']
+                    : ['المشاريع المميزة', 'أفضل مناطق الاستثمار', 'تواصل عبر واتساب'],
+                'is_fallback' => true,
+            ];
+        }
+
+        // 3. Investment Opportunities & Growth Areas (e.g. "أنهي مناطق ليها مستقبل استثماري؟")
+        if (preg_match('/(مناطق ليها مستقبل استثماري|مناطق لها مستقبل استثماري|مستقبل استثماري|أفضل مناطق الاستثمار|افضل مناطق الاستثمار|أفضل استثمار|افضل استثمار|استثمار عقاري|عائد استثماري|فرص الاستثمار|أعلى عائد|اعلى عائد|شقق لقطة|شقق لقطه|best investment|best areas to invest|high roi)/iu', $cleanMsg)) {
+            $activeUnits = $this->catalogService->listUnits([], 4, $locale);
+            $unitCards = array_map(fn($u) => $u->toCardPayload(), $activeUnits);
+
+            $reply = $locale === 'en'
+                ? "Egypt's real estate market offers exceptional capital growth, with the highest-yield opportunities concentrated in 4 strategic destinations:\n\n1. **New Cairo (Fifth Settlement & Golden Square):** High market liquidity, steady rental demand, and annual capital appreciation of 20% to 30%.\n2. **New Administrative Capital:** The future administrative hub and corporate headquarters offering massive capital upside upon full operation.\n3. **Sheikh Zayed & New Zayed:** Upscale, master-planned residential communities with sustained appreciation and high executive demand.\n4. **North Coast (Ras El Hekma & Sidi Heneish):** World-class international tourism destination delivering exceptional seasonal rental yields in foreign currencies.\n\nHere are selected top property opportunities available in our catalog:"
+                : "سوق العقارات في مصر يشهد طفرة نمو قوية، وتتركز أفضل الفرص الاستثمارية ذات العائد المرتفع في 4 وجهات رئيسية:\n\n1. **القاهرة الجديدة (التجمع الخامس وجولدن سكوير):** المنطقة الأكثر طلباً وسرعة في إعادة البيع والإيجار، بعائد رأسمالي سنوي يتراوح بين 20% و30%.\n2. **العاصمة الإدارية الجديدة:** المركز المستقبلي للشركات العالمية والمقرات الحكومية، وتمنحك أعلى زيادة رأسمالية حتى تاريخ التشغيل الكامل للمقرات.\n3. **الشيخ زايد وتوسعاتها (زايد الجديدة):** مجتمعات عمرانية راقية متكاملة الخدمات مع طلب قوي ومستمر من الصفوة والعائلات.\n4. **الساحل الشمالي (رأس الحكمة وسيدي حنيش):** وجهة سياحية واستثمارية عالمية تحقق عوائد إيجارية سياحية قياسية بالعملة الصعبة.\n\nإليك نخبة من أفضل الوحدات المعروضة لدينا حالياً:";
+
+            return [
+                'reply' => $reply,
+                'recommended_units' => $unitCards,
+                'quick_replies' => $locale === 'en'
+                    ? ['Featured projects', 'Apartments for sale', 'Contact via WhatsApp']
+                    : ['المشاريع المميزة', 'شقق للبيع بالتقسيط', 'تواصل عبر واتساب'],
+                'is_fallback' => true,
+            ];
+        }
+
+        // 4. Cash vs Installments inquiry
+        if (preg_match('/(كاش ولا تقسيط|كاش ولا قسط|اشتري كاش ولا قسط|خصم الكاش|أيهما أفضل كاش ولا تقسيط|انهي افضل كاش ولا تقسيط|cash vs installment)/iu', $cleanMsg)) {
+            $reply = $locale === 'en'
+                ? "A smart financial decision! The best route depends on your cash flow and investment horizon:\n\n• **Cash Purchase:** Gives you an immediate discount of **20% to 35%** off total property value. Excellent if you have surplus liquid capital and want immediate rental yield or instant handover.\n• **Installment Purchase:** Serves as the ultimate hedge against currency inflation; you pay fixed nominal installments over 6–10 years while property asset value compounds rapidly.\n\nLet me know your target budget or monthly capacity to guide you to the perfect unit!"
+                : "سؤال مالي واستثماري ممتاز! الاختيار الأنسب يعتمد على طبيعة سيولتك المالية:\n\n• **الشراء كاش (Cash):** يمنحك خصماً فورياً هائلاً يتراوح بين **20% إلى 35%** من إجمالي سعر العقار، وهو الخيار الأمثل إذا كانت لديك سيولة فائضة تبحث عن تجميدها في أصل جاهز للتأجير أو السكن الفوري.\n• **الشراء بالتقسيط (Installment):** أفضل وسيلة للتحوط ضد التضخم؛ حيث تدفع أقساطاً ثابتة على مدى 6 إلى 10 سنوات بقيمة نقدية تقل مع الوقت، بينما ترتفع القيمة السوقية للعقار بمعدلات قياسية.\n\nإذا كان لديك ميزانية محددة للكاش أو المقدم الشهري، أخبرني لأقترح لك أنسب الخيارات!";
+
+            return [
+                'reply' => $reply,
+                'recommended_units' => [],
+                'quick_replies' => $locale === 'en'
+                    ? ['Apartments for sale', 'Featured projects', 'Contact via WhatsApp']
+                    : ['شقق للبيع بالتقسيط', 'المشاريع المميزة', 'تواصل عبر واتساب'],
+                'is_fallback' => true,
+            ];
+        }
+
+        // 5. Greetings & Small talk
+        if (preg_match('/^(سلام|السلام عليكم|سلام عليكم|مرحبا|مرحب|أهلا|اهلا|أهلاً|صباح الخير|مساء الخير|ازيك|عامل ايه|شخبارك|كيف حالك|مين انت|hello|hi|hey|who are you)/iu', $cleanMsg)) {
+            $reply = $locale === 'en'
+                ? "Hello and welcome to **Family Home**! 🤝\n\nI am **Hossam**, your real estate advisor. Whether you are searching for your dream residence or a high-ROI investment, I am here to provide transparent guidance, financial breakdown, and our finest deals across Egypt.\n\nHow can I help you today?"
+                : "أهلاً ومرحباً بك في **فاميلي هوم**! 🤝\n\nأنا «حسام»، مستشارك العقاري والاستثماري. سواء كنت تبحث عن بيت أحلامك أو فرصة استثمارية ذكية، أنا هنا لمساعدتك بنصيحة صادقة وتحليل مالي دقيق لأفضل العروض والمشاريع المتاحة بدون عمولة شراء.\n\nكيف أقدر أساعدك اليوم؟";
+
+            return [
+                'reply' => $reply,
+                'recommended_units' => [],
+                'quick_replies' => $locale === 'en'
+                    ? ['Featured projects', 'Apartments for sale', 'Best investment areas', 'Contact via WhatsApp']
+                    : ['المشاريع المميزة', 'شقق للبيع بالتقسيط', 'أفضل مناطق الاستثمار', 'تواصل عبر واتساب'],
+                'is_fallback' => true,
+            ];
+        }
+
+        // 6. Specific Project Inquiry (Check if user is asking about a project by name or slug)
         $activeProjects = $this->catalogService->listProjects(10, $locale);
+        $projectFound = null;
 
         foreach ($activeProjects as $proj) {
             $projNameLower = mb_strtolower($proj->name);
@@ -394,12 +482,61 @@ EOT;
             ];
         }
 
-        // General project exploration fallback
+        // 7. Featured Projects Inquiry (e.g. "المشاريع المميزة", "المشاريع المتاحة", "المشاريع")
+        if (preg_match('/(المشاريع المميزة|المشاريع المميزه|المشاريع المتاحة|المشاريع المتاحه|استعراض المشاريع|مشاريعكم|المشاريع|featured projects|top projects|available projects)/iu', $cleanMsg)) {
+            if (!empty($activeProjects)) {
+                $itemsList = [];
+                foreach (array_slice($activeProjects, 0, 5) as $p) {
+                    $details = [];
+                    if ($p->locationAddress) $details[] = $p->locationAddress;
+                    if ($p->installmentYears) $details[] = ($locale === 'en' ? "Installments up to {$p->installmentYears} yrs" : "تقسيط حتى {$p->installmentYears} سنوات");
+                    if ($p->downPayment) $details[] = ($locale === 'en' ? "Down payment from {$p->downPayment}%" : "مقدم {$p->downPayment}%");
+                    $detailStr = !empty($details) ? ' (' . implode('، ', $details) . ')' : '';
+                    $itemsList[] = "• **{$p->name}**{$detailStr}";
+                }
+
+                $reply = $locale === 'en'
+                    ? "Here are the premier real estate projects available at **Family Home**:\n\n" . implode("\n", $itemsList) . "\n\nWhich project would you like to explore its available units and pricing?"
+                    : "إليك أبرز المشاريع العقارية الرائدة المتاحة حالياً لدى **فاميلي هوم**:\n\n" . implode("\n", $itemsList) . "\n\nعن أي مشروع تود معرفة تفاصيل وحداته وأسعاره؟";
+
+                $featuredUnits = $this->catalogService->listUnits([], 4, $locale);
+                $unitCards = array_map(fn($u) => $u->toCardPayload(), $featuredUnits);
+
+                return [
+                    'reply' => $reply,
+                    'recommended_units' => $unitCards,
+                    'quick_replies' => $locale === 'en'
+                        ? ['Apartments for sale', 'Best investment areas', 'Contact via WhatsApp']
+                        : ['شقق للبيع بالتقسيط', 'أفضل مناطق الاستثمار', 'تواصل عبر واتساب'],
+                    'is_fallback' => true,
+                ];
+            }
+        }
+
+        // 8. General search by unit keyword (e.g. "فيلا", "شقة", "مكتب", "محل", "التجمع", "زايد")
+        if (preg_match('/(فيلا|فيلات|فلل|شقة|شقق|دوبلكس|بنتهاوس|مكتب|مكاتب|محل|محلات|التجمع|زايد|العاصمة|الساحل|villa|apartment|office|shop)/iu', $cleanMsg)) {
+            $matchedUnits = $this->catalogService->listUnits([], 4, $locale);
+            if (!empty($matchedUnits)) {
+                $unitCards = array_map(fn($u) => $u->toCardPayload(), $matchedUnits);
+                $reply = $locale === 'en'
+                    ? "Based on your search, here are top matching properties available in our portfolio:"
+                    : "بناءً على طلبك، إليك مجموعة من أفضل الوحدات العقارية المتاحة لدينا:";
+
+                return [
+                    'reply' => $reply,
+                    'recommended_units' => $unitCards,
+                    'quick_replies' => $this->buildQuickReplies($locale, true),
+                    'is_fallback' => true,
+                ];
+            }
+        }
+
+        // 9. Intelligent General Fallback (Dynamically lists projects and guiding options)
         if (!empty($activeProjects)) {
             $projectNames = implode('، ', array_map(fn($p) => $p->name, array_slice($activeProjects, 0, 4)));
             $reply = $locale === 'en'
-                ? "Welcome to Family Home! Explore our top featured projects such as: {$projectNames}. How can I assist you today?"
-                : "أهلاً بك في فاميلي هوم! يمكنك استكشاف مشاريعنا المتميزة مثل: {$projectNames}. عن أي مشروع أو وحدة تود الاستفسار؟";
+                ? "I am here to guide your property search at **Family Home**! You can ask me about:\n\n• **Featured Projects:** Such as {$projectNames}\n• **Installment Properties:** Plans extending up to 10 years without bank interest\n• **High-ROI Investment Areas:** New Cairo, Sheikh Zayed, and New Capital\n• **Project Units:** e.g., 'What units belong to project X?'\n\nWhat would you like to explore?"
+                : "أنا هنا لمساعدتك في استكشاف أفضل الفرص العقارية لدى **فاميلي هوم**! يمكنك سؤالي عن:\n\n• **المشاريع المتميزة:** مثل {$projectNames}\n• **شقق بالتقسيط:** بأنظمة سداد تصل حتى 10 سنوات بدون فوائد\n• **أفضل مناطق الاستثمار:** في التجمع الخامس، الشيخ زايد، والعاصمة الإدارية\n• **وحدات مشروع معين:** مثل «ما الوحدات التابعة لمشروع X؟»\n\nعن أي منها تود الاستفسار؟";
 
             return [
                 'reply' => $reply,

@@ -40,4 +40,15 @@ interface AssistantCatalogRepositoryInterface
         string $unitSlug,
         string $locale = 'ar'
     ): ?UnitPublicDTO;
+
+    /**
+     * List active units with safe allowlisted filters and limits.
+     *
+     * @return UnitPublicDTO[]
+     */
+    public function listActiveUnits(
+        SafeUnitFiltersDTO $filters,
+        int $limit = 6,
+        string $locale = 'ar'
+    ): array;
 }

@@ -68,6 +68,19 @@ class RestrictedAssistantCatalogService
     }
 
     /**
+     * List active units across catalog with safe typed filters.
+     *
+     * @return UnitPublicDTO[]
+     */
+    public function listUnits(array $filters = [], int $limit = 6, string $locale = 'ar'): array
+    {
+        $safeFilters = SafeUnitFiltersDTO::fromArray($filters);
+        $safeLimit = max(1, min((int) config('assistant.max_per_page', 12), $limit));
+
+        return $this->repository->listActiveUnits($safeFilters, $safeLimit, $locale);
+    }
+
+    /**
      * Tool calling dispatcher with strict schema validation and allowlist.
      * Rejects any tool not in the allowlist.
      */

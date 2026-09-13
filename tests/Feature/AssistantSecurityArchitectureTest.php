@@ -454,5 +454,74 @@ class AssistantSecurityArchitectureTest extends TestCase
             'Server budget must be strictly less than browser 8s AbortController timeout'
         );
     }
+
+    /**
+     * Test 11: Rich local intent matching for investment areas inquiry.
+     */
+    public function test_it_handles_investment_areas_inquiry_with_rich_insights_and_recommendations(): void
+    {
+        $orchestrator = app(AssistantOrchestratorService::class);
+        $res = $orchestrator->chat('أنهي مناطق ليها مستقبل استثماري؟', [], 'ar');
+
+        $this->assertTrue($res['is_fallback'] ?? false);
+        $this->assertStringContainsString('القاهرة الجديدة', $res['reply']);
+        $this->assertStringContainsString('العاصمة الإدارية', $res['reply']);
+        $this->assertStringContainsString('الشيخ زايد', $res['reply']);
+        $this->assertStringContainsString('الساحل الشمالي', $res['reply']);
+        $this->assertContains('المشاريع المميزة', $res['quick_replies']);
+        $this->assertContains('شقق للبيع بالتقسيط', $res['quick_replies']);
+        $this->assertContains('تواصل عبر واتساب', $res['quick_replies']);
+    }
+
+    /**
+     * Test 12: Rich local intent matching for installments inquiry.
+     */
+    public function test_it_handles_installments_inquiry_with_payment_terms(): void
+    {
+        $orchestrator = app(AssistantOrchestratorService::class);
+        $res = $orchestrator->chat('شقق للبيع بالتقسيط', [], 'ar');
+
+        $this->assertTrue($res['is_fallback'] ?? false);
+        $this->assertStringContainsString('المقدم', $res['reply']);
+        $this->assertStringContainsString('فترة السداد', $res['reply']);
+        $this->assertContains('المشاريع المميزة', $res['quick_replies']);
+        $this->assertContains('تواصل عبر واتساب', $res['quick_replies']);
+    }
+
+    /**
+     * Test 13: Rich local intent matching for featured projects inquiry.
+     */
+    public function test_it_handles_featured_projects_inquiry_with_project_list(): void
+    {
+        Project::create([
+            'user_id' => $this->user->id,
+            'area_id' => $this->area->id,
+            'name' => 'مشروع الأمل',
+            'name_ar' => 'مشروع الأمل',
+            'slug' => 'al-amal-proj',
+            'is_active' => true,
+        ]);
+
+        $orchestrator = app(AssistantOrchestratorService::class);
+        $res = $orchestrator->chat('المشاريع المميزة', [], 'ar');
+
+        $this->assertTrue($res['is_fallback'] ?? false);
+        $this->assertStringContainsString('مشروع الأمل', $res['reply']);
+        $this->assertContains('شقق للبيع بالتقسيط', $res['quick_replies']);
+        $this->assertContains('تواصل عبر واتساب', $res['quick_replies']);
+    }
+
+    /**
+     * Test 14: Direct WhatsApp referral intent.
+     */
+    public function test_it_handles_whatsapp_referral_intent(): void
+    {
+        $orchestrator = app(AssistantOrchestratorService::class);
+        $res = $orchestrator->chat('تواصل عبر واتساب', [], 'ar');
+
+        $this->assertTrue($res['is_fallback'] ?? false);
+        $this->assertStringContainsString('wa.me', $res['reply']);
+        $this->assertStringContainsString('واتساب', $res['reply']);
+    }
 }
 

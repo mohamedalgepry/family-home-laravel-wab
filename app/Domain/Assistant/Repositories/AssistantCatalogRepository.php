@@ -215,4 +215,63 @@ class AssistantCatalogRepository implements AssistantCatalogRepositoryInterface
 
         return $unit ? UnitPublicDTO::fromModel($unit, $locale) : null;
     }
+
+    /**
+     * List active units with safe allowlisted filters and limits.
+     *
+     * @return UnitPublicDTO[]
+     */
+    public function listActiveUnits(
+        SafeUnitFiltersDTO $filters,
+        int $limit = 6,
+        string $locale = 'ar'
+    ): array {
+        $safeLimit = max(1, min(12, $limit));
+
+        $query = Unit::on($this->getConnectionName())
+            ->select(self::UNIT_SELECT_COLUMNS)
+            ->where('is_active', true);
+
+        if ($filters->paymentMethod !== null) {
+            if ($filters->paymentMethod === 'installment') {
+                $query->whereIn('payment_method', ['installment', 'both']);
+            } else {
+                $query->where('payment_method', $filters->paymentMethod);
+            }
+        }
+
+        if ($filters->transaction !== null) {
+            $query->where('transaction', $filters->transaction);
+        }
+
+        if ($filters->minPrice !== null) {
+            $query->where('price', '>=', $filters->minPrice);
+        }
+
+        if ($filters->maxPrice !== null) {
+            $query->where('price', '<=', $filters->maxPrice);
+        }
+
+        if ($filters->rooms !== null) {
+            $query->where('rooms', $filters->rooms);
+        }
+
+        if ($filters->minAreaSqm !== null) {
+            $query->where('area_sqm', '>=', $filters->minAreaSqm);
+        }
+
+        if ($filters->maxAreaSqm !== null) {
+            $query->where('area_sqm', '<=', $filters->maxAreaSqm);
+        }
+
+        match ($filters->sort) {
+            'price_asc' => $query->orderBy('price', 'asc'),
+            'price_desc' => $query->orderBy('price', 'desc'),
+            default => $query->orderBy('id', 'desc'),
+        };
+
+        $units = $query->limit($safeLimit)->get();
+
+        return $units->map(fn($u) => UnitPublicDTO::fromModel($u, $locale))->all();
+    }
 }
