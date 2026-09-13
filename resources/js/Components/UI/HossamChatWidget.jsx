@@ -82,6 +82,7 @@ export default function HossamChatWidget() {
     const [typingStage, setTypingStage] = useState(0) // 0=dots, 1=searching DB, 2=preparing reply
     const streamIntervalRef = useRef(null)
     const typingTimerRef = useRef(null)
+    const typingTimerRef2 = useRef(null)
 
     const welcomeTimestamp = useMemo(() => formatTime(new Date(), locale), [locale])
 
@@ -320,18 +321,19 @@ export default function HossamChatWidget() {
         setInputMessage('')
         setIsLoading(true)
         setTypingStage(0)
-        // C1: Progressive typing messages after delays
+        // Progressive thinking stages for deep LLM / RAG processing
         if (typingTimerRef.current) clearTimeout(typingTimerRef.current)
-        typingTimerRef.current = setTimeout(() => setTypingStage(1), 2200)
-        const typingTimer2 = setTimeout(() => setTypingStage(2), 5000)
+        if (typingTimerRef2.current) clearTimeout(typingTimerRef2.current)
+        typingTimerRef.current = setTimeout(() => setTypingStage(1), 2500)
+        typingTimerRef2.current = setTimeout(() => setTypingStage(2), 6500)
 
-        // AbortController for fetch timeout (8s budget)
+        // AbortController for fetch timeout (45s budget to allow full LLM reasoning)
         if (abortControllerRef.current) {
             abortControllerRef.current.abort()
         }
         const controller = new AbortController()
         abortControllerRef.current = controller
-        const timeoutId = setTimeout(() => controller.abort(), 8000) // 8s max timeout
+        const timeoutId = setTimeout(() => controller.abort(), 45000) // 45s max timeout
 
         const maxAttempts = 1
         let lastError = null
@@ -442,7 +444,7 @@ export default function HossamChatWidget() {
                     clearTimeout(timeoutId)
                     abortControllerRef.current = null
                     if (typingTimerRef.current) clearTimeout(typingTimerRef.current)
-                    clearTimeout(typingTimer2)
+                    if (typingTimerRef2.current) clearTimeout(typingTimerRef2.current)
                     setTypingStage(0)
                     setIsLoading(false)
                     return // Success — exit
@@ -464,6 +466,10 @@ export default function HossamChatWidget() {
         // All attempts failed
         clearTimeout(timeoutId)
         abortControllerRef.current = null
+        if (typingTimerRef.current) clearTimeout(typingTimerRef.current)
+        if (typingTimerRef2.current) clearTimeout(typingTimerRef2.current)
+        setTypingStage(0)
+        setIsLoading(false)
 
         console.error('Hossam Assistant Error:', lastError)
         const errorId = 'bot_err_' + Date.now()
@@ -1075,17 +1081,19 @@ export default function HossamChatWidget() {
                                 )
                             })}
 
-                            {/* Typing indicator — three dots with a refined cadence */}
+                            {/* Typing indicator — progressive thinking status */}
                             {isLoading && (
                                 <div className="flex flex-col items-start">
-                                    <div className="flex items-center gap-2.5 text-slate-500 bg-white border border-slate-200/80 px-3.5 py-2.5 rounded-2xl rounded-bl-md max-w-[80%] shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-                                        <div className="flex gap-1 items-center" aria-hidden="true">
+                                    <div className="flex items-center gap-2.5 text-slate-600 bg-white border border-slate-200/80 px-3.5 py-2.5 rounded-2xl rounded-bl-md max-w-[85%] shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+                                        <div className="flex gap-1 items-center shrink-0" aria-hidden="true">
                                             <span className="w-1.5 h-1.5 rounded-full bg-[#CC0000] animate-bounce [animation-delay:-0.32s]"></span>
                                             <span className="w-1.5 h-1.5 rounded-full bg-[#CC0000] animate-bounce [animation-delay:-0.16s]"></span>
                                             <span className="w-1.5 h-1.5 rounded-full bg-[#CC0000] animate-bounce"></span>
                                         </div>
-                                        <span className="text-[11px] font-semibold text-slate-500 tracking-wide">
-                                            {trans('assistant_typing')}
+                                        <span className="text-[11px] font-semibold text-slate-600 tracking-wide">
+                                            {typingStage === 0 && (trans('assistant_typing') || (isRtl ? 'حسام يدرس طلبك...' : 'Hossam is reviewing your request...'))}
+                                            {typingStage === 1 && (isRtl ? 'جاري فحص وتصفية المشاريع والوحدات المتاحة...' : 'Searching available properties & units...')}
+                                            {typingStage === 2 && (isRtl ? 'حسام يصيغ أفضل ترشيحات ملائمة لك...' : 'Formulating the best recommendations for you...')}
                                         </span>
                                     </div>
                                 </div>

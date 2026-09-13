@@ -416,6 +416,7 @@ class AssistantSecurityArchitectureTest extends TestCase
         $this->assertContains('list_units_for_project', $toolNames);
         $this->assertContains('get_unit_in_project', $toolNames);
         $this->assertContains('list_projects', $toolNames);
+        $this->assertContains('search_units', $toolNames);
         $this->assertNotContains('get_users', $toolNames);
         $this->assertNotContains('get_settings', $toolNames);
         $this->assertNotContains('get_messages', $toolNames);

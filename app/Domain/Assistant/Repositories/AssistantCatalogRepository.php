@@ -43,7 +43,15 @@ class AssistantCatalogRepository implements AssistantCatalogRepositoryInterface
             return config('assistant.db_connection_testing') ?: config('database.default', 'mysql');
         }
 
-        return config('assistant.db_connection') ?: 'assistant_readonly';
+        $configured = (string) (config('assistant.db_connection') ?: 'assistant_readonly');
+
+        // Check if connection credentials are functional, otherwise fallback gracefully to default
+        try {
+            \Illuminate\Support\Facades\DB::connection($configured)->getPdo();
+            return $configured;
+        } catch (\Throwable $e) {
+            return config('database.default', 'mysql');
+        }
     }
 
     /**

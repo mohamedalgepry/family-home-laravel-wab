@@ -11,7 +11,7 @@ return [
     |
     */
 
-    'provider' => env('ASSISTANT_PROVIDER', 'openrouter'),
+    'provider' => env('ASSISTANT_PROVIDER', null),
 
     'openrouter' => [
         'api_key' => env('OPENROUTER_API_KEY', ''),
@@ -22,17 +22,17 @@ return [
 
     'gemini' => [
         'api_key' => env('GEMINI_API_KEY', ''),
-        'model' => env('GEMINI_MODEL', 'gemini-1.5-flash'),
+        'model' => env('GEMINI_MODEL', 'gemini-2.0-flash'),
     ],
 
-    // Client request timeout in seconds (tight budget to prevent cascading delays)
-    'timeout_seconds' => (int) env('ASSISTANT_TIMEOUT_SECONDS', 3),
+    // Client request timeout in seconds
+    'timeout_seconds' => (int) env('ASSISTANT_TIMEOUT_SECONDS', 30),
 
     // Real overall server timeout budget across entire chat turn (seconds)
-    'total_budget_seconds' => (float) env('ASSISTANT_TOTAL_BUDGET_SECONDS', 6.0),
+    'total_budget_seconds' => (float) env('ASSISTANT_TOTAL_BUDGET_SECONDS', 40.0),
 
     // Ceiling per individual LLM request call (seconds)
-    'per_request_timeout_seconds' => (float) env('ASSISTANT_PER_REQUEST_TIMEOUT_SECONDS', 3.0),
+    'per_request_timeout_seconds' => (float) env('ASSISTANT_PER_REQUEST_TIMEOUT_SECONDS', 30.0),
 
     // Maximum tool execution turns per request
     'max_tool_iterations' => 2,

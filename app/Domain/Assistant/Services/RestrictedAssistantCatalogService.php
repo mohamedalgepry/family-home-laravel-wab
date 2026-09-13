@@ -91,11 +91,24 @@ class RestrictedAssistantCatalogService
             'list_units_for_project' => $this->handleListUnitsForProject($arguments, $locale),
             'get_unit_in_project' => $this->handleGetUnitInProject($arguments, $locale),
             'list_projects' => $this->handleListProjects($arguments, $locale),
+            'search_units' => $this->handleSearchUnits($arguments, $locale),
             default => [
                 'error' => 'Disallowed or unknown tool',
                 'tool' => htmlspecialchars($toolName, ENT_QUOTES, 'UTF-8'),
             ],
         };
+    }
+
+    private function handleSearchUnits(array $arguments, string $locale): array
+    {
+        $limit = isset($arguments['limit']) && is_numeric($arguments['limit']) ? (int) $arguments['limit'] : 6;
+        $units = $this->listUnits($arguments, $limit, $locale);
+
+        return [
+            'found' => !empty($units),
+            'units' => array_map(fn(UnitPublicDTO $u) => $u->toLlmSnippet(), $units),
+            'recommended_units' => array_map(fn(UnitPublicDTO $u) => $u->toCardPayload(), $units),
+        ];
     }
 
     private function handleFindProject(array $arguments, string $locale): array
