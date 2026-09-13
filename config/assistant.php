@@ -15,14 +15,15 @@ return [
 
     'openrouter' => [
         'api_key' => env('OPENROUTER_API_KEY', ''),
-        'model' => env('OPENROUTER_MODEL', 'google/gemini-2.0-flash-exp:free'),
-        'fallback_model' => env('OPENROUTER_FALLBACK_MODEL', 'qwen/qwen-2.5-7b-instruct:free'),
+        'model' => env('OPENROUTER_MODEL', 'google/gemini-2.5-flash'),
+        'fallback_model' => env('OPENROUTER_FALLBACK_MODEL', 'google/gemini-2.0-flash-exp:free'),
         'base_url' => env('OPENROUTER_BASE_URL', 'https://openrouter.ai/api/v1'),
     ],
 
     'gemini' => [
         'api_key' => env('GEMINI_API_KEY', ''),
-        'model' => env('GEMINI_MODEL', 'gemini-2.0-flash'),
+        'model' => env('GEMINI_MODEL', 'gemini-2.5-flash'),
+        'fallback_model' => env('GEMINI_FALLBACK_MODEL', 'gemini-2.0-flash'),
     ],
 
     // Client request timeout in seconds
@@ -35,10 +36,10 @@ return [
     'per_request_timeout_seconds' => (float) env('ASSISTANT_PER_REQUEST_TIMEOUT_SECONDS', 30.0),
 
     // Maximum tool execution turns per request
-    'max_tool_iterations' => 2,
+    'max_tool_iterations' => 3,
 
     // Maximum history messages preserved
-    'max_history_turns' => 6,
+    'max_history_turns' => 10,
 
     // Max allowed message character length
     'max_message_chars' => 1000,
