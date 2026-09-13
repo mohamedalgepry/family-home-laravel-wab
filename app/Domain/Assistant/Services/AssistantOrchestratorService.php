@@ -76,7 +76,8 @@ class AssistantOrchestratorService
     public function chat(
         string $message,
         array $history = [],
-        string $locale = 'ar'
+        string $locale = 'ar',
+        array $pageContext = []
     ): array {
         $startTime = microtime(true);
         $locale = in_array($locale, ['ar', 'en'], true) ? $locale : 'ar';
@@ -88,6 +89,8 @@ class AssistantOrchestratorService
         if (empty($cleanMessage)) {
             return $this->getSafeFallbackResponse($locale);
         }
+
+        $normalizedPageContext = $this->normalizePageContext($pageContext, $locale);
 
         // 1. Instant check in self-learned knowledge base / canned FAQ (<5ms response)
         if ($this->knowledgeService !== null && empty($history)) {
@@ -108,12 +111,12 @@ class AssistantOrchestratorService
 
         // 2. If no external API key is configured, route directly to rich local intent engine
         if (!$this->hasApiKey()) {
-            return $this->handleLocalRuleBasedResponse($cleanMessage, $locale);
+            return $this->handleLocalRuleBasedResponse($cleanMessage, $locale, [], $normalizedPageContext);
         }
 
         // 3. Orchestrate turn using the configured LLM model
         try {
-            return $this->orchestrateLlmTurn($cleanMessage, $history, $locale, $startTime);
+            return $this->orchestrateLlmTurn($cleanMessage, $history, $locale, $startTime, $normalizedPageContext);
         } catch (\Throwable $e) {
             Log::warning('AssistantOrchestrator failure, activating fail-closed fallback', [
                 'error_class' => get_class($e),
@@ -122,17 +125,17 @@ class AssistantOrchestratorService
                 'locale' => $locale,
             ]);
 
-            return $this->handleLocalRuleBasedResponse($cleanMessage, $locale);
+            return $this->handleLocalRuleBasedResponse($cleanMessage, $locale, [], $normalizedPageContext);
         }
     }
 
-    private function orchestrateLlmTurn(string $userMessage, array $history, string $locale, float $startTime): array
+    private function orchestrateLlmTurn(string $userMessage, array $history, string $locale, float $startTime, array $normalizedPageContext = []): array
     {
         $sanitizedHistory = $this->sanitizeHistory($history);
 
         // Pre-search relevant inventory matching user's keywords/budget to inject into system prompt
         $preloadedUnits = $this->preSearchRelevantUnits($userMessage, $locale);
-        $systemPrompt = $this->buildSystemPrompt($locale, $preloadedUnits);
+        $systemPrompt = $this->buildSystemPrompt($locale, $preloadedUnits, $normalizedPageContext);
 
         $messages = [
             ['role' => 'system', 'content' => $systemPrompt],
@@ -151,6 +154,20 @@ class AssistantOrchestratorService
         foreach ($preloadedUnits as $unit) {
             $card = $unit->toCardPayload();
             $recommendedUnits[$card['id']] = $card;
+        }
+
+        // If user is on a project page, preload units from that specific project as well
+        if (!empty($normalizedPageContext['project_slug'])) {
+            try {
+                $projUnitsPag = $this->catalogService->listUnitsForProject($normalizedPageContext['project_slug'], [], 1, 4, $locale);
+                foreach ($projUnitsPag->toCardPayload() as $card) {
+                    if (!isset($recommendedUnits[$card['id']])) {
+                        $recommendedUnits[$card['id']] = $card;
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Ignore gracefully
+            }
         }
 
         for ($iteration = 0; $iteration < $this->maxIterations; $iteration++) {
@@ -206,7 +223,7 @@ class AssistantOrchestratorService
         }
 
         if (empty(trim($collectedReply))) {
-            return $this->handleLocalRuleBasedResponse($userMessage, $locale, array_values($recommendedUnits));
+            return $this->handleLocalRuleBasedResponse($userMessage, $locale, array_values($recommendedUnits), $normalizedPageContext);
         }
 
         // Clean output, linkify unit names, and build quick replies
@@ -480,7 +497,7 @@ class AssistantOrchestratorService
         return trim($cleaned);
     }
 
-    private function buildSystemPrompt(string $locale, array $preloadedUnits = []): string
+    private function buildSystemPrompt(string $locale, array $preloadedUnits = [], array $pageContext = []): string
     {
         $inventoryContext = '';
         if (!empty($preloadedUnits)) {
@@ -489,6 +506,48 @@ class AssistantOrchestratorService
                 $items[] = "• **{$u->name}** | السعر: " . number_format($u->price) . " ج.م | الغرف: {$u->rooms} | المساحة: {$u->areaSqm} م² | الدفع: {$u->paymentMethod} | الرابط: {$u->url}";
             }
             $inventoryContext = "\n\nالوحدات العقارية المتاحة فعلياً في كتالوج الشركة والمطابقة لبحث العميل:\n" . implode("\n", $items);
+        }
+
+        $pageContextSection = '';
+        if (!empty($pageContext['page_type']) && $pageContext['page_type'] !== 'unknown') {
+            $desc = [];
+            if (!empty($pageContext['project_name'])) {
+                $desc[] = "المشروع المعروض بالصفحة الحالية: «{$pageContext['project_name']}» (Slug: {$pageContext['project_slug']})";
+                if (!empty($pageContext['summary'])) {
+                    $s = $pageContext['summary'];
+                    $desc[] = "الموقع: {$s['location']} | نطاق الأسعار: {$s['price_range']} | إجمالي الوحدات: {$s['units_count']}";
+                }
+            }
+            if (!empty($pageContext['unit_name'])) {
+                $desc[] = "الوحدة المعروضة بالصفحة الحالية: «{$pageContext['unit_name']}»" .
+                    (!empty($pageContext['unit_price']) ? " | السعر: " . number_format((float)$pageContext['unit_price']) . " ج.م" : "") .
+                    (!empty($pageContext['unit_rooms']) ? " | الغرف: {$pageContext['unit_rooms']}" : "");
+            }
+            if (!empty($pageContext['title'])) {
+                $desc[] = "عنوان الصفحة: {$pageContext['title']}";
+            }
+            if (!empty($pageContext['pathname']) || !empty($pageContext['url'])) {
+                $desc[] = "رابط الصفحة: " . ($pageContext['pathname'] ?: $pageContext['url']);
+            }
+            if (!empty($pageContext['page_type'])) {
+                $desc[] = "نوع الصفحة: {$pageContext['page_type']}";
+            }
+
+            if ($locale === 'en') {
+                $pageContextSection = "\n\nCURRENT BROWSER PAGE CONTEXT:\n" .
+                    implode("\n", $desc) . "\n\n" .
+                    "PAGE CONTEXT INSTRUCTIONS:\n" .
+                    "1. You know exactly what page the user is currently browsing on Family Home website.\n" .
+                    "2. If the user asks 'Where am I?', 'What page am I on?', 'What am I viewing?', tell them accurately about the current page, welcoming them warmly.\n" .
+                    "3. If the user refers to 'this project', 'this apartment', 'the prices here', or asks for available units without naming them, they are referring to the project/unit on their current page.\n";
+            } else {
+                $pageContextSection = "\n\nمعلومات الصفحة الحالية التي يتصفحها العميل الآن على موقع فاميلي هوم:\n" .
+                    implode("\n", $desc) . "\n\n" .
+                    "تعليمات خاصة بصفحة العميل الحالية:\n" .
+                    "1. أنت تعرف بدقة الصفحة التي يتصفحها العميل الآن في الموقع.\n" .
+                    "2. إذا سأل العميل: «أنا فين؟»، «أنا في أي صفحة؟»، «بتصفح إيه دلوقتي؟»، أو «تعرف مكاني؟»، أخبره فوراً بالصفحة التي يشاهدها وتفاصيلها بترحيب ولباقة.\n" .
+                    "3. إذا سأل العميل عن «هذا المشروع»، «المشروع ده»، «الوحدة دي»، «الأسعار هنا»، فهو يقصد المشروع أو الوحدة المعروضة بالصفحة الحالية مباشرة.\n";
+            }
         }
 
         if ($locale === 'en') {
@@ -507,6 +566,7 @@ CORE GUIDELINES:
    - list_projects: List active projects.
 4. When recommending properties, describe their key features, price, and payment terms, and encourage the user to explore them or schedule a visit.
 5. Keep your tone professional, friendly, and directly helpful.
+{$pageContextSection}
 {$inventoryContext}
 EOT;
         }
@@ -526,6 +586,7 @@ EOT;
 3. عند سؤال العميل عن شقق كبيرة أو ميزانية محددة (مثل: «عايز شقة كبيرة بسعر 10 مليون»)، رشح له أفضل الخيارات المتوفرة مع ذكر المساحة، وعدد الغرف، والسعر، ونظام الدفع، وقدم له نصيحة مالية موجزة.
 4. حافظ على سرية وأمان البيانات، ولا تخترع معلومات غير موجودة في قاعدة بيانات الشركة.
 5. يمكنك حث العميل بلطف على معاينة العقار أو التواصل مع مستشاري المبيعات لمعاينة مجانية.
+{$pageContextSection}
 {$inventoryContext}
 EOT;
     }
@@ -629,12 +690,173 @@ EOT;
      * Deterministic local fallback when LLM is offline or no API key is provided.
      * Guaranteed to return only active projects and units without external dependencies.
      */
-    private function handleLocalRuleBasedResponse(string $message, string $locale, array $preloadedUnits = []): array
+    private function handleLocalRuleBasedResponse(string $message, string $locale, array $preloadedUnits = [], array $pageContext = []): array
     {
         $cleanMsg = trim($message);
         $lowerMsg = mb_strtolower($cleanMsg);
         $cleanWhatsapp = preg_replace('/[^\d]/', '', (string) config('assistant.default_whatsapp', '201000000000'));
         $whatsappUrl = 'https://wa.me/' . $cleanWhatsapp . '?text=' . urlencode($locale === 'en' ? 'Hello Family Home, I would like to inquire about properties' : 'مرحباً فاميلي هوم، أود الاستفسار عن العقارات المتاحة');
+
+        // 0. Inquiry about Current Page / Location
+        if (preg_match('/(أنا فين|انا فين|في أي صفحة|في اي صفحه|أنا في أي صفحة|انا في اي صفحه|في انهي صفحة|في انهي صفحه|انهي صفحة|انهي صفحه|اي صفحه|أي صفحة|بتصفح إيه|بتصفح ايه|تعرف الصفحة|تعرف الصفحه|الصفحة اللي أنا فيها|الصفحه الى انا فيها|الصفحة الحالية|الصفحه الحاليه|مكاني فين|وين أنا|وين انا|where am i|what page|current page|which page)/iu', $cleanMsg)) {
+            $pType = $pageContext['page_type'] ?? 'unknown';
+            $pTitle = $pageContext['title'] ?? '';
+
+            if ($pType === 'project' && !empty($pageContext['project_name'])) {
+                $projName = $pageContext['project_name'];
+                $summary = $pageContext['summary'] ?? null;
+                $reply = $locale === 'en'
+                    ? "You are currently browsing the **{$projName}** project page! 🏢\n\n" .
+                      ($summary ? "📍 **Location:** {$summary['location']}\n💰 **Price Range:** {$summary['price_range']}\n🔢 **Available Units:** {$summary['units_count']}\n\n" : "") .
+                      "Would you like to explore available units, payment plans, or schedule a site visit?"
+                    : "أنت تتصفح حالياً صفحة مشروع **{$projName}**! 🏢\n\n" .
+                      ($summary ? "📍 **الموقع:** {$summary['location']}\n💰 **نطاق الأسعار:** {$summary['price_range']}\n🔢 **الوحدات المتاحة:** {$summary['units_count']} وحدة\n\n" : "") .
+                      "يسعدني تزويدك بأنظمة السداد، أو تفاصيل الوحدات المتوفرة بالمشروع، أو ترتيب معاينة ميدانية مجانية!";
+
+                $units = [];
+                if (!empty($pageContext['project_slug'])) {
+                    $pag = $this->catalogService->listUnitsForProject($pageContext['project_slug'], [], 1, 4, $locale);
+                    $units = $pag->toCardPayload();
+                }
+
+                return [
+                    'reply' => $reply,
+                    'recommended_units' => $units,
+                    'quick_replies' => $locale === 'en'
+                        ? ['Available units in project', 'Payment plans', 'Book a visit']
+                        : ['الوحدات المتاحة في المشروع', 'أنظمة السداد والتقسيط', 'حجز موعد معاينة'],
+                    'is_fallback' => false,
+                ];
+            }
+
+            if ($pType === 'unit' && !empty($pageContext['unit_name'])) {
+                $unitName = $pageContext['unit_name'];
+                $price = !empty($pageContext['unit_price']) ? number_format((float)$pageContext['unit_price']) . ' ج.م' : '';
+                $rooms = !empty($pageContext['unit_rooms']) ? "{$pageContext['unit_rooms']} غرف" : '';
+                $reply = $locale === 'en'
+                    ? "You are currently viewing unit: **{$unitName}**! 🏠\n\n" .
+                      ($price ? "💰 **Price:** {$price}\n" : "") .
+                      ($rooms ? "🛏️ **Bedrooms:** {$rooms}\n\n" : "") .
+                      "Would you like to know the installment plan for this unit or book an inspection?"
+                    : "أنت تتصفح حالياً تفاصيل الوحدة: **{$unitName}**! 🏠\n\n" .
+                      ($price ? "💰 **السعر:** {$price}\n" : "") .
+                      ($rooms ? "🛏️ **عدد الغرف:** {$rooms}\n\n" : "") .
+                      "هل ترغب في معرفة تفاصيل التقسيط والمقدم المتاح لهذه الوحدة، أو حجز موعد للمعاينة؟";
+
+                return [
+                    'reply' => $reply,
+                    'recommended_units' => [],
+                    'quick_replies' => $locale === 'en'
+                        ? ['Payment & installment options', 'Book a visit', 'Other units']
+                        : ['أنظمة السداد والمقدم', 'حجز موعد معاينة', 'وحدات مشابهة'],
+                    'is_fallback' => false,
+                ];
+            }
+
+            if ($pType === 'deals') {
+                $reply = $locale === 'en'
+                    ? "You are on the **Exclusive Real Estate Deals & Opportunities** page! 💎\n\nHere you will find properties with instant cash discounts and premier flexible installment plans. How can I assist you?"
+                    : "أنت تتصفح حالياً صفحة **الصفقات والفرص العقارية الحصرية (اللقطات)**! 💎\n\nتضم هذه الصفحة أفضل الفرص الاستثمارية بخصومات كاش حصرية وأنظمة سداد مرنة. كيف أستطيع مساعدتك اليوم؟";
+                return [
+                    'reply' => $reply,
+                    'recommended_units' => [],
+                    'quick_replies' => $locale === 'en'
+                        ? ['Show top deals', 'Apartments for sale', 'Contact team']
+                        : ['أفضل الصفقات', 'شقق للبيع بالتقسيط', 'تواصل مع فريق المبيعات'],
+                    'is_fallback' => false,
+                ];
+            }
+
+            if ($pType === 'units_catalog') {
+                $reply = $locale === 'en'
+                    ? "You are currently on our **Property Catalog** browsing available units across Egypt! 🏘️\n\nTell me your budget or preferred location, and I will filter the top matches for you."
+                    : "أنت تتصفح حالياً **كتالوج الوحدات العقارية المتاحة** للبيع والإيجار في فاميلي هوم! 🏘️\n\nأخبرني بميزانيتك أو موقعك المفضل، وسأقوم بفرز وترشيح أفضل الوحدات المناسبة لك فوراً.";
+                return [
+                    'reply' => $reply,
+                    'recommended_units' => [],
+                    'quick_replies' => $locale === 'en'
+                        ? ['Apartments for sale', 'Villas', 'Commercial units']
+                        : ['شقق للبيع بالتقسيط', 'فيلات مستقلة', 'وحدات تجارية وإدارية'],
+                    'is_fallback' => false,
+                ];
+            }
+
+            if ($pType === 'projects_catalog') {
+                $reply = $locale === 'en'
+                    ? "You are currently exploring our **Real Estate Projects Directory**! 🏢\n\nFeaturing premier developments across New Cairo, New Capital, Sheikh Zayed, and North Coast. Which area are you interested in?"
+                    : "أنت تتصفح حالياً **دليل المشاريع العقارية الكبرى** في فاميلي هوم! 🏢\n\nيضم أحدث المشروعات السكنية والاستثمارية في القاهرة الجديدة، العاصمة الإدارية، والشيخ زايد، والساحل الشمالي. أي منطقة تود استكشافها؟";
+                return [
+                    'reply' => $reply,
+                    'recommended_units' => [],
+                    'quick_replies' => $locale === 'en'
+                        ? ['New Cairo projects', 'New Capital projects', 'North Coast']
+                        : ['مشاريع القاهرة الجديدة', 'مشاريع العاصمة الإدارية', 'مشاريع الساحل الشمالي'],
+                    'is_fallback' => false,
+                ];
+            }
+
+            // General / Home or with title
+            $descName = !empty($pTitle) ? $pTitle : (!empty($pageContext['pathname']) ? $pageContext['pathname'] : 'موقع فاميلي هوم');
+            $reply = $locale === 'en'
+                ? "You are currently browsing **{$descName}** on Family Home! 🤝\n\nI am Hossam, your real estate advisor. How can I help you today?"
+                : "أنت تتصفح حالياً: **{$descName}** في موقع فاميلي هوم! 🤝\n\nأنا «حسام»، مستشارك العقاري. يسعدني مساعدتك في استعراض الوحدات أو الرد على أي استفسار عقاري أو مالي!";
+
+            return [
+                'reply' => $reply,
+                'recommended_units' => [],
+                'quick_replies' => $locale === 'en'
+                    ? ['Featured projects', 'Apartments for sale', 'Contact team']
+                    : ['المشاريع المميزة', 'شقق للبيع بالتقسيط', 'تواصل مع فريق المبيعات'],
+                'is_fallback' => false,
+            ];
+        }
+
+        // Contextual: User asks about "المشروع ده" while on a project page
+        if ($pageContext['page_type'] === 'project' && !empty($pageContext['project_slug']) && preg_match('/(المشروع ده|هذا المشروع|المشروع هذا|عن المشروع|تفاصيل المشروع|نظام السداد هنا|الاسعار هنا|الأسعار هنا|الوحدات هنا)/iu', $cleanMsg)) {
+            $projDto = $this->catalogService->findProject($pageContext['project_slug'], $locale);
+            $pag = $this->catalogService->listUnitsForProject($pageContext['project_slug'], [], 1, 6, $locale);
+            $projName = $pageContext['project_name'] ?? $projDto?->name ?? 'المشروع الحالي';
+            $loc = $projDto?->locationAddress ?? $pageContext['summary']['location'] ?? null;
+
+            $reply = $locale === 'en'
+                ? "Here is the verified information for **{$projName}**:\n\n" .
+                  ($loc ? "📍 **Location:** {$loc}\n\n" : "") .
+                  "Here are the active units available in this project:"
+                : "إليك كافة التفاصيل المعتمدة لمشروع **{$projName}**:\n\n" .
+                  ($loc ? "📍 **الموقع:** {$loc}\n\n" : "") .
+                  "وهذه أبرز الوحدات المتاحة حالياً داخل المشروع:";
+
+            return [
+                'reply' => $reply,
+                'recommended_units' => $pag->toCardPayload(),
+                'quick_replies' => $locale === 'en'
+                    ? ['Payment plans', 'Book a visit', 'Contact team']
+                    : ['أنظمة السداد والتقسيط', 'حجز موعد معاينة', 'تواصل عبر واتساب'],
+                'is_fallback' => false,
+            ];
+        }
+
+        // Contextual: User asks about "الوحدة دي" while on a unit page
+        if ($pageContext['page_type'] === 'unit' && !empty($pageContext['unit_name']) && preg_match('/(الوحدة دي|الوحده دي|هذه الوحدة|الشقة دي|الشقه دي|سعرها كام|تفاصيل الوحدة|تفاصيل الشقة)/iu', $cleanMsg)) {
+            $unitName = $pageContext['unit_name'];
+            $price = !empty($pageContext['unit_price']) ? number_format((float)$pageContext['unit_price']) . ' ج.م' : 'تواصل لمعرفة السعر';
+            $rooms = !empty($pageContext['unit_rooms']) ? "{$pageContext['unit_rooms']} غرف" : '';
+
+            $reply = $locale === 'en'
+                ? "Here are the details for **{$unitName}**:\n\n💰 **Price:** {$price}\n" . ($rooms ? "🛏️ **Bedrooms:** {$rooms}\n\n" : "\n") .
+                  "Would you like to review payment schedules or arrange a viewing?"
+                : "إليك تفاصيل الوحدة التي تشاهدها الآن (**{$unitName}**):\n\n💰 **السعر:** {$price}\n" . ($rooms ? "🛏️ **عدد الغرف:** {$rooms}\n\n" : "\n") .
+                  "هل تود معرفة نظام التقسيط والدفعة المقدمة لهذه الوحدة، أو ترتيب موعد لمعاينتها على الطبيعة؟";
+
+            return [
+                'reply' => $reply,
+                'recommended_units' => [],
+                'quick_replies' => $locale === 'en'
+                    ? ['Payment plans', 'Book inspection', 'Similar properties']
+                    : ['أنظمة التقسيط والمقدم', 'حجز موعد معاينة', 'وحدات مشابهة'],
+                'is_fallback' => false,
+            ];
+        }
 
         // 1. WhatsApp / Customer Support inquiry
         if (preg_match('/(تواصل عبر واتساب|واتساب|تواصل معي|تواصل مع|خدمة العملاء|خدمه العملاء|رقم التليفون|رقم الهاتف|ارقامكم|عنوانكم|مقركم|فين مكتبكم|whatsapp|contact us|phone number)/iu', $cleanMsg)) {
@@ -948,5 +1170,86 @@ EOT;
         return $hasUnits
             ? ['وحدات أخرى في المشروع', 'أنظمة السداد والتقسيط', 'حجز موعد معاينة']
             : ['المشاريع المميزة', 'شقق للبيع بالتقسيط', 'تواصل عبر واتساب'];
+    }
+
+    /**
+     * Normalize and enrich client-supplied page context (URL, pathname, title, project, unit).
+     */
+    private function normalizePageContext(array $pageContext, string $locale): array
+    {
+        $normalized = [
+            'url' => (string) ($pageContext['url'] ?? ''),
+            'pathname' => (string) ($pageContext['pathname'] ?? ''),
+            'title' => (string) ($pageContext['title'] ?? ''),
+            'project_id' => $pageContext['project_id'] ?? null,
+            'project_name' => $pageContext['project_name'] ?? null,
+            'project_slug' => $pageContext['project_slug'] ?? null,
+            'unit_id' => $pageContext['unit_id'] ?? null,
+            'unit_name' => $pageContext['unit_name'] ?? null,
+            'unit_slug' => $pageContext['unit_slug'] ?? null,
+            'unit_price' => $pageContext['unit_price'] ?? null,
+            'unit_rooms' => $pageContext['unit_rooms'] ?? null,
+            'area_name' => $pageContext['area_name'] ?? null,
+            'page_type' => 'unknown',
+            'summary' => null,
+        ];
+
+        $rawUrl = $normalized['url'] ?: $normalized['pathname'];
+        $path = (string) (parse_url($rawUrl, PHP_URL_PATH) ?? $normalized['pathname']);
+
+        // Infer project slug from URL path if missing
+        if (empty($normalized['project_slug']) && preg_match('~/(?:ar|en)?/?projects/([^/?#]+)~i', $path, $m)) {
+            $candidate = urldecode($m[1]);
+            if ($candidate !== 'projects') {
+                $normalized['project_slug'] = $candidate;
+            }
+        }
+
+        // Infer unit slug from URL path if missing
+        if (empty($normalized['unit_slug']) && preg_match('~/(?:ar|en)?/?units/([^/?#]+)~i', $path, $m)) {
+            $candidate = urldecode($m[1]);
+            if ($candidate !== 'deals' && $candidate !== 'units') {
+                $normalized['unit_slug'] = $candidate;
+            }
+        }
+
+        // If project_slug is resolved, fetch project details
+        if (!empty($normalized['project_slug'])) {
+            $normalized['page_type'] = 'project';
+            try {
+                $projectDto = $this->catalogService->findProject($normalized['project_slug'], $locale);
+                if ($projectDto) {
+                    $normalized['summary'] = [
+                        'name' => $projectDto->name,
+                        'location' => $projectDto->locationAddress,
+                        'installment_years' => $projectDto->installmentYears,
+                        'down_payment' => $projectDto->downPayment,
+                    ];
+                    if (empty($normalized['project_name'])) {
+                        $normalized['project_name'] = $projectDto->name;
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Ignore DB error
+            }
+        } elseif (!empty($normalized['unit_slug'])) {
+            $normalized['page_type'] = 'unit';
+        } elseif (str_contains($path, '/units/deals')) {
+            $normalized['page_type'] = 'deals';
+        } elseif (preg_match('~/(?:ar|en)?/?units/?$~i', $path)) {
+            $normalized['page_type'] = 'units_catalog';
+        } elseif (preg_match('~/(?:ar|en)?/?projects/?$~i', $path)) {
+            $normalized['page_type'] = 'projects_catalog';
+        } elseif (str_contains($path, '/about')) {
+            $normalized['page_type'] = 'about';
+        } elseif (str_contains($path, '/contact')) {
+            $normalized['page_type'] = 'contact';
+        } elseif (str_contains($path, '/compare')) {
+            $normalized['page_type'] = 'compare';
+        } elseif ($path === '/' || $path === '/ar' || $path === '/en' || empty($path)) {
+            $normalized['page_type'] = 'home';
+        }
+
+        return $normalized;
     }
 }

@@ -21,17 +21,29 @@ class AiAssistantController
             'history.*.role' => ['required_with:history', 'string', 'in:user,assistant'],
             'history.*.content' => ['required_with:history', 'string', 'max:1000'],
             'locale' => ['nullable', 'string', 'in:ar,en'],
+            'context_url' => ['nullable', 'string', 'max:500'],
+            'context_title' => ['nullable', 'string', 'max:300'],
+            'page_context' => ['nullable', 'array'],
         ]);
 
         $message = trim((string) $validated['message']);
         $history = $validated['history'] ?? [];
         $locale = $validated['locale'] ?? app()->getLocale() ?: 'ar';
 
+        $pageContext = is_array($validated['page_context'] ?? null) ? $validated['page_context'] : [];
+        if (!empty($validated['context_url'])) {
+            $pageContext['url'] = (string) $validated['context_url'];
+        }
+        if (!empty($validated['context_title'])) {
+            $pageContext['title'] = (string) $validated['context_title'];
+        }
+
         try {
             $result = $this->orchestrator->chat(
                 message: $message,
                 history: $history,
-                locale: $locale
+                locale: $locale,
+                pageContext: $pageContext
             );
 
             return response()->json([

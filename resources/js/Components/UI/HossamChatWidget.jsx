@@ -287,7 +287,23 @@ export default function HossamChatWidget() {
                     : ''
 
                 const contextUrl = typeof window !== 'undefined' ? window.location.href : ''
+                const contextPathname = typeof window !== 'undefined' ? window.location.pathname : ''
                 const contextTitle = typeof document !== 'undefined' ? document.title : ''
+
+                const pageContext = {
+                    url: contextUrl,
+                    pathname: contextPathname,
+                    title: contextTitle,
+                    project_id: pageProps.project?.id || null,
+                    project_name: pageProps.project?.name || null,
+                    project_slug: pageProps.project?.slug || null,
+                    unit_id: pageProps.unit?.id || null,
+                    unit_name: pageProps.unit?.name || null,
+                    unit_slug: pageProps.unit?.slug || null,
+                    unit_price: pageProps.unit?.price || null,
+                    unit_rooms: pageProps.unit?.rooms || null,
+                    area_name: pageProps.area?.name || pageProps.unit?.area_name || pageProps.project?.area_name || null,
+                }
 
                 const sanitizedCurrentMessage = text.replace(/\b(?:\+?20|0)?1[0125]\d{8}\b/g, '[رقم هاتف]')
 
@@ -305,6 +321,7 @@ export default function HossamChatWidget() {
                         locale: locale || 'ar',
                         context_url: contextUrl,
                         context_title: contextTitle,
+                        page_context: pageContext,
                     }),
                     signal: controller.signal,
                 })
