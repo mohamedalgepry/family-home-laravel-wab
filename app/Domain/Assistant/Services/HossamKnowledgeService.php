@@ -834,7 +834,10 @@ class HossamKnowledgeService
         foreach ($units as $u) {
             $slug = $locale === 'ar' ? ($u->slug_ar ?? $u->slug) : ($u->slug_en ?? $u->slug);
             $firstImg = $u->images?->firstWhere('is_primary', true) ?? $u->images?->first();
-            $imageUrl = $firstImg ? asset('storage/' . $firstImg->path) : asset('images/fallback.webp');
+            $imageUrl = asset('images/fallback.webp');
+            if ($firstImg) {
+                $imageUrl = $firstImg->thumb_url ?: ($firstImg->url ?: asset('storage/' . ltrim($firstImg->path, '/')));
+            }
 
             $whatsapp = $u->user?->whatsapp ?? $u->user?->phone ?? $settingsWhatsapp ?: $settingsPhone;
             $cleanWhatsapp = preg_replace('/[^\d]/', '', (string) $whatsapp);

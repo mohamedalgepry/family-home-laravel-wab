@@ -933,6 +933,7 @@ export default function HossamChatWidget() {
                                                                 alt={unit.name}
                                                                 className="w-16 h-16 rounded-lg object-cover border border-slate-100 bg-slate-100 group-hover:opacity-90 transition-opacity"
                                                                 loading="lazy"
+                                                                onError={(e) => { e.target.onerror = null; e.target.src = '/images/fallback.webp'; }}
                                                             />
                                                         </Link>
                                                         <div className="flex-1 min-w-0">
