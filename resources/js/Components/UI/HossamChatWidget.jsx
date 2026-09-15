@@ -305,8 +305,6 @@ export default function HossamChatWidget() {
                     area_name: pageProps.area?.name || pageProps.unit?.area_name || pageProps.project?.area_name || null,
                 }
 
-                const sanitizedCurrentMessage = text.replace(/\b(?:\+?20|0)?1[0125]\d{8}\b/g, '[رقم هاتف]')
-
                 const response = await fetch(`/${locale || 'ar'}/assistant/chat`, {
                     method: 'POST',
                     headers: {
@@ -316,7 +314,7 @@ export default function HossamChatWidget() {
                         'X-Requested-With': 'XMLHttpRequest',
                     },
                     body: JSON.stringify({
-                        message: sanitizedCurrentMessage,
+                        message: text,
                         history: historyPayload,
                         locale: locale || 'ar',
                         context_url: contextUrl,

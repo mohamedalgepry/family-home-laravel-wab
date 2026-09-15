@@ -2,9 +2,14 @@
 
 namespace App\Http\Controllers\Public;
 
+use App\Domain\Assistant\Models\AssistantLead;
+use App\Domain\Assistant\Notifications\NewAssistantLeadNotification;
 use App\Domain\Assistant\Services\AssistantOrchestratorService;
+use App\Domain\Users\Models\User;
+use App\Domain\Users\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Facades\Log;
 
 class AiAssistantController
@@ -37,6 +42,9 @@ class AiAssistantController
         if (!empty($validated['context_title'])) {
             $pageContext['title'] = (string) $validated['context_title'];
         }
+
+        // Detect and record lead when phone number is provided
+        $this->detectAndRecordLead($message, $history, $pageContext);
 
         try {
             $result = $this->orchestrator->chat(
@@ -74,4 +82,117 @@ class AiAssistantController
             ], 200);
         }
     }
+
+    /**
+     * Detect phone number in user message, save or update AssistantLead, and notify administrators.
+     */
+    protected function detectAndRecordLead(string $message, array $history, array $pageContext): void
+    {
+        try {
+            // Convert Eastern Arabic-Indic digits to ASCII standard digits
+            $normalized = strtr($message, [
+                '٠' => '0', '١' => '1', '٢' => '2', '٣' => '3', '٤' => '4',
+                '٥' => '5', '٦' => '6', '٧' => '7', '٨' => '8', '٩' => '9',
+            ]);
+
+            // Match Egyptian mobile formats or international standard (+201..., 00201..., 01...)
+            if (!preg_match('/\b(?:\+?20|0020|0)?1[0125]\d{8}\b/', $normalized, $matches)) {
+                return;
+            }
+
+            $rawPhone = $matches[0];
+            $phone = preg_replace('/[^\d\+]/', '', $rawPhone);
+            if (empty($phone)) {
+                return;
+            }
+
+            // Determine context description
+            $context = null;
+            if (!empty($pageContext['unit_name'])) {
+                $context = 'مهتم بوحدة: ' . $pageContext['unit_name'];
+            } elseif (!empty($pageContext['project_name'])) {
+                $context = 'مهتم بمشروع: ' . $pageContext['project_name'];
+            } elseif (!empty($pageContext['title'])) {
+                $context = $pageContext['title'];
+            } elseif (!empty($pageContext['url'])) {
+                $context = $pageContext['url'];
+            }
+
+            // Extract client name if introduced (e.g. "اسمي أحمد", "معك محمد")
+            $clientName = null;
+            if (preg_match('/(?:اسمي|معك|معاك|أنا|انا|name is)\s+([^\s,،\.\n]+(?:\s+[^\s,،\.\n]+)?)/iu', $message, $nameMatches)) {
+                $candidate = trim($nameMatches[1]);
+                if (!in_array(mb_strtolower($candidate), ['مهتم', 'عايز', 'بخصوص', 'رقمي', 'تليفوني', 'phone', 'interested', 'في', 'من'])) {
+                    $clientName = $candidate;
+                }
+            }
+
+            $fullHistory = $history;
+            $fullHistory[] = ['role' => 'user', 'content' => $message];
+
+            $leadScore = 7;
+            if (!empty($pageContext['unit_id']) || !empty($pageContext['project_id'])) {
+                $leadScore += 2;
+            }
+            if (preg_match('/(شراء|حجز|معاينة|كاش|تقسيط|عاجل|urgent|buy|book)/iu', $message)) {
+                $leadScore += 1;
+            }
+            $leadStatus = $leadScore >= 8 ? 'hot' : 'normal';
+
+            $lead = AssistantLead::where('phone', $phone)->latest()->first();
+            $shouldNotify = false;
+
+            if (!$lead) {
+                $lead = AssistantLead::create([
+                    'name' => $clientName,
+                    'phone' => $phone,
+                    'context' => $context,
+                    'status' => 'new',
+                    'chat_history' => $fullHistory,
+                    'lead_score' => $leadScore,
+                    'lead_status' => $leadStatus,
+                ]);
+                $shouldNotify = true;
+            } else {
+                $lead->update([
+                    'name' => $clientName ?: $lead->name,
+                    'context' => $context ?: $lead->context,
+                    'status' => 'new',
+                    'chat_history' => $fullHistory,
+                    'lead_score' => max((int) $lead->lead_score, $leadScore),
+                    'lead_status' => $leadStatus === 'hot' ? 'hot' : $lead->lead_status,
+                ]);
+
+                // Avoid duplicate admin notification flood if notified recently (< 15 mins)
+                $recentNotificationExists = DatabaseNotification::query()
+                    ->where('type', NewAssistantLeadNotification::class)
+                    ->where('data->lead_id', $lead->id)
+                    ->where('created_at', '>=', now()->subMinutes(15))
+                    ->exists();
+
+                if (!$recentNotificationExists) {
+                    $shouldNotify = true;
+                }
+            }
+
+            if ($shouldNotify) {
+                $admins = User::whereIn('role', ['admin', 'manager'])
+                    ->where('is_active', true)
+                    ->get();
+
+                if ($admins->isNotEmpty()) {
+                    $notification = new NewAssistantLeadNotification($lead);
+                    $notificationService = app(NotificationService::class);
+
+                    foreach ($admins as $admin) {
+                        $admin->notify($notification);
+                        $notificationService->clearUserCache($admin);
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('AiAssistantController failed to record lead or dispatch notification: ' . $e->getMessage());
+        }
+    }
 }
+

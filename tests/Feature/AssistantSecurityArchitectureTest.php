@@ -150,9 +150,10 @@ class AssistantSecurityArchitectureTest extends TestCase
     }
 
     /**
-     * Test 2: Strict Read-Only - Zero database writes during assistant chat turns.
+     * Test 2: Captures AssistantLead and notifies admins when phone number is provided,
+     * while general inquiries without contact numbers do not write leads.
      */
-    public function test_it_does_not_write_leads_or_any_records_to_database(): void
+    public function test_it_captures_assistant_lead_and_notifies_admins_when_phone_provided(): void
     {
         $project = Project::create([
             'user_id' => $this->user->id,
@@ -164,22 +165,41 @@ class AssistantSecurityArchitectureTest extends TestCase
         ]);
 
         $initialLeadsCount = AssistantLead::count();
-        $initialUnitsCount = Unit::count();
-        $initialProjectsCount = Project::count();
 
-        // Send a message containing a phone number and inquiry
-        $response = $this->postJson('/ar/assistant/chat', [
-            'message' => 'مرحباً، رقمي 01012345678 وأريد معلومات عن مشروع كمبوند الياسمين',
+        // 1. General inquiry without phone does not create leads
+        $genResponse = $this->postJson('/ar/assistant/chat', [
+            'message' => 'ما هي المشاريع المتاحة في القاهرة الجديدة؟',
             'locale' => 'ar',
+        ]);
+        $genResponse->assertStatus(200);
+        $this->assertEquals($initialLeadsCount, AssistantLead::count());
+
+        // 2. Inquiry with phone number captures the lead and notifies admins
+        $response = $this->postJson('/ar/assistant/chat', [
+            'message' => 'مرحباً، اسمي كريم ورقمي 01012345678 وأريد معلومات عن مشروع كمبوند الياسمين',
+            'locale' => 'ar',
+            'page_context' => [
+                'project_name' => 'كمبوند الياسمين',
+                'title' => 'كمبوند الياسمين - فاميلي هوم',
+            ],
         ]);
 
         $response->assertStatus(200);
         $response->assertJson(['success' => true]);
 
-        // Assert zero records created in assistant_leads
-        $this->assertEquals($initialLeadsCount, AssistantLead::count(), 'Zero writes policy violated: assistant_leads record created');
-        $this->assertEquals($initialUnitsCount, Unit::count());
-        $this->assertEquals($initialProjectsCount, Project::count());
+        // Assert lead was recorded in assistant_leads
+        $this->assertEquals($initialLeadsCount + 1, AssistantLead::count());
+        $lead = AssistantLead::where('phone', '01012345678')->first();
+        $this->assertNotNull($lead);
+        $this->assertEquals('كريم', $lead->name);
+        $this->assertEquals('new', $lead->status);
+        $this->assertGreaterThanOrEqual(7, $lead->lead_score);
+
+        // Assert database notification sent to admin
+        $adminNotification = \Illuminate\Notifications\DatabaseNotification::where('type', \App\Domain\Assistant\Notifications\NewAssistantLeadNotification::class)
+            ->where('data->client_phone', '01012345678')
+            ->first();
+        $this->assertNotNull($adminNotification);
     }
 
     /**

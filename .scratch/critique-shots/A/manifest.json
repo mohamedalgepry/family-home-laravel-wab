@@ -1,0 +1,192 @@
+[
+  {
+    "name": "home-desktop",
+    "url": "http://127.0.0.1:8000/ar",
+    "status": 200,
+    "file": "D:/New-family/.scratch/critique-shots/A/home-desktop.png",
+    "textLen": 3067,
+    "errors": [
+      "console: Failed to load resource: the server responded with a status of 403 (Forbidden)",
+      "console: Failed to load resource: the server responded with a status of 403 (Forbidden)",
+      "console: Failed to load resource: net::ERR_CONNECTION_TIMED_OUT"
+    ]
+  },
+  {
+    "name": "units-desktop",
+    "url": "http://127.0.0.1:8000/ar/units",
+    "status": 200,
+    "file": "D:/New-family/.scratch/critique-shots/A/units-desktop.png",
+    "textLen": 1975,
+    "errors": []
+  },
+  {
+    "name": "unit-detail-desktop",
+    "url": "http://127.0.0.1:8000/ar/units/deals",
+    "status": 200,
+    "file": "D:/New-family/.scratch/critique-shots/A/unit-detail-desktop.png",
+    "textLen": 1486,
+    "errors": []
+  },
+  {
+    "name": "projects-desktop",
+    "url": "http://127.0.0.1:8000/ar/projects",
+    "status": 200,
+    "file": "D:/New-family/.scratch/critique-shots/A/projects-desktop.png",
+    "textLen": 1792,
+    "errors": []
+  },
+  {
+    "name": "project-detail-desktop",
+    "url": "http://127.0.0.1:8000/ar/projects/%D9%85%D8%B4%D8%B1%D9%88%D8%B9-%D8%A7%D9%84%D9%86%D8%AE%D9%8A%D9%84",
+    "status": 200,
+    "file": "D:/New-family/.scratch/critique-shots/A/project-detail-desktop.png",
+    "textLen": 1963,
+    "errors": [
+      "console: Failed to load resource: the server responded with a status of 404 ()"
+    ]
+  },
+  {
+    "name": "articles-desktop",
+    "url": "http://127.0.0.1:8000/ar/articles",
+    "status": 200,
+    "file": "D:/New-family/.scratch/critique-shots/A/articles-desktop.png",
+    "textLen": 522,
+    "errors": []
+  },
+  {
+    "name": "article-detail-desktop",
+    "url": "http://127.0.0.1:8000/ar/articles/%D8%A3%D9%81%D8%B6%D9%84-%D8%A7%D9%84%D9%85%D9%86%D8%A7%D8%B7%D9%82-%D9%84%D9%84%D8%A7%D8%B3%D8%AA%D8%AB%D9%85%D8%A7%D8%B1-%D8%A7%D9%84%D8%B9%D9%82%D8%A7%D8%B1%D9%8A-%D9%81%D9%8A-%D9%85%D8%B5%D8%B1-2026",
+    "status": 200,
+    "file": "D:/New-family/.scratch/critique-shots/A/article-detail-desktop.png",
+    "textLen": 1021,
+    "errors": []
+  },
+  {
+    "name": "about-desktop",
+    "url": "http://127.0.0.1:8000/ar/about",
+    "status": 200,
+    "file": "D:/New-family/.scratch/critique-shots/A/about-desktop.png",
+    "textLen": 329,
+    "errors": []
+  },
+  {
+    "name": "contact-desktop",
+    "url": "http://127.0.0.1:8000/ar/contact",
+    "status": 200,
+    "file": "D:/New-family/.scratch/critique-shots/A/contact-desktop.png",
+    "textLen": 388,
+    "errors": []
+  },
+  {
+    "name": "compare-desktop",
+    "url": "http://127.0.0.1:8000/ar/compare",
+    "status": 200,
+    "file": "D:/New-family/.scratch/critique-shots/A/compare-desktop.png",
+    "textLen": 416,
+    "errors": []
+  },
+  {
+    "name": "deals-desktop",
+    "url": "http://127.0.0.1:8000/ar/units/deals",
+    "status": 200,
+    "file": "D:/New-family/.scratch/critique-shots/A/deals-desktop.png",
+    "textLen": 1486,
+    "errors": []
+  },
+  {
+    "name": "home-mobile",
+    "url": "http://127.0.0.1:8000/ar",
+    "status": 200,
+    "file": "D:/New-family/.scratch/critique-shots/A/home-mobile.png",
+    "textLen": 1959,
+    "errors": [
+      "console: Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    ]
+  },
+  {
+    "name": "units-mobile",
+    "url": "http://127.0.0.1:8000/ar/units",
+    "status": 200,
+    "file": "D:/New-family/.scratch/critique-shots/A/units-mobile.png",
+    "textLen": 834,
+    "errors": []
+  },
+  {
+    "name": "unit-detail-mobile",
+    "url": "http://127.0.0.1:8000/ar/units/deals",
+    "status": 200,
+    "file": "D:/New-family/.scratch/critique-shots/A/unit-detail-mobile.png",
+    "textLen": 345,
+    "errors": []
+  },
+  {
+    "name": "projects-mobile",
+    "url": "http://127.0.0.1:8000/ar/projects",
+    "status": 200,
+    "file": "D:/New-family/.scratch/critique-shots/A/projects-mobile.png",
+    "textLen": 1670,
+    "errors": [
+      "console: Failed to load resource: net::ERR_CONNECTION_TIMED_OUT"
+    ]
+  },
+  {
+    "name": "project-detail-mobile",
+    "url": "http://127.0.0.1:8000/ar/projects/%D9%85%D8%B4%D8%B1%D9%88%D8%B9-%D8%A7%D9%84%D9%86%D8%AE%D9%8A%D9%84",
+    "status": 200,
+    "file": "D:/New-family/.scratch/critique-shots/A/project-detail-mobile.png",
+    "textLen": 1787,
+    "errors": [
+      "console: Failed to load resource: the server responded with a status of 404 ()"
+    ]
+  },
+  {
+    "name": "articles-mobile",
+    "url": "http://127.0.0.1:8000/ar/articles",
+    "status": 200,
+    "file": "D:/New-family/.scratch/critique-shots/A/articles-mobile.png",
+    "textLen": 400,
+    "errors": [
+      "console: Failed to load resource: net::ERR_CONNECTION_TIMED_OUT"
+    ]
+  },
+  {
+    "name": "article-detail-mobile",
+    "url": "http://127.0.0.1:8000/ar/articles/%D8%A3%D9%81%D8%B6%D9%84-%D8%A7%D9%84%D9%85%D9%86%D8%A7%D8%B7%D9%82-%D9%84%D9%84%D8%A7%D8%B3%D8%AA%D8%AB%D9%85%D8%A7%D8%B1-%D8%A7%D9%84%D8%B9%D9%82%D8%A7%D8%B1%D9%8A-%D9%81%D9%8A-%D9%85%D8%B5%D8%B1-2026",
+    "status": 200,
+    "file": "D:/New-family/.scratch/critique-shots/A/article-detail-mobile.png",
+    "textLen": 899,
+    "errors": []
+  },
+  {
+    "name": "about-mobile",
+    "url": "http://127.0.0.1:8000/ar/about",
+    "status": 200,
+    "file": "D:/New-family/.scratch/critique-shots/A/about-mobile.png",
+    "textLen": 207,
+    "errors": []
+  },
+  {
+    "name": "contact-mobile",
+    "url": "http://127.0.0.1:8000/ar/contact",
+    "status": 200,
+    "file": "D:/New-family/.scratch/critique-shots/A/contact-mobile.png",
+    "textLen": 266,
+    "errors": []
+  },
+  {
+    "name": "compare-mobile",
+    "url": "http://127.0.0.1:8000/ar/compare",
+    "status": 200,
+    "file": "D:/New-family/.scratch/critique-shots/A/compare-mobile.png",
+    "textLen": 294,
+    "errors": []
+  },
+  {
+    "name": "deals-mobile",
+    "url": "http://127.0.0.1:8000/ar/units/deals",
+    "status": 200,
+    "file": "D:/New-family/.scratch/critique-shots/A/deals-mobile.png",
+    "textLen": 345,
+    "errors": []
+  }
+]

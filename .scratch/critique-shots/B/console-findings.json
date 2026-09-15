@@ -1,0 +1,61 @@
+{
+  "results": [
+    {
+      "name": "ar-home",
+      "injected": true,
+      "title": "impeccable-preflight",
+      "overlay": false
+    },
+    {
+      "name": "ar-units",
+      "injected": true,
+      "title": "impeccable-preflight",
+      "overlay": false
+    },
+    {
+      "name": "ar-projects",
+      "injected": true,
+      "title": "impeccable-preflight",
+      "overlay": false
+    },
+    {
+      "name": "ar-contact",
+      "injected": true,
+      "title": "impeccable-preflight",
+      "overlay": false
+    },
+    {
+      "name": "ar-compare",
+      "injected": true,
+      "title": "impeccable-preflight",
+      "overlay": false
+    }
+  ],
+  "consoleLog": [
+    {
+      "page": "ar-home",
+      "type": "log",
+      "text": "%c[impeccable] No anti-patterns found. color: #22c55e; font-weight: bold"
+    },
+    {
+      "page": "ar-units",
+      "type": "log",
+      "text": "%c[impeccable] No anti-patterns found. color: #22c55e; font-weight: bold"
+    },
+    {
+      "page": "ar-projects",
+      "type": "log",
+      "text": "%c[impeccable] No anti-patterns found. color: #22c55e; font-weight: bold"
+    },
+    {
+      "page": "ar-contact",
+      "type": "log",
+      "text": "%c[impeccable] No anti-patterns found. color: #22c55e; font-weight: bold"
+    },
+    {
+      "page": "ar-compare",
+      "type": "log",
+      "text": "%c[impeccable] No anti-patterns found. color: #22c55e; font-weight: bold"
+    }
+  ]
+}

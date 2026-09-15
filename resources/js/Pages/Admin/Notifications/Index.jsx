@@ -15,6 +15,7 @@ const TYPE_META = {
     new_message: { icon: 'message', gradient: 'from-blue-500 to-indigo-500', bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-800', label: { ar: 'رسالة جديدة', en: 'New Message' } },
     unit_pending_approval: { icon: 'clock', gradient: 'from-amber-500 to-orange-500', bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-800', label: { ar: 'وحدة بانتظار الموافقة', en: 'Unit Pending Approval' } },
     unit_approved: { icon: 'check', gradient: 'from-emerald-500 to-green-500', bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-800', label: { ar: 'تم الموافقة على الوحدة', en: 'Unit Approved' } },
+    new_assistant_lead: { icon: 'sparkles', gradient: 'from-purple-500 to-indigo-600', bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-800', label: { ar: 'عميل مساعد ذكي', en: 'AI Assistant Lead' } },
 }
 
 const TYPE_DEFAULT = { icon: 'bell', gradient: 'from-secondary-400 to-secondary-500', bg: 'bg-secondary-100', border: 'border-secondary-200', text: 'text-secondary-800', label: { ar: 'إشعار', en: 'Notification' } }
@@ -27,6 +28,7 @@ const ICON_PATHS = {
     message: 'M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z',
     bell: 'M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0',
     check: 'M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+    sparkles: 'M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z',
 }
 
 function TypeIcon({ type, className = 'w-5 h-5' }) {
@@ -306,6 +308,7 @@ export default function NotificationsIndex({ notifications, unreadCount, autoDel
                                         const isNewMessage = item.type === 'new_message'
                                         const isNewProject = item.type === 'new_project_created'
                                         const isUnitPendingApproval = item.type === 'unit_pending_approval'
+                                        const isAssistantLead = item.type === 'new_assistant_lead' || Boolean(item.lead_id)
 
                                         return (
                                             <div
@@ -358,7 +361,7 @@ export default function NotificationsIndex({ notifications, unreadCount, autoDel
                                                             </p>
 
                                                             {/* Details Panel */}
-                                                            {(item.unit_name || item.project_name || isNewMessage) && (
+                                                            {(item.unit_name || item.project_name || isNewMessage || isAssistantLead) && (
                                                                 <div className={`${meta.bg} border ${meta.border} rounded-xl p-3 mb-3 text-xs space-y-1.5`}>
                                                                     {item.unit_name && (
                                                                         <div className="flex items-center justify-between gap-2">
@@ -406,6 +409,28 @@ export default function NotificationsIndex({ notifications, unreadCount, autoDel
                                                                             )}
                                                                             {item.content && (
                                                                                 <p className={`${meta.text} mt-1 leading-relaxed line-clamp-2`}>{item.content}</p>
+                                                                            )}
+                                                                        </>
+                                                                    )}
+                                                                    {isAssistantLead && (
+                                                                        <>
+                                                                            {item.client_name && (
+                                                                                <div className="flex items-center justify-between gap-2">
+                                                                                    <span className="text-secondary-500 shrink-0">{trans('client_name') + ':'}</span>
+                                                                                    <span className="font-semibold text-purple-800 text-end">{item.client_name}</span>
+                                                                                </div>
+                                                                            )}
+                                                                            {item.client_phone && (
+                                                                                <div className="flex items-center justify-between gap-2">
+                                                                                    <span className="text-secondary-500 shrink-0">{trans('phone') + ':'}</span>
+                                                                                    <a href={`tel:${item.client_phone}`} className="font-semibold text-primary-900 hover:underline text-end font-mono" dir="ltr">{item.client_phone}</a>
+                                                                                </div>
+                                                                            )}
+                                                                            {item.context && (
+                                                                                <div className="flex items-center justify-between gap-2">
+                                                                                    <span className="text-secondary-500 shrink-0">{isRtl ? 'السياق:' : 'Context:'}</span>
+                                                                                    <span className="font-medium text-secondary-800 text-end truncate max-w-sm">{item.context}</span>
+                                                                                </div>
                                                                             )}
                                                                         </>
                                                                     )}
@@ -521,6 +546,19 @@ export default function NotificationsIndex({ notifications, unreadCount, autoDel
                                                                             <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
                                                                         </svg>
                                                                         {isRtl ? 'عرض الرسائل' : 'View Messages'}
+                                                                    </Link>
+                                                                )}
+
+                                                                {(isAssistantLead || item.lead_id) && (
+                                                                    <Link
+                                                                        href="/admin/assistant-leads"
+                                                                        className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1 shadow-xs"
+                                                                    >
+                                                                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                                        </svg>
+                                                                        {isRtl ? 'عرض تفاصيل العميل' : 'View Lead Details'}
                                                                     </Link>
                                                                 )}
 

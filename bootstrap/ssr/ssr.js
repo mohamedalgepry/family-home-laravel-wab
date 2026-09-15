@@ -229,26 +229,48 @@ var NAV_GROUPS = [
 		]
 	}
 ];
+var sharedAudioCtx = null;
+function getAudioContext() {
+	if (typeof window === "undefined") return null;
+	const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+	if (!AudioCtxClass) return null;
+	if (!sharedAudioCtx || sharedAudioCtx.state === "closed") try {
+		sharedAudioCtx = new AudioCtxClass();
+	} catch {}
+	return sharedAudioCtx;
+}
+function unlockAudioContext() {
+	try {
+		const ctx = getAudioContext();
+		if (ctx && ctx.state === "suspended") ctx.resume().catch(() => {});
+	} catch {}
+}
 function playNotificationSound() {
 	try {
-		const ctx = new (window.AudioContext || window.webkitAudioContext)();
-		const now = ctx.currentTime;
-		const gain = ctx.createGain();
-		gain.connect(ctx.destination);
-		gain.gain.setValueAtTime(.15, now);
-		gain.gain.exponentialRampToValueAtTime(.01, now + .4);
-		const osc1 = ctx.createOscillator();
-		osc1.type = "sine";
-		osc1.frequency.setValueAtTime(800, now);
-		osc1.connect(gain);
-		osc1.start(now);
-		osc1.stop(now + .15);
-		const osc2 = ctx.createOscillator();
-		osc2.type = "sine";
-		osc2.frequency.setValueAtTime(1e3, now + .15);
-		osc2.connect(gain);
-		osc2.start(now + .15);
-		osc2.stop(now + .4);
+		const ctx = getAudioContext();
+		if (!ctx) return;
+		const playChime = () => {
+			const now = ctx.currentTime;
+			const gain = ctx.createGain();
+			gain.connect(ctx.destination);
+			gain.gain.setValueAtTime(.001, now);
+			gain.gain.linearRampToValueAtTime(.22, now + .04);
+			gain.gain.exponentialRampToValueAtTime(.001, now + .55);
+			const osc1 = ctx.createOscillator();
+			osc1.type = "sine";
+			osc1.frequency.setValueAtTime(587.33, now);
+			osc1.connect(gain);
+			osc1.start(now);
+			osc1.stop(now + .22);
+			const osc2 = ctx.createOscillator();
+			osc2.type = "sine";
+			osc2.frequency.setValueAtTime(880, now + .12);
+			osc2.connect(gain);
+			osc2.start(now + .12);
+			osc2.stop(now + .55);
+		};
+		if (ctx.state === "suspended") ctx.resume().then(playChime).catch(() => {});
+		else playChime();
 	} catch {}
 }
 function AdminSidebar({ children }) {
@@ -268,10 +290,24 @@ function AdminSidebar({ children }) {
 	const [recentNotifs, setRecentNotifs] = useState([]);
 	const [loadingNotifs, setLoadingNotifs] = useState(false);
 	const notifRef = useRef(null);
+	const notifsFetchedRef = useRef(false);
 	const prevNotifRef = useRef(initialCount || 0);
 	const prevMsgRef = useRef(0);
 	const soundReadyRef = useRef(false);
 	const soundRef = useRef(soundEnabled);
+	useEffect(() => {
+		const handleUnlock = () => {
+			unlockAudioContext();
+		};
+		window.addEventListener("pointerdown", handleUnlock, { passive: true });
+		window.addEventListener("keydown", handleUnlock, { passive: true });
+		window.addEventListener("touchstart", handleUnlock, { passive: true });
+		return () => {
+			window.removeEventListener("pointerdown", handleUnlock);
+			window.removeEventListener("keydown", handleUnlock);
+			window.removeEventListener("touchstart", handleUnlock);
+		};
+	}, []);
 	useEffect(() => {
 		function handleKeyDown(e) {
 			if (e.key === "Escape") {
@@ -289,13 +325,8 @@ function AdminSidebar({ children }) {
 		document.addEventListener("mousedown", handleClickOutside);
 		return () => document.removeEventListener("mousedown", handleClickOutside);
 	}, []);
-	async function openNotifDropdown() {
-		if (notifOpen) {
-			setNotifOpen(false);
-			return;
-		}
-		setNotifOpen(true);
-		setLoadingNotifs(true);
+	async function fetchRecentNotifs(showLoading = false) {
+		if (showLoading) setLoadingNotifs(true);
 		try {
 			const res = await fetch("/admin/notifications/recent", {
 				credentials: "same-origin",
@@ -307,8 +338,21 @@ function AdminSidebar({ children }) {
 			if (!res.ok) throw new Error("Unable to load notifications");
 			const data = await res.json();
 			setRecentNotifs(data.notifications || []);
+			notifsFetchedRef.current = true;
 		} catch {}
-		setLoadingNotifs(false);
+		if (showLoading) setLoadingNotifs(false);
+	}
+	useEffect(() => {
+		if (auth?.user) fetchRecentNotifs(false);
+	}, [auth?.user]);
+	function openNotifDropdown() {
+		if (notifOpen) {
+			setNotifOpen(false);
+			return;
+		}
+		setNotifOpen(true);
+		if (!notifsFetchedRef.current || recentNotifs.length === 0) fetchRecentNotifs(true);
+		else fetchRecentNotifs(false);
 	}
 	function markNotifRead(id) {
 		router.post(`/admin/notifications/${id}/read`, {}, {
@@ -325,7 +369,9 @@ function AdminSidebar({ children }) {
 	function handleNotifItemClick(n) {
 		if (!n.read_at) markNotifRead(n.id);
 		setNotifOpen(false);
-		if ((n.type || "") === "new_message" || n.message_id) router.visit("/admin/messages");
+		const type = n.type || "";
+		if (type === "new_assistant_lead" || n.lead_id) router.visit("/admin/assistant-leads");
+		else if (type === "new_message" || n.message_id) router.visit("/admin/messages");
 		else if (n.unit_id) router.visit(`/admin/units/${n.unit_id}/edit`);
 		else if (n.project_id) router.visit(`/admin/projects/${n.project_id}/edit`);
 		else router.visit("/admin/notifications");
@@ -387,6 +433,7 @@ function AdminSidebar({ children }) {
 		if (!soundReadyRef.current) return;
 		if (count > prevNotifRef.current) {
 			if (soundRef.current) playNotificationSound();
+			fetchRecentNotifs(false);
 			const el = document.createElement("div");
 			el.setAttribute("role", "alert");
 			el.setAttribute("aria-live", "polite");
@@ -446,6 +493,10 @@ function AdminSidebar({ children }) {
 		const next = !soundEnabled;
 		setSoundEnabled(next);
 		safeStorage.setItem("notification_sound", next ? "on" : "off");
+		if (next) {
+			unlockAudioContext();
+			playNotificationSound();
+		}
 	}
 	const isActive = (href) => {
 		if (!url) return false;
@@ -677,6 +728,9 @@ function AdminSidebar({ children }) {
 										className: "relative",
 										children: [/* @__PURE__ */ jsxs("button", {
 											onClick: openNotifDropdown,
+											onMouseEnter: () => {
+												if (!notifsFetchedRef.current) fetchRecentNotifs(false);
+											},
 											className: "relative w-9 h-9 rounded-full flex items-center justify-center text-secondary-500 hover:bg-secondary-100 hover:text-secondary-950 transition-colors",
 											title: trans("sidebar_notifications"),
 											"aria-expanded": notifOpen,
@@ -746,6 +800,7 @@ function AdminSidebar({ children }) {
 														if (type.includes("expiry") || type.includes("expired") || type === "unit_pending_approval") iconColor = "bg-amber-100 text-amber-700";
 														else if (type === "new_project_created" || type === "unit_approved") iconColor = "bg-emerald-100 text-emerald-700";
 														else if (type === "new_message") iconColor = "bg-blue-100 text-blue-700";
+														else if (type === "new_assistant_lead" || n.lead_id) iconColor = "bg-purple-100 text-purple-700";
 														return /* @__PURE__ */ jsxs("button", {
 															onClick: () => handleNotifItemClick(n),
 															className: `w-full text-start p-3 border-b border-secondary-100 last:border-b-0 hover:bg-surface/50 transition-colors flex gap-3 ${isUnread ? "bg-primary-50/20" : ""}`,
@@ -761,19 +816,27 @@ function AdminSidebar({ children }) {
 																		children: /* @__PURE__ */ jsx("path", {
 																			strokeLinecap: "round",
 																			strokeLinejoin: "round",
-																			d: type.includes("expiry") || type.includes("expired") || type === "unit_pending_approval" ? "M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" : type === "new_project_created" || type === "unit_approved" ? "M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" : type === "new_message" ? "M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" : "M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"
+																			d: type.includes("expiry") || type.includes("expired") || type === "unit_pending_approval" ? "M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" : type === "new_project_created" || type === "unit_approved" ? "M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" : type === "new_message" ? "M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" : type === "new_assistant_lead" || n.lead_id ? "M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" : "M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"
 																		})
 																	})
 																}),
 																/* @__PURE__ */ jsxs("div", {
 																	className: "min-w-0 flex-1",
-																	children: [/* @__PURE__ */ jsx("p", {
-																		className: `text-xs leading-relaxed ${isUnread ? "font-semibold text-secondary-950" : "text-secondary-700"}`,
-																		children: n.title || n.message
-																	}), /* @__PURE__ */ jsx("span", {
-																		className: "text-xs text-secondary-400 mt-0.5 block",
-																		children: n.created_at_human
-																	})]
+																	children: [
+																		/* @__PURE__ */ jsx("p", {
+																			className: `text-xs leading-relaxed ${isUnread ? "font-semibold text-secondary-950" : "text-secondary-700"}`,
+																			children: n.title || n.message
+																		}),
+																		n.client_phone && /* @__PURE__ */ jsx("span", {
+																			className: "text-[11px] text-purple-700 font-bold block",
+																			dir: "ltr",
+																			children: n.client_phone
+																		}),
+																		/* @__PURE__ */ jsx("span", {
+																			className: "text-xs text-secondary-400 mt-0.5 block",
+																			children: n.created_at_human
+																		})
+																	]
 																}),
 																isUnread && /* @__PURE__ */ jsx("span", { className: "w-2 h-2 rounded-full bg-primary-900 shrink-0 mt-1.5" })
 															]
@@ -7218,6 +7281,17 @@ var TYPE_META = {
 			ar: "تم الموافقة على الوحدة",
 			en: "Unit Approved"
 		}
+	},
+	new_assistant_lead: {
+		icon: "sparkles",
+		gradient: "from-purple-500 to-indigo-600",
+		bg: "bg-purple-50",
+		border: "border-purple-200",
+		text: "text-purple-800",
+		label: {
+			ar: "عميل مساعد ذكي",
+			en: "AI Assistant Lead"
+		}
 	}
 };
 var TYPE_DEFAULT = {
@@ -7238,7 +7312,8 @@ var ICON_PATHS$1 = {
 	plus: "M12 4.5v15m7.5-7.5h-15",
 	message: "M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z",
 	bell: "M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0",
-	check: "M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+	check: "M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
+	sparkles: "M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z"
 };
 function TypeIcon({ type, className = "w-5 h-5" }) {
 	return /* @__PURE__ */ jsx("svg", {
@@ -7536,6 +7611,7 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 						const isNewMessage = item.type === "new_message";
 						const isNewProject = item.type === "new_project_created";
 						const isUnitPendingApproval = item.type === "unit_pending_approval";
+						const isAssistantLead = item.type === "new_assistant_lead" || Boolean(item.lead_id);
 						return /* @__PURE__ */ jsxs("div", {
 							className: `relative bg-white rounded-2xl shadow-card border transition-all duration-200 hover:shadow-md ${isUnread ? "border-primary-900/30 bg-gradient-to-r from-primary-50/40 to-transparent" : "border-secondary-100 hover:border-secondary-300"}`,
 							children: [isUnread && /* @__PURE__ */ jsx("div", { className: "absolute start-0 top-3 bottom-3 w-1 bg-primary-900 rounded-full" }), /* @__PURE__ */ jsx("div", {
@@ -7589,7 +7665,7 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 												className: "text-xs text-secondary-600 leading-relaxed mb-3",
 												children: item.message
 											}),
-											(item.unit_name || item.project_name || isNewMessage) && /* @__PURE__ */ jsxs("div", {
+											(item.unit_name || item.project_name || isNewMessage || isAssistantLead) && /* @__PURE__ */ jsxs("div", {
 												className: `${meta.bg} border ${meta.border} rounded-xl p-3 mb-3 text-xs space-y-1.5`,
 												children: [
 													item.unit_name && /* @__PURE__ */ jsxs("div", {
@@ -7668,6 +7744,40 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 														item.content && /* @__PURE__ */ jsx("p", {
 															className: `${meta.text} mt-1 leading-relaxed line-clamp-2`,
 															children: item.content
+														})
+													] }),
+													isAssistantLead && /* @__PURE__ */ jsxs(Fragment, { children: [
+														item.client_name && /* @__PURE__ */ jsxs("div", {
+															className: "flex items-center justify-between gap-2",
+															children: [/* @__PURE__ */ jsx("span", {
+																className: "text-secondary-500 shrink-0",
+																children: trans("client_name") + ":"
+															}), /* @__PURE__ */ jsx("span", {
+																className: "font-semibold text-purple-800 text-end",
+																children: item.client_name
+															})]
+														}),
+														item.client_phone && /* @__PURE__ */ jsxs("div", {
+															className: "flex items-center justify-between gap-2",
+															children: [/* @__PURE__ */ jsx("span", {
+																className: "text-secondary-500 shrink-0",
+																children: trans("phone") + ":"
+															}), /* @__PURE__ */ jsx("a", {
+																href: `tel:${item.client_phone}`,
+																className: "font-semibold text-primary-900 hover:underline text-end font-mono",
+																dir: "ltr",
+																children: item.client_phone
+															})]
+														}),
+														item.context && /* @__PURE__ */ jsxs("div", {
+															className: "flex items-center justify-between gap-2",
+															children: [/* @__PURE__ */ jsx("span", {
+																className: "text-secondary-500 shrink-0",
+																children: isRtl ? "السياق:" : "Context:"
+															}), /* @__PURE__ */ jsx("span", {
+																className: "font-medium text-secondary-800 text-end truncate max-w-sm",
+																children: item.context
+															})]
 														})
 													] })
 												]
@@ -7792,6 +7902,26 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 																d: "M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"
 															})
 														}), isRtl ? "عرض الرسائل" : "View Messages"]
+													}),
+													(isAssistantLead || item.lead_id) && /* @__PURE__ */ jsxs(Link, {
+														href: "/admin/assistant-leads",
+														className: "px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1 shadow-xs",
+														children: [/* @__PURE__ */ jsxs("svg", {
+															className: "w-3.5 h-3.5",
+															fill: "none",
+															viewBox: "0 0 24 24",
+															stroke: "currentColor",
+															strokeWidth: 2,
+															children: [/* @__PURE__ */ jsx("path", {
+																strokeLinecap: "round",
+																strokeLinejoin: "round",
+																d: "M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+															}), /* @__PURE__ */ jsx("path", {
+																strokeLinecap: "round",
+																strokeLinejoin: "round",
+																d: "M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+															})]
+														}), isRtl ? "عرض تفاصيل العميل" : "View Lead Details"]
 													}),
 													item.unit_id && /* @__PURE__ */ jsxs(Link, {
 														href: `/admin/units/${item.unit_id}/edit`,
@@ -15959,7 +16089,7 @@ function CompareBar() {
 }
 //#endregion
 //#region resources/js/Components/Layout/Footer.jsx
-var HossamChatWidget = lazy(() => import("./assets/HossamChatWidget-BgC6IOsf.js"));
+var HossamChatWidget = lazy(() => import("./assets/HossamChatWidget-DyuWhhOK.js"));
 var QUICK_LINKS = [
 	{
 		key: "home",
