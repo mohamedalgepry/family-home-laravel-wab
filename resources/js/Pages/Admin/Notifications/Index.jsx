@@ -326,10 +326,22 @@ export default function NotificationsIndex({ notifications, unreadCount, autoDel
 
                                                 <div className={`p-4 md:p-5 ${isUnread ? 'ps-5 md:ps-6' : ''}`}>
                                                     <div className="flex items-start gap-3.5">
-                                                        {/* Type badge */}
-                                                        <div className={`w-10 h-10 rounded-xl shrink-0 flex items-center justify-center bg-gradient-to-br ${meta.gradient} text-white shadow-sm`}>
-                                                            <TypeIcon type={item.type} className="w-5 h-5" />
-                                                        </div>
+                                                        {/* Type badge / Unit image */}
+                                                        {item.unit_image ? (
+                                                            <div className="w-10 h-10 rounded-xl shrink-0 overflow-hidden shadow-sm border border-secondary-200">
+                                                                <img
+                                                                    src={item.unit_image}
+                                                                    alt={item.unit_name || ''}
+                                                                    className="w-full h-full object-cover"
+                                                                    loading="lazy"
+                                                                    onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = `<div class="w-full h-full flex items-center justify-center bg-gradient-to-br ${meta.gradient} text-white"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="${ICON_PATHS[meta.icon]}"/></svg></div>`; }}
+                                                                />
+                                                            </div>
+                                                        ) : (
+                                                            <div className={`w-10 h-10 rounded-xl shrink-0 flex items-center justify-center bg-gradient-to-br ${meta.gradient} text-white shadow-sm`}>
+                                                                <TypeIcon type={item.type} className="w-5 h-5" />
+                                                            </div>
+                                                        )}
 
                                                         <div className="flex-1 min-w-0">
                                                             {/* Title row */}
@@ -391,6 +403,17 @@ export default function NotificationsIndex({ notifications, unreadCount, autoDel
                                                                         <div className="flex items-center justify-between gap-2">
                                                                             <span className="text-secondary-500 shrink-0">{trans('area') + ':'}</span>
                                                                             <span className={`font-semibold ${meta.text} text-end`}>{item.area_name}</span>
+                                                                        </div>
+                                                                    )}
+                                                                    {item.agent_name && (
+                                                                        <div className="flex items-center justify-between gap-2">
+                                                                            <span className="text-secondary-500 shrink-0 flex items-center gap-1">
+                                                                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                                                                                </svg>
+                                                                                {isRtl ? 'الوكيل:' : 'Agent:'}
+                                                                            </span>
+                                                                            <span className="font-semibold text-primary-900 text-end">{item.agent_name}</span>
                                                                         </div>
                                                                     )}
                                                                     {isNewMessage && (

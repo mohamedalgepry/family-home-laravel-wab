@@ -59,7 +59,62 @@ class NotificationService
         $data['read_at'] = $notification->read_at?->toIso8601String();
         $data['created_at_human'] = $notification->created_at->diffForHumans();
 
+        // Enrich with unit primary image and agent name when unit_id exists
+        if (! empty($data['unit_id'])) {
+            $this->enrichWithUnitData($data);
+        }
+
         return $data;
+    }
+
+    /**
+     * Enrich notification data with unit's primary image and uploader (agent) name.
+     */
+    private function enrichWithUnitData(array &$data): void
+    {
+        $unitId = $data['unit_id'];
+
+        // Get primary image thumb URL (cached per unit to avoid repeated queries)
+        if (! isset($data['unit_image'])) {
+            $data['unit_image'] = Cache::remember(
+                "unit_{$unitId}_primary_thumb",
+                300,
+                function () use ($unitId) {
+                    $image = \App\Domain\Listings\Models\UnitImage::where('unit_id', $unitId)
+                        ->where('is_primary', true)
+                        ->first();
+
+                    if (! $image) {
+                        // Fallback to first image
+                        $image = \App\Domain\Listings\Models\UnitImage::where('unit_id', $unitId)
+                            ->orderBy('sort_order')
+                            ->first();
+                    }
+
+                    return $image?->thumb_url;
+                }
+            );
+        }
+
+        // Get agent (uploader) name
+        if (! isset($data['agent_name'])) {
+            $data['agent_name'] = Cache::remember(
+                "unit_{$unitId}_agent_name",
+                300,
+                function () use ($unitId) {
+                    $unit = \App\Domain\Listings\Models\Unit::select('user_id')
+                        ->where('id', $unitId)
+                        ->first();
+
+                    if ($unit?->user_id) {
+                        return \App\Domain\Users\Models\User::where('id', $unit->user_id)
+                            ->value('name');
+                    }
+
+                    return null;
+                }
+            );
+        }
     }
 
     public function markAsRead(User $user, string $notificationId): bool

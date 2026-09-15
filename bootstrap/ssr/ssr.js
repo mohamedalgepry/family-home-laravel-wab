@@ -7618,7 +7618,19 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 								className: `p-4 md:p-5 ${isUnread ? "ps-5 md:ps-6" : ""}`,
 								children: /* @__PURE__ */ jsxs("div", {
 									className: "flex items-start gap-3.5",
-									children: [/* @__PURE__ */ jsx("div", {
+									children: [item.unit_image ? /* @__PURE__ */ jsx("div", {
+										className: "w-10 h-10 rounded-xl shrink-0 overflow-hidden shadow-sm border border-secondary-200",
+										children: /* @__PURE__ */ jsx("img", {
+											src: item.unit_image,
+											alt: item.unit_name || "",
+											className: "w-full h-full object-cover",
+											loading: "lazy",
+											onError: (e) => {
+												e.target.style.display = "none";
+												e.target.parentElement.innerHTML = `<div class="w-full h-full flex items-center justify-center bg-gradient-to-br ${meta.gradient} text-white"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="${ICON_PATHS$1[meta.icon]}"/></svg></div>`;
+											}
+										})
+									}) : /* @__PURE__ */ jsx("div", {
 										className: `w-10 h-10 rounded-xl shrink-0 flex items-center justify-center bg-gradient-to-br ${meta.gradient} text-white shadow-sm`,
 										children: /* @__PURE__ */ jsx(TypeIcon, {
 											type: item.type,
@@ -7716,6 +7728,27 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 														}), /* @__PURE__ */ jsx("span", {
 															className: `font-semibold ${meta.text} text-end`,
 															children: item.area_name
+														})]
+													}),
+													item.agent_name && /* @__PURE__ */ jsxs("div", {
+														className: "flex items-center justify-between gap-2",
+														children: [/* @__PURE__ */ jsxs("span", {
+															className: "text-secondary-500 shrink-0 flex items-center gap-1",
+															children: [/* @__PURE__ */ jsx("svg", {
+																className: "w-3 h-3",
+																fill: "none",
+																viewBox: "0 0 24 24",
+																stroke: "currentColor",
+																strokeWidth: 2,
+																children: /* @__PURE__ */ jsx("path", {
+																	strokeLinecap: "round",
+																	strokeLinejoin: "round",
+																	d: "M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
+																})
+															}), isRtl ? "الوكيل:" : "Agent:"]
+														}), /* @__PURE__ */ jsx("span", {
+															className: "font-semibold text-primary-900 text-end",
+															children: item.agent_name
 														})]
 													}),
 													isNewMessage && /* @__PURE__ */ jsxs(Fragment, { children: [
