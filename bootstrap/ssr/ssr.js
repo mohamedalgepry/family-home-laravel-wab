@@ -10310,6 +10310,15 @@ function AdminProjectsIndex({ projects, stats, areas, filters }) {
 	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
 	const isAdminOrManager = auth?.user?.role === "admin" || auth?.user?.role === "manager";
+	const [projectList, setProjectList] = useState(projects?.data || []);
+	const [currentStats, setCurrentStats] = useState(stats || {});
+	const [togglingId, setTogglingId] = useState(null);
+	useEffect(() => {
+		setProjectList(projects?.data || []);
+	}, [projects?.data]);
+	useEffect(() => {
+		setCurrentStats(stats || {});
+	}, [stats]);
 	const [search, setSearch] = useState(filters?.search || "");
 	const [areaFilter, setAreaFilter] = useState(filters?.area_id || "");
 	const [perPage, setPerPage] = useState(filters?.per_page || "15");
@@ -10337,12 +10346,45 @@ function AdminProjectsIndex({ projects, stats, areas, filters }) {
 	function deleteProject(project) {
 		if (confirm(trans("confirm_delete"))) router.delete(`/admin/projects/${project.id}`, { preserveScroll: true });
 	}
+	async function toggleActive(project) {
+		if (togglingId === project.id) return;
+		setTogglingId(project.id);
+		const prevActive = !!project.is_active;
+		const newActive = !prevActive;
+		setProjectList((prev) => prev.map((p) => p.id === project.id ? {
+			...p,
+			is_active: newActive
+		} : p));
+		setCurrentStats((prev) => ({
+			...prev,
+			active: Math.max(0, (prev.active || 0) + (newActive ? 1 : -1))
+		}));
+		try {
+			const res = await axios.post(`/admin/projects/${project.id}/active`);
+			if (res.data?.is_active !== void 0) setProjectList((prev) => prev.map((p) => p.id === project.id ? {
+				...p,
+				is_active: res.data.is_active
+			} : p));
+		} catch (err) {
+			setProjectList((prev) => prev.map((p) => p.id === project.id ? {
+				...p,
+				is_active: prevActive
+			} : p));
+			setCurrentStats((prev) => ({
+				...prev,
+				active: Math.max(0, (prev.active || 0) + (prevActive ? 1 : -1))
+			}));
+			alert(err.response?.data?.message || (isRtl ? "فشل تحديث حالة المشروع" : "Failed to update project status"));
+		} finally {
+			setTogglingId(null);
+		}
+	}
 	const loading = !projects;
-	const hasProjects = projects?.data?.length > 0;
+	const hasProjects = projectList.length > 0;
 	const inputClasses = "w-full px-3.5 py-2.5 bg-surface border border-secondary-200 rounded-xl text-xs font-semibold text-secondary-900 transition-all duration-150 hover:border-secondary-300 focus:bg-white focus:border-[#CC0000] focus:ring-2 focus:ring-red-100 focus:outline-none";
-	const totalCount = stats?.total ?? projects?.total ?? 0;
-	const activeCount = stats?.active ?? 0;
-	const totalUnitsInProjects = stats?.total_units ?? 0;
+	const totalCount = currentStats?.total ?? projects?.total ?? 0;
+	const activeCount = currentStats?.active ?? 0;
+	const totalUnitsInProjects = currentStats?.total_units ?? stats?.total_units ?? 0;
 	const paginationFrom = projects?.from ?? (projects?.current_page ? (projects.current_page - 1) * (projects.per_page || 15) + 1 : 1);
 	const paginationTo = projects?.to ?? (projects?.data ? paginationFrom + projects.data.length - 1 : 0);
 	return /* @__PURE__ */ jsxs(AdminSidebar, { children: [/* @__PURE__ */ jsx(Head, { title: trans("sidebar_projects") + " — " + trans("app_name") }), /* @__PURE__ */ jsxs("div", {
@@ -10622,7 +10664,7 @@ function AdminProjectsIndex({ projects, stats, areas, filters }) {
 							]
 						}) }), /* @__PURE__ */ jsx("tbody", {
 							className: "divide-y divide-secondary-100 font-medium",
-							children: loading ? Array.from({ length: 5 }).map((_, i) => /* @__PURE__ */ jsx(SkeletonRow, { cols: 6 }, i)) : hasProjects ? projects.data.map((project) => {
+							children: loading ? Array.from({ length: 5 }).map((_, i) => /* @__PURE__ */ jsx(SkeletonRow, { cols: 6 }, i)) : hasProjects ? projectList.map((project) => {
 								const thumb = project.images?.[0]?.url || (project.images?.[0]?.path ? `/storage/${project.images[0].path}` : null);
 								const projectName = (locale === "ar" ? project.name_ar : project.name_en) || project.name_ar || project.name_en || project.name;
 								const projectAreaName = project.area ? (locale === "ar" ? project.area.name_ar : project.area.name_en) || project.area.name_ar || project.area.name_en : "—";
@@ -10702,7 +10744,14 @@ function AdminProjectsIndex({ projects, stats, areas, filters }) {
 										}),
 										/* @__PURE__ */ jsx("td", {
 											className: "px-3 py-3 text-center whitespace-nowrap",
-											children: /* @__PURE__ */ jsx("span", {
+											children: isAdminOrManager ? /* @__PURE__ */ jsx("button", {
+												type: "button",
+												disabled: togglingId === project.id,
+												onClick: () => toggleActive(project),
+												className: `px-2.5 py-1 text-xs rounded-md font-bold transition-all border active:scale-[0.97] cursor-pointer ${project.is_active ? "bg-emerald-600 text-white border-emerald-600 shadow-2xs hover:bg-emerald-700" : "bg-red-50 text-red-700 border-red-200 hover:bg-red-100"} ${togglingId === project.id ? "opacity-60 cursor-wait" : ""}`,
+												title: isRtl ? "انقر لتغيير حالة المشروع" : "Click to toggle project status",
+												children: project.is_active ? isRtl ? "مفعل" : "Active" : isRtl ? "معطل" : "Inactive"
+											}) : /* @__PURE__ */ jsx("span", {
 												className: `px-2.5 py-1 text-xs rounded-md font-bold border ${project.is_active ? "bg-emerald-600 text-white border-emerald-600 shadow-2xs" : "bg-red-50 text-red-700 border-red-200"}`,
 												children: project.is_active ? isRtl ? "مفعل" : "Active" : isRtl ? "معطل" : "Inactive"
 											})
@@ -10809,7 +10858,7 @@ function AdminProjectsIndex({ projects, stats, areas, filters }) {
 			}),
 			/* @__PURE__ */ jsx("div", {
 				className: "md:hidden space-y-3",
-				children: loading ? Array.from({ length: 3 }).map((_, i) => /* @__PURE__ */ jsx("div", { className: "bg-white p-4 rounded-2xl border border-secondary-200/80 animate-pulse h-28" }, i)) : hasProjects ? projects.data.map((project) => {
+				children: loading ? Array.from({ length: 3 }).map((_, i) => /* @__PURE__ */ jsx("div", { className: "bg-white p-4 rounded-2xl border border-secondary-200/80 animate-pulse h-28" }, i)) : hasProjects ? projectList.map((project) => {
 					const thumb = project.images?.[0]?.url || (project.images?.[0]?.path ? `/storage/${project.images[0].path}` : null);
 					const projectName = (locale === "ar" ? project.name_ar : project.name_en) || project.name_ar || project.name_en || project.name;
 					const projectAreaName = project.area ? (locale === "ar" ? project.area.name_ar : project.area.name_en) || project.area.name_ar || project.area.name_en : "—";
@@ -10843,7 +10892,13 @@ function AdminProjectsIndex({ projects, stats, areas, filters }) {
 										children: [/* @__PURE__ */ jsxs("span", {
 											className: "text-[10px] font-mono text-secondary-400",
 											children: ["#", project.id]
-										}), /* @__PURE__ */ jsx("span", {
+										}), isAdminOrManager ? /* @__PURE__ */ jsx("button", {
+											type: "button",
+											disabled: togglingId === project.id,
+											onClick: () => toggleActive(project),
+											className: `px-2 py-0.5 text-[10px] rounded font-bold border transition-all cursor-pointer ${project.is_active ? "bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700" : "bg-red-50 text-red-700 border-red-200 hover:bg-red-100"} ${togglingId === project.id ? "opacity-60 cursor-wait" : ""}`,
+											children: project.is_active ? isRtl ? "مفعل" : "Active" : isRtl ? "معطل" : "Inactive"
+										}) : /* @__PURE__ */ jsx("span", {
 											className: `px-2 py-0.5 text-[10px] rounded font-bold border ${project.is_active ? "bg-emerald-600 text-white border-emerald-600" : "bg-red-50 text-red-700 border-red-200"}`,
 											children: project.is_active ? isRtl ? "مفعل" : "Active" : isRtl ? "معطل" : "Inactive"
 										})]
@@ -13381,13 +13436,32 @@ function AdminUnitsIndex({ units, stats, areas, unitTypes, filters, autoDeleteDa
 	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
 	const role = auth?.user?.role;
+	const [unitList, setUnitList] = useState(units?.data || []);
+	const [currentStats, setCurrentStats] = useState(stats || {});
+	const [togglingMap, setTogglingMap] = useState({});
+	useEffect(() => {
+		setUnitList(units?.data || []);
+	}, [units?.data]);
+	useEffect(() => {
+		setCurrentStats(stats || {});
+	}, [stats]);
+	function setActionLoading(id, action, isLoading) {
+		setTogglingMap((prev) => ({
+			...prev,
+			[`${id}-${action}`]: isLoading
+		}));
+	}
+	function isActionLoading(id, action) {
+		return !!togglingMap[`${id}-${action}`];
+	}
 	const [search, setSearch] = useState(filters?.search || "");
 	const [areaFilter, setAreaFilter] = useState(filters?.area_id || "");
 	const [typeFilter, setTypeFilter] = useState(filters?.type_id || "");
 	const [perPage, setPerPage] = useState(filters?.per_page || "15");
 	const [showAdjustPointsModal, setShowAdjustPointsModal] = useState(false);
 	const [unitToAdjust, setUnitToAdjust] = useState(null);
-	const { data: pointsData, setData: setPointsData, post: postPoints, processing: pointsProcessing, reset: resetPoints, errors: pointsErrors } = useForm({ points: "" });
+	const [isAdjustingPoints, setIsAdjustingPoints] = useState(false);
+	const { data: pointsData, setData: setPointsData, reset: resetPoints, errors: pointsErrors } = useForm({ points: "" });
 	const [extendModalUnit, setExtendModalUnit] = useState(null);
 	const [selectedDuration, setSelectedDuration] = useState("auto_delete_setting");
 	const [customDays, setCustomDays] = useState("");
@@ -13397,34 +13471,48 @@ function AdminUnitsIndex({ units, stats, areas, unitTypes, filters, autoDeleteDa
 		setSelectedDuration("auto_delete_setting");
 		setCustomDays("");
 	}
-	function submitExtendUnit() {
+	async function submitExtendUnit() {
 		if (!extendModalUnit) return;
 		setIsExtending(true);
 		const payload = { duration_type: selectedDuration };
 		if (selectedDuration === "custom") payload.days = parseInt(customDays, 10) || autoDeleteDays || 30;
-		router.post(`/admin/units/${extendModalUnit.id}/extend-expiry`, payload, {
-			preserveScroll: true,
-			onFinish: () => {
-				setIsExtending(false);
-				setExtendModalUnit(null);
-			}
-		});
+		try {
+			await axios.post(`/admin/units/${extendModalUnit.id}/extend-expiry`, payload);
+			setUnitList((prev) => prev.map((u) => u.id === extendModalUnit.id ? {
+				...u,
+				is_active: true
+			} : u));
+			setExtendModalUnit(null);
+		} catch (err) {
+			alert(err.response?.data?.message || (isRtl ? "فشل تمديد مدة الوحدة" : "Failed to extend unit duration"));
+		} finally {
+			setIsExtending(false);
+		}
 	}
 	function openAdjustPoints(unit) {
 		setUnitToAdjust(unit);
 		setPointsData("points", unit.priority_points);
 		setShowAdjustPointsModal(true);
 	}
-	function handleAdjustPoints(e) {
+	async function handleAdjustPoints(e) {
 		e.preventDefault();
-		postPoints(`/admin/units/${unitToAdjust.id}/adjust-points`, {
-			preserveScroll: true,
-			onSuccess: () => {
-				setShowAdjustPointsModal(false);
-				setUnitToAdjust(null);
-				resetPoints();
-			}
-		});
+		if (!unitToAdjust) return;
+		setIsAdjustingPoints(true);
+		const newPoints = parseInt(pointsData.points, 10) || 0;
+		try {
+			await axios.post(`/admin/units/${unitToAdjust.id}/adjust-points`, { points: newPoints });
+			setUnitList((prev) => prev.map((u) => u.id === unitToAdjust.id ? {
+				...u,
+				priority_points: newPoints
+			} : u));
+			setShowAdjustPointsModal(false);
+			setUnitToAdjust(null);
+			resetPoints();
+		} catch (err) {
+			alert(err.response?.data?.message || (isRtl ? "فشل تعديل النقاط" : "Failed to adjust points"));
+		} finally {
+			setIsAdjustingPoints(false);
+		}
 	}
 	function applyFilters() {
 		const params = {};
@@ -13450,26 +13538,116 @@ function AdminUnitsIndex({ units, stats, areas, unitTypes, filters, autoDeleteDa
 		setPerPage("15");
 		router.get("/admin/units", {}, { preserveState: true });
 	}
-	function togglePin(unit) {
-		router.post(`/admin/units/${unit.id}/pin`, {}, { preserveScroll: true });
+	async function togglePin(unit) {
+		if (isActionLoading(unit.id, "pin")) return;
+		setActionLoading(unit.id, "pin", true);
+		const prevPinned = !!unit.is_pinned;
+		const newPinned = !prevPinned;
+		setUnitList((prev) => prev.map((u) => u.id === unit.id ? {
+			...u,
+			is_pinned: newPinned
+		} : u));
+		setCurrentStats((prev) => ({
+			...prev,
+			pinned: Math.max(0, (prev.pinned || 0) + (newPinned ? 1 : -1))
+		}));
+		try {
+			const res = await axios.post(`/admin/units/${unit.id}/pin`);
+			if (res.data?.is_pinned !== void 0) setUnitList((prev) => prev.map((u) => u.id === unit.id ? {
+				...u,
+				is_pinned: res.data.is_pinned
+			} : u));
+		} catch (err) {
+			setUnitList((prev) => prev.map((u) => u.id === unit.id ? {
+				...u,
+				is_pinned: prevPinned
+			} : u));
+			setCurrentStats((prev) => ({
+				...prev,
+				pinned: Math.max(0, (prev.pinned || 0) + (prevPinned ? 1 : -1))
+			}));
+			alert(err.response?.data?.message || (isRtl ? "فشل تحديث تثبيت الوحدة" : "Failed to update pin status"));
+		} finally {
+			setActionLoading(unit.id, "pin", false);
+		}
 	}
-	function toggleDeal(unit) {
-		router.post(`/admin/units/${unit.id}/deal`, {}, { preserveScroll: true });
+	async function toggleDeal(unit) {
+		if (isActionLoading(unit.id, "deal")) return;
+		setActionLoading(unit.id, "deal", true);
+		const prevDeal = !!unit.is_deal;
+		const newDeal = !prevDeal;
+		setUnitList((prev) => prev.map((u) => u.id === unit.id ? {
+			...u,
+			is_deal: newDeal
+		} : u));
+		setCurrentStats((prev) => ({
+			...prev,
+			deals: Math.max(0, (prev.deals || 0) + (newDeal ? 1 : -1))
+		}));
+		try {
+			const res = await axios.post(`/admin/units/${unit.id}/deal`);
+			if (res.data?.is_deal !== void 0) setUnitList((prev) => prev.map((u) => u.id === unit.id ? {
+				...u,
+				is_deal: res.data.is_deal
+			} : u));
+		} catch (err) {
+			setUnitList((prev) => prev.map((u) => u.id === unit.id ? {
+				...u,
+				is_deal: prevDeal
+			} : u));
+			setCurrentStats((prev) => ({
+				...prev,
+				deals: Math.max(0, (prev.deals || 0) + (prevDeal ? 1 : -1))
+			}));
+			alert(err.response?.data?.message || (isRtl ? "فشل تحديث حالة الصفقة" : "Failed to update deal status"));
+		} finally {
+			setActionLoading(unit.id, "deal", false);
+		}
 	}
-	function toggleActive(unit) {
-		router.post(`/admin/units/${unit.id}/active`, {}, { preserveScroll: true });
+	async function toggleActive(unit) {
+		if (isActionLoading(unit.id, "active")) return;
+		setActionLoading(unit.id, "active", true);
+		const prevActive = !!unit.is_active;
+		const newActive = !prevActive;
+		setUnitList((prev) => prev.map((u) => u.id === unit.id ? {
+			...u,
+			is_active: newActive
+		} : u));
+		setCurrentStats((prev) => ({
+			...prev,
+			active: Math.max(0, (prev.active || 0) + (newActive ? 1 : -1))
+		}));
+		try {
+			const res = await axios.post(`/admin/units/${unit.id}/active`);
+			if (res.data?.is_active !== void 0) setUnitList((prev) => prev.map((u) => u.id === unit.id ? {
+				...u,
+				is_active: res.data.is_active
+			} : u));
+		} catch (err) {
+			setUnitList((prev) => prev.map((u) => u.id === unit.id ? {
+				...u,
+				is_active: prevActive
+			} : u));
+			setCurrentStats((prev) => ({
+				...prev,
+				active: Math.max(0, (prev.active || 0) + (prevActive ? 1 : -1))
+			}));
+			alert(err.response?.data?.message || (isRtl ? "فشل تحديث حالة الوحدة" : "Failed to update unit status"));
+		} finally {
+			setActionLoading(unit.id, "active", false);
+		}
 	}
 	function deleteUnit(unit) {
 		if (confirm(trans("confirm_delete"))) router.delete(`/admin/units/${unit.id}`, { preserveScroll: true });
 	}
 	const loading = !units;
-	const hasUnits = units?.data?.length > 0;
+	const hasUnits = unitList.length > 0;
 	const colCount = role === "agent" ? 10 : 11;
 	const inputClasses = "w-full px-3.5 py-2.5 bg-surface border border-secondary-200 rounded-xl text-xs font-semibold text-secondary-900 transition-all duration-150 hover:border-secondary-300 focus:bg-white focus:border-[#CC0000] focus:ring-2 focus:ring-red-100 focus:outline-none";
-	const totalCount = stats?.total ?? units?.total ?? 0;
-	const activeCount = stats?.active ?? 0;
-	const dealsCount = stats?.deals ?? 0;
-	const pinnedCount = stats?.pinned ?? 0;
+	const totalCount = currentStats?.total ?? units?.total ?? 0;
+	const activeCount = currentStats?.active ?? 0;
+	const dealsCount = currentStats?.deals ?? 0;
+	const pinnedCount = currentStats?.pinned ?? 0;
 	const paginationFrom = units?.from ?? (units?.current_page ? (units.current_page - 1) * (units.per_page || 15) + 1 : 1);
 	const paginationTo = units?.to ?? (units?.data ? paginationFrom + units.data.length - 1 : 0);
 	return /* @__PURE__ */ jsxs(AdminSidebar, { children: [/* @__PURE__ */ jsx(Head, { title: trans("sidebar_units") + " — " + trans("app_name") }), /* @__PURE__ */ jsxs("div", {
@@ -13813,7 +13991,7 @@ function AdminUnitsIndex({ units, stats, areas, unitTypes, filters, autoDeleteDa
 							]
 						}) }), /* @__PURE__ */ jsx("tbody", {
 							className: "divide-y divide-secondary-100 font-medium",
-							children: loading ? Array.from({ length: 5 }).map((_, i) => /* @__PURE__ */ jsx(SkeletonRow, { cols: colCount }, i)) : hasUnits ? units.data.map((unit) => {
+							children: loading ? Array.from({ length: 5 }).map((_, i) => /* @__PURE__ */ jsx(SkeletonRow, { cols: colCount }, i)) : hasUnits ? unitList.map((unit) => {
 								const thumb = unit.images?.[0]?.url || (unit.images?.[0]?.path ? `/storage/${unit.images[0].path}` : null);
 								const unitTypeName = (locale === "ar" ? unit.type?.name_ar : unit.type?.name_en) || unit.type?.name_ar || unit.type?.name_en || "—";
 								const unitAreaName = (locale === "ar" ? unit.area?.name_ar : unit.area?.name_en) || unit.area?.name_ar || unit.area?.name_en || "—";
@@ -13929,8 +14107,9 @@ function AdminUnitsIndex({ units, stats, areas, unitTypes, filters, autoDeleteDa
 											className: "px-3 py-3 text-center whitespace-nowrap",
 											children: role !== "agent" ? /* @__PURE__ */ jsx("button", {
 												type: "button",
+												disabled: isActionLoading(unit.id, "pin"),
 												onClick: () => togglePin(unit),
-												className: `px-2.5 py-1 text-xs rounded-md font-bold transition-all border active:scale-[0.97] ${unit.is_pinned ? "bg-secondary-950 text-white border-secondary-950 shadow-2xs" : "bg-surface text-secondary-600 border-secondary-200 hover:bg-secondary-100"}`,
+												className: `px-2.5 py-1 text-xs rounded-md font-bold transition-all border active:scale-[0.97] cursor-pointer ${unit.is_pinned ? "bg-secondary-950 text-white border-secondary-950 shadow-2xs hover:bg-secondary-800" : "bg-surface text-secondary-600 border-secondary-200 hover:bg-secondary-100"} ${isActionLoading(unit.id, "pin") ? "opacity-60 cursor-wait" : ""}`,
 												children: unit.is_pinned ? isRtl ? "مثبت" : "Pinned" : isRtl ? "تثبيت" : "Pin"
 											}) : /* @__PURE__ */ jsx("span", {
 												className: `inline-block px-2.5 py-1 text-xs rounded-md font-bold border ${unit.is_pinned ? "bg-secondary-950 text-white border-secondary-950" : "bg-surface text-secondary-600 border-secondary-200"}`,
@@ -13941,8 +14120,9 @@ function AdminUnitsIndex({ units, stats, areas, unitTypes, filters, autoDeleteDa
 											className: "px-3 py-3 text-center whitespace-nowrap",
 											children: role !== "agent" ? /* @__PURE__ */ jsx("button", {
 												type: "button",
+												disabled: isActionLoading(unit.id, "deal"),
 												onClick: () => toggleDeal(unit),
-												className: `px-2.5 py-1 text-xs rounded-md font-bold transition-all border active:scale-[0.97] ${unit.is_deal ? "bg-amber-600 text-white border-amber-600 shadow-2xs" : "bg-surface text-secondary-600 border-secondary-200 hover:bg-secondary-100"}`,
+												className: `px-2.5 py-1 text-xs rounded-md font-bold transition-all border active:scale-[0.97] cursor-pointer ${unit.is_deal ? "bg-amber-600 text-white border-amber-600 shadow-2xs hover:bg-amber-700" : "bg-surface text-secondary-600 border-secondary-200 hover:bg-secondary-100"} ${isActionLoading(unit.id, "deal") ? "opacity-60 cursor-wait" : ""}`,
 												children: unit.is_deal ? isRtl ? "صفقة" : "Deal" : isRtl ? "عادي" : "Normal"
 											}) : /* @__PURE__ */ jsx("span", {
 												className: `inline-block px-2.5 py-1 text-xs rounded-md font-bold border ${unit.is_deal ? "bg-amber-600 text-white border-amber-600" : "bg-surface text-secondary-600 border-secondary-200"}`,
@@ -13953,8 +14133,9 @@ function AdminUnitsIndex({ units, stats, areas, unitTypes, filters, autoDeleteDa
 											className: "px-3 py-3 text-center whitespace-nowrap",
 											children: /* @__PURE__ */ jsx("button", {
 												type: "button",
+												disabled: isActionLoading(unit.id, "active"),
 												onClick: () => toggleActive(unit),
-												className: `px-2.5 py-1 text-xs rounded-md font-bold transition-all border active:scale-[0.97] ${unit.is_active ? "bg-emerald-600 text-white border-emerald-600 shadow-2xs" : "bg-red-50 text-red-700 border-red-200 hover:bg-red-100"}`,
+												className: `px-2.5 py-1 text-xs rounded-md font-bold transition-all border active:scale-[0.97] cursor-pointer ${unit.is_active ? "bg-emerald-600 text-white border-emerald-600 shadow-2xs hover:bg-emerald-700" : "bg-red-50 text-red-700 border-red-200 hover:bg-red-100"} ${isActionLoading(unit.id, "active") ? "opacity-60 cursor-wait" : ""}`,
 												children: unit.is_active ? isRtl ? "مفعل" : "Active" : isRtl ? "معطل" : "Inactive"
 											})
 										}),
@@ -14093,7 +14274,7 @@ function AdminUnitsIndex({ units, stats, areas, unitTypes, filters, autoDeleteDa
 			}),
 			/* @__PURE__ */ jsx("div", {
 				className: "md:hidden space-y-3",
-				children: loading ? Array.from({ length: 3 }).map((_, i) => /* @__PURE__ */ jsx("div", { className: "bg-white p-4 rounded-2xl border border-secondary-200/80 animate-pulse h-36" }, i)) : hasUnits ? units.data.map((unit) => {
+				children: loading ? Array.from({ length: 3 }).map((_, i) => /* @__PURE__ */ jsx("div", { className: "bg-white p-4 rounded-2xl border border-secondary-200/80 animate-pulse h-36" }, i)) : hasUnits ? unitList.map((unit) => {
 					const thumb = unit.images?.[0]?.url || (unit.images?.[0]?.path ? `/storage/${unit.images[0].path}` : null);
 					const unitTypeName = (locale === "ar" ? unit.type?.name_ar : unit.type?.name_en) || unit.type?.name_ar || unit.type?.name_en || "—";
 					const unitAreaName = (locale === "ar" ? unit.area?.name_ar : unit.area?.name_en) || unit.area?.name_ar || unit.area?.name_en || "—";
@@ -14164,14 +14345,35 @@ function AdminUnitsIndex({ units, stats, areas, unitTypes, filters, autoDeleteDa
 										className: `px-2 py-0.5 rounded text-[11px] font-bold border ${unit.transaction === "rent" ? "bg-purple-50 text-purple-700 border-purple-200" : "bg-sky-50 text-sky-700 border-sky-200"}`,
 										children: trans(unit.transaction === "rent" ? "rent" : "sale", {}, "units")
 									}),
-									unit.is_deal && /* @__PURE__ */ jsx("span", {
+									role !== "agent" ? /* @__PURE__ */ jsxs(Fragment, { children: [
+										/* @__PURE__ */ jsx("button", {
+											type: "button",
+											disabled: isActionLoading(unit.id, "active"),
+											onClick: () => toggleActive(unit),
+											className: `px-2 py-0.5 rounded text-[10px] font-bold border transition-all cursor-pointer ${unit.is_active ? "bg-emerald-600 text-white border-emerald-600" : "bg-red-50 text-red-700 border-red-200"} ${isActionLoading(unit.id, "active") ? "opacity-60 cursor-wait" : ""}`,
+											children: unit.is_active ? isRtl ? "مفعل" : "Active" : isRtl ? "معطل" : "Inactive"
+										}),
+										/* @__PURE__ */ jsx("button", {
+											type: "button",
+											disabled: isActionLoading(unit.id, "deal"),
+											onClick: () => toggleDeal(unit),
+											className: `px-2 py-0.5 rounded text-[10px] font-bold border transition-all cursor-pointer ${unit.is_deal ? "bg-amber-600 text-white border-amber-600" : "bg-surface text-secondary-600 border-secondary-200"} ${isActionLoading(unit.id, "deal") ? "opacity-60 cursor-wait" : ""}`,
+											children: unit.is_deal ? isRtl ? "صفقة" : "Deal" : isRtl ? "عادي" : "Normal"
+										}),
+										/* @__PURE__ */ jsx("button", {
+											type: "button",
+											disabled: isActionLoading(unit.id, "pin"),
+											onClick: () => togglePin(unit),
+											className: `px-2 py-0.5 rounded text-[10px] font-bold border transition-all cursor-pointer ${unit.is_pinned ? "bg-secondary-950 text-white border-secondary-950" : "bg-surface text-secondary-600 border-secondary-200"} ${isActionLoading(unit.id, "pin") ? "opacity-60 cursor-wait" : ""}`,
+											children: unit.is_pinned ? isRtl ? "مثبت" : "Pinned" : isRtl ? "تثبيت" : "Pin"
+										})
+									] }) : /* @__PURE__ */ jsxs(Fragment, { children: [unit.is_deal && /* @__PURE__ */ jsx("span", {
 										className: "px-2 py-0.5 bg-amber-600 text-white rounded text-[10px] font-bold",
 										children: isRtl ? "صفقة" : "Deal"
-									}),
-									unit.is_pinned && /* @__PURE__ */ jsx("span", {
+									}), unit.is_pinned && /* @__PURE__ */ jsx("span", {
 										className: "px-2 py-0.5 bg-secondary-950 text-white rounded text-[10px] font-bold",
 										children: isRtl ? "مثبت" : "Pinned"
-									})
+									})] })
 								]
 							}), /* @__PURE__ */ jsxs("div", {
 								className: "flex items-center gap-1",
@@ -14343,9 +14545,9 @@ function AdminUnitsIndex({ units, stats, areas, unitTypes, filters, autoDeleteDa
 								children: trans("cancel")
 							}), /* @__PURE__ */ jsx("button", {
 								type: "submit",
-								disabled: pointsProcessing,
+								disabled: isAdjustingPoints,
 								className: "px-5 py-2 bg-[#CC0000] text-white hover:bg-[#b00000] rounded-xl text-xs font-bold transition-colors disabled:opacity-50 shadow-xs active:scale-[0.98]",
-								children: pointsProcessing ? trans("loading") : trans("save")
+								children: isAdjustingPoints ? trans("loading") : trans("save")
 							})]
 						})]
 					})]
@@ -20450,7 +20652,7 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 			...project.description ? { description: project.description } : {},
 			url: `${appUrl || ""}${page.url.split("?")[0]}`,
 			...image ? { image } : {},
-			numberOfUnits: project.units?.length || 0,
+			numberOfUnits: project.units_count ?? projectUnitsList.length,
 			...hasValidCoords || project.location_address ? { contentLocation: {
 				"@type": "Place",
 				...project.name ? { name: project.name } : {},
@@ -22372,126 +22574,17 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 											}, feature.id))
 										})]
 									}),
-									/* @__PURE__ */ jsxs("section", {
-										id: "contact-form",
-										className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6",
-										children: [
-											/* @__PURE__ */ jsx("h2", {
-												className: "text-lg font-black text-secondary-950 mb-1",
-												children: isRtl ? "تواصل معنا" : "Contact Us"
-											}),
-											/* @__PURE__ */ jsx("p", {
-												className: "text-xs text-secondary-500 font-medium mb-5",
-												children: isRtl ? "يرجى ملء النموذج وسيتواصل معك أحد مستشارينا في أقرب وقت" : "Please fill out the form and our advisor will get in touch shortly."
-											}),
-											(sentSuccess || flash?.success) && /* @__PURE__ */ jsx("div", {
-												className: "mb-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold",
-												children: flash?.success || trans("unit_message_sent_success")
-											}),
-											/* @__PURE__ */ jsxs("form", {
-												onSubmit: handleSubmit,
-												noValidate: true,
-												className: "space-y-4",
-												children: [
-													/* @__PURE__ */ jsxs("div", {
-														className: "grid grid-cols-1 sm:grid-cols-3 gap-3",
-														children: [
-															/* @__PURE__ */ jsxs("div", { children: [
-																/* @__PURE__ */ jsx("label", {
-																	htmlFor: "client_name_dt",
-																	className: "block text-xs font-semibold text-secondary-900 mb-1",
-																	children: isRtl ? "الاسم الكامل" : "Full Name"
-																}),
-																/* @__PURE__ */ jsx("input", {
-																	id: "client_name_dt",
-																	type: "text",
-																	value: data.client_name,
-																	onChange: (e) => setData("client_name", e.target.value),
-																	required: true,
-																	className: "w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none transition-colors"
-																}),
-																errors.client_name && /* @__PURE__ */ jsx("p", {
-																	className: "text-xs text-error mt-1",
-																	children: errors.client_name
-																})
-															] }),
-															/* @__PURE__ */ jsxs("div", { children: [
-																/* @__PURE__ */ jsx("label", {
-																	htmlFor: "client_phone_dt",
-																	className: "block text-xs font-semibold text-secondary-900 mb-1",
-																	children: isRtl ? "رقم الهاتف" : "Phone Number"
-																}),
-																/* @__PURE__ */ jsx("input", {
-																	id: "client_phone_dt",
-																	type: "tel",
-																	value: data.client_phone,
-																	onChange: (e) => setData("client_phone", e.target.value),
-																	className: "w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none transition-colors"
-																}),
-																errors.client_phone && /* @__PURE__ */ jsx("p", {
-																	className: "text-xs text-error mt-1",
-																	children: errors.client_phone
-																})
-															] }),
-															/* @__PURE__ */ jsxs("div", { children: [
-																/* @__PURE__ */ jsx("label", {
-																	htmlFor: "client_email_dt",
-																	className: "block text-xs font-semibold text-secondary-900 mb-1",
-																	children: isRtl ? "البريد الإلكتروني" : "Email"
-																}),
-																/* @__PURE__ */ jsx("input", {
-																	id: "client_email_dt",
-																	type: "email",
-																	value: data.client_email,
-																	onChange: (e) => setData("client_email", e.target.value),
-																	className: "w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none transition-colors"
-																}),
-																errors.client_email && /* @__PURE__ */ jsx("p", {
-																	className: "text-xs text-error mt-1",
-																	children: errors.client_email
-																})
-															] })
-														]
-													}),
-													/* @__PURE__ */ jsxs("div", { children: [
-														/* @__PURE__ */ jsx("label", {
-															htmlFor: "content_dt",
-															className: "block text-xs font-semibold text-secondary-900 mb-1",
-															children: isRtl ? "رسالتك" : "Message"
-														}),
-														/* @__PURE__ */ jsx("textarea", {
-															id: "content_dt",
-															value: data.content,
-															onChange: (e) => setData("content", e.target.value),
-															required: true,
-															rows: 3,
-															className: "w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none resize-none transition-colors"
-														}),
-														errors.content && /* @__PURE__ */ jsx("p", {
-															className: "text-xs text-error mt-1",
-															children: errors.content
-														})
-													] }),
-													/* @__PURE__ */ jsxs("button", {
-														type: "submit",
-														disabled: processing,
-														className: "w-full py-3 bg-[#CC0000] hover:bg-[#b30000] text-white font-bold text-xs rounded-xl shadow-md transition active:scale-[0.97] duration-150 ease-out disabled:opacity-50 flex items-center justify-center gap-2",
-														children: [/* @__PURE__ */ jsx("svg", {
-															className: "w-4 h-4 rotate-180",
-															fill: "none",
-															viewBox: "0 0 24 24",
-															stroke: "currentColor",
-															strokeWidth: 2,
-															children: /* @__PURE__ */ jsx("path", {
-																strokeLinecap: "round",
-																strokeLinejoin: "round",
-																d: "M6 12L3 21l19-9L3 3l3 9zm0 0h7.5"
-															})
-														}), /* @__PURE__ */ jsx("span", { children: processing ? trans("loading", {}, "common") : isRtl ? "إرسال الرسالة" : "Send Message" })]
-													})
-												]
-											})
-										]
+									/* @__PURE__ */ jsx(UnitContactForm, {
+										idPrefix: "dt",
+										isRtl,
+										sentSuccess,
+										flash,
+										trans,
+										data,
+										setData,
+										errors,
+										processing,
+										handleSubmit
 									})
 								]
 							}), /* @__PURE__ */ jsxs("div", {
@@ -23029,121 +23122,17 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 										})] })
 									]
 								}),
-								/* @__PURE__ */ jsxs("section", {
-									id: "contact-form-mob",
-									className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6",
-									children: [
-										/* @__PURE__ */ jsx("h2", {
-											className: "text-lg font-black text-secondary-950 mb-1",
-											children: isRtl ? "تواصل معنا" : "Contact Us"
-										}),
-										/* @__PURE__ */ jsx("p", {
-											className: "text-xs text-secondary-500 font-medium mb-5",
-											children: isRtl ? "يرجى ملء النموذج وسيتواصل معك أحد مستشارينا في أقرب وقت" : "Please fill out the form and our advisor will get in touch shortly."
-										}),
-										(sentSuccess || flash?.success) && /* @__PURE__ */ jsx("div", {
-											className: "mb-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold",
-											children: flash?.success || trans("unit_message_sent_success")
-										}),
-										/* @__PURE__ */ jsxs("form", {
-											onSubmit: handleSubmit,
-											noValidate: true,
-											className: "space-y-4",
-											children: [
-												/* @__PURE__ */ jsxs("div", { children: [
-													/* @__PURE__ */ jsx("label", {
-														htmlFor: "client_name_mob",
-														className: "block text-xs font-semibold text-secondary-900 mb-1",
-														children: isRtl ? "الاسم الكامل" : "Full Name"
-													}),
-													/* @__PURE__ */ jsx("input", {
-														id: "client_name_mob",
-														type: "text",
-														value: data.client_name,
-														onChange: (e) => setData("client_name", e.target.value),
-														required: true,
-														className: "w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none transition-colors"
-													}),
-													errors.client_name && /* @__PURE__ */ jsx("p", {
-														className: "text-xs text-error mt-1",
-														children: errors.client_name
-													})
-												] }),
-												/* @__PURE__ */ jsxs("div", { children: [
-													/* @__PURE__ */ jsx("label", {
-														htmlFor: "client_phone_mob",
-														className: "block text-xs font-semibold text-secondary-900 mb-1",
-														children: isRtl ? "رقم الهاتف" : "Phone Number"
-													}),
-													/* @__PURE__ */ jsx("input", {
-														id: "client_phone_mob",
-														type: "tel",
-														value: data.client_phone,
-														onChange: (e) => setData("client_phone", e.target.value),
-														className: "w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none transition-colors"
-													}),
-													errors.client_phone && /* @__PURE__ */ jsx("p", {
-														className: "text-xs text-error mt-1",
-														children: errors.client_phone
-													})
-												] }),
-												/* @__PURE__ */ jsxs("div", { children: [
-													/* @__PURE__ */ jsx("label", {
-														htmlFor: "client_email_mob",
-														className: "block text-xs font-semibold text-secondary-900 mb-1",
-														children: isRtl ? "البريد الإلكتروني" : "Email"
-													}),
-													/* @__PURE__ */ jsx("input", {
-														id: "client_email_mob",
-														type: "email",
-														value: data.client_email,
-														onChange: (e) => setData("client_email", e.target.value),
-														className: "w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none transition-colors"
-													}),
-													errors.client_email && /* @__PURE__ */ jsx("p", {
-														className: "text-xs text-error mt-1",
-														children: errors.client_email
-													})
-												] }),
-												/* @__PURE__ */ jsxs("div", { children: [
-													/* @__PURE__ */ jsx("label", {
-														htmlFor: "content_mob",
-														className: "block text-xs font-semibold text-secondary-900 mb-1",
-														children: isRtl ? "رسالتك" : "Message"
-													}),
-													/* @__PURE__ */ jsx("textarea", {
-														id: "content_mob",
-														value: data.content,
-														onChange: (e) => setData("content", e.target.value),
-														required: true,
-														rows: 3,
-														className: "w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none resize-none transition-colors"
-													}),
-													errors.content && /* @__PURE__ */ jsx("p", {
-														className: "text-xs text-error mt-1",
-														children: errors.content
-													})
-												] }),
-												/* @__PURE__ */ jsxs("button", {
-													type: "submit",
-													disabled: processing,
-													className: "w-full py-3 bg-[#CC0000] hover:bg-[#b30000] text-white font-bold text-xs rounded-xl shadow-md transition active:scale-[0.97] duration-150 ease-out disabled:opacity-50 flex items-center justify-center gap-2",
-													children: [/* @__PURE__ */ jsx("svg", {
-														className: "w-4 h-4 rotate-180",
-														fill: "none",
-														viewBox: "0 0 24 24",
-														stroke: "currentColor",
-														strokeWidth: 2,
-														children: /* @__PURE__ */ jsx("path", {
-															strokeLinecap: "round",
-															strokeLinejoin: "round",
-															d: "M6 12L3 21l19-9L3 3l3 9zm0 0h7.5"
-														})
-													}), /* @__PURE__ */ jsx("span", { children: processing ? trans("loading", {}, "common") : isRtl ? "إرسال الرسالة" : "Send Message" })]
-												})
-											]
-										})
-									]
+								/* @__PURE__ */ jsx(UnitContactForm, {
+									idPrefix: "mob",
+									isRtl,
+									sentSuccess,
+									flash,
+									trans,
+									data,
+									setData,
+									errors,
+									processing,
+									handleSubmit
 								})
 							]
 						})
@@ -23332,6 +23321,129 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 				]
 			}),
 			/* @__PURE__ */ jsx(Footer, {})
+		]
+	});
+}
+function UnitContactForm({ idPrefix, isRtl, sentSuccess, flash, trans, data, setData, errors, processing, handleSubmit }) {
+	return /* @__PURE__ */ jsxs("section", {
+		id: idPrefix === "mob" ? "contact-form-mob" : "contact-form",
+		className: "bg-white rounded-2xl shadow-sm border border-secondary-100 p-6",
+		children: [
+			/* @__PURE__ */ jsx("h2", {
+				className: "text-lg font-black text-secondary-950 mb-1",
+				children: isRtl ? "تواصل معنا" : "Contact Us"
+			}),
+			/* @__PURE__ */ jsx("p", {
+				className: "text-xs text-secondary-500 font-medium mb-5",
+				children: isRtl ? "يرجى ملء النموذج وسيتواصل معك أحد مستشارينا في أقرب وقت" : "Please fill out the form and our advisor will get in touch shortly."
+			}),
+			(sentSuccess || flash?.success) && /* @__PURE__ */ jsx("div", {
+				className: "mb-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold",
+				children: flash?.success || trans("unit_message_sent_success")
+			}),
+			/* @__PURE__ */ jsxs("form", {
+				onSubmit: handleSubmit,
+				noValidate: true,
+				className: "space-y-4",
+				children: [
+					/* @__PURE__ */ jsxs("div", {
+						className: "grid grid-cols-1 sm:grid-cols-3 gap-3",
+						children: [
+							/* @__PURE__ */ jsxs("div", { children: [
+								/* @__PURE__ */ jsx("label", {
+									htmlFor: `client_name_${idPrefix}`,
+									className: "block text-xs font-semibold text-secondary-900 mb-1",
+									children: isRtl ? "الاسم الكامل" : "Full Name"
+								}),
+								/* @__PURE__ */ jsx("input", {
+									id: `client_name_${idPrefix}`,
+									type: "text",
+									value: data.client_name,
+									onChange: (e) => setData("client_name", e.target.value),
+									required: true,
+									className: "w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none transition-colors"
+								}),
+								errors.client_name && /* @__PURE__ */ jsx("p", {
+									className: "text-xs text-error mt-1",
+									children: errors.client_name
+								})
+							] }),
+							/* @__PURE__ */ jsxs("div", { children: [
+								/* @__PURE__ */ jsx("label", {
+									htmlFor: `client_phone_${idPrefix}`,
+									className: "block text-xs font-semibold text-secondary-900 mb-1",
+									children: isRtl ? "رقم الهاتف" : "Phone Number"
+								}),
+								/* @__PURE__ */ jsx("input", {
+									id: `client_phone_${idPrefix}`,
+									type: "tel",
+									value: data.client_phone,
+									onChange: (e) => setData("client_phone", e.target.value),
+									className: "w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none transition-colors"
+								}),
+								errors.client_phone && /* @__PURE__ */ jsx("p", {
+									className: "text-xs text-error mt-1",
+									children: errors.client_phone
+								})
+							] }),
+							/* @__PURE__ */ jsxs("div", { children: [
+								/* @__PURE__ */ jsx("label", {
+									htmlFor: `client_email_${idPrefix}`,
+									className: "block text-xs font-semibold text-secondary-900 mb-1",
+									children: isRtl ? "البريد الإلكتروني" : "Email"
+								}),
+								/* @__PURE__ */ jsx("input", {
+									id: `client_email_${idPrefix}`,
+									type: "email",
+									value: data.client_email,
+									onChange: (e) => setData("client_email", e.target.value),
+									className: "w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none transition-colors"
+								}),
+								errors.client_email && /* @__PURE__ */ jsx("p", {
+									className: "text-xs text-error mt-1",
+									children: errors.client_email
+								})
+							] })
+						]
+					}),
+					/* @__PURE__ */ jsxs("div", { children: [
+						/* @__PURE__ */ jsx("label", {
+							htmlFor: `content_${idPrefix}`,
+							className: "block text-xs font-semibold text-secondary-900 mb-1",
+							children: isRtl ? "رسالتك" : "Message"
+						}),
+						/* @__PURE__ */ jsx("textarea", {
+							id: `content_${idPrefix}`,
+							value: data.content,
+							onChange: (e) => setData("content", e.target.value),
+							required: true,
+							rows: 3,
+							className: "w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none resize-none transition-colors"
+						}),
+						errors.content && /* @__PURE__ */ jsx("p", {
+							className: "text-xs text-error mt-1",
+							children: errors.content
+						})
+					] }),
+					/* @__PURE__ */ jsxs("button", {
+						type: "submit",
+						disabled: processing,
+						className: "w-full py-3 bg-[#CC0000] hover:bg-[#b30000] text-white font-bold text-xs rounded-xl shadow-md transition active:scale-[0.97] duration-150 ease-out disabled:opacity-50 flex items-center justify-center gap-2",
+						children: [/* @__PURE__ */ jsx("svg", {
+							className: "w-4 h-4 rotate-180",
+							fill: "none",
+							viewBox: "0 0 24 24",
+							stroke: "currentColor",
+							strokeWidth: 2,
+							children: /* @__PURE__ */ jsx("path", {
+								strokeLinecap: "round",
+								strokeLinejoin: "round",
+								d: "M6 12L3 21l19-9L3 3l3 9zm0 0h7.5"
+							})
+						}), /* @__PURE__ */ jsx("span", { children: processing ? trans("loading", {}, "common") : isRtl ? "إرسال الرسالة" : "Send Message" })]
+					})
+				]
+			})
 		]
 	});
 }

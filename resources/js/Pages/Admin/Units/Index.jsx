@@ -1,6 +1,7 @@
 import { usePage, useForm, Link, router, Head } from '@inertiajs/react'
 import { useTrans } from '../../../Utils/trans'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import axios from 'axios'
 import AdminSidebar from '../../../Components/Layout/AdminSidebar'
 import { SkeletonRow, Select } from '../../../Components/UI'
 import Pagination from '../../../Components/UI/Pagination'
@@ -11,6 +12,26 @@ export default function AdminUnitsIndex({ units, stats, areas, unitTypes, filter
     const isRtl = locale === 'ar'
     const role = auth?.user?.role
 
+    const [unitList, setUnitList] = useState(units?.data || [])
+    const [currentStats, setCurrentStats] = useState(stats || {})
+    const [togglingMap, setTogglingMap] = useState({})
+
+    useEffect(() => {
+        setUnitList(units?.data || [])
+    }, [units?.data])
+
+    useEffect(() => {
+        setCurrentStats(stats || {})
+    }, [stats])
+
+    function setActionLoading(id, action, isLoading) {
+        setTogglingMap(prev => ({ ...prev, [`${id}-${action}`]: isLoading }))
+    }
+
+    function isActionLoading(id, action) {
+        return !!togglingMap[`${id}-${action}`]
+    }
+
     const [search, setSearch] = useState(filters?.search || '')
     const [areaFilter, setAreaFilter] = useState(filters?.area_id || '')
     const [typeFilter, setTypeFilter] = useState(filters?.type_id || '')
@@ -18,7 +39,8 @@ export default function AdminUnitsIndex({ units, stats, areas, unitTypes, filter
 
     const [showAdjustPointsModal, setShowAdjustPointsModal] = useState(false)
     const [unitToAdjust, setUnitToAdjust] = useState(null)
-    const { data: pointsData, setData: setPointsData, post: postPoints, processing: pointsProcessing, reset: resetPoints, errors: pointsErrors } = useForm({
+    const [isAdjustingPoints, setIsAdjustingPoints] = useState(false)
+    const { data: pointsData, setData: setPointsData, reset: resetPoints, errors: pointsErrors } = useForm({
         points: '',
     })
 
@@ -33,7 +55,7 @@ export default function AdminUnitsIndex({ units, stats, areas, unitTypes, filter
         setCustomDays('')
     }
 
-    function submitExtendUnit() {
+    async function submitExtendUnit() {
         if (!extendModalUnit) return
         setIsExtending(true)
         const payload = {
@@ -42,13 +64,16 @@ export default function AdminUnitsIndex({ units, stats, areas, unitTypes, filter
         if (selectedDuration === 'custom') {
             payload.days = parseInt(customDays, 10) || autoDeleteDays || 30
         }
-        router.post(`/admin/units/${extendModalUnit.id}/extend-expiry`, payload, {
-            preserveScroll: true,
-            onFinish: () => {
-                setIsExtending(false)
-                setExtendModalUnit(null)
-            },
-        })
+        try {
+            await axios.post(`/admin/units/${extendModalUnit.id}/extend-expiry`, payload)
+            // An extended unit is reactivated
+            setUnitList(prev => prev.map(u => u.id === extendModalUnit.id ? { ...u, is_active: true } : u))
+            setExtendModalUnit(null)
+        } catch (err) {
+            alert(err.response?.data?.message || (isRtl ? 'فشل تمديد مدة الوحدة' : 'Failed to extend unit duration'))
+        } finally {
+            setIsExtending(false)
+        }
     }
 
     function openAdjustPoints(unit) {
@@ -57,16 +82,22 @@ export default function AdminUnitsIndex({ units, stats, areas, unitTypes, filter
         setShowAdjustPointsModal(true)
     }
 
-    function handleAdjustPoints(e) {
+    async function handleAdjustPoints(e) {
         e.preventDefault()
-        postPoints(`/admin/units/${unitToAdjust.id}/adjust-points`, {
-            preserveScroll: true,
-            onSuccess: () => {
-                setShowAdjustPointsModal(false)
-                setUnitToAdjust(null)
-                resetPoints()
-            },
-        })
+        if (!unitToAdjust) return
+        setIsAdjustingPoints(true)
+        const newPoints = parseInt(pointsData.points, 10) || 0
+        try {
+            await axios.post(`/admin/units/${unitToAdjust.id}/adjust-points`, { points: newPoints })
+            setUnitList(prev => prev.map(u => u.id === unitToAdjust.id ? { ...u, priority_points: newPoints } : u))
+            setShowAdjustPointsModal(false)
+            setUnitToAdjust(null)
+            resetPoints()
+        } catch (err) {
+            alert(err.response?.data?.message || (isRtl ? 'فشل تعديل النقاط' : 'Failed to adjust points'))
+        } finally {
+            setIsAdjustingPoints(false)
+        }
     }
 
     function applyFilters() {
@@ -96,16 +127,100 @@ export default function AdminUnitsIndex({ units, stats, areas, unitTypes, filter
         router.get('/admin/units', {}, { preserveState: true })
     }
 
-    function togglePin(unit) {
-        router.post(`/admin/units/${unit.id}/pin`, {}, { preserveScroll: true })
+    async function togglePin(unit) {
+        if (isActionLoading(unit.id, 'pin')) return
+        setActionLoading(unit.id, 'pin', true)
+
+        const prevPinned = !!unit.is_pinned
+        const newPinned = !prevPinned
+
+        // Optimistic UI update
+        setUnitList(prev => prev.map(u => u.id === unit.id ? { ...u, is_pinned: newPinned } : u))
+        setCurrentStats(prev => ({
+            ...prev,
+            pinned: Math.max(0, (prev.pinned || 0) + (newPinned ? 1 : -1))
+        }))
+
+        try {
+            const res = await axios.post(`/admin/units/${unit.id}/pin`)
+            if (res.data?.is_pinned !== undefined) {
+                setUnitList(prev => prev.map(u => u.id === unit.id ? { ...u, is_pinned: res.data.is_pinned } : u))
+            }
+        } catch (err) {
+            // Rollback
+            setUnitList(prev => prev.map(u => u.id === unit.id ? { ...u, is_pinned: prevPinned } : u))
+            setCurrentStats(prev => ({
+                ...prev,
+                pinned: Math.max(0, (prev.pinned || 0) + (prevPinned ? 1 : -1))
+            }))
+            alert(err.response?.data?.message || (isRtl ? 'فشل تحديث تثبيت الوحدة' : 'Failed to update pin status'))
+        } finally {
+            setActionLoading(unit.id, 'pin', false)
+        }
     }
 
-    function toggleDeal(unit) {
-        router.post(`/admin/units/${unit.id}/deal`, {}, { preserveScroll: true })
+    async function toggleDeal(unit) {
+        if (isActionLoading(unit.id, 'deal')) return
+        setActionLoading(unit.id, 'deal', true)
+
+        const prevDeal = !!unit.is_deal
+        const newDeal = !prevDeal
+
+        // Optimistic UI update
+        setUnitList(prev => prev.map(u => u.id === unit.id ? { ...u, is_deal: newDeal } : u))
+        setCurrentStats(prev => ({
+            ...prev,
+            deals: Math.max(0, (prev.deals || 0) + (newDeal ? 1 : -1))
+        }))
+
+        try {
+            const res = await axios.post(`/admin/units/${unit.id}/deal`)
+            if (res.data?.is_deal !== undefined) {
+                setUnitList(prev => prev.map(u => u.id === unit.id ? { ...u, is_deal: res.data.is_deal } : u))
+            }
+        } catch (err) {
+            // Rollback
+            setUnitList(prev => prev.map(u => u.id === unit.id ? { ...u, is_deal: prevDeal } : u))
+            setCurrentStats(prev => ({
+                ...prev,
+                deals: Math.max(0, (prev.deals || 0) + (prevDeal ? 1 : -1))
+            }))
+            alert(err.response?.data?.message || (isRtl ? 'فشل تحديث حالة الصفقة' : 'Failed to update deal status'))
+        } finally {
+            setActionLoading(unit.id, 'deal', false)
+        }
     }
 
-    function toggleActive(unit) {
-        router.post(`/admin/units/${unit.id}/active`, {}, { preserveScroll: true })
+    async function toggleActive(unit) {
+        if (isActionLoading(unit.id, 'active')) return
+        setActionLoading(unit.id, 'active', true)
+
+        const prevActive = !!unit.is_active
+        const newActive = !prevActive
+
+        // Optimistic UI update
+        setUnitList(prev => prev.map(u => u.id === unit.id ? { ...u, is_active: newActive } : u))
+        setCurrentStats(prev => ({
+            ...prev,
+            active: Math.max(0, (prev.active || 0) + (newActive ? 1 : -1))
+        }))
+
+        try {
+            const res = await axios.post(`/admin/units/${unit.id}/active`)
+            if (res.data?.is_active !== undefined) {
+                setUnitList(prev => prev.map(u => u.id === unit.id ? { ...u, is_active: res.data.is_active } : u))
+            }
+        } catch (err) {
+            // Rollback
+            setUnitList(prev => prev.map(u => u.id === unit.id ? { ...u, is_active: prevActive } : u))
+            setCurrentStats(prev => ({
+                ...prev,
+                active: Math.max(0, (prev.active || 0) + (prevActive ? 1 : -1))
+            }))
+            alert(err.response?.data?.message || (isRtl ? 'فشل تحديث حالة الوحدة' : 'Failed to update unit status'))
+        } finally {
+            setActionLoading(unit.id, 'active', false)
+        }
     }
 
     function deleteUnit(unit) {
@@ -115,15 +230,15 @@ export default function AdminUnitsIndex({ units, stats, areas, unitTypes, filter
     }
 
     const loading = !units
-    const hasUnits = units?.data?.length > 0
+    const hasUnits = unitList.length > 0
     const colCount = role === 'agent' ? 10 : 11
 
     const inputClasses = "w-full px-3.5 py-2.5 bg-surface border border-secondary-200 rounded-xl text-xs font-semibold text-secondary-900 transition-all duration-150 hover:border-secondary-300 focus:bg-white focus:border-[#CC0000] focus:ring-2 focus:ring-red-100 focus:outline-none"
 
-    const totalCount = stats?.total ?? units?.total ?? 0
-    const activeCount = stats?.active ?? 0
-    const dealsCount = stats?.deals ?? 0
-    const pinnedCount = stats?.pinned ?? 0
+    const totalCount = currentStats?.total ?? units?.total ?? 0
+    const activeCount = currentStats?.active ?? 0
+    const dealsCount = currentStats?.deals ?? 0
+    const pinnedCount = currentStats?.pinned ?? 0
 
     const paginationFrom = units?.from ?? (units?.current_page ? (units.current_page - 1) * (units.per_page || 15) + 1 : 1)
     const paginationTo = units?.to ?? (units?.data ? paginationFrom + units.data.length - 1 : 0)
@@ -335,7 +450,7 @@ export default function AdminUnitsIndex({ units, stats, areas, unitTypes, filter
                             <tbody className="divide-y divide-secondary-100 font-medium">
                                 {loading ? (
                                     Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} cols={colCount} />)
-                                ) : hasUnits ? units.data.map(unit => {
+                                ) : hasUnits ? unitList.map(unit => {
                                     const thumb = unit.images?.[0]?.url || (unit.images?.[0]?.path ? `/storage/${unit.images[0].path}` : null)
                                     const unitTypeName = (locale === 'ar' ? unit.type?.name_ar : unit.type?.name_en) || unit.type?.name_ar || unit.type?.name_en || '—'
                                     const unitAreaName = (locale === 'ar' ? unit.area?.name_ar : unit.area?.name_en) || unit.area?.name_ar || unit.area?.name_en || '—'
@@ -428,8 +543,9 @@ export default function AdminUnitsIndex({ units, stats, areas, unitTypes, filter
                                                 {role !== 'agent' ? (
                                                     <button
                                                         type="button"
+                                                        disabled={isActionLoading(unit.id, 'pin')}
                                                         onClick={() => togglePin(unit)}
-                                                        className={`px-2.5 py-1 text-xs rounded-md font-bold transition-all border active:scale-[0.97] ${unit.is_pinned ? 'bg-secondary-950 text-white border-secondary-950 shadow-2xs' : 'bg-surface text-secondary-600 border-secondary-200 hover:bg-secondary-100'}`}
+                                                        className={`px-2.5 py-1 text-xs rounded-md font-bold transition-all border active:scale-[0.97] cursor-pointer ${unit.is_pinned ? 'bg-secondary-950 text-white border-secondary-950 shadow-2xs hover:bg-secondary-800' : 'bg-surface text-secondary-600 border-secondary-200 hover:bg-secondary-100'} ${isActionLoading(unit.id, 'pin') ? 'opacity-60 cursor-wait' : ''}`}
                                                     >
                                                         {unit.is_pinned ? (isRtl ? 'مثبت' : 'Pinned') : (isRtl ? 'تثبيت' : 'Pin')}
                                                     </button>
@@ -445,8 +561,9 @@ export default function AdminUnitsIndex({ units, stats, areas, unitTypes, filter
                                                 {role !== 'agent' ? (
                                                     <button
                                                         type="button"
+                                                        disabled={isActionLoading(unit.id, 'deal')}
                                                         onClick={() => toggleDeal(unit)}
-                                                        className={`px-2.5 py-1 text-xs rounded-md font-bold transition-all border active:scale-[0.97] ${unit.is_deal ? 'bg-amber-600 text-white border-amber-600 shadow-2xs' : 'bg-surface text-secondary-600 border-secondary-200 hover:bg-secondary-100'}`}
+                                                        className={`px-2.5 py-1 text-xs rounded-md font-bold transition-all border active:scale-[0.97] cursor-pointer ${unit.is_deal ? 'bg-amber-600 text-white border-amber-600 shadow-2xs hover:bg-amber-700' : 'bg-surface text-secondary-600 border-secondary-200 hover:bg-secondary-100'} ${isActionLoading(unit.id, 'deal') ? 'opacity-60 cursor-wait' : ''}`}
                                                     >
                                                         {unit.is_deal ? (isRtl ? 'صفقة' : 'Deal') : (isRtl ? 'عادي' : 'Normal')}
                                                     </button>
@@ -462,8 +579,9 @@ export default function AdminUnitsIndex({ units, stats, areas, unitTypes, filter
                                                 <td className="px-3 py-3 text-center whitespace-nowrap">
                                                     <button
                                                         type="button"
+                                                        disabled={isActionLoading(unit.id, 'active')}
                                                         onClick={() => toggleActive(unit)}
-                                                        className={`px-2.5 py-1 text-xs rounded-md font-bold transition-all border active:scale-[0.97] ${unit.is_active ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs' : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'}`}
+                                                        className={`px-2.5 py-1 text-xs rounded-md font-bold transition-all border active:scale-[0.97] cursor-pointer ${unit.is_active ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs hover:bg-emerald-700' : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'} ${isActionLoading(unit.id, 'active') ? 'opacity-60 cursor-wait' : ''}`}
                                                     >
                                                         {unit.is_active ? (isRtl ? 'مفعل' : 'Active') : (isRtl ? 'معطل' : 'Inactive')}
                                                     </button>
@@ -564,7 +682,7 @@ export default function AdminUnitsIndex({ units, stats, areas, unitTypes, filter
                         Array.from({ length: 3 }).map((_, i) => (
                             <div key={i} className="bg-white p-4 rounded-2xl border border-secondary-200/80 animate-pulse h-36" />
                         ))
-                    ) : hasUnits ? units.data.map(unit => {
+                    ) : hasUnits ? unitList.map(unit => {
                         const thumb = unit.images?.[0]?.url || (unit.images?.[0]?.path ? `/storage/${unit.images[0].path}` : null)
                         const unitTypeName = (locale === 'ar' ? unit.type?.name_ar : unit.type?.name_en) || unit.type?.name_ar || unit.type?.name_en || '—'
                         const unitAreaName = (locale === 'ar' ? unit.area?.name_ar : unit.area?.name_en) || unit.area?.name_ar || unit.area?.name_en || '—'
@@ -603,8 +721,39 @@ export default function AdminUnitsIndex({ units, stats, areas, unitTypes, filter
                                         <span className={`px-2 py-0.5 rounded text-[11px] font-bold border ${unit.transaction === 'rent' ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-sky-50 text-sky-700 border-sky-200'}`}>
                                             {trans(unit.transaction === 'rent' ? 'rent' : 'sale', {}, 'units')}
                                         </span>
-                                        {unit.is_deal && <span className="px-2 py-0.5 bg-amber-600 text-white rounded text-[10px] font-bold">{isRtl ? 'صفقة' : 'Deal'}</span>}
-                                        {unit.is_pinned && <span className="px-2 py-0.5 bg-secondary-950 text-white rounded text-[10px] font-bold">{isRtl ? 'مثبت' : 'Pinned'}</span>}
+                                        {role !== 'agent' ? (
+                                            <>
+                                                <button
+                                                    type="button"
+                                                    disabled={isActionLoading(unit.id, 'active')}
+                                                    onClick={() => toggleActive(unit)}
+                                                    className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-all cursor-pointer ${unit.is_active ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-red-50 text-red-700 border-red-200'} ${isActionLoading(unit.id, 'active') ? 'opacity-60 cursor-wait' : ''}`}
+                                                >
+                                                    {unit.is_active ? (isRtl ? 'مفعل' : 'Active') : (isRtl ? 'معطل' : 'Inactive')}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    disabled={isActionLoading(unit.id, 'deal')}
+                                                    onClick={() => toggleDeal(unit)}
+                                                    className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-all cursor-pointer ${unit.is_deal ? 'bg-amber-600 text-white border-amber-600' : 'bg-surface text-secondary-600 border-secondary-200'} ${isActionLoading(unit.id, 'deal') ? 'opacity-60 cursor-wait' : ''}`}
+                                                >
+                                                    {unit.is_deal ? (isRtl ? 'صفقة' : 'Deal') : (isRtl ? 'عادي' : 'Normal')}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    disabled={isActionLoading(unit.id, 'pin')}
+                                                    onClick={() => togglePin(unit)}
+                                                    className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-all cursor-pointer ${unit.is_pinned ? 'bg-secondary-950 text-white border-secondary-950' : 'bg-surface text-secondary-600 border-secondary-200'} ${isActionLoading(unit.id, 'pin') ? 'opacity-60 cursor-wait' : ''}`}
+                                                >
+                                                    {unit.is_pinned ? (isRtl ? 'مثبت' : 'Pinned') : (isRtl ? 'تثبيت' : 'Pin')}
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                {unit.is_deal && <span className="px-2 py-0.5 bg-amber-600 text-white rounded text-[10px] font-bold">{isRtl ? 'صفقة' : 'Deal'}</span>}
+                                                {unit.is_pinned && <span className="px-2 py-0.5 bg-secondary-950 text-white rounded text-[10px] font-bold">{isRtl ? 'مثبت' : 'Pinned'}</span>}
+                                            </>
+                                        )}
                                     </div>
                                     
                                     <div className="flex items-center gap-1">
@@ -695,8 +844,8 @@ export default function AdminUnitsIndex({ units, stats, areas, unitTypes, filter
                                     <button type="button" onClick={() => setShowAdjustPointsModal(false)} className="px-4 py-2 bg-surface text-secondary-700 hover:bg-secondary-200 border border-secondary-200 rounded-xl text-xs font-bold transition-colors">
                                         {trans('cancel')}
                                     </button>
-                                    <button type="submit" disabled={pointsProcessing} className="px-5 py-2 bg-[#CC0000] text-white hover:bg-[#b00000] rounded-xl text-xs font-bold transition-colors disabled:opacity-50 shadow-xs active:scale-[0.98]">
-                                        {pointsProcessing ? trans('loading') : trans('save')}
+                                    <button type="submit" disabled={isAdjustingPoints} className="px-5 py-2 bg-[#CC0000] text-white hover:bg-[#b00000] rounded-xl text-xs font-bold transition-colors disabled:opacity-50 shadow-xs active:scale-[0.98]">
+                                        {isAdjustingPoints ? trans('loading') : trans('save')}
                                     </button>
                                 </div>
                             </form>

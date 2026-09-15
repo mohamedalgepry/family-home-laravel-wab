@@ -599,81 +599,18 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                                 )}
 
                                 {/* Section 3: تواصل معنا Form */}
-                                <section id="contact-form" className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6">
-                                    <h2 className="text-lg font-black text-secondary-950 mb-1">{isRtl ? 'تواصل معنا' : 'Contact Us'}</h2>
-                                    <p className="text-xs text-secondary-500 font-medium mb-5">{isRtl ? 'يرجى ملء النموذج وسيتواصل معك أحد مستشارينا في أقرب وقت' : 'Please fill out the form and our advisor will get in touch shortly.'}</p>
-
-                                    {(sentSuccess || flash?.success) && (
-                                        <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold">
-                                            {flash?.success || trans('unit_message_sent_success')}
-                                        </div>
-                                    )}
-
-                                    <form onSubmit={handleSubmit} noValidate className="space-y-4">
-                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                            <div>
-                                                <label htmlFor="client_name_dt" className="block text-xs font-semibold text-secondary-900 mb-1">{isRtl ? 'الاسم الكامل' : 'Full Name'}</label>
-                                                <input
-                                                    id="client_name_dt"
-                                                    type="text"
-                                                    value={data.client_name}
-                                                    onChange={e => setData('client_name', e.target.value)}
-                                                    required
-                                                    className="w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none transition-colors"
-                                                />
-                                                {errors.client_name && <p className="text-xs text-error mt-1">{errors.client_name}</p>}
-                                            </div>
-
-                                            <div>
-                                                <label htmlFor="client_phone_dt" className="block text-xs font-semibold text-secondary-900 mb-1">{isRtl ? 'رقم الهاتف' : 'Phone Number'}</label>
-                                                <input
-                                                    id="client_phone_dt"
-                                                    type="tel"
-                                                    value={data.client_phone}
-                                                    onChange={e => setData('client_phone', e.target.value)}
-                                                    className="w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none transition-colors"
-                                                />
-                                                {errors.client_phone && <p className="text-xs text-error mt-1">{errors.client_phone}</p>}
-                                            </div>
-
-                                            <div>
-                                                <label htmlFor="client_email_dt" className="block text-xs font-semibold text-secondary-900 mb-1">{isRtl ? 'البريد الإلكتروني' : 'Email'}</label>
-                                                <input
-                                                    id="client_email_dt"
-                                                    type="email"
-                                                    value={data.client_email}
-                                                    onChange={e => setData('client_email', e.target.value)}
-                                                    className="w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none transition-colors"
-                                                />
-                                                {errors.client_email && <p className="text-xs text-error mt-1">{errors.client_email}</p>}
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <label htmlFor="content_dt" className="block text-xs font-semibold text-secondary-900 mb-1">{isRtl ? 'رسالتك' : 'Message'}</label>
-                                            <textarea
-                                                id="content_dt"
-                                                value={data.content}
-                                                onChange={e => setData('content', e.target.value)}
-                                                required
-                                                rows={3}
-                                                className="w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none resize-none transition-colors"
-                                            />
-                                            {errors.content && <p className="text-xs text-error mt-1">{errors.content}</p>}
-                                        </div>
-
-                                        <button
-                                            type="submit"
-                                            disabled={processing}
-                                            className="w-full py-3 bg-[#CC0000] hover:bg-[#b30000] text-white font-bold text-xs rounded-xl shadow-md transition active:scale-[0.97] duration-150 ease-out disabled:opacity-50 flex items-center justify-center gap-2"
-                                        >
-                                            <svg className="w-4 h-4 rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3 21l19-9L3 3l3 9zm0 0h7.5" />
-                                            </svg>
-                                            <span>{processing ? trans('loading', {}, 'common') : (isRtl ? 'إرسال الرسالة' : 'Send Message')}</span>
-                                        </button>
-                                    </form>
-                                </section>
+                                <UnitContactForm
+                                    idPrefix="dt"
+                                    isRtl={isRtl}
+                                    sentSuccess={sentSuccess}
+                                    flash={flash}
+                                    trans={trans}
+                                    data={data}
+                                    setData={setData}
+                                    errors={errors}
+                                    processing={processing}
+                                    handleSubmit={handleSubmit}
+                                />
                             </div>
 
                             {/* Right Sidebar Column (5 cols desktop, continuous & sticky) */}
@@ -1007,79 +944,18 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                             )}
 
                             {/* 5. Contact Form (Mobile) */}
-                            <section id="contact-form-mob" className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6">
-                                <h2 className="text-lg font-black text-secondary-950 mb-1">{isRtl ? 'تواصل معنا' : 'Contact Us'}</h2>
-                                <p className="text-xs text-secondary-500 font-medium mb-5">{isRtl ? 'يرجى ملء النموذج وسيتواصل معك أحد مستشارينا في أقرب وقت' : 'Please fill out the form and our advisor will get in touch shortly.'}</p>
-
-                                {(sentSuccess || flash?.success) && (
-                                    <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold">
-                                        {flash?.success || trans('unit_message_sent_success')}
-                                    </div>
-                                )}
-
-                                <form onSubmit={handleSubmit} noValidate className="space-y-4">
-                                    <div>
-                                        <label htmlFor="client_name_mob" className="block text-xs font-semibold text-secondary-900 mb-1">{isRtl ? 'الاسم الكامل' : 'Full Name'}</label>
-                                        <input
-                                            id="client_name_mob"
-                                            type="text"
-                                            value={data.client_name}
-                                            onChange={e => setData('client_name', e.target.value)}
-                                            required
-                                            className="w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none transition-colors"
-                                        />
-                                        {errors.client_name && <p className="text-xs text-error mt-1">{errors.client_name}</p>}
-                                    </div>
-
-                                    <div>
-                                        <label htmlFor="client_phone_mob" className="block text-xs font-semibold text-secondary-900 mb-1">{isRtl ? 'رقم الهاتف' : 'Phone Number'}</label>
-                                        <input
-                                            id="client_phone_mob"
-                                            type="tel"
-                                            value={data.client_phone}
-                                            onChange={e => setData('client_phone', e.target.value)}
-                                            className="w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none transition-colors"
-                                        />
-                                        {errors.client_phone && <p className="text-xs text-error mt-1">{errors.client_phone}</p>}
-                                    </div>
-
-                                    <div>
-                                        <label htmlFor="client_email_mob" className="block text-xs font-semibold text-secondary-900 mb-1">{isRtl ? 'البريد الإلكتروني' : 'Email'}</label>
-                                        <input
-                                            id="client_email_mob"
-                                            type="email"
-                                            value={data.client_email}
-                                            onChange={e => setData('client_email', e.target.value)}
-                                            className="w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none transition-colors"
-                                        />
-                                        {errors.client_email && <p className="text-xs text-error mt-1">{errors.client_email}</p>}
-                                    </div>
-
-                                    <div>
-                                        <label htmlFor="content_mob" className="block text-xs font-semibold text-secondary-900 mb-1">{isRtl ? 'رسالتك' : 'Message'}</label>
-                                        <textarea
-                                            id="content_mob"
-                                            value={data.content}
-                                            onChange={e => setData('content', e.target.value)}
-                                            required
-                                            rows={3}
-                                            className="w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none resize-none transition-colors"
-                                        />
-                                        {errors.content && <p className="text-xs text-error mt-1">{errors.content}</p>}
-                                    </div>
-
-                                    <button
-                                        type="submit"
-                                        disabled={processing}
-                                        className="w-full py-3 bg-[#CC0000] hover:bg-[#b30000] text-white font-bold text-xs rounded-xl shadow-md transition active:scale-[0.97] duration-150 ease-out disabled:opacity-50 flex items-center justify-center gap-2"
-                                    >
-                                        <svg className="w-4 h-4 rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3 21l19-9L3 3l3 9zm0 0h7.5" />
-                                        </svg>
-                                        <span>{processing ? trans('loading', {}, 'common') : (isRtl ? 'إرسال الرسالة' : 'Send Message')}</span>
-                                    </button>
-                                </form>
-                            </section>
+                            <UnitContactForm
+                                idPrefix="mob"
+                                isRtl={isRtl}
+                                sentSuccess={sentSuccess}
+                                flash={flash}
+                                trans={trans}
+                                data={data}
+                                setData={setData}
+                                errors={errors}
+                                processing={processing}
+                                handleSubmit={handleSubmit}
+                            />
                         </div>
                     </>
                 )}
@@ -1243,5 +1119,96 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
 
             <Footer />
         </div>
+    )
+}
+
+function UnitContactForm({
+    idPrefix,
+    isRtl,
+    sentSuccess,
+    flash,
+    trans,
+    data,
+    setData,
+    errors,
+    processing,
+    handleSubmit,
+}) {
+    return (
+        <section id={idPrefix === 'mob' ? 'contact-form-mob' : 'contact-form'} className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6">
+            <h2 className="text-lg font-black text-secondary-950 mb-1">{isRtl ? 'تواصل معنا' : 'Contact Us'}</h2>
+            <p className="text-xs text-secondary-500 font-medium mb-5">{isRtl ? 'يرجى ملء النموذج وسيتواصل معك أحد مستشارينا في أقرب وقت' : 'Please fill out the form and our advisor will get in touch shortly.'}</p>
+
+            {(sentSuccess || flash?.success) && (
+                <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold">
+                    {flash?.success || trans('unit_message_sent_success')}
+                </div>
+            )}
+
+            <form onSubmit={handleSubmit} noValidate className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label htmlFor={`client_name_${idPrefix}`} className="block text-xs font-semibold text-secondary-900 mb-1">{isRtl ? 'الاسم الكامل' : 'Full Name'}</label>
+                        <input
+                            id={`client_name_${idPrefix}`}
+                            type="text"
+                            value={data.client_name}
+                            onChange={e => setData('client_name', e.target.value)}
+                            required
+                            className="w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none transition-colors"
+                        />
+                        {errors.client_name && <p className="text-xs text-error mt-1">{errors.client_name}</p>}
+                    </div>
+
+                    <div>
+                        <label htmlFor={`client_phone_${idPrefix}`} className="block text-xs font-semibold text-secondary-900 mb-1">{isRtl ? 'رقم الهاتف' : 'Phone Number'}</label>
+                        <input
+                            id={`client_phone_${idPrefix}`}
+                            type="tel"
+                            value={data.client_phone}
+                            onChange={e => setData('client_phone', e.target.value)}
+                            className="w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none transition-colors"
+                        />
+                        {errors.client_phone && <p className="text-xs text-error mt-1">{errors.client_phone}</p>}
+                    </div>
+
+                    <div>
+                        <label htmlFor={`client_email_${idPrefix}`} className="block text-xs font-semibold text-secondary-900 mb-1">{isRtl ? 'البريد الإلكتروني' : 'Email'}</label>
+                        <input
+                            id={`client_email_${idPrefix}`}
+                            type="email"
+                            value={data.client_email}
+                            onChange={e => setData('client_email', e.target.value)}
+                            className="w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none transition-colors"
+                        />
+                        {errors.client_email && <p className="text-xs text-error mt-1">{errors.client_email}</p>}
+                    </div>
+                </div>
+
+                <div>
+                    <label htmlFor={`content_${idPrefix}`} className="block text-xs font-semibold text-secondary-900 mb-1">{isRtl ? 'رسالتك' : 'Message'}</label>
+                    <textarea
+                        id={`content_${idPrefix}`}
+                        value={data.content}
+                        onChange={e => setData('content', e.target.value)}
+                        required
+                        rows={3}
+                        className="w-full px-3.5 py-2.5 border border-secondary-200 rounded-xl text-xs bg-surface focus:bg-white focus:ring-2 focus:ring-[#CC0000]/20 focus:border-[#CC0000] outline-none resize-none transition-colors"
+                    />
+                    {errors.content && <p className="text-xs text-error mt-1">{errors.content}</p>}
+                </div>
+
+                <button
+                    type="submit"
+                    disabled={processing}
+                    className="w-full py-3 bg-[#CC0000] hover:bg-[#b30000] text-white font-bold text-xs rounded-xl shadow-md transition active:scale-[0.97] duration-150 ease-out disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                    <svg className="w-4 h-4 rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3 21l19-9L3 3l3 9zm0 0h7.5" />
+                    </svg>
+                    <span>{processing ? trans('loading', {}, 'common') : (isRtl ? 'إرسال الرسالة' : 'Send Message')}</span>
+                </button>
+            </form>
+        </section>
     )
 }

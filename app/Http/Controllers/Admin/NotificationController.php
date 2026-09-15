@@ -154,6 +154,17 @@ class NotificationController extends Controller
 
         $unitName = $unit->name_ar ?: $unit->name;
 
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'days' => $days,
+                'message' => __('admin.unit_extended', [
+                    'name' => $unitName,
+                    'days' => $days,
+                ]),
+            ]);
+        }
+
         return redirect()->back()->with('success', __('admin.unit_extended', [
             'name' => $unitName,
             'days' => $days,

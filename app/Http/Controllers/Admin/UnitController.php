@@ -40,11 +40,21 @@ class UnitController extends Controller
 
         $units = $this->unitService->getPaginatedUnits($filters, $user);
 
+        $statsRow = Unit::query()
+            ->when($user && $user->role === 'agent', fn ($q) => $q->where('user_id', $user->id))
+            ->selectRaw("
+                COUNT(*) as total,
+                COUNT(CASE WHEN is_active = 1 THEN 1 END) as active,
+                COUNT(CASE WHEN is_deal = 1 THEN 1 END) as deals,
+                COUNT(CASE WHEN is_pinned = 1 THEN 1 END) as pinned
+            ")
+            ->first();
+
         $stats = [
-            'total' => Unit::when($user && $user->role === 'agent', fn ($q) => $q->where('user_id', $user->id))->count(),
-            'active' => Unit::when($user && $user->role === 'agent', fn ($q) => $q->where('user_id', $user->id))->where('is_active', true)->count(),
-            'deals' => Unit::when($user && $user->role === 'agent', fn ($q) => $q->where('user_id', $user->id))->where('is_deal', true)->count(),
-            'pinned' => Unit::when($user && $user->role === 'agent', fn ($q) => $q->where('user_id', $user->id))->where('is_pinned', true)->count(),
+            'total' => (int) ($statsRow?->total ?? 0),
+            'active' => (int) ($statsRow?->active ?? 0),
+            'deals' => (int) ($statsRow?->deals ?? 0),
+            'pinned' => (int) ($statsRow?->pinned ?? 0),
         ];
 
         $areas = Area::select('id', 'name_ar', 'name_en')->orderBy('name_ar')->get();
@@ -184,41 +194,73 @@ class UnitController extends Controller
         return back()->with('success', __('common.updated_successfully'));
     }
 
-    public function togglePin(Unit $unit): RedirectResponse
+    public function togglePin(Unit $unit, Request $request)
     {
         $this->authorize('togglePin', $unit);
 
-        $this->unitService->togglePin($unit->id);
+        $updated = $this->unitService->togglePin($unit->id);
 
-        return redirect()->route('admin.units.index')
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'is_pinned' => (bool) $updated->is_pinned,
+                'message' => __('admin.pin_success'),
+            ]);
+        }
+
+        return redirect()->back()
             ->with('success', __('admin.pin_success'));
     }
 
-    public function toggleDeal(Unit $unit): RedirectResponse
+    public function toggleDeal(Unit $unit, Request $request)
     {
         $this->authorize('toggleDeal', $unit);
 
-        $this->unitService->toggleDeal($unit->id);
+        $updated = $this->unitService->toggleDeal($unit->id);
 
-        return redirect()->route('admin.units.index')
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'is_deal' => (bool) $updated->is_deal,
+                'message' => __('admin.deal_success'),
+            ]);
+        }
+
+        return redirect()->back()
             ->with('success', __('admin.deal_success'));
     }
 
-    public function toggleActive(Unit $unit, Request $request): RedirectResponse
+    public function toggleActive(Unit $unit, Request $request)
     {
         $this->authorize('toggleActive', $unit);
 
-        $this->unitService->toggleActive($unit->id, $request->user());
+        $updated = $this->unitService->toggleActive($unit->id, $request->user());
 
-        return redirect()->route('admin.units.index')
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'is_active' => (bool) $updated->is_active,
+                'message' => __('admin.activation_success'),
+            ]);
+        }
+
+        return redirect()->back()
             ->with('success', __('admin.activation_success'));
     }
 
-    public function adjustPoints(Unit $unit, AdjustPointsRequest $request, AdjustUnitPointsAction $action): RedirectResponse
+    public function adjustPoints(Unit $unit, AdjustPointsRequest $request, AdjustUnitPointsAction $action)
     {
         $action->execute($unit, (int) $request->input('points'), $request->user());
 
-        return redirect()->route('admin.units.index')
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'priority_points' => (int) $request->input('points'),
+                'message' => __('admin.points_adjusted_successfully'),
+            ]);
+        }
+
+        return redirect()->back()
             ->with('success', __('admin.points_adjusted_successfully'));
     }
 }

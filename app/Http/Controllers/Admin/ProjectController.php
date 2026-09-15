@@ -15,6 +15,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreProjectRequest;
 use App\Http\Requests\Admin\UpdateProjectRequest;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -37,9 +38,16 @@ class ProjectController extends Controller
             user: $user,
         );
 
+        $projectStats = Project::query()
+            ->selectRaw("
+                COUNT(*) as total,
+                COUNT(CASE WHEN is_active = 1 THEN 1 END) as active
+            ")
+            ->first();
+
         $stats = [
-            'total' => Project::count(),
-            'active' => Project::where('is_active', true)->count(),
+            'total' => (int) ($projectStats?->total ?? 0),
+            'active' => (int) ($projectStats?->active ?? 0),
             'total_units' => \App\Domain\Listings\Models\Unit::whereNotNull('project_id')->count(),
         ];
 
@@ -169,5 +177,22 @@ class ProjectController extends Controller
             'down_payment' => $project->down_payment,
             'installment_years' => $project->installment_years,
         ]);
+    }
+
+    public function toggleActive(Project $project, Request $request)
+    {
+        $this->authorize('toggleActive', $project);
+
+        $updated = $this->projectService->toggleActive($project->id);
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'is_active' => (bool) $updated->is_active,
+                'message' => __('admin.activation_success'),
+            ]);
+        }
+
+        return redirect()->back()->with('success', __('admin.activation_success'));
     }
 }

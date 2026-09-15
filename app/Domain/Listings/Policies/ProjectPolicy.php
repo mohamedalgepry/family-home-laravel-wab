@@ -62,6 +62,19 @@ class ProjectPolicy
         return $user->isAdmin();
     }
 
+    public function toggleActive(User $user, Project $project): bool
+    {
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        if ($user->isManager()) {
+            return $this->isOwnedBy($user, $project);
+        }
+
+        return false;
+    }
+
     private function isOwnedBy(User $user, Project $project): bool
     {
         return $project->user_id === $user->id;

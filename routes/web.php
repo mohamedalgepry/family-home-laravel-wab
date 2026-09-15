@@ -212,6 +212,7 @@ Route::prefix('admin')->middleware(['auth', 'role:admin,manager,agent'])->group(
         Route::post('/', [App\Http\Controllers\Admin\ProjectController::class, 'store'])->name('store');
         Route::put('/{project}', [App\Http\Controllers\Admin\ProjectController::class, 'update'])->name('update');
         Route::delete('/{project}', [App\Http\Controllers\Admin\ProjectController::class, 'destroy'])->name('destroy');
+        Route::post('/{project}/active', [App\Http\Controllers\Admin\ProjectController::class, 'toggleActive'])->name('toggle-active');
     });
 
     Route::prefix('points')->name('admin.points.')->middleware('role:admin,manager')->group(function () {

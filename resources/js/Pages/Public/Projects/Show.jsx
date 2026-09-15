@@ -61,7 +61,7 @@ export default function ProjectShow({ project, projectUnits, similarProjects, re
             ...(project.description ? { description: project.description } : {}),
             url: `${appUrl || ''}${page.url.split('?')[0]}`,
             ...(image ? { image } : {}),
-            numberOfUnits: project.units?.length || 0,
+            numberOfUnits: project.units_count ?? projectUnitsList.length,
             ...(hasValidCoords || project.location_address ? {
                 contentLocation: {
                     '@type': 'Place',

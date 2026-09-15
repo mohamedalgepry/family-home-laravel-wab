@@ -1,6 +1,7 @@
 import { usePage, Link, router, Head } from '@inertiajs/react'
 import { useTrans } from '../../../Utils/trans'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import axios from 'axios'
 import AdminSidebar from '../../../Components/Layout/AdminSidebar'
 import { SkeletonRow, Select } from '../../../Components/UI'
 import Pagination from '../../../Components/UI/Pagination'
@@ -10,6 +11,18 @@ export default function AdminProjectsIndex({ projects, stats, areas, filters }) 
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
     const isAdminOrManager = auth?.user?.role === 'admin' || auth?.user?.role === 'manager'
+
+    const [projectList, setProjectList] = useState(projects?.data || [])
+    const [currentStats, setCurrentStats] = useState(stats || {})
+    const [togglingId, setTogglingId] = useState(null)
+
+    useEffect(() => {
+        setProjectList(projects?.data || [])
+    }, [projects?.data])
+
+    useEffect(() => {
+        setCurrentStats(stats || {})
+    }, [stats])
 
     const [search, setSearch] = useState(filters?.search || '')
     const [areaFilter, setAreaFilter] = useState(filters?.area_id || '')
@@ -45,14 +58,46 @@ export default function AdminProjectsIndex({ projects, stats, areas, filters }) 
         }
     }
 
+    async function toggleActive(project) {
+        if (togglingId === project.id) return
+        setTogglingId(project.id)
+
+        const prevActive = !!project.is_active
+        const newActive = !prevActive
+
+        // Optimistic UI update
+        setProjectList(prev => prev.map(p => p.id === project.id ? { ...p, is_active: newActive } : p))
+        setCurrentStats(prev => ({
+            ...prev,
+            active: Math.max(0, (prev.active || 0) + (newActive ? 1 : -1))
+        }))
+
+        try {
+            const res = await axios.post(`/admin/projects/${project.id}/active`)
+            if (res.data?.is_active !== undefined) {
+                setProjectList(prev => prev.map(p => p.id === project.id ? { ...p, is_active: res.data.is_active } : p))
+            }
+        } catch (err) {
+            // Revert on error
+            setProjectList(prev => prev.map(p => p.id === project.id ? { ...p, is_active: prevActive } : p))
+            setCurrentStats(prev => ({
+                ...prev,
+                active: Math.max(0, (prev.active || 0) + (prevActive ? 1 : -1))
+            }))
+            alert(err.response?.data?.message || (isRtl ? 'فشل تحديث حالة المشروع' : 'Failed to update project status'))
+        } finally {
+            setTogglingId(null)
+        }
+    }
+
     const loading = !projects
-    const hasProjects = projects?.data?.length > 0
+    const hasProjects = projectList.length > 0
 
     const inputClasses = "w-full px-3.5 py-2.5 bg-surface border border-secondary-200 rounded-xl text-xs font-semibold text-secondary-900 transition-all duration-150 hover:border-secondary-300 focus:bg-white focus:border-[#CC0000] focus:ring-2 focus:ring-red-100 focus:outline-none"
 
-    const totalCount = stats?.total ?? projects?.total ?? 0
-    const activeCount = stats?.active ?? 0
-    const totalUnitsInProjects = stats?.total_units ?? 0
+    const totalCount = currentStats?.total ?? projects?.total ?? 0
+    const activeCount = currentStats?.active ?? 0
+    const totalUnitsInProjects = currentStats?.total_units ?? stats?.total_units ?? 0
 
     const paginationFrom = projects?.from ?? (projects?.current_page ? (projects.current_page - 1) * (projects.per_page || 15) + 1 : 1)
     const paginationTo = projects?.to ?? (projects?.data ? paginationFrom + projects.data.length - 1 : 0)
@@ -232,7 +277,7 @@ export default function AdminProjectsIndex({ projects, stats, areas, filters }) 
                             <tbody className="divide-y divide-secondary-100 font-medium">
                                 {loading ? (
                                     Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} cols={6} />)
-                                ) : hasProjects ? projects.data.map(project => {
+                                ) : hasProjects ? projectList.map(project => {
                                     const thumb = project.images?.[0]?.url || (project.images?.[0]?.path ? `/storage/${project.images[0].path}` : null)
                                     const projectName = (locale === 'ar' ? project.name_ar : project.name_en) || project.name_ar || project.name_en || project.name
                                     const projectAreaName = project.area ? ((locale === 'ar' ? project.area.name_ar : project.area.name_en) || project.area.name_ar || project.area.name_en) : '—'
@@ -284,11 +329,27 @@ export default function AdminProjectsIndex({ projects, stats, areas, filters }) 
                                                 </span>
                                             </td>
 
-                                            {/* Active Badge */}
+                                            {/* Active Toggle */}
                                             <td className="px-3 py-3 text-center whitespace-nowrap">
-                                                <span className={`px-2.5 py-1 text-xs rounded-md font-bold border ${project.is_active ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs' : 'bg-red-50 text-red-700 border-red-200'}`}>
-                                                    {project.is_active ? (isRtl ? 'مفعل' : 'Active') : (isRtl ? 'معطل' : 'Inactive')}
-                                                </span>
+                                                {isAdminOrManager ? (
+                                                    <button
+                                                        type="button"
+                                                        disabled={togglingId === project.id}
+                                                        onClick={() => toggleActive(project)}
+                                                        className={`px-2.5 py-1 text-xs rounded-md font-bold transition-all border active:scale-[0.97] cursor-pointer ${
+                                                            project.is_active
+                                                                ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs hover:bg-emerald-700'
+                                                                : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'
+                                                        } ${togglingId === project.id ? 'opacity-60 cursor-wait' : ''}`}
+                                                        title={isRtl ? 'انقر لتغيير حالة المشروع' : 'Click to toggle project status'}
+                                                    >
+                                                        {project.is_active ? (isRtl ? 'مفعل' : 'Active') : (isRtl ? 'معطل' : 'Inactive')}
+                                                    </button>
+                                                ) : (
+                                                    <span className={`px-2.5 py-1 text-xs rounded-md font-bold border ${project.is_active ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs' : 'bg-red-50 text-red-700 border-red-200'}`}>
+                                                        {project.is_active ? (isRtl ? 'مفعل' : 'Active') : (isRtl ? 'معطل' : 'Inactive')}
+                                                    </span>
+                                                )}
                                             </td>
 
                                             {/* Action Buttons (Always visible) */}
@@ -358,7 +419,7 @@ export default function AdminProjectsIndex({ projects, stats, areas, filters }) 
                         Array.from({ length: 3 }).map((_, i) => (
                             <div key={i} className="bg-white p-4 rounded-2xl border border-secondary-200/80 animate-pulse h-28" />
                         ))
-                    ) : hasProjects ? projects.data.map(project => {
+                    ) : hasProjects ? projectList.map(project => {
                         const thumb = project.images?.[0]?.url || (project.images?.[0]?.path ? `/storage/${project.images[0].path}` : null)
                         const projectName = (locale === 'ar' ? project.name_ar : project.name_en) || project.name_ar || project.name_en || project.name
                         const projectAreaName = project.area ? ((locale === 'ar' ? project.area.name_ar : project.area.name_en) || project.area.name_ar || project.area.name_en) : '—'
@@ -378,9 +439,24 @@ export default function AdminProjectsIndex({ projects, stats, areas, filters }) 
                                     <div className="min-w-0 flex-1">
                                         <div className="flex items-center justify-between gap-2 mb-1">
                                             <span className="text-[10px] font-mono text-secondary-400">#{project.id}</span>
-                                            <span className={`px-2 py-0.5 text-[10px] rounded font-bold border ${project.is_active ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-red-50 text-red-700 border-red-200'}`}>
-                                                {project.is_active ? (isRtl ? 'مفعل' : 'Active') : (isRtl ? 'معطل' : 'Inactive')}
-                                            </span>
+                                            {isAdminOrManager ? (
+                                                <button
+                                                    type="button"
+                                                    disabled={togglingId === project.id}
+                                                    onClick={() => toggleActive(project)}
+                                                    className={`px-2 py-0.5 text-[10px] rounded font-bold border transition-all cursor-pointer ${
+                                                        project.is_active
+                                                            ? 'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700'
+                                                            : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'
+                                                    } ${togglingId === project.id ? 'opacity-60 cursor-wait' : ''}`}
+                                                >
+                                                    {project.is_active ? (isRtl ? 'مفعل' : 'Active') : (isRtl ? 'معطل' : 'Inactive')}
+                                                </button>
+                                            ) : (
+                                                <span className={`px-2 py-0.5 text-[10px] rounded font-bold border ${project.is_active ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-red-50 text-red-700 border-red-200'}`}>
+                                                    {project.is_active ? (isRtl ? 'مفعل' : 'Active') : (isRtl ? 'معطل' : 'Inactive')}
+                                                </span>
+                                            )}
                                         </div>
                                         {isAdminOrManager ? (
                                             <Link href={`/admin/projects/${project.id}/edit`} className="text-secondary-950 font-bold text-xs block truncate">

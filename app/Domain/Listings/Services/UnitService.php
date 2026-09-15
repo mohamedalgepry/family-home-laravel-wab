@@ -28,7 +28,7 @@ class UnitService
 
     public function getPaginatedUnits(array $filters = [], ?User $user = null): LengthAwarePaginator
     {
-        $query = Unit::with(['type', 'area', 'project', 'images']);
+        $query = Unit::with(['type', 'area', 'project']);
 
         UserScopeQueryBuilder::applyListingsScope($query, $user);
         ListingQueryBuilder::applySearch($query, $filters, ['name_en', 'name_ar', 'slug', 'slug_ar', 'slug_en', 'keywords_ar', 'keywords_en']);

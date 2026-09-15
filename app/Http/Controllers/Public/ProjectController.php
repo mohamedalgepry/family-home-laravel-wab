@@ -77,8 +77,9 @@ class ProjectController
 
         $projectUnits = Unit::where('project_id', $project->id)
             ->where('is_active', true)
-            ->with(['type', 'area', 'images', 'user.profile', 'finishingType'])
+            ->with(['type', 'area', 'images', 'user'])
             ->orderByFeatured()
+            ->limit(24)
             ->get();
 
         // BUG-005 FIX: query واحدة تُفضّل المنطقة المطابقة ثم الأحدث — بدلاً من query + fallback

@@ -22,42 +22,97 @@ class StatisticsService
                     ? User::where('manager_id', $user->manager_id)->pluck('id')->push($user->manager_id)
                     : collect([$user->id]);
 
+                $unitStats = Unit::whereIn('user_id', $teamUserIds)
+                    ->selectRaw("
+                        COUNT(*) as total_units,
+                        COUNT(CASE WHEN transaction = 'sale' THEN 1 END) as sale_units,
+                        COUNT(CASE WHEN transaction = 'rent' THEN 1 END) as rent_units,
+                        COALESCE(SUM(views_count), 0) as total_views
+                    ")
+                    ->first();
+
+                $msgStats = Message::whereIn('agent_id', $teamUserIds)
+                    ->selectRaw("
+                        COUNT(*) as total_messages,
+                        COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_messages
+                    ")
+                    ->first();
+
                 return [
                     'total_projects' => Project::whereIn('user_id', $teamUserIds)->orWhereNull('user_id')->count(),
-                    'total_units' => Unit::whereIn('user_id', $teamUserIds)->count(),
-                    'sale_units' => Unit::whereIn('user_id', $teamUserIds)->where('transaction', 'sale')->count(),
-                    'rent_units' => Unit::whereIn('user_id', $teamUserIds)->where('transaction', 'rent')->count(),
+                    'total_units' => (int) ($unitStats?->total_units ?? 0),
+                    'sale_units' => (int) ($unitStats?->sale_units ?? 0),
+                    'rent_units' => (int) ($unitStats?->rent_units ?? 0),
                     'total_users' => 0,
-                    'total_messages' => Message::whereIn('agent_id', $teamUserIds)->count(),
-                    'pending_messages' => Message::whereIn('agent_id', $teamUserIds)->where('status', 'pending')->count(),
-                    'total_views' => (int) Unit::whereIn('user_id', $teamUserIds)->sum('views_count'),
+                    'total_messages' => (int) ($msgStats?->total_messages ?? 0),
+                    'pending_messages' => (int) ($msgStats?->pending_messages ?? 0),
+                    'total_views' => (int) ($unitStats?->total_views ?? 0),
                 ];
             }
 
             if ($user && $user->isManager()) {
                 $teamUserIds = $user->agents()->pluck('id')->push($user->id);
 
+                $unitStats = Unit::whereIn('user_id', $teamUserIds)
+                    ->selectRaw("
+                        COUNT(*) as total_units,
+                        COUNT(CASE WHEN transaction = 'sale' THEN 1 END) as sale_units,
+                        COUNT(CASE WHEN transaction = 'rent' THEN 1 END) as rent_units,
+                        COALESCE(SUM(views_count), 0) as total_views
+                    ")
+                    ->first();
+
+                $msgStats = Message::whereIn('agent_id', $teamUserIds)
+                    ->selectRaw("
+                        COUNT(*) as total_messages,
+                        COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_messages
+                    ")
+                    ->first();
+
                 return [
                     'total_projects' => Project::whereIn('user_id', $teamUserIds)->orWhereNull('user_id')->count(),
-                    'total_units' => Unit::whereIn('user_id', $teamUserIds)->count(),
-                    'sale_units' => Unit::whereIn('user_id', $teamUserIds)->where('transaction', 'sale')->count(),
-                    'rent_units' => Unit::whereIn('user_id', $teamUserIds)->where('transaction', 'rent')->count(),
+                    'total_units' => (int) ($unitStats?->total_units ?? 0),
+                    'sale_units' => (int) ($unitStats?->sale_units ?? 0),
+                    'rent_units' => (int) ($unitStats?->rent_units ?? 0),
                     'total_users' => $user->agents()->count(),
-                    'total_messages' => Message::whereIn('agent_id', $teamUserIds)->count(),
-                    'pending_messages' => Message::whereIn('agent_id', $teamUserIds)->where('status', 'pending')->count(),
-                    'total_views' => (int) Unit::whereIn('user_id', $teamUserIds)->sum('views_count'),
+                    'total_messages' => (int) ($msgStats?->total_messages ?? 0),
+                    'pending_messages' => (int) ($msgStats?->pending_messages ?? 0),
+                    'total_views' => (int) ($unitStats?->total_views ?? 0),
                 ];
             }
 
+            $unitStats = Unit::query()
+                ->selectRaw("
+                    COUNT(*) as total_units,
+                    COUNT(CASE WHEN transaction = 'sale' THEN 1 END) as sale_units,
+                    COUNT(CASE WHEN transaction = 'rent' THEN 1 END) as rent_units,
+                    COALESCE(SUM(views_count), 0) as total_views
+                ")
+                ->first();
+
+            $msgStats = Message::query()
+                ->selectRaw("
+                    COUNT(*) as total_messages,
+                    COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_messages
+                ")
+                ->first();
+
+            $projStats = Project::query()
+                ->selectRaw("
+                    COUNT(*) as total_projects,
+                    COALESCE(SUM(views_count), 0) as total_views
+                ")
+                ->first();
+
             return [
-                'total_projects' => Project::count(),
-                'total_units' => Unit::count(),
-                'sale_units' => Unit::where('transaction', 'sale')->count(),
-                'rent_units' => Unit::where('transaction', 'rent')->count(),
+                'total_projects' => (int) ($projStats?->total_projects ?? 0),
+                'total_units' => (int) ($unitStats?->total_units ?? 0),
+                'sale_units' => (int) ($unitStats?->sale_units ?? 0),
+                'rent_units' => (int) ($unitStats?->rent_units ?? 0),
                 'total_users' => User::count(),
-                'total_messages' => Message::count(),
-                'pending_messages' => Message::where('status', 'pending')->count(),
-                'total_views' => (int) Unit::sum('views_count') + (int) Project::sum('views_count'),
+                'total_messages' => (int) ($msgStats?->total_messages ?? 0),
+                'pending_messages' => (int) ($msgStats?->pending_messages ?? 0),
+                'total_views' => (int) (($unitStats?->total_views ?? 0) + ($projStats?->total_views ?? 0)),
             ];
         });
     }
@@ -90,7 +145,7 @@ class StatisticsService
         $cacheKey = 'dashboard_recent_units_'.$limit.'_'.($user?->id ?? 'guest');
 
         return Cache::remember($cacheKey, 300, function () use ($limit, $user) {
-            $query = Unit::with(['type', 'area', 'images']);
+            $query = Unit::with(['type', 'area']);
 
             if ($user && ! $user->isAdmin()) {
                 $teamUserIds = $user->isManager()
@@ -132,7 +187,7 @@ class StatisticsService
         $cacheKey = 'dashboard_top_units_'.$limit.'_'.($user?->id ?? 'guest');
 
         return Cache::remember($cacheKey, 300, function () use ($limit, $user) {
-            $query = Unit::active()->with(['area', 'type', 'images']);
+            $query = Unit::active()->with(['area', 'type']);
 
             if ($user && ! $user->isAdmin()) {
                 $teamUserIds = $user->isManager()

@@ -105,6 +105,28 @@ class ProjectService
         $this->sitemapService->regenerate();
     }
 
+    public function toggleActive(int $projectId): Project
+    {
+        $project = Project::findOrFail($projectId);
+        $wasActive = (bool) $project->is_active;
+        $project->is_active = ! $wasActive;
+
+        if (! $wasActive && $project->is_active) {
+            if (! $project->auto_delete_at || $project->auto_delete_at->isPast()) {
+                $days = (int) \App\Domain\Listings\Models\Setting::getValue('auto_delete_days', '30');
+                $days = $days > 0 ? $days : 30;
+                $project->auto_delete_at = now()->addDays($days);
+            }
+        }
+
+        $project->save();
+
+        $this->clearListingsCache();
+        $this->sitemapService->regenerate();
+
+        return $project->fresh();
+    }
+
     private function clearListingsCache(): void
     {
         Cache::increment(ListingService::CACHE_VERSION_KEY);
