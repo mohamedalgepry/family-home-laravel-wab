@@ -222,8 +222,10 @@ class HossamAssistantService
         }
 
         // 5. Context-driven Property Cards Display
-        // Show cards if the LLM explicitly tagged [SHOW_CARDS] or if the user explicitly asked to see listings/units
-        $userExplicitlyWantsCards = (bool) preg_match('/(وريني|ابعتلي|عرض|شوف|عايز اشوف|عايز|لينك|لينكات|رابط|روابط|كروت|عقارات|شقق|شقه|فلل|فلا|فله|فيلا|وحدات|مشاريع|صور|تفاصيل|ميزانية|اسعار|أسعار|كام السعر|قسط|مقدم|عايز اشتري|عايز احجز|رشحلي|اقتراح|show me|send me|listings|properties|apartments|villas|units|projects|price|budget|recommend|suggest|available|options)/iu', $message);
+        // Show cards ONLY when the LLM explicitly tagged [SHOW_CARDS] or the user explicitly asked to SEE/SHOW units
+        // This regex is intentionally tight — general words like عايز/اسعار/تفاصيل are excluded
+        // to prevent cards from showing on every message. The LLM handles nuanced decisions via [SHOW_CARDS].
+        $userExplicitlyWantsCards = (bool) preg_match('/(وريني\s*(وحدات|شقق|عقارات|فلل|بيوت|خيارات)|ابعتلي\s*(وحدات|شقق|عقارات|فلل|خيارات)|عايز\s*اشوف\s*(وحدات|شقق|عقارات|فلل|خيارات)|عرض\s*(الوحدات|العقارات|الشقق|المتاح)|رشحلي|اقترحلي|شوفلي|دورلي|show\s*me\s*(units|listings|properties|apartments|villas|options)|send\s*me\s*(units|listings|properties)|recommend|suggest\s*(units|properties))/iu', $message);
 
         $isCorrection = $searchResult['is_correction'] ?? false;
         $shouldShowCards = false;
@@ -815,7 +817,8 @@ LINKS — ABSOLUTE RULE
 - If a real unit URL is not available in the context, mention the property name without creating a link.
 
 CARDS & TAGS
-- Append [SHOW_CARDS] only when recommending one or more supplied units and displaying the matching inventory cards is useful.
+- Append [SHOW_CARDS] ONLY when the user explicitly asks to see, show, or display property units/listings (e.g., "show me apartments", "وريني وحدات", "رشحلي شقق").
+- Do NOT use [SHOW_CARDS] on general questions, greetings, advice requests, price inquiries, or follow-up conversations unless the user explicitly asks to see listings.
 - Never use [SHOW_CARDS] for unrelated properties or empty results.
 - Append [HOT_LEAD] if the user shows extremely strong buying intent (e.g., asking for a site visit, asking for payment details, or saying they are ready to buy).
 - Append 2 or 3 suggested quick replies for the user to click, using the format: [REPLY: Suggested text]. Example: [REPLY: Book a visit] [REPLY: View cheaper options].
@@ -971,7 +974,8 @@ PROMPT;
 - إذا لم يوجد رابط حقيقي في السياق، اذكر اسم العقار فقط بدون رابط.
 
 كروت العقارات والعلامات الخاصة
-- ضع [SHOW_CARDS] فقط عندما تكون هناك وحدات حقيقية مرشحة من البيانات ومن المفيد عرض كروتها.
+- ضع [SHOW_CARDS] فقط عندما يطلب العميل صراحةً رؤية أو عرض وحدات (مثل: «وريني وحدات»، «ابعتلي شقق»، «رشحلي»، «شوفلي»، «عرض المتاح»).
+- ممنوع منعاً باتاً إرفاق [SHOW_CARDS] مع كل رسالة أو مع الأسئلة العامة أو الترحيبات أو استفسارات الأسعار أو النصائح الاستثمارية.
 - لا تستخدم [SHOW_CARDS] مع عقارات غير مرتبطة أو عند عدم وجود نتائج.
 - أضف العلامة [HOT_LEAD] إذا أظهر العميل نية شراء قوية جداً (مثلاً: يطلب معاينة، يسأل عن طرق الدفع، أو يقول أنه جاهز للشراء).
 - اقترح 2 أو 3 ردود سريعة للعميل ليضغط عليها، باستخدام الصيغة: [REPLY: النص المقترح]. مثال: [REPLY: أريد حجز معاينة] [REPLY: هل يوجد خيارات أرخص؟].
