@@ -13805,7 +13805,7 @@ function AdminUnitsIndex({ units, stats, areas, unitTypes, filters, autoDeleteDa
 	}
 	const loading = !units;
 	const hasUnits = unitList.length > 0;
-	const colCount = role === "agent" ? 10 : 11;
+	const colCount = role === "agent" ? 11 : 12;
 	const inputClasses = "w-full px-3.5 py-2.5 bg-surface border border-secondary-200 rounded-xl text-xs font-semibold text-secondary-900 transition-all duration-150 hover:border-secondary-300 focus:bg-white focus:border-[#CC0000] focus:ring-2 focus:ring-red-100 focus:outline-none";
 	const totalCount = currentStats?.total ?? units?.total ?? 0;
 	const activeCount = currentStats?.active ?? 0;
@@ -14121,6 +14121,10 @@ function AdminUnitsIndex({ units, stats, areas, unitTypes, filters, autoDeleteDa
 								}),
 								/* @__PURE__ */ jsx("th", {
 									className: "px-3 py-3.5 text-start",
+									children: trans("agent")
+								}),
+								/* @__PURE__ */ jsx("th", {
+									className: "px-3 py-3.5 text-start",
 									children: trans("price", {}, "units")
 								}),
 								/* @__PURE__ */ jsx("th", {
@@ -14190,25 +14194,35 @@ function AdminUnitsIndex({ units, stats, areas, unitTypes, filters, autoDeleteDa
 														className: "text-secondary-950 hover:text-[#CC0000] font-bold text-xs block truncate max-w-[200px] transition-colors",
 														children: unit.name
 													}), /* @__PURE__ */ jsxs("div", {
-														className: "flex items-center gap-1.5 mt-0.5",
-														children: [/* @__PURE__ */ jsxs("span", {
-															className: "text-[10px] text-secondary-400 font-mono",
-															children: ["#", unit.id]
-														}), unit.auto_delete_at && (() => {
-															const isExp = new Date(unit.auto_delete_at) <= /* @__PURE__ */ new Date();
-															const daysLeft = Math.ceil((new Date(unit.auto_delete_at) - /* @__PURE__ */ new Date()) / (1e3 * 60 * 60 * 24));
-															if (isExp) return /* @__PURE__ */ jsx("span", {
-																className: "px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-rose-50 text-rose-700 border border-rose-200",
-																title: new Date(unit.auto_delete_at).toLocaleDateString(),
-																children: isRtl ? "منتهية" : "Expired"
-															});
-															if (daysLeft <= 5) return /* @__PURE__ */ jsx("span", {
-																className: "px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-amber-50 text-amber-700 border border-amber-200",
-																title: new Date(unit.auto_delete_at).toLocaleDateString(),
-																children: isRtl ? `متبقي ${daysLeft} يوم` : `${daysLeft}d left`
-															});
-															return null;
-														})()]
+														className: "flex items-center gap-1.5 mt-0.5 flex-wrap",
+														children: [
+															/* @__PURE__ */ jsxs("span", {
+																className: "text-[10px] text-secondary-400 font-mono",
+																children: ["#", unit.id]
+															}),
+															unit.user?.name && /* @__PURE__ */ jsxs("span", {
+																className: "inline-flex items-center gap-1 text-[10px] text-secondary-500 font-medium",
+																children: [/* @__PURE__ */ jsx("span", { children: "•" }), /* @__PURE__ */ jsx("span", {
+																	className: "text-secondary-600 font-semibold",
+																	children: unit.user.name
+																})]
+															}),
+															unit.auto_delete_at && (() => {
+																const isExp = new Date(unit.auto_delete_at) <= /* @__PURE__ */ new Date();
+																const daysLeft = Math.ceil((new Date(unit.auto_delete_at) - /* @__PURE__ */ new Date()) / (1e3 * 60 * 60 * 24));
+																if (isExp) return /* @__PURE__ */ jsx("span", {
+																	className: "px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-rose-50 text-rose-700 border border-rose-200",
+																	title: new Date(unit.auto_delete_at).toLocaleDateString(),
+																	children: isRtl ? "منتهية" : "Expired"
+																});
+																if (daysLeft <= 5) return /* @__PURE__ */ jsx("span", {
+																	className: "px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-amber-50 text-amber-700 border border-amber-200",
+																	title: new Date(unit.auto_delete_at).toLocaleDateString(),
+																	children: isRtl ? `متبقي ${daysLeft} يوم` : `${daysLeft}d left`
+																});
+																return null;
+															})()
+														]
 													})]
 												})]
 											})
@@ -14220,6 +14234,29 @@ function AdminUnitsIndex({ units, stats, areas, unitTypes, filters, autoDeleteDa
 										/* @__PURE__ */ jsx("td", {
 											className: "px-3 py-3 text-secondary-700 whitespace-nowrap",
 											children: unitAreaName
+										}),
+										/* @__PURE__ */ jsx("td", {
+											className: "px-3 py-3 text-secondary-700 whitespace-nowrap",
+											children: unit.user?.name ? /* @__PURE__ */ jsxs("div", {
+												className: "flex items-center gap-1.5",
+												children: [/* @__PURE__ */ jsx("div", {
+													className: "w-6 h-6 rounded-full bg-slate-100 text-secondary-700 flex items-center justify-center text-[10px] font-black border border-secondary-200 shrink-0",
+													children: unit.user.name.charAt(0).toUpperCase()
+												}), /* @__PURE__ */ jsxs("div", {
+													className: "min-w-0",
+													children: [/* @__PURE__ */ jsx("span", {
+														className: "font-bold text-secondary-900 text-xs block truncate max-w-[120px]",
+														title: unit.user.name,
+														children: unit.user.name
+													}), unit.user.role && unit.user.role !== "agent" && /* @__PURE__ */ jsx("span", {
+														className: "text-[9px] text-secondary-400 block font-medium",
+														children: unit.user.role === "admin" ? isRtl ? "إدارة" : "Admin" : unit.user.role
+													})]
+												})]
+											}) : /* @__PURE__ */ jsx("span", {
+												className: "text-secondary-400 font-mono text-[11px]",
+												children: "—"
+											})
 										}),
 										/* @__PURE__ */ jsxs("td", {
 											className: "px-3 py-3 whitespace-nowrap",
@@ -14492,6 +14529,25 @@ function AdminUnitsIndex({ units, stats, areas, unitTypes, filters, autoDeleteDa
 											" • ",
 											unitAreaName
 										]
+									}),
+									unit.user?.name && /* @__PURE__ */ jsxs("div", {
+										className: "flex items-center gap-1.5 text-[11px] text-secondary-700 mt-1 font-semibold",
+										children: [/* @__PURE__ */ jsx("svg", {
+											className: "w-3.5 h-3.5 text-secondary-400 shrink-0",
+											fill: "none",
+											viewBox: "0 0 24 24",
+											stroke: "currentColor",
+											children: /* @__PURE__ */ jsx("path", {
+												strokeLinecap: "round",
+												strokeLinejoin: "round",
+												strokeWidth: 1.5,
+												d: "M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
+											})
+										}), /* @__PURE__ */ jsxs("span", { children: [
+											isRtl ? "الوكيل:" : "Agent:",
+											" ",
+											unit.user.name
+										] })]
 									})
 								]
 							})]

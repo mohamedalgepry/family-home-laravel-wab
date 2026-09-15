@@ -231,7 +231,7 @@ export default function AdminUnitsIndex({ units, stats, areas, unitTypes, filter
 
     const loading = !units
     const hasUnits = unitList.length > 0
-    const colCount = role === 'agent' ? 10 : 11
+    const colCount = role === 'agent' ? 11 : 12
 
     const inputClasses = "w-full px-3.5 py-2.5 bg-surface border border-secondary-200 rounded-xl text-xs font-semibold text-secondary-900 transition-all duration-150 hover:border-secondary-300 focus:bg-white focus:border-[#CC0000] focus:ring-2 focus:ring-red-100 focus:outline-none"
 
@@ -437,6 +437,7 @@ export default function AdminUnitsIndex({ units, stats, areas, unitTypes, filter
                                     <th className="px-4 py-3.5 text-start">{trans('name')}</th>
                                     <th className="px-3 py-3.5 text-start">{trans('type', {}, 'units')}</th>
                                     <th className="px-3 py-3.5 text-start">{trans('area')}</th>
+                                    <th className="px-3 py-3.5 text-start">{trans('agent')}</th>
                                     <th className="px-3 py-3.5 text-start">{trans('price', {}, 'units')}</th>
                                     <th className="px-3 py-3.5 text-center">{trans('transaction', {}, 'units')}</th>
                                     <th className="px-3 py-3.5 text-center">{isRtl ? 'الزيارات' : 'Views'}</th>
@@ -473,8 +474,14 @@ export default function AdminUnitsIndex({ units, stats, areas, unitTypes, filter
                                                         <Link href={`/admin/units/${unit.id}/edit`} className="text-secondary-950 hover:text-[#CC0000] font-bold text-xs block truncate max-w-[200px] transition-colors">
                                                             {unit.name}
                                                         </Link>
-                                                        <div className="flex items-center gap-1.5 mt-0.5">
+                                                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                                                             <span className="text-[10px] text-secondary-400 font-mono">#{unit.id}</span>
+                                                            {unit.user?.name && (
+                                                                <span className="inline-flex items-center gap-1 text-[10px] text-secondary-500 font-medium">
+                                                                    <span>•</span>
+                                                                    <span className="text-secondary-600 font-semibold">{unit.user.name}</span>
+                                                                </span>
+                                                            )}
                                                             {unit.auto_delete_at && (() => {
                                                                 const isExp = new Date(unit.auto_delete_at) <= new Date()
                                                                 const daysLeft = Math.ceil((new Date(unit.auto_delete_at) - new Date()) / (1000 * 60 * 60 * 24))
@@ -504,6 +511,29 @@ export default function AdminUnitsIndex({ units, stats, areas, unitTypes, filter
 
                                             {/* Area */}
                                             <td className="px-3 py-3 text-secondary-700 whitespace-nowrap">{unitAreaName}</td>
+
+                                            {/* Agent */}
+                                            <td className="px-3 py-3 text-secondary-700 whitespace-nowrap">
+                                                {unit.user?.name ? (
+                                                    <div className="flex items-center gap-1.5">
+                                                        <div className="w-6 h-6 rounded-full bg-slate-100 text-secondary-700 flex items-center justify-center text-[10px] font-black border border-secondary-200 shrink-0">
+                                                            {unit.user.name.charAt(0).toUpperCase()}
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <span className="font-bold text-secondary-900 text-xs block truncate max-w-[120px]" title={unit.user.name}>
+                                                                {unit.user.name}
+                                                            </span>
+                                                            {unit.user.role && unit.user.role !== 'agent' && (
+                                                                <span className="text-[9px] text-secondary-400 block font-medium">
+                                                                    {unit.user.role === 'admin' ? (isRtl ? 'إدارة' : 'Admin') : unit.user.role}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-secondary-400 font-mono text-[11px]">—</span>
+                                                )}
+                                            </td>
 
                                             {/* Price */}
                                             <td className="px-3 py-3 whitespace-nowrap">
@@ -710,6 +740,14 @@ export default function AdminUnitsIndex({ units, stats, areas, unitTypes, filter
                                             {unit.name}
                                         </Link>
                                         <p className="text-[11px] text-secondary-500 mt-0.5">{unitTypeName} • {unitAreaName}</p>
+                                        {unit.user?.name && (
+                                            <div className="flex items-center gap-1.5 text-[11px] text-secondary-700 mt-1 font-semibold">
+                                                <svg className="w-3.5 h-3.5 text-secondary-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                                                </svg>
+                                                <span>{isRtl ? 'الوكيل:' : 'Agent:'} {unit.user.name}</span>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
