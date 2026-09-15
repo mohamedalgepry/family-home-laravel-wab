@@ -14159,7 +14159,8 @@ function AdminUnitsIndex({ units, stats, areas, unitTypes, filters, autoDeleteDa
 						}) }), /* @__PURE__ */ jsx("tbody", {
 							className: "divide-y divide-secondary-100 font-medium",
 							children: loading ? Array.from({ length: 5 }).map((_, i) => /* @__PURE__ */ jsx(SkeletonRow, { cols: colCount }, i)) : hasUnits ? unitList.map((unit) => {
-								const thumb = unit.images?.[0]?.url || (unit.images?.[0]?.path ? `/storage/${unit.images[0].path}` : null);
+								const primaryImg = unit.images?.find((img) => img.is_primary || img.is_main) || unit.images?.[0];
+								const thumb = primaryImg?.thumb_url || primaryImg?.url || (primaryImg?.path ? primaryImg.path.startsWith("http") ? primaryImg.path : `/storage/${primaryImg.path.replace(/^\/+/, "")}` : null);
 								const unitTypeName = (locale === "ar" ? unit.type?.name_ar : unit.type?.name_en) || unit.type?.name_ar || unit.type?.name_en || "—";
 								const unitAreaName = (locale === "ar" ? unit.area?.name_ar : unit.area?.name_en) || unit.area?.name_ar || unit.area?.name_en || "—";
 								return /* @__PURE__ */ jsxs("tr", {
@@ -14171,8 +14172,12 @@ function AdminUnitsIndex({ units, stats, areas, unitTypes, filters, autoDeleteDa
 												className: "flex items-center gap-3",
 												children: [thumb ? /* @__PURE__ */ jsx("img", {
 													src: thumb,
-													alt: "",
-													className: "w-11 h-11 rounded-xl object-cover shrink-0 border border-secondary-200/80 shadow-2xs"
+													alt: unit.name,
+													className: "w-11 h-11 rounded-xl object-cover shrink-0 border border-secondary-200/80 shadow-2xs",
+													onError: (e) => {
+														e.currentTarget.onerror = null;
+														e.currentTarget.src = "/images/fallback.webp";
+													}
 												}) : /* @__PURE__ */ jsx("div", {
 													className: "w-11 h-11 rounded-xl bg-slate-100 border border-secondary-200/80 shrink-0 flex items-center justify-center text-secondary-400",
 													children: /* @__PURE__ */ jsx("svg", {
@@ -14475,7 +14480,8 @@ function AdminUnitsIndex({ units, stats, areas, unitTypes, filters, autoDeleteDa
 			/* @__PURE__ */ jsx("div", {
 				className: "md:hidden space-y-3",
 				children: loading ? Array.from({ length: 3 }).map((_, i) => /* @__PURE__ */ jsx("div", { className: "bg-white p-4 rounded-2xl border border-secondary-200/80 animate-pulse h-36" }, i)) : hasUnits ? unitList.map((unit) => {
-					const thumb = unit.images?.[0]?.url || (unit.images?.[0]?.path ? `/storage/${unit.images[0].path}` : null);
+					const primaryImg = unit.images?.find((img) => img.is_primary || img.is_main) || unit.images?.[0];
+					const thumb = primaryImg?.thumb_url || primaryImg?.url || (primaryImg?.path ? primaryImg.path.startsWith("http") ? primaryImg.path : `/storage/${primaryImg.path.replace(/^\/+/, "")}` : null);
 					const unitTypeName = (locale === "ar" ? unit.type?.name_ar : unit.type?.name_en) || unit.type?.name_ar || unit.type?.name_en || "—";
 					const unitAreaName = (locale === "ar" ? unit.area?.name_ar : unit.area?.name_en) || unit.area?.name_ar || unit.area?.name_en || "—";
 					return /* @__PURE__ */ jsxs("div", {
@@ -14484,8 +14490,12 @@ function AdminUnitsIndex({ units, stats, areas, unitTypes, filters, autoDeleteDa
 							className: "flex items-start gap-3",
 							children: [thumb ? /* @__PURE__ */ jsx("img", {
 								src: thumb,
-								alt: "",
-								className: "w-14 h-14 rounded-xl object-cover shrink-0 border border-secondary-200/80"
+								alt: unit.name,
+								className: "w-14 h-14 rounded-xl object-cover shrink-0 border border-secondary-200/80",
+								onError: (e) => {
+									e.currentTarget.onerror = null;
+									e.currentTarget.src = "/images/fallback.webp";
+								}
 							}) : /* @__PURE__ */ jsx("div", {
 								className: "w-14 h-14 rounded-xl bg-slate-100 border border-secondary-200/80 shrink-0 flex items-center justify-center text-secondary-400",
 								children: /* @__PURE__ */ jsx("svg", {
@@ -16680,10 +16690,11 @@ function UnitCard({ unit, loading = false, priority = false }) {
 	if (loading) return /* @__PURE__ */ jsx(SkeletonCard$2, {});
 	if (!unit) return null;
 	const mainImage = unit?.images?.find((img) => img.is_main || img.is_primary) || unit?.images?.[0];
-	const thumbnail = getThumbUrl(mainImage?.thumb_url || mainImage?.url || mainImage?.path, PLACEHOLDER$2);
+	const rawThumb = mainImage?.thumb_url || mainImage?.url || (mainImage?.path ? `/storage/${mainImage.path.replace(/^\/+/, "")}` : null);
+	const thumbnail = rawThumb ? getStorageUrl(rawThumb, PLACEHOLDER$2) : PLACEHOLDER$2;
 	const originalUrl = getStorageUrl(mainImage?.url || mainImage?.path, null);
 	const displaySrc = thumbnail || originalUrl || "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 600\"%3E%3Crect fill=\"%23F0F0F0\" width=\"800\" height=\"600\"/%3E%3C/svg%3E";
-	const srcSet = mainImage?.srcset || (originalUrl && thumbnail && originalUrl !== thumbnail ? `${thumbnail} 480w, ${originalUrl} 1600w` : void 0);
+	const srcSet = mainImage?.srcset || void 0;
 	const isCompared = compareList.includes(unit?.id);
 	const whatsappLink = `https://wa.me/${getAgentContacts(unit?.user || unit?.project?.user, settings).whatsapp}?text=${encodeURIComponent(trans("unit_whatsapp_inquiry", { name: unit?.name || "" }))}`;
 	const areaName = unit.area?.name || (isRtl ? "مصر" : "Egypt");

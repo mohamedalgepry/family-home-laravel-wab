@@ -37,13 +37,12 @@ function UnitCard({ unit, loading = false, priority = false }) {
     }
 
     const mainImage = unit?.images?.find(img => img.is_main || img.is_primary) || unit?.images?.[0]
-    const thumbnail = getThumbUrl(mainImage?.thumb_url || mainImage?.url || mainImage?.path, PLACEHOLDER)
+    const rawThumb = mainImage?.thumb_url || mainImage?.url || (mainImage?.path ? `/storage/${mainImage.path.replace(/^\/+/, '')}` : null)
+    const thumbnail = rawThumb ? getStorageUrl(rawThumb, PLACEHOLDER) : PLACEHOLDER
     const originalUrl = getStorageUrl(mainImage?.url || mainImage?.path, null)
     // Use lightweight thumbnail or medium variant for card grids; fallback to originalUrl
     const displaySrc = thumbnail || originalUrl || PLACEHOLDER
-    const srcSet = mainImage?.srcset || (originalUrl && thumbnail && originalUrl !== thumbnail 
-        ? `${thumbnail} 480w, ${originalUrl} 1600w` 
-        : undefined)
+    const srcSet = mainImage?.srcset || undefined
     const isCompared = compareList.includes(unit?.id)
 
     const agentContacts = getAgentContacts(unit?.user || unit?.project?.user, settings)

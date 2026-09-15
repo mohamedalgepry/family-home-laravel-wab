@@ -452,7 +452,8 @@ export default function AdminUnitsIndex({ units, stats, areas, unitTypes, filter
                                 {loading ? (
                                     Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} cols={colCount} />)
                                 ) : hasUnits ? unitList.map(unit => {
-                                    const thumb = unit.images?.[0]?.url || (unit.images?.[0]?.path ? `/storage/${unit.images[0].path}` : null)
+                                    const primaryImg = unit.images?.find(img => img.is_primary || img.is_main) || unit.images?.[0]
+                                    const thumb = primaryImg?.thumb_url || primaryImg?.url || (primaryImg?.path ? (primaryImg.path.startsWith('http') ? primaryImg.path : `/storage/${primaryImg.path.replace(/^\/+/, '')}`) : null)
                                     const unitTypeName = (locale === 'ar' ? unit.type?.name_ar : unit.type?.name_en) || unit.type?.name_ar || unit.type?.name_en || '—'
                                     const unitAreaName = (locale === 'ar' ? unit.area?.name_ar : unit.area?.name_en) || unit.area?.name_ar || unit.area?.name_en || '—'
 
@@ -462,7 +463,15 @@ export default function AdminUnitsIndex({ units, stats, areas, unitTypes, filter
                                             <td className="px-4 py-3 min-w-[220px]">
                                                 <div className="flex items-center gap-3">
                                                     {thumb ? (
-                                                        <img src={thumb} alt="" className="w-11 h-11 rounded-xl object-cover shrink-0 border border-secondary-200/80 shadow-2xs" />
+                                                        <img
+                                                            src={thumb}
+                                                            alt={unit.name}
+                                                            className="w-11 h-11 rounded-xl object-cover shrink-0 border border-secondary-200/80 shadow-2xs"
+                                                            onError={(e) => {
+                                                                e.currentTarget.onerror = null
+                                                                e.currentTarget.src = '/images/fallback.webp'
+                                                            }}
+                                                        />
                                                     ) : (
                                                         <div className="w-11 h-11 rounded-xl bg-slate-100 border border-secondary-200/80 shrink-0 flex items-center justify-center text-secondary-400">
                                                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -713,7 +722,8 @@ export default function AdminUnitsIndex({ units, stats, areas, unitTypes, filter
                             <div key={i} className="bg-white p-4 rounded-2xl border border-secondary-200/80 animate-pulse h-36" />
                         ))
                     ) : hasUnits ? unitList.map(unit => {
-                        const thumb = unit.images?.[0]?.url || (unit.images?.[0]?.path ? `/storage/${unit.images[0].path}` : null)
+                        const primaryImg = unit.images?.find(img => img.is_primary || img.is_main) || unit.images?.[0]
+                        const thumb = primaryImg?.thumb_url || primaryImg?.url || (primaryImg?.path ? (primaryImg.path.startsWith('http') ? primaryImg.path : `/storage/${primaryImg.path.replace(/^\/+/, '')}`) : null)
                         const unitTypeName = (locale === 'ar' ? unit.type?.name_ar : unit.type?.name_en) || unit.type?.name_ar || unit.type?.name_en || '—'
                         const unitAreaName = (locale === 'ar' ? unit.area?.name_ar : unit.area?.name_en) || unit.area?.name_ar || unit.area?.name_en || '—'
 
@@ -721,7 +731,15 @@ export default function AdminUnitsIndex({ units, stats, areas, unitTypes, filter
                             <div key={unit.id} className="bg-white p-4 rounded-2xl border border-secondary-200/80 shadow-xs space-y-3">
                                 <div className="flex items-start gap-3">
                                     {thumb ? (
-                                        <img src={thumb} alt="" className="w-14 h-14 rounded-xl object-cover shrink-0 border border-secondary-200/80" />
+                                        <img
+                                            src={thumb}
+                                            alt={unit.name}
+                                            className="w-14 h-14 rounded-xl object-cover shrink-0 border border-secondary-200/80"
+                                            onError={(e) => {
+                                                e.currentTarget.onerror = null
+                                                e.currentTarget.src = '/images/fallback.webp'
+                                            }}
+                                        />
                                     ) : (
                                         <div className="w-14 h-14 rounded-xl bg-slate-100 border border-secondary-200/80 shrink-0 flex items-center justify-center text-secondary-400">
                                             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
