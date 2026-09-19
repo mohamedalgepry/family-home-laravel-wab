@@ -27,7 +27,7 @@ class ProjectPublicResource extends JsonResource
             'description_ar' => $this->description_ar,
             'description_en' => $this->description_en,
             'alt_text' => $this->alt_text,
-            'is_active' => $this->is_active,
+            // is_active is internal — public queries already filter by it server-side.
             'units_count' => $this->units_count,
             'location_address' => $this->location_address,
             'location_address_ar' => $this->location_address_ar,
