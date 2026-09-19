@@ -121,9 +121,23 @@ class AiAssistantController
             // Extract client name if introduced (e.g. "اسمي أحمد", "معك محمد")
             $clientName = null;
             if (preg_match('/(?:اسمي|معك|معاك|أنا|انا|name is)\s+([^\s,،\.\n]+(?:\s+[^\s,،\.\n]+)?)/iu', $message, $nameMatches)) {
-                $candidate = trim($nameMatches[1]);
-                if (!in_array(mb_strtolower($candidate), ['مهتم', 'عايز', 'بخصوص', 'رقمي', 'تليفوني', 'phone', 'interested', 'في', 'من'])) {
-                    $clientName = $candidate;
+                $stopWords = ['مهتم', 'عايز', 'بخصوص', 'رقمي', 'تليفوني', 'رقم', 'موبايلي', 'phone', 'interested', 'في', 'من'];
+
+                // Drop trailing non-name words (including و-prefixed forms such as
+                // "ورقمي" in "اسمي كريم ورقمي 010...") so only the real name remains.
+                $words = preg_split('/\s+/u', trim($nameMatches[1])) ?: [];
+                $nameWords = [];
+                foreach ($words as $word) {
+                    $normalized = mb_strtolower($word);
+                    $withoutConjunction = preg_replace('/^و/u', '', $normalized);
+                    if (in_array($normalized, $stopWords, true) || in_array($withoutConjunction, $stopWords, true)) {
+                        break;
+                    }
+                    $nameWords[] = $word;
+                }
+
+                if ($nameWords !== []) {
+                    $clientName = implode(' ', $nameWords);
                 }
             }
 
