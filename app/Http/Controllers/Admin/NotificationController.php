@@ -6,19 +6,15 @@ use App\Domain\Listings\Jobs\RegenerateSitemapJob;
 use App\Domain\Listings\Models\Project;
 use App\Domain\Listings\Models\Setting;
 use App\Domain\Listings\Models\Unit;
-use App\Domain\Listings\Notifications\UnitExpiryNotification;
-use App\Domain\Listings\Notifications\UnitExtendedNotification;
 use App\Domain\Listings\Services\ListingService;
 use App\Domain\Listings\Services\UnitService;
 use App\Domain\Users\Models\User;
 use App\Domain\Users\Services\NotificationService;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Admin\ExtendUnitRequest;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -104,14 +100,14 @@ class NotificationController extends Controller
         ]));
     }
 
-    public function extendUnit(ExtendUnitRequest $request, Unit $unit): RedirectResponse
+    public function extendUnit(\App\Http\Requests\Admin\ExtendUnitRequest $request, Unit $unit): RedirectResponse
     {
         $days = $request->getResolvedDays();
         $oldAutoDeleteAt = $unit->auto_delete_at;
         $newAutoDeleteAt = null;
 
         // Concurrency-safe atomic update
-        DB::transaction(function () use ($unit, $days, &$newAutoDeleteAt) {
+        \Illuminate\Support\Facades\DB::transaction(function () use ($unit, $days, &$newAutoDeleteAt) {
             $lockedUnit = Unit::where('id', $unit->id)->lockForUpdate()->firstOrFail();
 
             // Case 1: Active and not yet expired -> extend from current auto_delete_at
@@ -143,13 +139,13 @@ class NotificationController extends Controller
         $this->notificationService->removeEntityNotifications(
             'unit_id',
             $unit->id,
-            [UnitExpiryNotification::class]
+            [\App\Domain\Listings\Notifications\UnitExpiryNotification::class]
         );
         $this->notificationService->markEntityNotificationsAsRead($request->user(), 'unit_id', $unit->id);
 
         // Notify unit owner if exists and different from admin
         if ($unit->user && $unit->user_id !== $request->user()->id && $newAutoDeleteAt) {
-            $unit->user->notify(new UnitExtendedNotification(
+            $unit->user->notify(new \App\Domain\Listings\Notifications\UnitExtendedNotification(
                 unit: $unit,
                 days: $days,
                 newExpiresAt: $newAutoDeleteAt,

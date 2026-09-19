@@ -9,7 +9,6 @@ use App\Http\Resources\Public\AreaPublicResource;
 use App\Http\Resources\Public\ProjectPublicResource;
 use App\Http\Resources\Public\UnitPublicResource;
 use App\Services\SeoService;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -51,8 +50,8 @@ class HomeController
             );
         } catch (\Throwable $e) {
             $homeData = [
-                'latestUnits' => new LengthAwarePaginator([], 0, 12),
-                'latestProjects' => new LengthAwarePaginator([], 0, 8),
+                'latestUnits' => new \Illuminate\Pagination\LengthAwarePaginator([], 0, 12),
+                'latestProjects' => new \Illuminate\Pagination\LengthAwarePaginator([], 0, 8),
                 'popularSearches' => [],
                 'areas' => [],
                 'unitTypes' => [],

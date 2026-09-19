@@ -9,6 +9,7 @@ use App\Domain\Listings\Services\SitemapService;
 use App\Domain\Points\Jobs\AutoDeleteReviewJob;
 use App\Domain\Points\Models\PointsTransaction;
 use App\Domain\Users\Models\Message;
+use App\Domain\Users\Models\User;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 

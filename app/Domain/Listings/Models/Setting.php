@@ -3,7 +3,6 @@
 namespace App\Domain\Listings\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Cache;
 
 class Setting extends Model
 {
@@ -27,6 +26,6 @@ class Setting extends Model
     public static function setValue(string $key, mixed $value): void
     {
         self::updateOrCreate(['key' => $key], ['value' => (string) $value]);
-        Cache::forget('settings_all');
+        \Illuminate\Support\Facades\Cache::forget('settings_all');
     }
 }

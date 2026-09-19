@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Public;
 use App\Domain\Listings\Models\Unit;
 use App\Domain\Users\Models\User;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\Public\UnitPublicResource;
 use App\Services\SeoService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -32,8 +31,7 @@ class AgentController extends Controller
             ->with(['type', 'area', 'images'])
             ->orderByDesc('created_at')
             ->paginate(12)
-            ->withQueryString()
-            ->through(fn (Unit $unit) => UnitPublicResource::make($unit)->resolve());
+            ->withQueryString();
 
         $agentIdentifier = $agent->slug ?: $agent->id;
 

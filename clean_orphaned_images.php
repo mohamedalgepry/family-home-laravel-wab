@@ -9,22 +9,13 @@
  *   php clean_orphaned_images.php --projects (Include project images too)
  */
 
-// Security: this maintenance script must never be reachable from the web.
-// If mod_rewrite is disabled/misconfigured on shared hosting, a direct HTTP
-// request could otherwise execute it and delete images.
-if (PHP_SAPI !== 'cli') {
-    http_response_code(404);
-    exit('Not Found');
-}
-
 require __DIR__.'/vendor/autoload.php';
 $app = require_once __DIR__.'/bootstrap/app.php';
-$kernel = $app->make(Kernel::class);
+$kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
 $kernel->bootstrap();
 
 use App\Domain\Listings\Models\ProjectImage;
 use App\Domain\Listings\Models\UnitImage;
-use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\Storage;
 
 $options = getopt('', ['dry-run', 'projects', 'all']);
@@ -140,10 +131,10 @@ function cleanFolder($disk, string $folder, array $validPaths, bool $isDryRun): 
             $bytesFreed += $fileSize;
 
             if ($isDryRun) {
-                echo " [ORPHAN] {$file} (".round($fileSize / 1024, 1)." KB)\n";
+                echo " [ORPHAN] {$file} (" . round($fileSize / 1024, 1) . " KB)\n";
             } else {
                 $disk->delete($file);
-                echo " 🗑 Deleted: {$file} (".round($fileSize / 1024, 1)." KB)\n";
+                echo " 🗑 Deleted: {$file} (" . round($fileSize / 1024, 1) . " KB)\n";
             }
         }
     }

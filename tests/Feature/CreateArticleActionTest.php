@@ -3,7 +3,6 @@
 use App\Domain\Listings\Actions\CreateArticleAction;
 use App\Domain\Listings\DTOs\CreateArticleData;
 use App\Domain\Listings\Models\Category;
-use Illuminate\Database\QueryException;
 
 test('create article generates unique slugs without collision', function () {
     $category = Category::create([
@@ -50,5 +49,5 @@ test('non-duplicate query exception (like invalid foreign key) is thrown immedia
         'content_en' => 'Article content',
     ]);
 
-    expect(fn () => $action->execute($invalidData))->toThrow(QueryException::class);
+    expect(fn () => $action->execute($invalidData))->toThrow(\Illuminate\Database\QueryException::class);
 });

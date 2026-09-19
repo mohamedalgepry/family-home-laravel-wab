@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense } from 'react'
 import { usePage, Link } from '@inertiajs/react'
 import { useTrans } from '../../Utils/trans'
 import { localizedPath } from '../../Utils/route'
@@ -6,46 +6,6 @@ import CompareBar from '../Features/CompareBar'
 import { WhatsAppIcon } from '../UI'
 
 const HossamChatWidget = lazy(() => import('../UI/HossamChatWidget'))
-
-/**
- * Defers mounting (and therefore downloading the ~29KB chunk of) the chat
- * widget until the browser is idle or the user interacts — keeps it out of
- * the critical rendering path so it never competes with LCP resources.
- */
-function useDeferredMount(idleDelay = 3000) {
-    const [ready, setReady] = useState(false)
-
-    useEffect(() => {
-        if (ready) return undefined
-
-        let done = false
-        const mount = () => {
-            if (done) return
-            done = true
-            setReady(true)
-            events.forEach((e) => window.removeEventListener(e, mount, { passive: true }))
-        }
-
-        const events = ['scroll', 'pointerdown', 'keydown', 'touchstart']
-        events.forEach((e) => window.addEventListener(e, mount, { passive: true }))
-
-        let idleId
-        let timerId
-        if ('requestIdleCallback' in window) {
-            idleId = window.requestIdleCallback(() => { timerId = setTimeout(mount, idleDelay) })
-        } else {
-            timerId = setTimeout(mount, idleDelay)
-        }
-
-        return () => {
-            events.forEach((e) => window.removeEventListener(e, mount, { passive: true }))
-            if (idleId && 'cancelIdleCallback' in window) window.cancelIdleCallback(idleId)
-            if (timerId) clearTimeout(timerId)
-        }
-    }, [ready, idleDelay])
-
-    return ready
-}
 
 const QUICK_LINKS = [
     { key: 'home', href: '/' },
@@ -75,7 +35,6 @@ const SOCIAL_ICONS = {
 export default function Footer() {
     const { locale, settings } = usePage().props
     const trans = useTrans(locale)
-    const chatReady = useDeferredMount()
     const isRtl = locale === 'ar'
 
     const socialLinks = [
@@ -206,11 +165,9 @@ export default function Footer() {
                 </p>
             </div>
             <CompareBar />
-            {chatReady && (
-                <Suspense fallback={null}>
-                    <HossamChatWidget />
-                </Suspense>
-            )}
+            <Suspense fallback={null}>
+                <HossamChatWidget />
+            </Suspense>
         </footer>
     )
 }

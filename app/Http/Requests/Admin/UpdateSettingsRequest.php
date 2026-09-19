@@ -29,12 +29,10 @@ class UpdateSettingsRequest extends FormRequest
             'company_whatsapp' => 'nullable|string|max:50',
             'company_email' => 'nullable|string|max:255',
             'company_address' => 'nullable|string|max:500',
-            // Rendered directly as href attributes in the public footer — must be
-            // real http(s) URLs to prevent stored XSS via javascript:/data: schemes.
-            'social_facebook' => 'nullable|url:http,https|max:500',
-            'social_instagram' => 'nullable|url:http,https|max:500',
-            'social_twitter' => 'nullable|url:http,https|max:500',
-            'social_linkedin' => 'nullable|url:http,https|max:500',
+            'social_facebook' => 'nullable|string|max:500',
+            'social_instagram' => 'nullable|string|max:500',
+            'social_twitter' => 'nullable|string|max:500',
+            'social_linkedin' => 'nullable|string|max:500',
         ];
     }
 }

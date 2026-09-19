@@ -3,6 +3,7 @@
 namespace App\Domain\Listings\Notifications;
 
 use App\Domain\Listings\Models\Project;
+use App\Domain\Listings\Services\SettingsService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -60,3 +61,4 @@ class ProjectExpiryWarningNotification extends Notification
         ];
     }
 }
+

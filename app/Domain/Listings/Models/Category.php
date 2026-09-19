@@ -2,8 +2,8 @@
 
 namespace App\Domain\Listings\Models;
 
-use App\Domain\Common\Support\SlugHelper;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class Category extends Model
 {
@@ -15,13 +15,13 @@ class Category extends Model
     {
         static::creating(function (self $category) {
             if (! $category->slug) {
-                $category->slug = SlugHelper::makeEnglish($category->name_en ?: $category->name_ar, 'category');
+                $category->slug = \App\Domain\Common\Support\SlugHelper::makeEnglish($category->name_en ?: $category->name_ar, 'category');
             }
             if (! $category->slug_ar) {
-                $category->slug_ar = SlugHelper::makeArabic($category->name_ar ?: $category->name_en, $category->slug);
+                $category->slug_ar = \App\Domain\Common\Support\SlugHelper::makeArabic($category->name_ar ?: $category->name_en, $category->slug);
             }
             if (! $category->slug_en) {
-                $category->slug_en = SlugHelper::makeEnglish($category->name_en ?: $category->name_ar, $category->slug);
+                $category->slug_en = \App\Domain\Common\Support\SlugHelper::makeEnglish($category->name_en ?: $category->name_ar, $category->slug);
             }
             $category->ensureUniqueSlugs();
         });
@@ -29,11 +29,11 @@ class Category extends Model
         static::updating(function (self $category) {
             $changed = false;
             if ($category->isDirty('name_en') && ! $category->isDirty('slug_en')) {
-                $category->slug_en = SlugHelper::makeEnglish($category->name_en, 'category');
+                $category->slug_en = \App\Domain\Common\Support\SlugHelper::makeEnglish($category->name_en, 'category');
                 $changed = true;
             }
             if ($category->isDirty('name_ar') && ! $category->isDirty('slug_ar')) {
-                $category->slug_ar = SlugHelper::makeArabic($category->name_ar, $category->slug_en ?? 'category');
+                $category->slug_ar = \App\Domain\Common\Support\SlugHelper::makeArabic($category->name_ar, $category->slug_en ?? 'category');
                 $changed = true;
             }
             if ($changed) {

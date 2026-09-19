@@ -4,7 +4,6 @@ namespace App\Domain\Listings\Actions;
 
 use App\Domain\Media\Services\ImageOptimizerService;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 
 class StoreUploadedImagesAction
 {
@@ -17,7 +16,7 @@ class StoreUploadedImagesAction
         $paths = [];
         $year = now()->format('Y');
         $month = now()->format('m');
-        $disk = Storage::disk('public');
+        $disk = \Illuminate\Support\Facades\Storage::disk('public');
 
         foreach ($images as $image) {
             if (! $image instanceof UploadedFile) {

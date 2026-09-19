@@ -3,10 +3,10 @@
 namespace App\Domain\Listings\Actions;
 
 use App\Domain\Common\Support\Sanitizer;
-use App\Domain\Common\Support\SlugHelper;
 use App\Domain\Listings\DTOs\CreateArticleData;
 use App\Domain\Listings\Models\Article;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Str;
 
 class CreateArticleAction
 {
@@ -28,8 +28,8 @@ class CreateArticleAction
         $excerpt_en = isset($raw['excerpt_en']) ? Sanitizer::text($raw['excerpt_en']) : null;
         $excerpt = $excerpt_ar ?: ($excerpt_en ?: null);
 
-        $slugAr = SlugHelper::makeArabic($title_ar ?: $title, 'article');
-        $slugEn = SlugHelper::makeEnglish($title_en ?: $title, 'article');
+        $slugAr = \App\Domain\Common\Support\SlugHelper::makeArabic($title_ar ?: $title, 'article');
+        $slugEn = \App\Domain\Common\Support\SlugHelper::makeEnglish($title_en ?: $title, 'article');
         $slug = $slugEn;
 
         // Use retry-on-collision instead of check-then-insert to handle

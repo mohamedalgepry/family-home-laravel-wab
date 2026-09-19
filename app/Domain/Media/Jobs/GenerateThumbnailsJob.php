@@ -2,10 +2,10 @@
 
 namespace App\Domain\Media\Jobs;
 
-use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Bus\Queueable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Cache;
@@ -20,9 +20,7 @@ class GenerateThumbnailsJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 3;
-
     public int $timeout = 90;
-
     public array $backoff = [10, 30, 60];
 
     /** Sizes for cards, content pages, and LCP images. */

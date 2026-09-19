@@ -9,7 +9,6 @@ use App\Domain\Assistant\DTOs\UnitPaginationDTO;
 use App\Domain\Assistant\DTOs\UnitPublicDTO;
 use App\Domain\Listings\Models\Project;
 use App\Domain\Listings\Models\Unit;
-use Illuminate\Support\Facades\DB;
 
 class AssistantCatalogRepository implements AssistantCatalogRepositoryInterface
 {
@@ -48,8 +47,7 @@ class AssistantCatalogRepository implements AssistantCatalogRepositoryInterface
 
         // Check if connection credentials are functional, otherwise fallback gracefully to default
         try {
-            DB::connection($configured)->getPdo();
-
+            \Illuminate\Support\Facades\DB::connection($configured)->getPdo();
             return $configured;
         } catch (\Throwable $e) {
             return config('database.default', 'mysql');
@@ -71,8 +69,8 @@ class AssistantCatalogRepository implements AssistantCatalogRepositoryInterface
             ->where('is_active', true)
             ->where(function ($q) use ($cleanSlug) {
                 $q->where('slug', $cleanSlug)
-                    ->orWhere('slug_ar', $cleanSlug)
-                    ->orWhere('slug_en', $cleanSlug);
+                  ->orWhere('slug_ar', $cleanSlug)
+                  ->orWhere('slug_en', $cleanSlug);
             })
             ->first();
 
@@ -94,8 +92,8 @@ class AssistantCatalogRepository implements AssistantCatalogRepositoryInterface
             ->where('is_active', true)
             ->where(function ($q) use ($cleanSlug) {
                 $q->where('slug', $cleanSlug)
-                    ->orWhere('slug_ar', $cleanSlug)
-                    ->orWhere('slug_en', $cleanSlug);
+                  ->orWhere('slug_ar', $cleanSlug)
+                  ->orWhere('slug_en', $cleanSlug);
             })
             ->first();
 
@@ -116,7 +114,7 @@ class AssistantCatalogRepository implements AssistantCatalogRepositoryInterface
             ->limit($safeLimit)
             ->get();
 
-        return $projects->map(fn ($p) => ProjectPublicDTO::fromModel($p, $locale))->all();
+        return $projects->map(fn($p) => ProjectPublicDTO::fromModel($p, $locale))->all();
     }
 
     /**
@@ -131,7 +129,7 @@ class AssistantCatalogRepository implements AssistantCatalogRepositoryInterface
         string $locale = 'ar'
     ): UnitPaginationDTO {
         $project = $this->findActiveProjectBySlug($projectSlug, $locale);
-        if (! $project) {
+        if (!$project) {
             return new UnitPaginationDTO(
                 items: [],
                 currentPage: 1,
@@ -198,7 +196,7 @@ class AssistantCatalogRepository implements AssistantCatalogRepositoryInterface
 
         $units = $query->offset($offset)->limit($safePerPage)->get();
 
-        $items = $units->map(fn ($u) => UnitPublicDTO::fromModel($u, $locale))->all();
+        $items = $units->map(fn($u) => UnitPublicDTO::fromModel($u, $locale))->all();
         $hasMore = $safePage < $lastPage;
 
         return new UnitPaginationDTO(
@@ -230,7 +228,7 @@ class AssistantCatalogRepository implements AssistantCatalogRepositoryInterface
 
         // 1. Resolve active project first
         $project = $this->findActiveProjectBySlug($cleanProjectSlug, $locale);
-        if (! $project) {
+        if (!$project) {
             return null;
         }
 
@@ -241,8 +239,8 @@ class AssistantCatalogRepository implements AssistantCatalogRepositoryInterface
             ->where('is_active', true)
             ->where(function ($q) use ($cleanUnitSlug) {
                 $q->where('slug', $cleanUnitSlug)
-                    ->orWhere('slug_ar', $cleanUnitSlug)
-                    ->orWhere('slug_en', $cleanUnitSlug);
+                  ->orWhere('slug_ar', $cleanUnitSlug)
+                  ->orWhere('slug_en', $cleanUnitSlug);
             })
             ->first();
 
@@ -305,6 +303,6 @@ class AssistantCatalogRepository implements AssistantCatalogRepositoryInterface
 
         $units = $query->limit($safeLimit)->get();
 
-        return $units->map(fn ($u) => UnitPublicDTO::fromModel($u, $locale))->all();
+        return $units->map(fn($u) => UnitPublicDTO::fromModel($u, $locale))->all();
     }
 }

@@ -2,6 +2,7 @@
 
 use App\Domain\Listings\Models\Area;
 use App\Domain\Listings\Models\Project;
+use App\Domain\Listings\Models\Unit;
 use App\Domain\Listings\Models\UnitType;
 
 beforeEach(function () {

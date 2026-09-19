@@ -42,32 +42,12 @@ function makeUnit(array $overrides = []): Unit
 function schemaOf(array|string $metaSchema): array
 {
     if (is_array($metaSchema)) {
-        // schema is now a list [BreadcrumbList, main schema] — return the main (non-breadcrumb) one
-        if (isset($metaSchema[0]) && is_array($metaSchema[0])) {
-            foreach ($metaSchema as $schema) {
-                if (($schema['@type'] ?? null) !== 'BreadcrumbList') {
-                    return $schema;
-                }
-            }
-        }
-
         return $metaSchema;
     }
 
     preg_match('/<script type="application\/ld\+json">(.*?)<\/script>/s', $metaSchema, $matches);
 
     return json_decode($matches[1] ?? '{}', true);
-}
-
-function breadcrumbOf(array $metaSchema): ?array
-{
-    foreach ($metaSchema as $schema) {
-        if (is_array($schema) && ($schema['@type'] ?? null) === 'BreadcrumbList') {
-            return $schema;
-        }
-    }
-
-    return null;
 }
 
 it('builds a localized unit meta with canonical, hreflang and schema', function () {

@@ -175,11 +175,8 @@ class PointsService
                     }
 
                     if (! empty($validUnitIds)) {
-                        // GREATEST() is MySQL/Postgres; SQLite uses scalar MAX() for the same purpose.
-                        $greatestFn = DB::connection()->getDriverName() === 'sqlite' ? 'MAX' : 'GREATEST';
-
                         Unit::whereIn('id', $validUnitIds)->update([
-                            'priority_points' => DB::raw("{$greatestFn}(0, priority_points - {$value})"),
+                            'priority_points' => DB::raw("GREATEST(0, priority_points - {$value})")
                         ]);
                     }
 

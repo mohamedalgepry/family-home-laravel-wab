@@ -13,10 +13,10 @@ class AssistantLead extends Model
         'status',
         'chat_history',
         'lead_score',
-        'lead_status',
+        'lead_status'
     ];
 
     protected $casts = [
-        'chat_history' => 'array',
+        'chat_history' => 'array'
     ];
 }

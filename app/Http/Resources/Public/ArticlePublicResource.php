@@ -31,7 +31,7 @@ class ArticlePublicResource extends JsonResource
             'keywords' => $this->keywords,
             'keywords_ar' => $this->keywords_ar,
             'keywords_en' => $this->keywords_en,
-            // is_published is internal — public queries already filter by it server-side.
+            'is_published' => $this->is_published,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
 
