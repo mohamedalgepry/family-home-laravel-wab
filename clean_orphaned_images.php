@@ -9,6 +9,14 @@
  *   php clean_orphaned_images.php --projects (Include project images too)
  */
 
+// Security: this maintenance script must never be reachable from the web.
+// If mod_rewrite is disabled/misconfigured on shared hosting, a direct HTTP
+// request could otherwise execute it and delete images.
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    exit('Not Found');
+}
+
 require __DIR__.'/vendor/autoload.php';
 $app = require_once __DIR__.'/bootstrap/app.php';
 $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
