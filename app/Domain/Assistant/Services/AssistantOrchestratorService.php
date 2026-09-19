@@ -165,10 +165,12 @@ class AssistantOrchestratorService
             $recommendedUnits[$card['id']] = $card;
         }
 
-        // If user is on a project page, preload units from that specific project as well
-        if (! empty($normalizedPageContext['project_slug'])) {
+        // If the user is on a project page AND asked about listings, preload
+        // units from that project. Without listing intent we skip it so casual
+        // questions on a project page don't get flooded with unit cards.
+        if (! empty($normalizedPageContext['project_slug']) && $this->hasListingIntent($userMessage)) {
             try {
-                $projUnitsPag = $this->catalogService->listUnitsForProject($normalizedPageContext['project_slug'], [], 1, 4, $locale);
+                $projUnitsPag = $this->catalogService->listUnitsForProject($normalizedPageContext['project_slug'], [], 1, 3, $locale);
                 foreach ($projUnitsPag->toCardPayload() as $card) {
                     if (! isset($recommendedUnits[$card['id']])) {
                         $recommendedUnits[$card['id']] = $card;
@@ -238,7 +240,12 @@ class AssistantOrchestratorService
         // Clean output, linkify unit names, and build quick replies
         $cleanReply = $this->sanitizeOutputText($collectedReply);
         $cleanReply = $this->injectUnitLinks($cleanReply, $recommendedUnits, $locale);
-        $finalUnits = array_values(array_slice($recommendedUnits, 0, 6));
+
+        // Attach unit cards ONLY when the turn is actually about listings —
+        // and cap at 3 focused picks instead of flooding the chat with 6.
+        $finalUnits = $this->hasListingIntent($userMessage)
+            ? array_values(array_slice($recommendedUnits, 0, 3))
+            : [];
         $quickReplies = $this->buildQuickReplies($locale, ! empty($finalUnits));
 
         // Self-Learning: Store high-quality AI consultation in persistent knowledge base
@@ -328,8 +335,10 @@ class AssistantOrchestratorService
         $payload = [
             'contents' => $contents,
             'generationConfig' => [
-                'temperature' => 0.45,
-                'maxOutputTokens' => 3000,
+                // Lower temperature → more factual, on-point answers.
+                // Lower token ceiling → concise replies generated faster.
+                'temperature' => 0.3,
+                'maxOutputTokens' => 1024,
             ],
         ];
 
@@ -397,8 +406,9 @@ class AssistantOrchestratorService
             'messages' => $messages,
             'tools' => ! empty($tools) ? $tools : null,
             'tool_choice' => ! empty($tools) ? 'auto' : null,
-            'temperature' => 0.45,
-            'max_tokens' => 2500,
+            // Lower temperature → factual, on-point; lower cap → faster replies
+            'temperature' => 0.3,
+            'max_tokens' => 1024,
         ];
 
         try {
@@ -441,8 +451,30 @@ class AssistantOrchestratorService
      *
      * @return UnitPublicDTO[]
      */
+    /**
+     * Does the message actually ask about properties/listings?
+     * Units must ONLY be attached when the user shows listing intent —
+     * otherwise the assistant spams unit cards on every casual message.
+     */
+    private function hasListingIntent(string $message): bool
+    {
+        return (bool) preg_match(
+            '/(فيلا|فيلات|فلل|شقة|شقه|شقق|دوبلكس|بنتهاوس|استوديو|ستوديو|مكتب|مكاتب|محل|محلات|وحدة|وحدات|عقار|عقارات|'.
+            'سعر|بسعر|بمبلغ|ميزانية|ميزانيه|مليون|ملايين|غرف|غرفة|غرفه|إيجار|ايجار|للبيع|اشتري|أشتري|معاينة|معاينه|'.
+            'رشح|رشحلي|اقترح|ورّيني|وريني|اعرض|أعرض|متاح|لقطة|لقطه|عروض|'.
+            'villa|apartment|apt|studio|office|shop|unit|property|properties|budget|price|rent|buy|bedroom|rooms|show me|available|deal)/iu',
+            $message
+        );
+    }
+
     private function preSearchRelevantUnits(string $message, string $locale): array
     {
+        // No listing intent → no units. This is what keeps replies clean:
+        // greetings, thanks, and general questions never trigger unit spam.
+        if (! $this->hasListingIntent($message)) {
+            return [];
+        }
+
         $filters = [];
 
         // Price extraction
@@ -464,10 +496,10 @@ class AssistantOrchestratorService
             $filters['transaction'] = 'rent';
         }
 
-        $units = $this->catalogService->listUnits($filters, 4, $locale);
+        $units = $this->catalogService->listUnits($filters, 3, $locale);
         if (empty($units) && isset($filters['rooms'])) {
             unset($filters['rooms']);
-            $units = $this->catalogService->listUnits($filters, 4, $locale);
+            $units = $this->catalogService->listUnits($filters, 3, $locale);
         }
 
         return $units;
@@ -641,8 +673,8 @@ Before every response, silently think through:
    - Cash discount percentage vs installment total
    - Expected annual appreciation rate for the area (15-30% for prime areas)
    - Rental yield potential if investment-focused
-5. **Structure your responses:** Use headers, bullet points, and emojis for readability. Keep responses comprehensive but scannable.
-6. **Proactive suggestions:** Always end with a relevant suggestion or next step — don't leave the conversation hanging.
+5. **Be concise and precise:** Answer only what was asked. Short, direct, scannable — the client's time is valuable.
+6. **One next step:** End with a single relevant suggestion or question — never a menu of options.
 
 # AVAILABLE TOOLS
 Use these tools proactively when you need data:
@@ -652,12 +684,15 @@ Use these tools proactively when you need data:
 - **get_unit_in_project**: Verify a specific unit within a project
 - **list_projects**: List all active projects
 
-# RESPONSE FORMAT GUIDELINES
+# RESPONSE FORMAT GUIDELINES — PRECISION FIRST
+- **Answer the exact question asked. Nothing more.** No padding, no generic marketing filler.
+- Keep responses SHORT: 40-120 words for simple questions, up to 250 words only when comparing options or explaining finances.
+- **Only mention/recommend properties when the user explicitly asks for them** (search, budget, recommendation, "show me"). For greetings, thanks, general questions or advice — reply WITHOUT any property listing.
+- When you do recommend, suggest a MAXIMUM of 2-3 carefully chosen units — never dump a list.
 - Use **bold** for property names, prices, and key figures
-- Use emojis sparingly but effectively: 🏠 🏢 💰 📍 🛏️ 📐 🔑 📊 💡 ✅
-- Include price, rooms, area (sqm), payment method, and location for each property recommendation
-- When comparing options, use a brief comparison format highlighting trade-offs
-- Keep responses between 150-400 words — detailed enough to be useful, concise enough to be readable
+- Use at most 1-2 emojis per reply — not one per line
+- Include price, rooms, area (sqm) and payment method for each recommended property
+- Always end with ONE clear next step (a question or a suggestion) — never multiple
 
 # EXAMPLE INTERACTIONS
 **User:** "I want an apartment for 5 million"
@@ -700,8 +735,8 @@ EOT;
    - نسبة خصم الكاش مقابل إجمالي التقسيط
    - معدل الزيادة السنوية المتوقعة للمنطقة (15-30% في المناطق المميزة)
    - العائد الإيجاري المتوقع لو العميل بيفكر في استثمار
-5. **نظّم ردودك:** استخدم عناوين، نقاط، وإيموجي للوضوح. خلّي الرد شامل لكن سهل القراءة.
-6. **اقتراحات استباقية:** دايماً اختم باقتراح مناسب أو خطوة تالية — متسبش المحادثة معلّقة.
+5. **كن مختصر ودقيق:** جاوب على المطلوب بس. رد قصير ومباشر وسهل القراءة — وقت العميل غالي.
+6. **خطوة تالية واحدة:** اختم باقتراح أو سؤال واحد مناسب — مش قايمة اختيارات.
 
 # الأدوات المتاحة
 استخدم الأدوات دي بشكل استباقي لما تحتاج بيانات:
@@ -711,12 +746,15 @@ EOT;
 - **get_unit_in_project**: للتحقق من تفاصيل وحدة معينة
 - **list_projects**: لعرض المشاريع النشطة
 
-# إرشادات تنسيق الرد
+# إرشادات تنسيق الرد — الدقة أولاً
+- **جاوب على السؤال المطلوب بالظبط. ولا كلمة زيادة.** ممنوع الحشو والكلام التسويقي العام.
+- خلّي الرد قصير: 40-120 كلمة للأسئلة البسيطة، وحتى 250 كلمة بس لما تقارن خيارات أو تشرح حسابات مالية.
+- **ممنوع تعرض أو ترشح وحدات إلا لو العميل طلبها صراحةً** (بحث، ميزانية، ترشيح، «ورّيني»). التحيات والشكر والأسئلة العامة والنصايح — رد عليها من غير أي عرض وحدات.
+- لما ترشح فعلاً، رشّح 2-3 وحدات مختارة بعناية كحد أقصى — ممنوع ترمي قايمة طويلة.
 - استخدم **خط عريض** لأسماء العقارات والأسعار والأرقام المهمة
-- استخدم الإيموجي بشكل مناسب: 🏠 🏢 💰 📍 🛏️ 📐 🔑 📊 💡 ✅
-- لكل ترشيح عقاري، اذكر: السعر، عدد الغرف، المساحة (م²)، طريقة الدفع، والموقع
-- عند المقارنة بين خيارات، وضّح المميزات والعيوب لكل خيار
-- خلّي ردودك بين 150-400 كلمة — شاملة ومفيدة لكن مختصرة وسهلة القراءة
+- إيموجي واحد أو اتنين في الرد كله كحد أقصى — مش واحد في كل سطر
+- لكل ترشيح عقاري، اذكر: السعر، عدد الغرف، المساحة (م²)، وطريقة الدفع
+- اختم بخطوة تالية واحدة واضحة (سؤال أو اقتراح) — مش أكتر
 
 # أمثلة على التفاعل المثالي
 **العميل:** «عايز شقة بـ 5 مليون»
@@ -1071,7 +1109,7 @@ EOT;
 
         // 2. Installments & Payment Plans inquiry (e.g. "شقق للبيع بالتقسيط")
         if (preg_match('/(شقق للبيع بالتقسيط|شقق بنظام التقسيط|شقق بالتقسيط|شقق تقسيط|شقق قسط|عايز شقه قسط|عايز شقة قسط|أنظمة السداد|انظمة السداد|نظام التقسيط|انظمه التقسيط|أطول فترة سداد|اطول فتره سداد|أقل مقدم|اقل مقدم|اقساط|أقساط|installment|down payment)/iu', $cleanMsg)) {
-            $installmentUnits = $this->catalogService->listUnits(['payment_method' => 'installment'], 4, $locale);
+            $installmentUnits = $this->catalogService->listUnits(['payment_method' => 'installment'], 3, $locale);
             $unitCards = array_map(fn ($u) => $u->toCardPayload(), $installmentUnits);
 
             $reply = $locale === 'en'
@@ -1089,17 +1127,16 @@ EOT;
         }
 
         // 3. Investment Opportunities & Growth Areas
+        // NOTE: this is an *advice* question about areas — answering with a
+        // random unit dump dilutes the reply. Offer units as a follow-up instead.
         if (preg_match('/(مناطق ليها مستقبل استثماري|مناطق لها مستقبل استثماري|مستقبل استثماري|أفضل مناطق الاستثمار|افضل مناطق الاستثمار|أفضل استثمار|افضل استثمار|استثمار عقاري|عائد استثماري|فرص الاستثمار|أعلى عائد|اعلى عائد|شقق لقطة|شقق لقطه|best investment|best areas to invest|high roi)/iu', $cleanMsg)) {
-            $activeUnits = $this->catalogService->listUnits([], 4, $locale);
-            $unitCards = array_map(fn ($u) => $u->toCardPayload(), $activeUnits);
-
             $reply = $locale === 'en'
-                ? "Egypt's real estate market offers exceptional capital growth, with the highest-yield opportunities concentrated in 4 strategic destinations:\n\n1. **New Cairo (Fifth Settlement & Golden Square):** High market liquidity, steady rental demand, and annual capital appreciation of 20% to 30%.\n2. **New Administrative Capital:** The future administrative hub and corporate headquarters offering massive capital upside upon full operation.\n3. **Sheikh Zayed & New Zayed:** Upscale, master-planned residential communities with sustained appreciation and high executive demand.\n4. **North Coast (Ras El Hekma & Sidi Heneish):** World-class international tourism destination delivering exceptional seasonal rental yields in foreign currencies.\n\nHere are selected top property opportunities available in our catalog:"
-                : "سوق العقارات في مصر يشهد طفرة نمو قوية، وتتركز أفضل الفرص الاستثمارية ذات العائد المرتفع في 4 وجهات رئيسية:\n\n1. **القاهرة الجديدة (التجمع الخامس وجولدن سكوير):** المنطقة الأكثر طلباً وسرعة في إعادة البيع والإيجار، بعائد رأسمالي سنوي يتراوح بين 20% و30%.\n2. **العاصمة الإدارية الجديدة:** المركز المستقبلي للشركات العالمية والمقرات الحكومية، وتمنحك أعلى زيادة رأسمالية حتى تاريخ التشغيل الكامل للمقرات.\n3. **الشيخ زايد وتوسعاتها (زايد الجديدة):** مجتمعات عمرانية راقية متكاملة الخدمات مع طلب قوي ومستمر من الصفوة والعائلات.\n4. **الساحل الشمالي (رأس الحكمة وسيدي حنيش):** وجهة سياحية واستثمارية عالمية تحقق عوائد إيجارية سياحية قياسية بالعملة الصعبة.\n\nإليك نخبة من أفضل الوحدات المعروضة لدينا حالياً:";
+                ? "Egypt's real estate market offers exceptional capital growth, with the highest-yield opportunities concentrated in 4 strategic destinations:\n\n1. **New Cairo (Fifth Settlement & Golden Square):** High market liquidity, steady rental demand, and annual capital appreciation of 20% to 30%.\n2. **New Administrative Capital:** The future administrative hub and corporate headquarters offering massive capital upside upon full operation.\n3. **Sheikh Zayed & New Zayed:** Upscale, master-planned residential communities with sustained appreciation and high executive demand.\n4. **North Coast (Ras El Hekma & Sidi Heneish):** World-class international tourism destination delivering exceptional seasonal rental yields in foreign currencies.\n\nTell me your budget and I will hand-pick the best matching opportunities for you."
+                : "سوق العقارات في مصر يشهد طفرة نمو قوية، وتتركز أفضل الفرص الاستثمارية ذات العائد المرتفع في 4 وجهات رئيسية:\n\n1. **القاهرة الجديدة (التجمع الخامس وجولدن سكوير):** المنطقة الأكثر طلباً وسرعة في إعادة البيع والإيجار، بعائد رأسمالي سنوي يتراوح بين 20% و30%.\n2. **العاصمة الإدارية الجديدة:** المركز المستقبلي للشركات العالمية والمقرات الحكومية، وتمنحك أعلى زيادة رأسمالية حتى تاريخ التشغيل الكامل للمقرات.\n3. **الشيخ زايد وتوسعاتها (زايد الجديدة):** مجتمعات عمرانية راقية متكاملة الخدمات مع طلب قوي ومستمر من الصفوة والعائلات.\n4. **الساحل الشمالي (رأس الحكمة وسيدي حنيش):** وجهة سياحية واستثمارية عالمية تحقق عوائد إيجارية سياحية قياسية بالعملة الصعبة.\n\nقولّي ميزانيتك وهرشحلك بنفسي أفضل الفرص المناسبة ليك.";
 
             return [
                 'reply' => $reply,
-                'recommended_units' => $unitCards,
+                'recommended_units' => [],
                 'quick_replies' => $locale === 'en'
                     ? ['Featured projects', 'Apartments for sale', 'Contact via WhatsApp']
                     : ['المشاريع المميزة', 'شقق للبيع بالتقسيط', 'تواصل عبر واتساب'],
@@ -1154,7 +1191,8 @@ EOT;
         }
 
         if ($projectFound) {
-            $pagination = $this->catalogService->listUnitsForProject($projectFound->slug, [], 1, 6, $locale);
+            // Explicit project inquiry → showing units is expected, but keep it focused
+            $pagination = $this->catalogService->listUnitsForProject($projectFound->slug, [], 1, 4, $locale);
             $units = $pagination->toCardPayload();
 
             $reply = $locale === 'en'
@@ -1198,12 +1236,11 @@ EOT;
                     ? "Here are the premier real estate projects available at **Family Home**:\n\n".implode("\n", $itemsList)."\n\nWhich project would you like to explore its available units and pricing?"
                     : "إليك أبرز المشاريع العقارية الرائدة المتاحة حالياً لدى **فاميلي هوم**:\n\n".implode("\n", $itemsList)."\n\nعن أي مشروع تود معرفة تفاصيل وحداته وأسعاره؟";
 
-                $featuredUnits = $this->catalogService->listUnits([], 4, $locale);
-                $unitCards = array_map(fn ($u) => $u->toCardPayload(), $featuredUnits);
-
+                // The user asked about PROJECTS — attaching random unit cards
+                // here is noise. Units follow once they pick a project.
                 return [
                     'reply' => $reply,
-                    'recommended_units' => $unitCards,
+                    'recommended_units' => [],
                     'quick_replies' => $locale === 'en'
                         ? ['Apartments for sale', 'Best investment areas', 'Contact via WhatsApp']
                         : ['شقق للبيع بالتقسيط', 'أفضل مناطق الاستثمار', 'تواصل عبر واتساب'],
@@ -1258,14 +1295,29 @@ EOT;
                 $filters['transaction'] = 'rent';
             }
 
-            $matchedUnits = $this->catalogService->listUnits($filters, 4, $locale);
+            $matchedUnits = $this->catalogService->listUnits($filters, 3, $locale);
             if (empty($matchedUnits) && isset($filters['rooms'])) {
                 // If no exact match with room count, broaden by price
                 unset($filters['rooms']);
-                $matchedUnits = $this->catalogService->listUnits($filters, 4, $locale);
+                $matchedUnits = $this->catalogService->listUnits($filters, 3, $locale);
             }
+
+            // No match within the requested budget → be honest about it instead
+            // of dumping unrelated units that ignore the user's constraints.
             if (empty($matchedUnits) && ($maxPrice !== null || $minPrice !== null)) {
-                $matchedUnits = $this->catalogService->listUnits([], 4, $locale);
+                $formattedPrice = number_format($maxPrice ?? $minPrice, 0, '.', ',');
+                $reply = $locale === 'en'
+                    ? "I could not find units matching that exact budget of **{$formattedPrice} EGP** right now. Would you like me to broaden the search range, or explore nearby budgets and other areas?"
+                    : "معنديش حالياً وحدات مطابقة بالظبط للميزانية دي (**{$formattedPrice} ج.م**). تحب أوسّع نطاق البحث شوية، ولا أعرض عليك خيارات في ميزانيات قريبة أو مناطق تانية؟";
+
+                return [
+                    'reply' => $reply,
+                    'recommended_units' => [],
+                    'quick_replies' => $locale === 'en'
+                        ? ['Broaden the search', 'Featured projects', 'Contact via WhatsApp']
+                        : ['وسّع نطاق البحث', 'المشاريع المميزة', 'تواصل عبر واتساب'],
+                    'is_fallback' => true,
+                ];
             }
 
             if (! empty($matchedUnits)) {
@@ -1303,9 +1355,11 @@ EOT;
                 ? "I am here to guide your property search at **Family Home**! You can ask me about:\n\n• **Featured Projects:** Such as {$projectNames}\n• **Installment Properties:** Plans extending up to 10 years without bank interest\n• **High-ROI Investment Areas:** New Cairo, Sheikh Zayed, and New Capital\n• **Project Units:** e.g., 'What units belong to project X?'\n\nWhat would you like to explore?"
                 : "أنا هنا لمساعدتك في استكشاف أفضل الفرص العقارية لدى **فاميلي هوم**! يمكنك سؤالي عن:\n\n• **المشاريع المتميزة:** مثل {$projectNames}\n• **شقق بالتقسيط:** بأنظمة سداد تصل حتى 10 سنوات بدون فوائد\n• **أفضل مناطق الاستثمار:** في التجمع الخامس، الشيخ زايد، والعاصمة الإدارية\n• **وحدات مشروع معين:** مثل «ما الوحدات التابعة لمشروع X؟»\n\nعن أي منها تود الاستفسار؟";
 
+            // $preloadedUnits is only non-empty when the caller detected real
+            // listing intent — still cap it to 3 focused suggestions.
             return [
                 'reply' => $reply,
-                'recommended_units' => $preloadedUnits,
+                'recommended_units' => array_slice($preloadedUnits, 0, 3),
                 'quick_replies' => $this->buildQuickReplies($locale, ! empty($preloadedUnits)),
                 'is_fallback' => true,
             ];
