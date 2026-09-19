@@ -32,10 +32,31 @@ function createTestUnit(array $attributes = []): Unit
         'slug_en' => 'default-unit-en-'.uniqid(),
         'price' => 1000,
         'transaction' => 'sale',
-        'type_id' => UnitType::firstOrCreate(['name_en' => 'Test Type', 'name_ar' => 'نوع اختياري'])->id,
-        'area_id' => Area::firstOrCreate(['name_en' => 'Test Area', 'name_ar' => 'منطقة اختيارية'])->id,
-        'user_id' => User::firstOrCreate(['email' => 'test_user_id@test.com'], ['name' => 'Test User', 'password' => 'x', 'role' => 'admin'])->id,
     ];
+
+    // Lazily create fallback relations ONLY when the caller did not provide them.
+    // Eagerly calling firstOrCreate() here used to auto-generate slug 'test-type'
+    // (from name_en 'Test Type'), colliding with unit types created inside tests.
+    if (! array_key_exists('type_id', $attributes)) {
+        $defaults['type_id'] = UnitType::firstOrCreate(
+            ['name_en' => 'Test Type', 'name_ar' => 'نوع اختياري'],
+            ['slug' => 'pest-default-unit-type']
+        )->id;
+    }
+
+    if (! array_key_exists('area_id', $attributes)) {
+        $defaults['area_id'] = Area::firstOrCreate(
+            ['name_en' => 'Test Area', 'name_ar' => 'منطقة اختيارية'],
+            ['slug' => 'pest-default-area']
+        )->id;
+    }
+
+    if (! array_key_exists('user_id', $attributes)) {
+        $defaults['user_id'] = User::firstOrCreate(
+            ['email' => 'test_user_id@test.com'],
+            ['name' => 'Test User', 'password' => 'x', 'role' => 'admin']
+        )->id;
+    }
 
     $unit = new Unit;
     $unit->forceFill(array_merge($defaults, $attributes));
