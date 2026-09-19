@@ -60,6 +60,7 @@ function ProjectCard({ project, loading = false, priority = false }) {
             <div className="relative overflow-hidden aspect-[4/3] bg-secondary-100">
                 <Link 
                     href={localizedPath(`/projects/${projectSlug}`, locale)} 
+                    prefetch="hover"
                     className="block w-full h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                 >
                     <OptimizedImage
