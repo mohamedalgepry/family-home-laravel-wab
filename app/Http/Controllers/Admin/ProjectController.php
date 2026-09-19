@@ -9,6 +9,7 @@ use App\Domain\Listings\Models\Area;
 use App\Domain\Listings\Models\Feature;
 use App\Domain\Listings\Models\FinishingType;
 use App\Domain\Listings\Models\Project;
+use App\Domain\Listings\Models\Unit;
 use App\Domain\Listings\Services\ProjectService;
 use App\Domain\Users\Models\User;
 use App\Http\Controllers\Controller;
@@ -39,16 +40,16 @@ class ProjectController extends Controller
         );
 
         $projectStats = Project::query()
-            ->selectRaw("
+            ->selectRaw('
                 COUNT(*) as total,
                 COUNT(CASE WHEN is_active = 1 THEN 1 END) as active
-            ")
+            ')
             ->first();
 
         $stats = [
             'total' => (int) ($projectStats?->total ?? 0),
             'active' => (int) ($projectStats?->active ?? 0),
-            'total_units' => \App\Domain\Listings\Models\Unit::whereNotNull('project_id')->count(),
+            'total_units' => Unit::whereNotNull('project_id')->count(),
         ];
 
         $areas = Area::select('id', 'name_ar', 'name_en')->orderBy('name_ar')->get();

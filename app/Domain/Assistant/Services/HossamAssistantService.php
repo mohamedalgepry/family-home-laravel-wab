@@ -3,23 +3,31 @@
 namespace App\Domain\Assistant\Services;
 
 use App\Domain\Listings\Models\Area;
+use App\Domain\Listings\Models\Article;
 use App\Domain\Listings\Models\Project;
 use App\Domain\Listings\Models\Setting;
 use App\Domain\Listings\Models\Unit;
+use App\Domain\Listings\Models\UnitType;
+use App\Domain\Listings\Services\SettingsService;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 
 class HossamAssistantService
 {
     private string $apiKey;
+
     private string $model;
+
     private string $fallbackModel;
+
     private string $baseUrl;
 
     private ?string $geminiKey;
 
     public function __construct(
-        private \App\Domain\Listings\Services\SettingsService $settingsService,
+        private SettingsService $settingsService,
         private HossamKnowledgeService $knowledgeService
     ) {
         $this->apiKey = (string) config('services.openrouter.api_key', env('OPENROUTER_API_KEY', ''));
@@ -32,9 +40,6 @@ class HossamAssistantService
     /**
      * Process a chat turn with Hossam: searches DB for matching inventory & queries LLM.
      *
-     * @param  string  $message
-     * @param  array  $history
-     * @param  string  $locale
      * @return array{reply: string, recommended_units: array}
      */
     public function chat(string $message, array $history = [], string $locale = 'ar', string $contextUrl = '', string $contextTitle = ''): array
@@ -42,12 +47,13 @@ class HossamAssistantService
         // 0. Generous Rate Limiting: 100 requests per 10 minutes per IP/session
         $ip = request()->ip() ?? 'unknown';
         $sessionId = session()->getId() ?: 'guest';
-        $key = 'hossam-chat-' . md5($ip . '_' . $sessionId);
-        
-        if (\Illuminate\Support\Facades\RateLimiter::tooManyAttempts($key, 100)) {
+        $key = 'hossam-chat-'.md5($ip.'_'.$sessionId);
+
+        if (RateLimiter::tooManyAttempts($key, 100)) {
             $whatsapp = $this->settingsService->get('company_whatsapp', $this->settingsService->get('phone', ''));
             $cleanWhatsapp = preg_replace('/[^\d]/', '', (string) $whatsapp);
-            $whatsappUrl = 'https://wa.me/' . $cleanWhatsapp;
+            $whatsappUrl = 'https://wa.me/'.$cleanWhatsapp;
+
             return [
                 'reply' => $locale === 'en'
                     ? "You have reached the message limit for this session. For immediate priority assistance, feel free to [chat with our team on WhatsApp]({$whatsappUrl})."
@@ -57,7 +63,7 @@ class HossamAssistantService
                 'quick_replies' => [],
             ];
         }
-        \Illuminate\Support\Facades\RateLimiter::hit($key, 600);
+        RateLimiter::hit($key, 600);
 
         // 0b. Instant Canned FAQ & Self-Learned Knowledge Check (Runs in < 5ms, 0 external API calls!)
         $instantResponse = $this->knowledgeService->findCannedOrLearnedResponse($message, $locale);
@@ -66,10 +72,10 @@ class HossamAssistantService
         }
 
         // 0c. Super-fast in-memory cache for common questions (< 5ms response!)
-        $cacheKey = 'hossam_chat_turn_' . md5(mb_strtolower(trim($message)) . '_' . $locale);
-        if (empty($history) && \Illuminate\Support\Facades\Cache::has($cacheKey)) {
-            $cached = \Illuminate\Support\Facades\Cache::get($cacheKey);
-            if (!empty($cached) && is_array($cached)) {
+        $cacheKey = 'hossam_chat_turn_'.md5(mb_strtolower(trim($message)).'_'.$locale);
+        if (empty($history) && Cache::has($cacheKey)) {
+            $cached = Cache::get($cacheKey);
+            if (! empty($cached) && is_array($cached)) {
                 return $cached;
             }
         }
@@ -82,38 +88,38 @@ class HossamAssistantService
         // 1b. Search database for relevant active projects (with exact unit counts & stats)
         $relevantProjects = $this->searchRelevantProjects($message, $history, $locale);
 
-        if (!empty($contextUrl)) {
+        if (! empty($contextUrl)) {
             $path = parse_url($contextUrl, PHP_URL_PATH);
             if ($path) {
                 if (preg_match('#/units/([^/]+)#', $path, $matches)) {
                     $slug = $matches[1];
-                    $contextUnit = \App\Domain\Listings\Models\Unit::with(['area', 'type', 'images', 'user', 'project'])
+                    $contextUnit = Unit::with(['area', 'type', 'images', 'user', 'project'])
                         ->where('slug', $slug)
                         ->orWhere('slug_ar', $slug)
                         ->orWhere('slug_en', $slug)
                         ->first();
-                        
+
                     if ($contextUnit) {
-                        $matchingUnits = array_filter($matchingUnits, fn($u) => $u->id !== $contextUnit->id);
+                        $matchingUnits = array_filter($matchingUnits, fn ($u) => $u->id !== $contextUnit->id);
                         array_unshift($matchingUnits, $contextUnit);
                     }
                 } elseif (preg_match('#/projects/([^/]+)#', $path, $matches)) {
                     $slug = $matches[1];
-                    $contextProject = \App\Domain\Listings\Models\Project::with(['area', 'finishingType', 'units' => function($q) {
-                            $q->where('is_active', true)->with(['area', 'type', 'images', 'user', 'project'])->take(15);
-                        }])
+                    $contextProject = Project::with(['area', 'finishingType', 'units' => function ($q) {
+                        $q->where('is_active', true)->with(['area', 'type', 'images', 'user', 'project'])->take(15);
+                    }])
                         ->withCount([
-                            'units as active_units_count' => fn($q) => $q->where('is_active', true),
-                            'units as total_units_count',
-                        ])
+                        'units as active_units_count' => fn ($q) => $q->where('is_active', true),
+                        'units as total_units_count',
+                    ])
                         ->where('slug', $slug)
                         ->orWhere('slug_ar', $slug)
                         ->orWhere('slug_en', $slug)
                         ->first();
-                        
+
                     if ($contextProject) {
-                        $existingProjectIds = array_map(fn($p) => $p->id, $relevantProjects);
-                        if (!in_array($contextProject->id, $existingProjectIds)) {
+                        $existingProjectIds = array_map(fn ($p) => $p->id, $relevantProjects);
+                        if (! in_array($contextProject->id, $existingProjectIds)) {
                             array_unshift($relevantProjects, $contextProject);
                         }
 
@@ -121,9 +127,9 @@ class HossamAssistantService
                         $reqType = $searchResult['requested_type'] ?? null;
                         if (! $hasSpecificConstraints || ($reqType === null || $reqType === 'apartment' || $reqType === 'residential')) {
                             $projectUnits = $contextProject->units->all();
-                            $existingIds = array_map(fn($u) => $u->id, $matchingUnits);
+                            $existingIds = array_map(fn ($u) => $u->id, $matchingUnits);
                             foreach (array_reverse($projectUnits) as $pu) {
-                                if (!in_array($pu->id, $existingIds)) {
+                                if (! in_array($pu->id, $existingIds)) {
                                     array_unshift($matchingUnits, $pu);
                                     $existingIds[] = $pu->id;
                                 }
@@ -135,12 +141,12 @@ class HossamAssistantService
         }
 
         // If relevant projects matched, ensure their active units are accessible in matchingUnits
-        if (!empty($relevantProjects)) {
-            $existingIds = array_map(fn($u) => $u->id, $matchingUnits);
+        if (! empty($relevantProjects)) {
+            $existingIds = array_map(fn ($u) => $u->id, $matchingUnits);
             foreach ($relevantProjects as $rp) {
                 if ($rp->relationLoaded('units')) {
                     foreach ($rp->units as $rpu) {
-                        if (!in_array($rpu->id, $existingIds)) {
+                        if (! in_array($rpu->id, $existingIds)) {
                             $matchingUnits[] = $rpu;
                             $existingIds[] = $rpu->id;
                         }
@@ -187,7 +193,7 @@ class HossamAssistantService
 
         // 4. Request completion: Direct Gemini first if key exists, then fast OpenRouter models
         $reply = null;
-        if (!empty($this->geminiKey)) {
+        if (! empty($this->geminiKey)) {
             $reply = $this->callGeminiDirect($messages, 6);
         }
 
@@ -267,7 +273,7 @@ class HossamAssistantService
                 $quickReplies = $locale === 'en'
                     ? ['Show matching units', 'Best cash discounts', 'Speak with an advisor']
                     : ['ورّيني وحدات بالميزانية دي', 'عروض الكاش بخصم كبير', 'تواصل مع مستشار'];
-            } elseif (!empty($matchingUnits)) {
+            } elseif (! empty($matchingUnits)) {
                 $quickReplies = $locale === 'en'
                     ? ['Calculate installment plan', 'Book a site visit', 'Explore other areas']
                     : ['احسب القسط بالحاسبة', 'حجز موعد معاينة', 'شوف مناطق تانية'];
@@ -279,23 +285,23 @@ class HossamAssistantService
         }
 
         // 5b. Self-Learning: Store high-quality answer in persistent knowledge base for instant future replies
-        if (!empty($reply) && !str_contains($reply, 'عشان ألاقيلك أفضل عقار') && !str_contains($reply, 'To find you the perfect property')) {
+        if (! empty($reply) && ! str_contains($reply, 'عشان ألاقيلك أفضل عقار') && ! str_contains($reply, 'To find you the perfect property')) {
             $this->knowledgeService->learn($message, $reply, $quickReplies, $locale);
         }
 
         $filteredUnits = [];
         if ($shouldShowCards && ! empty($matchingUnits)) {
             $isFallback = str_contains($reply, 'أفضل العقارات المتاحة حسب طلبك') || str_contains($reply, 'Here are the best available properties');
-            
+
             foreach ($matchingUnits as $unit) {
                 $slugAr = $unit->slug_ar ?? $unit->slug;
                 $slugEn = $unit->slug_en ?? $unit->slug;
                 $name = $unit->name;
-                
-                if ($isFallback || 
-                    str_contains($reply, $slugAr) || 
-                    str_contains($reply, $slugEn) || 
-                    (!empty($name) && mb_strlen($name) > 3 && str_contains($reply, $name))) {
+
+                if ($isFallback ||
+                    str_contains($reply, $slugAr) ||
+                    str_contains($reply, $slugEn) ||
+                    (! empty($name) && mb_strlen($name) > 3 && str_contains($reply, $name))) {
                     $filteredUnits[] = $unit;
                 }
             }
@@ -317,8 +323,8 @@ class HossamAssistantService
         ];
 
         // Cache single-turn general answers for 20 minutes to give instant sub-millisecond response
-        if (empty($history) && !$isHotLead && !empty($reply)) {
-            \Illuminate\Support\Facades\Cache::put($cacheKey, $finalResponse, 1200);
+        if (empty($history) && ! $isHotLead && ! empty($reply)) {
+            Cache::put($cacheKey, $finalResponse, 1200);
         }
 
         return $finalResponse;
@@ -358,9 +364,16 @@ class HossamAssistantService
             // 1. Smart Price Extraction
             $toValue = function ($numStr, $isMillion, $isThousand) {
                 $val = (float) str_replace([',', ' '], '', $numStr);
-                if ($isMillion) return $val * 1000000;
-                if ($isThousand) return $val * 1000;
-                if ($val < 100) return $val * 1000000;
+                if ($isMillion) {
+                    return $val * 1000000;
+                }
+                if ($isThousand) {
+                    return $val * 1000;
+                }
+                if ($val < 100) {
+                    return $val * 1000000;
+                }
+
                 return $val;
             };
 
@@ -404,9 +417,9 @@ class HossamAssistantService
             }
 
             // A7: Budget Memory — إذا لم يُحدَّد budget في الرسالة الحالية، ابحث في تاريخ المحادثة
-            if (!$budgetApplied && !empty($history)) {
+            if (! $budgetApplied && ! empty($history)) {
                 $allUserMsgs = array_values(array_filter(array_map(
-                    fn($t) => ($t['role'] ?? '') === 'user'
+                    fn ($t) => ($t['role'] ?? '') === 'user'
                         ? str_replace($eastern, $western, mb_strtolower($t['content'] ?? '', 'UTF-8'))
                         : null,
                     $history
@@ -428,11 +441,11 @@ class HossamAssistantService
             $isCorrection = (bool) preg_match('/(دى شقه|دي شقه|دى شقق|دي شقق|مش شقه|مش شقة|مش سكني|مش سكنى|طالب مكتب|قايلك مكتب|قصدى مكتب|قصدي مكتب|عايز مكتب مش|أنا قايل مكتب|انا قايل مكتب|مش ده|مش دا|غلط)/iu', $message);
 
             // 3. Property Subtype Extraction — A1: Dynamic type_id (no hard-coded IDs)
-            $unitTypes = \Illuminate\Support\Facades\Cache::remember('assistant_unit_types_lookup', 3600, function () {
-                return \App\Domain\Listings\Models\UnitType::select('id', 'slug', 'name_ar', 'name_en')->get();
+            $unitTypes = Cache::remember('assistant_unit_types_lookup', 3600, function () {
+                return UnitType::select('id', 'slug', 'name_ar', 'name_en')->get();
             });
             $getTypeId = function (string $slug) use ($unitTypes): ?int {
-                return $unitTypes->first(fn($t) => $t->slug === $slug)?->id;
+                return $unitTypes->first(fn ($t) => $t->slug === $slug)?->id;
             };
 
             $requestedType = null;
@@ -440,65 +453,69 @@ class HossamAssistantService
                 $requestedType = 'administrative';
                 $adminTypeId = $getTypeId('administrative');
                 $query->where(function ($q) use ($adminTypeId) {
-                    if ($adminTypeId) $q->where('type_id', $adminTypeId);
-                    $q->orWhereHas('type', fn($tq) => $tq->where('slug', 'administrative')->orWhere('name_ar', 'LIKE', '%إداري%'))
-                      ->orWhere('name', 'LIKE', '%مكتب%')
-                      ->orWhere('name', 'LIKE', '%إداري%')
-                      ->orWhere('name', 'LIKE', '%اداري%')
-                      ->orWhere('description_ar', 'LIKE', '%مكتب%')
-                      ->orWhere('description_ar', 'LIKE', '%إداري%');
+                    if ($adminTypeId) {
+                        $q->where('type_id', $adminTypeId);
+                    }
+                    $q->orWhereHas('type', fn ($tq) => $tq->where('slug', 'administrative')->orWhere('name_ar', 'LIKE', '%إداري%'))
+                        ->orWhere('name', 'LIKE', '%مكتب%')
+                        ->orWhere('name', 'LIKE', '%إداري%')
+                        ->orWhere('name', 'LIKE', '%اداري%')
+                        ->orWhere('description_ar', 'LIKE', '%مكتب%')
+                        ->orWhere('description_ar', 'LIKE', '%إداري%');
                 });
                 $hasSpecificConstraints = true;
             } elseif (preg_match('/(محل|محلات|تجاري|shop|commercial)/iu', $lowerMessage)) {
                 $requestedType = 'commercial';
                 $query->where(function ($q) {
                     $q->where('name', 'LIKE', '%محل%')
-                      ->orWhere('name', 'LIKE', '%تجاري%')
-                      ->orWhere('description_ar', 'LIKE', '%محل%')
-                      ->orWhere('description_ar', 'LIKE', '%تجاري%');
+                        ->orWhere('name', 'LIKE', '%تجاري%')
+                        ->orWhere('description_ar', 'LIKE', '%محل%')
+                        ->orWhere('description_ar', 'LIKE', '%تجاري%');
                 });
                 $hasSpecificConstraints = true;
             } elseif (preg_match('/(عيادة|عياده|طبي|clinic|medical)/iu', $lowerMessage)) {
                 $requestedType = 'medical';
                 $medicalTypeId = $getTypeId('medical');
                 $query->where(function ($q) use ($medicalTypeId) {
-                    if ($medicalTypeId) $q->where('type_id', $medicalTypeId);
-                    $q->orWhereHas('type', fn($tq) => $tq->where('slug', 'medical')->orWhere('name_ar', 'LIKE', '%طبي%'))
-                      ->orWhere('name', 'LIKE', '%عياد%')
-                      ->orWhere('description_ar', 'LIKE', '%طبي%');
+                    if ($medicalTypeId) {
+                        $q->where('type_id', $medicalTypeId);
+                    }
+                    $q->orWhereHas('type', fn ($tq) => $tq->where('slug', 'medical')->orWhere('name_ar', 'LIKE', '%طبي%'))
+                        ->orWhere('name', 'LIKE', '%عياد%')
+                        ->orWhere('description_ar', 'LIKE', '%طبي%');
                 });
                 $hasSpecificConstraints = true;
-            } elseif (preg_match('/(فيلا|فلا|فله|فيلات|فلل|villa|villas)/iu', $lowerMessage) && !preg_match('/(مش فيلا|مش فلل)/iu', $message)) {
+            } elseif (preg_match('/(فيلا|فلا|فله|فيلات|فلل|villa|villas)/iu', $lowerMessage) && ! preg_match('/(مش فيلا|مش فلل)/iu', $message)) {
                 $requestedType = 'villa';
                 $query->where(function ($q) {
                     $q->where('name', 'LIKE', '%فيلا%')
-                      ->orWhere('name', 'LIKE', '%فلا%')
-                      ->orWhere('name', 'LIKE', '%فله%')
-                      ->orWhere('description_ar', 'LIKE', '%فيلا%');
+                        ->orWhere('name', 'LIKE', '%فلا%')
+                        ->orWhere('name', 'LIKE', '%فله%')
+                        ->orWhere('description_ar', 'LIKE', '%فيلا%');
                 });
                 $hasSpecificConstraints = true;
             } elseif (preg_match('/(دوبلكس|duplex)/iu', $lowerMessage)) {
                 $requestedType = 'duplex';
                 $query->where(function ($q) {
                     $q->where('name', 'LIKE', '%دوبلكس%')
-                      ->orWhere('description_ar', 'LIKE', '%دوبلكس%');
+                        ->orWhere('description_ar', 'LIKE', '%دوبلكس%');
                 });
                 $hasSpecificConstraints = true;
             } elseif (preg_match('/(استوديو|استديو|ستوديو|studio)/iu', $lowerMessage)) {
                 $requestedType = 'studio';
                 $query->where(function ($q) {
                     $q->where('name', 'LIKE', '%استوديو%')
-                      ->orWhere('name', 'LIKE', '%ستوديو%')
-                      ->orWhere('description_ar', 'LIKE', '%استوديو%');
+                        ->orWhere('name', 'LIKE', '%ستوديو%')
+                        ->orWhere('description_ar', 'LIKE', '%استوديو%');
                 });
                 $hasSpecificConstraints = true;
-            } elseif (!$isCorrection && preg_match('/(شقة|شقه|شأة|شأه|شقق|apartment|flat)/iu', $lowerMessage) && !preg_match('/(مش شقة|مش شقه|مش سكني|مش سكنى)/iu', $message)) {
+            } elseif (! $isCorrection && preg_match('/(شقة|شقه|شأة|شأه|شقق|apartment|flat)/iu', $lowerMessage) && ! preg_match('/(مش شقة|مش شقه|مش سكني|مش سكنى)/iu', $message)) {
                 $requestedType = 'apartment';
                 $query->where(function ($q) {
                     $q->where('name', 'LIKE', '%شقة%')
-                      ->orWhere('name', 'LIKE', '%شقه%')
-                      ->orWhere('name', 'LIKE', '%شقق%')
-                      ->orWhere('description_ar', 'LIKE', '%شقة%');
+                        ->orWhere('name', 'LIKE', '%شقه%')
+                        ->orWhere('name', 'LIKE', '%شقق%')
+                        ->orWhere('description_ar', 'LIKE', '%شقة%');
                 });
                 $hasSpecificConstraints = true;
             }
@@ -509,11 +526,12 @@ class HossamAssistantService
                 $text = str_replace(['ة', 'ه'], 'ه', $text);
                 $text = str_replace(['أ', 'إ', 'آ'], 'ا', $text);
                 $text = str_replace(['ى'], 'ي', $text);
+
                 return $text;
             };
             $normalizedLower = $normalizeAr($lowerMessage);
 
-            $areas = \Illuminate\Support\Facades\Cache::remember('assistant_areas_lookup', 3600, function () {
+            $areas = Cache::remember('assistant_areas_lookup', 3600, function () {
                 return Area::select('id', 'name_ar', 'name_en', 'slug')->get();
             });
             $matchedAreaId = null;
@@ -621,8 +639,10 @@ class HossamAssistantService
 
             // 8. A4: Floor / Finishing / Deal Filters
             if (preg_match('/(مش\s*(?:عايز\s*)?(?:دور\s*)?(?:أرضي|ارضي)|avoid\s*ground|no\s*ground)/iu', $lowerMessage)) {
-                $query->where(function ($q) { $q->where('floor', '>', 0)->orWhereNull('floor'); });
-            } elseif (preg_match('/(?:^|\s)(?:دور\s*)?(?:أرضي|ارضي)(?:\s|$)|ground\s*floor/iu', $lowerMessage) && !preg_match('/(مش|لا)/iu', $lowerMessage)) {
+                $query->where(function ($q) {
+                    $q->where('floor', '>', 0)->orWhereNull('floor');
+                });
+            } elseif (preg_match('/(?:^|\s)(?:دور\s*)?(?:أرضي|ارضي)(?:\s|$)|ground\s*floor/iu', $lowerMessage) && ! preg_match('/(مش|لا)/iu', $lowerMessage)) {
                 $query->where('floor', 0);
                 $hasSpecificConstraints = true;
             }
@@ -633,9 +653,9 @@ class HossamAssistantService
             }
 
             if (preg_match('/(تشطيب\s*(?:كامل|سوبر|فاخر)|super\s*lux|full\s*finish)/iu', $lowerMessage)) {
-                $query->whereHas('finishingType', fn($q) => $q->where('slug', 'LIKE', '%full%')->orWhere('name_ar', 'LIKE', '%كامل%')->orWhere('name_ar', 'LIKE', '%سوبر%'));
+                $query->whereHas('finishingType', fn ($q) => $q->where('slug', 'LIKE', '%full%')->orWhere('name_ar', 'LIKE', '%كامل%')->orWhere('name_ar', 'LIKE', '%سوبر%'));
             } elseif (preg_match('/(لب\s*فقط|بدون\s*تشطيب|core.*shell|without\s*finish)/iu', $lowerMessage)) {
-                $query->whereHas('finishingType', fn($q) => $q->where('slug', 'LIKE', '%core%')->orWhere('name_ar', 'LIKE', '%لب%')->orWhere('name_ar', 'LIKE', '%بدون%'));
+                $query->whereHas('finishingType', fn ($q) => $q->where('slug', 'LIKE', '%core%')->orWhere('name_ar', 'LIKE', '%لب%')->orWhere('name_ar', 'LIKE', '%بدون%'));
             }
 
             if (preg_match('/(استلام\s*فوري|استلام\s*حالي|تسليم\s*فوري|جاهز\s*للسكن|ready\s*to\s*move|immediate\s*delivery)/iu', $lowerMessage)) {
@@ -708,12 +728,12 @@ class HossamAssistantService
     {
         $inventoryText = $this->formatInventoryText($units, $currency, $locale);
         $projectsText = $this->formatProjectsText($projects, $currency, $locale);
-        $contactContext = !empty($companyContact)
+        $contactContext = ! empty($companyContact)
             ? "\n- General company contact / WhatsApp: {$companyContact}"
             : '';
-            
+
         $pageContext = '';
-        if (!empty($contextUrl) && !empty($contextTitle)) {
+        if (! empty($contextUrl) && ! empty($contextTitle)) {
             $pageContext = "\n\nCURRENT PAGE CONTEXT:\nThe user is currently viewing this page: {$contextTitle} ({$contextUrl}). Use this if they say 'this property' or 'this page'.";
         }
 
@@ -860,12 +880,12 @@ PROMPT;
     {
         $inventoryText = $this->formatInventoryText($units, $currency, $locale);
         $projectsText = $this->formatProjectsText($projects, $currency, $locale);
-        $contactContext = !empty($companyContact)
+        $contactContext = ! empty($companyContact)
             ? "\n- رقم التواصل العام للشركة / واتساب: {$companyContact}"
             : '';
-            
+
         $pageContext = '';
-        if (!empty($contextUrl)) {
+        if (! empty($contextUrl)) {
             $pageContext = "\n\n=== صفحة التصفح الحالية للعميل (خلفية للاسترشاد فقط) ===\nالعميل يشاهد حالياً: ({$contextTitle}) على الرابط: ({$contextUrl}).\n* قاعدة صارمة جداً: ممنوع منعاً باتاً افتتاح ردك بـ «بما إنك تتصفح الآن صفحة كذا...» أو «أفترض أنك تسأل عن هذا المشروع...». هذا تصرف آلي مزعج وغير احترافي إطلاقاً.\n* استخدم معلومات هذه الصفحة فقط إذا سألك العميل صراحة عنها (مثل: «أنا في صفحة إيه؟»، أو «إيه تفاصيل هذا المشروع؟»، أو أشار بكلمة «هنا» أو «المشروع ده»).\n* إذا سأل العميل سؤالاً عاماً (مثل «إيه أفضل فرص الاستثمار؟»)، أجب مباشرة كخبير استثماري شامل عن أفضل الفرص بالسوق دون تقييد نفسك بالصفحة المعروضة.\n====================================\n";
         }
 
@@ -1018,27 +1038,31 @@ PROMPT;
     private function searchRelevantArticles(string $query, string $locale): string
     {
         $keywords = array_filter(explode(' ', mb_strtolower(preg_replace('/[^\p{L}\p{N}\s]/u', '', $query))));
-        if (empty($keywords)) return '';
+        if (empty($keywords)) {
+            return '';
+        }
 
-        $q = \App\Domain\Listings\Models\Article::where('is_published', true);
-        
+        $q = Article::where('is_published', true);
+
         $q->where(function ($queryBuilder) use ($keywords) {
             foreach ($keywords as $kw) {
                 if (mb_strlen($kw) > 3) {
                     $queryBuilder->orWhere('title_ar', 'LIKE', "%{$kw}%")
-                                 ->orWhere('title_en', 'LIKE', "%{$kw}%")
-                                 ->orWhere('content_ar', 'LIKE', "%{$kw}%")
-                                 ->orWhere('content_en', 'LIKE', "%{$kw}%")
-                                 ->orWhere('keywords', 'LIKE', "%{$kw}%");
+                        ->orWhere('title_en', 'LIKE', "%{$kw}%")
+                        ->orWhere('content_ar', 'LIKE', "%{$kw}%")
+                        ->orWhere('content_en', 'LIKE', "%{$kw}%")
+                        ->orWhere('keywords', 'LIKE', "%{$kw}%");
                 }
             }
         });
 
         $articles = $q->orderBy('published_at', 'desc')->take(2)->get();
-        if ($articles->isEmpty()) return '';
+        if ($articles->isEmpty()) {
+            return '';
+        }
 
-        $context = $locale === 'en' 
-            ? "GENERAL KNOWLEDGE BASE (Use this to answer the user's question if relevant):\n" 
+        $context = $locale === 'en'
+            ? "GENERAL KNOWLEDGE BASE (Use this to answer the user's question if relevant):\n"
             : "معلومات عامة من مدونة الشركة قد تفيدك للرد على سؤال العميل (استخدمها فقط إذا كان سؤال العميل يتطلب ذلك):\n";
 
         foreach ($articles as $article) {
@@ -1047,6 +1071,7 @@ PROMPT;
             $stripped = mb_substr(strip_tags($content), 0, 1000); // 1000 characters context per article
             $context .= "- {$title}\n{$stripped}...\n";
         }
+
         return $context;
     }
 
@@ -1070,9 +1095,9 @@ PROMPT;
             $lower = mb_strtolower($combined, 'UTF-8');
 
             $allProjects = Project::where('is_active', true)
-                ->with(['area', 'finishingType', 'units' => fn($q) => $q->where('is_active', true)->with(['type', 'area', 'images', 'user'])])
+                ->with(['area', 'finishingType', 'units' => fn ($q) => $q->where('is_active', true)->with(['type', 'area', 'images', 'user'])])
                 ->withCount([
-                    'units as active_units_count' => fn($q) => $q->where('is_active', true),
+                    'units as active_units_count' => fn ($q) => $q->where('is_active', true),
                     'units as total_units_count',
                 ])
                 ->get();
@@ -1097,7 +1122,7 @@ PROMPT;
                 foreach ($namesToCheck as $nameCandidate) {
                     $nameLower = mb_strtolower($nameCandidate, 'UTF-8');
                     $cleanCandidate = trim(preg_replace('/^(مشروع|كمبوند|كومباوند|ابراج|أبراج|قرية|قريه|منتجع|project|compound|towers|resort)\s+/iu', '', $nameLower));
-                    
+
                     if (mb_stripos($lower, $nameLower) !== false || (mb_strlen($cleanCandidate) >= 3 && mb_stripos($lower, $cleanCandidate) !== false)) {
                         $matchedProjects->push($project);
                         break;
@@ -1147,79 +1172,79 @@ PROMPT;
 
         $lines = [];
         if ($locale === 'en') {
-            $lines[] = "=== VERIFIED PROJECTS DATA & UNIT COUNTS (CRITICAL: USE THIS TO ANSWER ANY PROJECT QUESTIONS) ===";
+            $lines[] = '=== VERIFIED PROJECTS DATA & UNIT COUNTS (CRITICAL: USE THIS TO ANSWER ANY PROJECT QUESTIONS) ===';
             foreach ($projects as $p) {
                 $name = $p->name_en ?: $p->name;
                 $areaName = $p->area?->name_en ?? $p->area?->name ?? 'Prime Location';
                 $slug = $p->slug_en ?? $p->slug;
-                $url = '/' . $locale . '/projects/' . $slug;
+                $url = '/'.$locale.'/projects/'.$slug;
                 $activeUnits = (int) ($p->active_units_count ?? $p->units()->where('is_active', true)->count());
                 $totalUnits = (int) ($p->total_units_count ?? $p->units()->count());
 
                 $types = $p->units->pluck('type.name')->filter()->unique()->values()->all();
-                $typesStr = !empty($types) ? implode(', ', $types) : 'Residential / Commercial Units';
+                $typesStr = ! empty($types) ? implode(', ', $types) : 'Residential / Commercial Units';
 
                 $prices = $p->units->pluck('price')->filter()->all();
                 $priceStr = '';
-                if (!empty($prices)) {
-                    $minP = number_format(min($prices)) . ' ' . $currency;
-                    $maxP = number_format(max($prices)) . ' ' . $currency;
+                if (! empty($prices)) {
+                    $minP = number_format(min($prices)).' '.$currency;
+                    $maxP = number_format(max($prices)).' '.$currency;
                     $priceStr = " | Prices: {$minP} to {$maxP}";
                 }
 
                 $payment = '';
                 if ($p->down_payment || $p->installment_years) {
-                    $down = $p->down_payment ? 'Down payment: ' . number_format((float) $p->down_payment) . ' ' . $currency : '';
+                    $down = $p->down_payment ? 'Down payment: '.number_format((float) $p->down_payment).' '.$currency : '';
                     $inst = $p->installment_years ? "Installments over {$p->installment_years} years" : '';
-                    $payment = " | Payment terms: " . implode(', ', array_filter([$down, $inst]));
+                    $payment = ' | Payment terms: '.implode(', ', array_filter([$down, $inst]));
                 }
 
                 $lines[] = "- Project: [{$name}]({$url})\n"
-                    . "  * Location: {$areaName}\n"
-                    . "  * TOTAL UNITS IN PROJECT: {$totalUnits} units (Currently {$activeUnits} active units available for sale on our platform)\n"
-                    . "  * Available Unit Types: {$typesStr}{$priceStr}{$payment}";
-                if (!empty($p->description_en ?: $p->description)) {
-                    $lines[] = "  * Overview: " . mb_substr(strip_tags($p->description_en ?: $p->description), 0, 200) . '...';
+                    ."  * Location: {$areaName}\n"
+                    ."  * TOTAL UNITS IN PROJECT: {$totalUnits} units (Currently {$activeUnits} active units available for sale on our platform)\n"
+                    ."  * Available Unit Types: {$typesStr}{$priceStr}{$payment}";
+                if (! empty($p->description_en ?: $p->description)) {
+                    $lines[] = '  * Overview: '.mb_substr(strip_tags($p->description_en ?: $p->description), 0, 200).'...';
                 }
             }
-            $lines[] = "===================================================================================";
+            $lines[] = '===================================================================================';
         } else {
-            $lines[] = "=== بيانات المشاريع وإحصائيات عدد الوحدات (مهم جداً: استخدم هذه الأرقام الدقيقة للإجابة عن عدد الوحدات) ===";
+            $lines[] = '=== بيانات المشاريع وإحصائيات عدد الوحدات (مهم جداً: استخدم هذه الأرقام الدقيقة للإجابة عن عدد الوحدات) ===';
             foreach ($projects as $p) {
                 $name = $p->name_ar ?: $p->name;
                 $areaName = $p->area?->name_ar ?? $p->area?->name ?? 'موقع متميز';
                 $slug = $p->slug_ar ?? $p->slug;
-                $url = '/' . $locale . '/projects/' . $slug;
+                $url = '/'.$locale.'/projects/'.$slug;
                 $activeUnits = (int) ($p->active_units_count ?? $p->units()->where('is_active', true)->count());
                 $totalUnits = (int) ($p->total_units_count ?? $p->units()->count());
 
                 $types = $p->units->pluck('type.name')->filter()->unique()->values()->all();
-                $typesStr = !empty($types) ? implode('، ', $types) : 'وحدات سكنية / تجارية';
+                $typesStr = ! empty($types) ? implode('، ', $types) : 'وحدات سكنية / تجارية';
 
                 $prices = $p->units->pluck('price')->filter()->all();
                 $priceStr = '';
-                if (!empty($prices)) {
-                    $minP = number_format(min($prices)) . ' ' . $currency;
-                    $maxP = number_format(max($prices)) . ' ' . $currency;
+                if (! empty($prices)) {
+                    $minP = number_format(min($prices)).' '.$currency;
+                    $maxP = number_format(max($prices)).' '.$currency;
                     $priceStr = " | الأسعار: تبدأ من {$minP} وتصل إلى {$maxP}";
                 }
 
                 $payment = '';
                 if ($p->down_payment || $p->installment_years) {
-                    $down = $p->down_payment ? 'مقدم: ' . number_format((float) $p->down_payment) . ' ' . $currency : '';
+                    $down = $p->down_payment ? 'مقدم: '.number_format((float) $p->down_payment).' '.$currency : '';
                     $inst = $p->installment_years ? "تقسيط على {$p->installment_years} سنوات" : '';
-                    $payment = " | أنظمة السداد: " . implode('، ', array_filter([$down, $inst]));
+                    $payment = ' | أنظمة السداد: '.implode('، ', array_filter([$down, $inst]));
                 }
 
                 $lines[] = "- مشروع: [{$name}]({$url})\n"
-                    . "  * المنطقة: {$areaName}\n"
-                    . "  * إجمالي عدد الوحدات في هذا المشروع: {$totalUnits} وحدة (منها {$activeUnits} وحدة متاحة ونشطة للبيع حالياً على المنصة)\n"
-                    . "  * أنواع الوحدات المتوفرة: {$typesStr}{$priceStr}{$payment}";
-                if (!empty($p->description_ar ?: $p->description)) {
-                    $lines[] = "  * نبذة عن المشروع: " . mb_substr(strip_tags($p->description_ar ?: $p->description), 0, 200) . '...';
+                    ."  * المنطقة: {$areaName}\n"
+                    ."  * إجمالي عدد الوحدات في هذا المشروع: {$totalUnits} وحدة (منها {$activeUnits} وحدة متاحة ونشطة للبيع حالياً على المنصة)\n"
+                    ."  * أنواع الوحدات المتوفرة: {$typesStr}{$priceStr}{$payment}";
+                if (! empty($p->description_ar ?: $p->description)) {
+                    $lines[] = '  * نبذة عن المشروع: '.mb_substr(strip_tags($p->description_ar ?: $p->description), 0, 200).'...';
                 }
             }
-            $lines[] = "==========================================================================";
+            $lines[] = '==========================================================================';
         }
 
         return implode("\n", $lines);
@@ -1247,27 +1272,27 @@ PROMPT;
             $typeName = $locale === 'en'
                 ? ($u->type?->name ?? 'Residential')
                 : ($u->type?->name_ar ?? 'سكني');
-            $priceFormatted = number_format((float) $u->price) . ' ' . $currency;
+            $priceFormatted = number_format((float) $u->price).' '.$currency;
 
             $agentWhatsapp = $u->user?->whatsapp ?? $u->user?->phone ?? $settingsWhatsapp ?: $settingsPhone;
-            $agentContact = !empty($agentWhatsapp) ? preg_replace('/[^\d+]/', '', (string) $agentWhatsapp) : 'N/A';
+            $agentContact = ! empty($agentWhatsapp) ? preg_replace('/[^\d+]/', '', (string) $agentWhatsapp) : 'N/A';
 
             if ($locale === 'en') {
                 $payment = $u->payment_method === 'installment' ? 'Installment' : ($u->payment_method === 'both' ? 'Cash or Installment' : 'Cash');
-                $downPayment = $u->down_payment ? ' (Down payment: ' . number_format((float) $u->down_payment) . ' ' . $currency . ')' : '';
-                $years = $u->installment_years ? ' (Over ' . $u->installment_years . ' years)' : '';
+                $downPayment = $u->down_payment ? ' (Down payment: '.number_format((float) $u->down_payment).' '.$currency.')' : '';
+                $years = $u->installment_years ? ' (Over '.$u->installment_years.' years)' : '';
                 $slug = $u->slug_en ?? $u->slug;
-                $url = '/' . $locale . '/units/' . $slug;
+                $url = '/'.$locale.'/units/'.$slug;
 
-                $list[] = '- Property: [' . $u->name . '](' . $url . ') | Type: ' . $typeName . ' | Price: ' . $priceFormatted . ' | Area: ' . $areaName . ' | Rooms: ' . $u->rooms . ' | Size: ' . $u->area_sqm . ' sqm | Payment: ' . $payment . $downPayment . $years . ' | Agent WhatsApp: ' . $agentContact . ' | Markdown link: [' . $u->name . '](' . $url . ')';
+                $list[] = '- Property: ['.$u->name.']('.$url.') | Type: '.$typeName.' | Price: '.$priceFormatted.' | Area: '.$areaName.' | Rooms: '.$u->rooms.' | Size: '.$u->area_sqm.' sqm | Payment: '.$payment.$downPayment.$years.' | Agent WhatsApp: '.$agentContact.' | Markdown link: ['.$u->name.']('.$url.')';
             } else {
                 $payment = $u->payment_method === 'installment' ? 'تقسيط' : ($u->payment_method === 'both' ? 'كاش أو تقسيط' : 'كاش');
-                $downPayment = $u->down_payment ? ' (مقدم: ' . number_format((float) $u->down_payment) . ' ' . $currency . ')' : '';
-                $years = $u->installment_years ? ' (تقسيط على ' . $u->installment_years . ' سنوات)' : '';
+                $downPayment = $u->down_payment ? ' (مقدم: '.number_format((float) $u->down_payment).' '.$currency.')' : '';
+                $years = $u->installment_years ? ' (تقسيط على '.$u->installment_years.' سنوات)' : '';
                 $slug = $u->slug_ar ?? $u->slug;
-                $url = '/' . $locale . '/units/' . $slug;
+                $url = '/'.$locale.'/units/'.$slug;
 
-                $list[] = '- اسم العقار: [' . $u->name . '](' . $url . ') | النوع: ' . $typeName . ' | السعر: ' . $priceFormatted . ' | المنطقة: ' . $areaName . ' | الغرف: ' . $u->rooms . ' | المساحة: ' . $u->area_sqm . ' م² | نظام الدفع: ' . $payment . $downPayment . $years . ' | واتساب الوكيل: ' . $agentContact . ' | رابط الماركداون: [' . $u->name . '](' . $url . ')';
+                $list[] = '- اسم العقار: ['.$u->name.']('.$url.') | النوع: '.$typeName.' | السعر: '.$priceFormatted.' | المنطقة: '.$areaName.' | الغرف: '.$u->rooms.' | المساحة: '.$u->area_sqm.' م² | نظام الدفع: '.$payment.$downPayment.$years.' | واتساب الوكيل: '.$agentContact.' | رابط الماركداون: ['.$u->name.']('.$url.')';
             }
         }
 
@@ -1313,8 +1338,8 @@ PROMPT;
                     $areaName = $u->area?->name_en ?? $u->area?->name ?? 'Prime Location';
                     $typeName = $u->type?->name ?? 'Property';
                     $slug = $u->slug_en ?? $u->slug;
-                    $url = '/' . $locale . '/units/' . $slug;
-                    $price = number_format((float) $u->price) . ' ' . $currency;
+                    $url = '/'.$locale.'/units/'.$slug;
+                    $price = number_format((float) $u->price).' '.$currency;
                     $reply .= "• [{$u->name}]({$url}) — **{$price}** | {$areaName} | {$typeName} | {$u->rooms} rooms | {$u->area_sqm} sqm\n";
                 }
                 $reply .= "\nWould you like more details about any of these? Or tell me your budget and preferences for a better match. [SHOW_CARDS]";
@@ -1324,8 +1349,8 @@ PROMPT;
                     $areaName = $u->area?->name_ar ?? $u->area?->name ?? 'موقع متميز';
                     $typeName = $u->type?->name_ar ?? 'عقار';
                     $slug = $u->slug_ar ?? $u->slug;
-                    $url = '/' . $locale . '/units/' . $slug;
-                    $price = number_format((float) $u->price) . ' ' . $currency;
+                    $url = '/'.$locale.'/units/'.$slug;
+                    $price = number_format((float) $u->price).' '.$currency;
                     $reply .= "• [{$u->name}]({$url}) — **{$price}** | {$areaName} | {$typeName} | {$u->rooms} غرف | {$u->area_sqm} م²\n";
                 }
                 $reply .= "\nعايز تفاصيل أكتر عن أي وحدة منهم؟ أو قولي ميزانيتك وأرشحلك الأنسب. [SHOW_CARDS]";
@@ -1336,10 +1361,10 @@ PROMPT;
 
         // 4. Fallback discovery
         if ($locale === 'en') {
-            return "Hello! I am Hossam from Family Home. How may I best assist you with properties or investments today?";
+            return 'Hello! I am Hossam from Family Home. How may I best assist you with properties or investments today?';
         }
 
-        return "أهلاً بك! أنا حسام من فاميلي هوم. كيف أقدر أساعدك في العقارات أو الاستثمار العقاري اليوم؟";
+        return 'أهلاً بك! أنا حسام من فاميلي هوم. كيف أقدر أساعدك في العقارات أو الاستثمار العقاري اليوم؟';
     }
 
     /**
@@ -1377,13 +1402,13 @@ PROMPT;
                     'maxOutputTokens' => 1200,
                 ],
             ];
-            if (!empty($systemInstruction)) {
+            if (! empty($systemInstruction)) {
                 $payload['systemInstruction'] = [
                     'parts' => [['text' => $systemInstruction]],
                 ];
             }
 
-            $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' . $this->geminiKey;
+            $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='.$this->geminiKey;
 
             $response = Http::withoutVerifying()
                 ->timeout($timeout)
@@ -1392,12 +1417,12 @@ PROMPT;
             if ($response->successful()) {
                 $data = $response->json();
                 $text = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
-                if (!empty($text)) {
+                if (! empty($text)) {
                     return trim($text);
                 }
             }
         } catch (\Throwable $e) {
-            Log::warning('HossamAssistant: Gemini direct failed: ' . $e->getMessage());
+            Log::warning('HossamAssistant: Gemini direct failed: '.$e->getMessage());
         }
 
         return null;
@@ -1424,21 +1449,21 @@ PROMPT;
             ];
 
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->apiKey,
+                'Authorization' => 'Bearer '.$this->apiKey,
                 'HTTP-Referer' => config('app.url', 'https://familyhome-co.com'),
                 'X-Title' => config('app.name', 'Family Home'),
                 'Content-Type' => 'application/json',
             ])
                 ->withoutVerifying()
                 ->timeout($timeout)
-                ->post($this->baseUrl . '/chat/completions', $payload);
+                ->post($this->baseUrl.'/chat/completions', $payload);
 
             if ($response->successful()) {
                 $rawBody = trim($response->body());
                 $data = json_decode($rawBody, true) ?: $response->json();
                 $msgObj = $data['choices'][0]['message'] ?? [];
                 $reply = $msgObj['content'] ?? null;
-                if (empty($reply) && !empty($msgObj['reasoning'])) {
+                if (empty($reply) && ! empty($msgObj['reasoning'])) {
                     $reply = $msgObj['reasoning'];
                 }
                 if (! empty($reply)) {
@@ -1449,12 +1474,12 @@ PROMPT;
                 }
             }
 
-            Log::warning('HossamAssistant: OpenRouter status ' . $response->status(), [
+            Log::warning('HossamAssistant: OpenRouter status '.$response->status(), [
                 'model' => $model,
                 'body' => mb_substr($response->body(), 0, 150),
             ]);
         } catch (\Throwable $e) {
-            Log::warning('HossamAssistant: Model ' . $model . ' timed out or failed: ' . $e->getMessage());
+            Log::warning('HossamAssistant: Model '.$model.' timed out or failed: '.$e->getMessage());
         }
 
         return null;
@@ -1494,7 +1519,7 @@ PROMPT;
         // Matching units first (highest relevance)
         foreach ($units as $u) {
             $slug = $locale === 'ar' ? ($u->slug_ar ?? $u->slug) : ($u->slug_en ?? $u->slug);
-            $url = '/' . $locale . '/units/' . $slug;
+            $url = '/'.$locale.'/units/'.$slug;
             if (! empty($u->name) && mb_strlen($u->name) >= 3) {
                 $linkMap[$u->name] = $url;
             }
@@ -1502,37 +1527,38 @@ PROMPT;
 
         // All active units and projects (Cached for 10 minutes to avoid hitting DB every turn)
         try {
-            $cachedLinks = \Illuminate\Support\Facades\Cache::remember('hossam_link_map_' . $locale, 600, function () use ($locale) {
+            $cachedLinks = Cache::remember('hossam_link_map_'.$locale, 600, function () use ($locale) {
                 $map = [];
-                $allUnits = Unit::where('is_active', true)->select(['id', 'name', 'slug', 'slug_ar', 'slug_en', 'project_id'])->with(['project' => fn($q) => $q->select(['id', 'name', 'slug', 'slug_ar', 'slug_en'])])->get();
+                $allUnits = Unit::where('is_active', true)->select(['id', 'name', 'slug', 'slug_ar', 'slug_en', 'project_id'])->with(['project' => fn ($q) => $q->select(['id', 'name', 'slug', 'slug_ar', 'slug_en'])])->get();
                 foreach ($allUnits as $u) {
                     $slug = $locale === 'ar' ? ($u->slug_ar ?? $u->slug) : ($u->slug_en ?? $u->slug);
-                    $url = '/' . $locale . '/units/' . $slug;
+                    $url = '/'.$locale.'/units/'.$slug;
                     if (! empty($u->name) && mb_strlen($u->name) >= 3 && ! isset($map[$u->name])) {
                         $map[$u->name] = $url;
                     }
                     if ($u->project && ! empty($u->project->name) && mb_strlen($u->project->name) >= 3) {
                         $pSlug = $locale === 'ar' ? ($u->project->slug_ar ?? $u->project->slug) : ($u->project->slug_en ?? $u->project->slug);
-                        $pUrl = '/' . $locale . '/projects/' . $pSlug;
+                        $pUrl = '/'.$locale.'/projects/'.$pSlug;
                         if (! isset($map[$u->project->name])) {
                             $map[$u->project->name] = $pUrl;
                         }
                     }
                 }
-                
+
                 $allProjects = Project::where('is_active', true)->select(['id', 'name', 'slug', 'slug_ar', 'slug_en'])->get();
                 foreach ($allProjects as $p) {
                     $pSlug = $locale === 'ar' ? ($p->slug_ar ?? $p->slug) : ($p->slug_en ?? $p->slug);
-                    $pUrl = '/' . $locale . '/projects/' . $pSlug;
+                    $pUrl = '/'.$locale.'/projects/'.$pSlug;
                     if (! empty($p->name) && mb_strlen($p->name) >= 3 && ! isset($map[$p->name])) {
                         $map[$p->name] = $pUrl;
                     }
                 }
+
                 return $map;
             });
-            
+
             foreach ($cachedLinks as $name => $url) {
-                if (!isset($linkMap[$name])) {
+                if (! isset($linkMap[$name])) {
                     $linkMap[$name] = $url;
                 }
             }
@@ -1549,7 +1575,7 @@ PROMPT;
 
         foreach ($linkMap as $name => $url) {
             // Skip if this URL is already linked in the text
-            if (str_contains($reply, '(' . $url . ')')) {
+            if (str_contains($reply, '('.$url.')')) {
                 continue;
             }
 
@@ -1557,44 +1583,44 @@ PROMPT;
 
             // 1. Markdown bold: **name**
             $reply = preg_replace_callback(
-                '/\*\*' . $nameEscaped . '\*\*/iu',
-                fn ($m) => '[' . $name . '](' . $url . ')',
+                '/\*\*'.$nameEscaped.'\*\*/iu',
+                fn ($m) => '['.$name.']('.$url.')',
                 $reply,
                 1
             );
 
-            if (str_contains($reply, '(' . $url . ')')) {
+            if (str_contains($reply, '('.$url.')')) {
                 continue;
             }
 
             // 2. Bracketed: [name] (without (url))
             $reply = preg_replace_callback(
-                '/\[(' . $nameEscaped . ')\](?!\()/iu',
-                fn ($m) => '[' . $m[1] . '](' . $url . ')',
+                '/\[('.$nameEscaped.')\](?!\()/iu',
+                fn ($m) => '['.$m[1].']('.$url.')',
                 $reply,
                 1
             );
 
-            if (str_contains($reply, '(' . $url . ')')) {
+            if (str_contains($reply, '('.$url.')')) {
                 continue;
             }
 
             // 3. Quotes: «name» or "name" or “name”
             $reply = preg_replace_callback(
-                '/[«"“](' . $nameEscaped . ')[»"”]/iu',
-                fn ($m) => '[' . $m[1] . '](' . $url . ')',
+                '/[«"“]('.$nameEscaped.')[»"”]/iu',
+                fn ($m) => '['.$m[1].']('.$url.')',
                 $reply,
                 1
             );
 
-            if (str_contains($reply, '(' . $url . ')')) {
+            if (str_contains($reply, '('.$url.')')) {
                 continue;
             }
 
             // 4. Plain name (not preceded by [ or / or alphanumeric)
             $reply = preg_replace_callback(
-                '/(?<!\[|\/|\w)(' . $nameEscaped . ')(?!\]|\))/iu',
-                fn ($m) => '[' . $m[1] . '](' . $url . ')',
+                '/(?<!\[|\/|\w)('.$nameEscaped.')(?!\]|\))/iu',
+                fn ($m) => '['.$m[1].']('.$url.')',
                 $reply,
                 1
             );
@@ -1618,17 +1644,17 @@ PROMPT;
             $imageUrl = asset('images/fallback.webp');
             if ($firstImg) {
                 // Use thumb_url for smaller widget cards, fallback to url, then raw path
-                $imageUrl = $firstImg->thumb_url ?: ($firstImg->url ?: asset('storage/' . ltrim($firstImg->path, '/')));
+                $imageUrl = $firstImg->thumb_url ?: ($firstImg->url ?: asset('storage/'.ltrim($firstImg->path, '/')));
             }
 
             // Agent contact or company fallback
             $whatsapp = $u->user?->whatsapp ?? $u->user?->phone ?? $settingsWhatsapp ?: $settingsPhone;
             $cleanWhatsapp = preg_replace('/[^\d]/', '', (string) $whatsapp);
             $whatsappText = $locale === 'en'
-                ? 'Hello, I would like to inquire about the property: ' . $u->name
-                : 'مرحباً، أستفسر بخصوص العقار: ' . $u->name;
+                ? 'Hello, I would like to inquire about the property: '.$u->name
+                : 'مرحباً، أستفسر بخصوص العقار: '.$u->name;
             $whatsappUrl = ! empty($cleanWhatsapp)
-                ? 'https://wa.me/' . $cleanWhatsapp . '?text=' . urlencode($whatsappText)
+                ? 'https://wa.me/'.$cleanWhatsapp.'?text='.urlencode($whatsappText)
                 : null;
 
             $areaName = $locale === 'en'
@@ -1648,7 +1674,7 @@ PROMPT;
                 'transaction' => $u->transaction,
                 'payment_method' => $u->payment_method,
                 'image_url' => $imageUrl,
-                'url' => '/' . $locale . '/units/' . $slug,
+                'url' => '/'.$locale.'/units/'.$slug,
                 'whatsapp_url' => $whatsappUrl,
             ];
         }
@@ -1680,11 +1706,11 @@ If they say "حدود 5 مليون" -> min_price: 4000000, max_price: 6000000.
 Message: "{$message}"
 PROMPT;
         try {
-            $response = \Illuminate\Support\Facades\Http::withHeaders([
+            $response = Http::withHeaders([
                 'Authorization' => "Bearer {$this->apiKey}",
                 'Content-Type' => 'application/json',
                 'HTTP-Referer' => config('app.url'),
-            ])->timeout(4)->post($this->baseUrl . '/chat/completions', [
+            ])->timeout(4)->post($this->baseUrl.'/chat/completions', [
                 'model' => 'openrouter/free',
                 'messages' => [['role' => 'user', 'content' => $prompt]],
                 'temperature' => 0.0,
@@ -1699,11 +1725,11 @@ PROMPT;
                 }
             }
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::warning('Hossam AI Extractor failed', ['error' => $e->getMessage()]);
+            Log::warning('Hossam AI Extractor failed', ['error' => $e->getMessage()]);
         }
+
         return [];
     }
-
 
     /**
      * Fetch live currency context if the user asked about it.
@@ -1711,25 +1737,28 @@ PROMPT;
     private function getLiveCurrencyContext(string $locale): string
     {
         try {
-            return \Illuminate\Support\Facades\Cache::remember('live_currency_rates', 3600 * 6, function () use ($locale) {
-                $response = \Illuminate\Support\Facades\Http::timeout(5)->get('https://api.exchangerate-api.com/v4/latest/USD');
+            return Cache::remember('live_currency_rates', 3600 * 6, function () use ($locale) {
+                $response = Http::timeout(5)->get('https://api.exchangerate-api.com/v4/latest/USD');
                 if ($response->successful()) {
                     $data = $response->json();
                     $egp = $data['rates']['EGP'] ?? null;
                     $eur = $data['rates']['EUR'] ?? null;
-                    
+
                     if ($egp && $eur) {
                         $eurToEgp = $egp / $eur;
                         if ($locale === 'en') {
-                            return "\n\nLIVE MARKET DATA (Use ONLY if asked):\n- USD to EGP: " . round($egp, 2) . " EGP.\n- EUR to EGP: " . round($eurToEgp, 2) . " EGP.";
+                            return "\n\nLIVE MARKET DATA (Use ONLY if asked):\n- USD to EGP: ".round($egp, 2)." EGP.\n- EUR to EGP: ".round($eurToEgp, 2).' EGP.';
                         }
-                        return "\n\nمعلومات حية للسوق اليوم (استخدمها بدقة إذا سألك العميل فقط):\n- سعر الدولار الأمريكي (USD): " . round($egp, 2) . " جنيه مصري.\n- سعر اليورو (EUR): " . round($eurToEgp, 2) . " جنيه مصري.";
+
+                        return "\n\nمعلومات حية للسوق اليوم (استخدمها بدقة إذا سألك العميل فقط):\n- سعر الدولار الأمريكي (USD): ".round($egp, 2)." جنيه مصري.\n- سعر اليورو (EUR): ".round($eurToEgp, 2).' جنيه مصري.';
                     }
                 }
+
                 return '';
             });
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::warning('HossamAssistant: Failed to fetch currency', ['error' => $e->getMessage()]);
+            Log::warning('HossamAssistant: Failed to fetch currency', ['error' => $e->getMessage()]);
+
             return '';
         }
     }

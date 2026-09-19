@@ -134,7 +134,7 @@ class FreshDummySeeder extends Seeder
         // 4. Create Dummy Units
         for ($i = 1; $i <= 6; $i++) {
             $project = $projects[array_rand($projects)];
-            $unit = new Unit();
+            $unit = new Unit;
             $unit->forceFill([
                 'project_id' => $project->id,
                 'user_id' => $admin->id,

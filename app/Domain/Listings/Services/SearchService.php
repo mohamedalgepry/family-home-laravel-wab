@@ -6,6 +6,8 @@ use App\Domain\Common\Support\Sanitizer;
 use App\Domain\Listings\Models\PopularSearch;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class SearchService
 {
@@ -41,16 +43,16 @@ class SearchService
                         ['keyword' => $keyword, 'search_count' => 1, 'last_searched_at' => now()],
                     ],
                     ['keyword'],
-                    ['search_count' => \Illuminate\Support\Facades\DB::raw('search_count + 1'), 'last_searched_at']
+                    ['search_count' => DB::raw('search_count + 1'), 'last_searched_at']
                 );
 
                 // Debounce cache version invalidation: update version at most once every 300 seconds
-                if (!Cache::has('popular_searches_debounce')) {
+                if (! Cache::has('popular_searches_debounce')) {
                     Cache::put('popular_searches_debounce', true, 300);
                     Cache::increment(self::CACHE_VERSION_KEY);
                 }
             } catch (\Throwable $e) {
-                \Illuminate\Support\Facades\Log::warning('Failed to record popular search: ' . $e->getMessage());
+                Log::warning('Failed to record popular search: '.$e->getMessage());
             }
         };
 

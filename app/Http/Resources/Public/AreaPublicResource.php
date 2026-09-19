@@ -5,6 +5,7 @@ namespace App\Http\Resources\Public;
 use App\Support\IconAllowlist;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Storage;
 
 class AreaPublicResource extends JsonResource
 {
@@ -106,7 +107,7 @@ class AreaPublicResource extends JsonResource
         $prefix = $dir !== '.' ? $dir.'/' : '';
         $variantPath = $prefix."{$variant}_{$filename}.webp";
 
-        if (\Illuminate\Support\Facades\Storage::disk('public')->exists($variantPath)) {
+        if (Storage::disk('public')->exists($variantPath)) {
             return asset('storage/'.$variantPath);
         }
 

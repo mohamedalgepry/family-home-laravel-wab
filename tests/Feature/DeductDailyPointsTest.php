@@ -172,9 +172,9 @@ test('12. transaction failure rolls back changes cleanly', function () {
         DB::transaction(function () use ($unit) {
             $unit->priority_points = 40;
             $unit->save();
-            throw new \RuntimeException('Simulated failure during deduction');
+            throw new RuntimeException('Simulated failure during deduction');
         });
-    } catch (\RuntimeException $e) {
+    } catch (RuntimeException $e) {
         // Expected
     }
 

@@ -5,6 +5,7 @@ use App\Domain\Listings\Models\Unit;
 use App\Domain\Listings\Models\UnitType;
 use App\Domain\Users\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
 
 uses(TestCase::class, DatabaseTransactions::class)->in('Feature');
@@ -65,8 +66,9 @@ function createTestUnit(array $attributes = []): Unit
     return $unit;
 }
 
-function createFakeImage(string $name = 'photo.jpg'): \Illuminate\Http\UploadedFile
+function createFakeImage(string $name = 'photo.jpg'): UploadedFile
 {
     $jpegContent = base64_decode('/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=');
-    return \Illuminate\Http\UploadedFile::fake()->createWithContent($name, $jpegContent);
+
+    return UploadedFile::fake()->createWithContent($name, $jpegContent);
 }

@@ -109,10 +109,10 @@ class StatisticsService
                 ->first();
 
             $projStats = Project::query()
-                ->selectRaw("
+                ->selectRaw('
                     COUNT(*) as total_projects,
                     COALESCE(SUM(views_count), 0) as total_views
-                ")
+                ')
                 ->first();
 
             return [

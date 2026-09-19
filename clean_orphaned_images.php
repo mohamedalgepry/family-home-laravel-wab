@@ -19,11 +19,12 @@ if (PHP_SAPI !== 'cli') {
 
 require __DIR__.'/vendor/autoload.php';
 $app = require_once __DIR__.'/bootstrap/app.php';
-$kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+$kernel = $app->make(Kernel::class);
 $kernel->bootstrap();
 
 use App\Domain\Listings\Models\ProjectImage;
 use App\Domain\Listings\Models\UnitImage;
+use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\Storage;
 
 $options = getopt('', ['dry-run', 'projects', 'all']);
@@ -139,10 +140,10 @@ function cleanFolder($disk, string $folder, array $validPaths, bool $isDryRun): 
             $bytesFreed += $fileSize;
 
             if ($isDryRun) {
-                echo " [ORPHAN] {$file} (" . round($fileSize / 1024, 1) . " KB)\n";
+                echo " [ORPHAN] {$file} (".round($fileSize / 1024, 1)." KB)\n";
             } else {
                 $disk->delete($file);
-                echo " 🗑 Deleted: {$file} (" . round($fileSize / 1024, 1) . " KB)\n";
+                echo " 🗑 Deleted: {$file} (".round($fileSize / 1024, 1)." KB)\n";
             }
         }
     }

@@ -5,7 +5,7 @@ namespace App\Domain\Assistant\DTOs;
 class UnitPaginationDTO
 {
     /**
-     * @param UnitPublicDTO[] $items
+     * @param  UnitPublicDTO[]  $items
      */
     public function __construct(
         public readonly array $items,
@@ -20,7 +20,7 @@ class UnitPaginationDTO
 
     public function toCardPayload(): array
     {
-        return array_map(fn(UnitPublicDTO $dto) => $dto->toCardPayload(), $this->items);
+        return array_map(fn (UnitPublicDTO $dto) => $dto->toCardPayload(), $this->items);
     }
 
     public function toLlmSnippet(): array
@@ -31,7 +31,7 @@ class UnitPaginationDTO
             'page' => $this->currentPage,
             'total_units' => $this->total,
             'has_more' => $this->hasMore,
-            'units' => array_map(fn(UnitPublicDTO $dto) => $dto->toLlmSnippet(), $this->items),
+            'units' => array_map(fn (UnitPublicDTO $dto) => $dto->toLlmSnippet(), $this->items),
         ];
     }
 }

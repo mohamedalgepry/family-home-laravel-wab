@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Domain\Assistant\Contracts\AssistantCatalogRepositoryInterface;
+use App\Domain\Assistant\Repositories\AssistantCatalogRepository;
 use App\Domain\Listings\Models\AboutPage;
 use App\Domain\Listings\Models\Area;
 use App\Domain\Listings\Models\Article;
@@ -43,8 +45,8 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(
-            \App\Domain\Assistant\Contracts\AssistantCatalogRepositoryInterface::class,
-            \App\Domain\Assistant\Repositories\AssistantCatalogRepository::class
+            AssistantCatalogRepositoryInterface::class,
+            AssistantCatalogRepository::class
         );
     }
 

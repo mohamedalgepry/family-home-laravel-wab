@@ -4,9 +4,7 @@ use App\Domain\Listings\Models\Area;
 use App\Domain\Listings\Models\Article;
 use App\Domain\Listings\Models\Category;
 use App\Domain\Listings\Models\Project;
-use App\Domain\Listings\Models\Unit;
 use App\Domain\Listings\Models\UnitType;
-use App\Domain\Users\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
 
 test('unit show page includes similar units, related projects, and related articles', function () {
