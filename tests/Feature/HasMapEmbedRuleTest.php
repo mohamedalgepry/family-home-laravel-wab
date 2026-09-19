@@ -3,18 +3,21 @@
 use App\Http\Requests\Admin\Concerns\HasMapEmbedRule;
 use Illuminate\Support\Facades\Validator;
 
-class DummyRequest
+function makeMapEmbedRuleHarness(): object
 {
-    use HasMapEmbedRule;
-
-    public function getRules()
+    return new class
     {
-        return ['map_embed_url' => $this->mapEmbedUrlRule()];
-    }
+        use HasMapEmbedRule;
+
+        public function getRules(): array
+        {
+            return ['map_embed_url' => $this->mapEmbedUrlRule()];
+        }
+    };
 }
 
 test('map embed rule accepts empty or null values', function () {
-    $request = new DummyRequest;
+    $request = makeMapEmbedRuleHarness();
 
     $validator = Validator::make(['map_embed_url' => null], $request->getRules());
     $this->assertTrue($validator->passes());
@@ -24,14 +27,14 @@ test('map embed rule accepts empty or null values', function () {
 });
 
 test('map embed rule rejects non-url values', function () {
-    $request = new DummyRequest;
+    $request = makeMapEmbedRuleHarness();
 
     $validator = Validator::make(['map_embed_url' => 'not-a-url'], $request->getRules());
     $this->assertFalse($validator->passes());
 });
 
 test('map embed rule rejects invalid map domains', function () {
-    $request = new DummyRequest;
+    $request = makeMapEmbedRuleHarness();
 
     $validator = Validator::make(['map_embed_url' => 'https://evil.com/map'], $request->getRules());
     $this->assertFalse($validator->passes());
@@ -39,7 +42,7 @@ test('map embed rule rejects invalid map domains', function () {
 });
 
 test('map embed rule accepts valid map domains', function () {
-    $request = new DummyRequest;
+    $request = makeMapEmbedRuleHarness();
 
     $validator = Validator::make(['map_embed_url' => 'https://www.google.com/maps/embed?pb=!1m18'], $request->getRules());
     $this->assertTrue($validator->passes());
@@ -49,7 +52,7 @@ test('map embed rule accepts valid map domains', function () {
 });
 
 test('map embed rule rejects lookalike domains that merely end with google.com', function () {
-    $request = new DummyRequest;
+    $request = makeMapEmbedRuleHarness();
 
     // These hosts END with "google.com"/"google.com.sa" as a plain string but are
     // attacker-controlled domains — a naive str_ends_with() check accepted them.
@@ -67,7 +70,7 @@ test('map embed rule rejects lookalike domains that merely end with google.com',
 });
 
 test('map embed rule rejects non-http schemes even on google hosts', function () {
-    $request = new DummyRequest;
+    $request = makeMapEmbedRuleHarness();
 
     $validator = Validator::make(['map_embed_url' => 'javascript:alert(1)//google.com'], $request->getRules());
     $this->assertFalse($validator->passes());
