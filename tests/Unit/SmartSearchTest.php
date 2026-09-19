@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Domain\Listings\DTOs\ParsedSearch;
 use App\Domain\Listings\Models\Area;
 use App\Domain\Listings\Models\UnitType;
 use App\Domain\Listings\Services\FilterResolver;
@@ -17,7 +18,7 @@ class SmartSearchTest extends TestCase
 
     public function test_normalizer_cleans_arabic_text()
     {
-        $normalizer = new SearchNormalizer;
+        $normalizer = new SearchNormalizer();
 
         $this->assertEquals('شقه', $normalizer->normalize('شَقَّة'));
         $this->assertEquals('ا ا ا', $normalizer->normalize('أ إ آ'));
@@ -30,12 +31,12 @@ class SmartSearchTest extends TestCase
 
     public function test_price_parser_extracts_prices()
     {
-        $parser = new PriceParser;
+        $parser = new PriceParser();
 
         $result = $parser->parse('شقه ب 5 مليون جنيه');
         $this->assertEquals(5000000, $result['price_max']);
         $this->assertArrayNotHasKey('price_min', $result);
-
+        
         $result = $parser->parse('اقل من 500 الف');
         $this->assertEquals(500000, $result['price_max']);
 
@@ -48,7 +49,7 @@ class SmartSearchTest extends TestCase
 
         $result = $parser->parse('5.5 مليون');
         $this->assertEquals(5500000, $result['price_max']);
-
+        
         // False positive check
         $result = $parser->parse('شقه للبيع في مدينه م نصر');
         $this->assertNull($result);
@@ -61,29 +62,29 @@ class SmartSearchTest extends TestCase
         Area::create(['name_ar' => 'التجمع الخامس', 'name_en' => '5th Settlement', 'slug' => '5th']);
         Area::create(['name_ar' => 'التجمع', 'name_en' => 'Tagamo3', 'slug' => 'tagamo3']);
 
-        $normalizer = new SearchNormalizer;
-        $service = new SmartSearchService($normalizer, new PriceParser);
+        $normalizer = new SearchNormalizer();
+        $service = new SmartSearchService($normalizer, new PriceParser());
 
         // Test extracting Area, Type, Transaction, and Price
         $parsed = $service->parse('شقة للبيع في التجمع الخامس بـ 5 مليون');
-
+        
         $this->assertEquals('sale', $parsed->filters['transaction']);
         $this->assertEquals(5000000, $parsed->filters['price_max']);
         $this->assertNotEmpty($parsed->filters['type_id']);
         $this->assertNotEmpty($parsed->filters['area_id']);
-
+        
         // Ensure longest match won: Area should be 'التجمع الخامس' not 'التجمع'
         $area = Area::find($parsed->filters['area_id']);
         $this->assertEquals('التجمع الخامس', $area->name_ar);
 
         // Ensure clean query contains the remaining words
-        $this->assertEquals('في', $parsed->cleanQuery);
+        $this->assertEquals('في', $parsed->cleanQuery); 
     }
 
     public function test_filter_resolver_prioritizes_explicit_filters()
     {
-        $normalizer = new SearchNormalizer;
-        $service = new SmartSearchService($normalizer, new PriceParser);
+        $normalizer = new SearchNormalizer();
+        $service = new SmartSearchService($normalizer, new PriceParser());
         $resolver = new FilterResolver($service);
 
         // User typed "للبيع" but explicitly selected "rent" in the dropdown

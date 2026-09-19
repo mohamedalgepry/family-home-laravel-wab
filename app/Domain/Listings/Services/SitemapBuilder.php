@@ -194,84 +194,9 @@ class SitemapBuilder
             'Disallow: /*/verify-otp',
             'Disallow: /storage/temp/',
             '',
-            // AEO/GEO: explicitly welcome AI answer-engine crawlers so the site
-            // is eligible to appear in ChatGPT, Claude, Perplexity, Gemini and
-            // AI Overviews answers. They inherit the same Disallow rules.
-            'User-agent: GPTBot',
-            'Allow: /',
-            '',
-            'User-agent: OAI-SearchBot',
-            'Allow: /',
-            '',
-            'User-agent: ChatGPT-User',
-            'Allow: /',
-            '',
-            'User-agent: ClaudeBot',
-            'Allow: /',
-            '',
-            'User-agent: anthropic-ai',
-            'Allow: /',
-            '',
-            'User-agent: PerplexityBot',
-            'Allow: /',
-            '',
-            'User-agent: Google-Extended',
-            'Allow: /',
-            '',
-            'User-agent: Meta-ExternalAgent',
-            'Allow: /',
-            '',
-            'User-agent: Amazonbot',
-            'Allow: /',
-            '',
-            'User-agent: CCBot',
-            'Allow: /',
-            '',
             "Sitemap: {$baseUrl}/sitemap.xml",
-            "LLMs: {$baseUrl}/llms.txt",
             '',
         ]);
-    }
-
-    /**
-     * llms.txt — the emerging convention (llmstxt.org) that gives AI answer
-     * engines a curated, token-efficient map of the site's most valuable
-     * content. Served at /llms.txt.
-     */
-    public function buildLlmsTxt(): string
-    {
-        $baseUrl = $this->baseUrl();
-
-        $lines = [
-            '# '.__('seo.site_name'),
-            '',
-            '> '.__('seo.default_description'),
-            '',
-            __('seo.company_name'),
-            '',
-            '## '.(app()->getLocale() === 'ar' ? 'الأقسام الرئيسية' : 'Main sections'),
-            '',
-            "- [Units for sale & rent]({$baseUrl}/ar/units): apartments, villas, shops and offices with prices in EGP",
-            "- [Real-estate projects & compounds]({$baseUrl}/ar/projects): residential and commercial developments with payment plans",
-            "- [Areas guide]({$baseUrl}/ar/areas): neighbourhood guides with FAQs, nearby places and available listings",
-            "- [Hot deals]({$baseUrl}/ar/units/deals): discounted and featured properties",
-            "- [Articles & market insights]({$baseUrl}/ar/articles): buying guides, market analysis and real-estate news",
-            "- [About the company]({$baseUrl}/ar/about)",
-            "- [Contact]({$baseUrl}/ar/contact)",
-            '',
-            '## Sitemaps',
-            '',
-            "- [Sitemap index]({$baseUrl}/sitemap.xml)",
-            '',
-            '## Notes',
-            '',
-            '- Content is bilingual: Arabic under /ar/, English under /en/.',
-            '- Listing pages include structured data (RealEstateListing, Offer, BreadcrumbList).',
-            '- Prices are in Egyptian Pounds (EGP).',
-            '',
-        ];
-
-        return implode("\n", $lines);
     }
 
     private function startUrlSet(): string

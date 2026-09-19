@@ -198,31 +198,13 @@ class Sanitizer
             return false;
         }
 
-        $scheme = strtolower((string) parse_url($src, PHP_URL_SCHEME));
-        if ($scheme !== 'https' && $scheme !== 'http') {
-            return false;
-        }
-
         $host = parse_url($src, PHP_URL_HOST);
 
-        if ($host === null || $host === false) {
-            return false;
-        }
-
-        $host = strtolower($host);
-
-        // Exact match or a true subdomain (".google.com" suffix).
-        // A bare str_ends_with($host, 'google.com') check would accept
-        // attacker-controlled domains like "evilgoogle.com".
-        $allowedHosts = ['google.com', 'google.com.sa'];
-
-        foreach ($allowedHosts as $allowed) {
-            if ($host === $allowed || str_ends_with($host, '.'.$allowed)) {
-                return true;
-            }
-        }
-
-        return false;
+        return $host !== null
+            && (str_ends_with($host, 'google.com')
+                || str_ends_with($host, 'maps.google.com')
+                || str_ends_with($host, 'google.com.sa')
+                || str_ends_with($host, 'maps.google.com.sa'));
     }
 
     public static function extractMapSrc(string $value): ?string

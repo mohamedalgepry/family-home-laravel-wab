@@ -48,14 +48,6 @@
     if (is_array($keywords)) {
         $keywords = implode(', ', array_filter($keywords));
     }
-
-    // og:locale improves link previews & language detection on Facebook/WhatsApp
-    $ogLocale = app()->getLocale() === 'ar' ? 'ar_EG' : 'en_US';
-    $ogLocaleAlt = app()->getLocale() === 'ar' ? 'en_US' : 'ar_EG';
-
-    // Default robots: allow large image previews in Google Discover / image results.
-    // An explicit robots value (e.g. noindex for filtered pages) takes precedence.
-    $robots = $meta['robots'] ?? 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
 @endphp
 
 <title inertia>{{ $title }}</title>
@@ -66,7 +58,9 @@
 <meta name="keywords" content="{{ $keywords }}" inertia head-key="keywords">
 @endif
 <meta name="author" content="mohamed algebry" inertia head-key="author">
-<meta name="robots" content="{{ $robots }}" inertia head-key="robots">
+@if(!empty($meta['robots']))
+<meta name="robots" content="{{ $meta['robots'] }}" inertia head-key="robots">
+@endif
 <link rel="canonical" href="{{ $canonical }}" inertia head-key="canonical">
 
 @foreach($hreflang as $lang => $url)
@@ -85,8 +79,6 @@
 <meta property="og:image:height" content="{{ $imageHeight }}" inertia head-key="og:image:height">
 <meta property="og:image:alt" content="{{ $title }}" inertia head-key="og:image:alt">
 <meta property="og:site_name" content="{{ config('app.name') }}" inertia head-key="og:site_name">
-<meta property="og:locale" content="{{ $ogLocale }}" inertia head-key="og:locale">
-<meta property="og:locale:alternate" content="{{ $ogLocaleAlt }}" inertia head-key="og:locale:alternate">
 <link rel="image_src" href="{{ $image }}" inertia head-key="image_src">
 <meta itemprop="image" content="{{ $image }}" inertia head-key="itemprop:image">
 

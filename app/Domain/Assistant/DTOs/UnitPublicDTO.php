@@ -2,8 +2,6 @@
 
 namespace App\Domain\Assistant\DTOs;
 
-use App\Domain\Assistant\Services\AssistantContactResolver;
-
 class UnitPublicDTO
 {
     public function __construct(
@@ -55,8 +53,8 @@ class UnitPublicDTO
         $priceFormatted = number_format($price, 0, '.', ',');
 
         // Load agent/broker info if available via safe contact resolver
-        $agent = ! empty($unit->user_id)
-            ? AssistantContactResolver::resolveAgentContact((int) $unit->user_id)
+        $agent = !empty($unit->user_id)
+            ? \App\Domain\Assistant\Services\AssistantContactResolver::resolveAgentContact((int) $unit->user_id)
             : null;
 
         $agentName = $agent['name'] ?? null;
@@ -64,21 +62,21 @@ class UnitPublicDTO
         $agentWhatsapp = $agent['whatsapp'] ?? null;
 
         // WhatsApp inquiry URL: prefer direct agent WhatsApp if available, otherwise company WhatsApp
-        $targetWa = ! empty($agentWhatsapp)
+        $targetWa = !empty($agentWhatsapp)
             ? $agentWhatsapp
             : (string) ($companyWhatsapp ?: config('assistant.default_whatsapp', '201000000000'));
         $cleanPhone = preg_replace('/[^\d]/', '', (string) $targetWa);
         $waText = urlencode($locale === 'ar'
             ? "مرحباً، أود الاستفسار عن الوحدة: {$name}"
             : "Hello, I would like to inquire about unit: {$name}");
-        $whatsappUrl = ! empty($cleanPhone) ? "https://wa.me/{$cleanPhone}?text={$waText}" : null;
+        $whatsappUrl = !empty($cleanPhone) ? "https://wa.me/{$cleanPhone}?text={$waText}" : null;
 
         return new self(
             id: (int) $unit->id,
             projectId: (int) $unit->project_id,
             name: htmlspecialchars((string) $name, ENT_QUOTES, 'UTF-8'),
             slug: (string) $slug,
-            url: "/{$locale}/units/".urlencode((string) $slug),
+            url: "/{$locale}/units/" . urlencode((string) $slug),
             imageUrl: '/images/fallback.webp',
             location: $location ? htmlspecialchars((string) $location, ENT_QUOTES, 'UTF-8') : null,
             price: $price,
@@ -126,7 +124,7 @@ class UnitPublicDTO
         $snippet = [
             'name' => $this->name,
             'slug' => $this->slug,
-            'price' => $this->priceFormatted.' '.$this->currency,
+            'price' => $this->priceFormatted . ' ' . $this->currency,
             'area_sqm' => $this->areaSqm,
             'rooms' => $this->rooms,
             'bathrooms' => $this->bathrooms,

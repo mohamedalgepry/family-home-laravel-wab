@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Admin;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -34,7 +33,7 @@ class MediaController
                 'url' => Storage::url($path),
             ]);
         } catch (\Throwable $e) {
-            Log::error('Media upload failed', [
+            \Illuminate\Support\Facades\Log::error('Media upload failed', [
                 'error' => $e->getMessage(),
                 'user_id' => $request->user()?->id,
             ]);

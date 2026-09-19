@@ -146,10 +146,6 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                                             key={idx} 
                                             src={getStorageUrl(img)} 
                                             alt={`${areaName} gallery ${idx}`} 
-                                            width={400}
-                                            height={300}
-                                            loading="lazy"
-                                            decoding="async"
                                             className="w-full h-32 md:h-40 object-cover rounded-2xl shadow-sm hover:scale-105 transition-transform duration-300 cursor-pointer" 
                                         />
                                     ))}
@@ -393,10 +389,6 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                                             <img 
                                                 src={rImg} 
                                                 alt={rName} 
-                                                width={400}
-                                                height={256}
-                                                loading="lazy"
-                                                decoding="async"
                                                 onError={(e) => { e.currentTarget.style.display = 'none'; }}
                                                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
                                             />

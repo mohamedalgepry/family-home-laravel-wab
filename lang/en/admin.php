@@ -14,7 +14,6 @@ return [
     'sidebar_articles' => 'Articles & News',
     'sidebar_messages' => 'Messages',
     'sidebar_users' => 'Users',
-    'sidebar_assistant_leads' => 'AI Assistant Leads',
     'sidebar_points' => 'Points',
     'sidebar_settings' => 'Settings',
     'sidebar_seo_pages' => 'SEO Pages',

@@ -2,6 +2,9 @@
 
 namespace App\Domain\Assistant\Services;
 
+use App\Domain\Listings\Models\Area;
+use App\Domain\Listings\Models\Project;
+use App\Domain\Listings\Models\Setting;
 use App\Domain\Listings\Models\Unit;
 use App\Domain\Listings\Services\SettingsService;
 use Illuminate\Support\Facades\Cache;
@@ -11,9 +14,7 @@ use Illuminate\Support\Facades\Log;
 class HossamKnowledgeService
 {
     private const KNOWLEDGE_FILE = 'assistant_knowledge.json';
-
     private const KNOWLEDGE_CACHE_KEY = 'hossam_learned_knowledge_v1';
-
     private const FAQ_FREQUENCY_KEY = 'hossam_faq_frequency_v1';
 
     public function __construct(
@@ -45,20 +46,19 @@ class HossamKnowledgeService
         }
 
         if ($res !== null) {
-            if (! isset($res['show_calculator'])) {
+            if (!isset($res['show_calculator'])) {
                 $isCalculatorQuery = (bool) preg_match('/(قسط|تقسيط|مقدم|احسب|حاسبة|حاسبه|كم شهري|كام شهري|كم القسط|installment|down payment|calculator|mortgage)/iu', $message);
                 $res['show_calculator'] = $isCalculatorQuery;
             }
-            if (! isset($res['recommended_units'])) {
+            if (!isset($res['recommended_units'])) {
                 $res['recommended_units'] = [];
             }
-            if (! isset($res['quick_replies'])) {
+            if (!isset($res['quick_replies'])) {
                 $res['quick_replies'] = [];
             }
-            if (! isset($res['is_hot_lead'])) {
+            if (!isset($res['is_hot_lead'])) {
                 $res['is_hot_lead'] = false;
             }
-
             return $res;
         }
 
@@ -90,14 +90,14 @@ class HossamKnowledgeService
                 return;
             }
 
-            $storagePath = storage_path('app/'.self::KNOWLEDGE_FILE);
+            $storagePath = storage_path('app/' . self::KNOWLEDGE_FILE);
             $knowledge = [];
             if (file_exists($storagePath)) {
                 $raw = @file_get_contents($storagePath);
                 $knowledge = json_decode($raw, true) ?: [];
             }
 
-            $key = md5($normalized.'_'.$locale);
+            $key = md5($normalized . '_' . $locale);
             $knowledge[$key] = [
                 'question' => $message,
                 'normalized' => $normalized,
@@ -111,7 +111,7 @@ class HossamKnowledgeService
             // Cap stored items to prevent unbounded file growth
             if (count($knowledge) > 300) {
                 // Keep the most frequently used or recent items
-                uasort($knowledge, fn ($a, $b) => ($b['hits'] ?? 0) <=> ($a['hits'] ?? 0));
+                uasort($knowledge, fn($a, $b) => ($b['hits'] ?? 0) <=> ($a['hits'] ?? 0));
                 $knowledge = array_slice($knowledge, 0, 300, true);
             }
 
@@ -130,7 +130,7 @@ class HossamKnowledgeService
         $phone = $this->settingsService->get('phone', '01000000000');
         $whatsapp = $this->settingsService->get('company_whatsapp', $phone);
         $cleanWhatsapp = preg_replace('/[^\d]/', '', (string) $whatsapp);
-        $whatsappUrl = 'https://wa.me/'.$cleanWhatsapp.'?text='.urlencode($locale === 'en' ? 'Hello Family Home, I would like to inquire about properties' : 'مرحباً فاميلي هوم، أود الاستفسار عن العقارات المتاحة');
+        $whatsappUrl = 'https://wa.me/' . $cleanWhatsapp . '?text=' . urlencode($locale === 'en' ? 'Hello Family Home, I would like to inquire about properties' : 'مرحباً فاميلي هوم، أود الاستفسار عن العقارات المتاحة');
         $address = $this->settingsService->get('company_address', 'القاهرة الجديدة، مصر');
 
         // 1. Greetings / الترحيب
@@ -181,6 +181,7 @@ class HossamKnowledgeService
                 ],
             ];
         }
+
 
         // 1b. Small Talk / كيف الحال والأخبار (الرد الودود بدون استبيانات)
         if (preg_match('/^(اخبارك|اخبارك ايه|عامل ايه|شخبارك|كيف حالك|كيفك|ازي حضرتك|ازيك|كله تمام|طمني عنك|how are you|how is it going)/iu', $text)) {
@@ -402,7 +403,7 @@ class HossamKnowledgeService
         // 8. Currency Rates / أسعار العملات
         if (preg_match('/(سعر الدولار|الدولار بكام|سعر اليورو|اسعار العملات|أسعار العملات|dollar rate|exchange rate)/iu', $text)) {
             $currencyText = $this->getLiveCurrencyRates($locale);
-            if (! empty($currencyText)) {
+            if (!empty($currencyText)) {
                 return [
                     'reply' => $currencyText,
                     'recommended_units' => [],
@@ -425,7 +426,6 @@ class HossamKnowledgeService
                     'quick_replies' => ['Chat on WhatsApp to book a visit', 'Show me available properties'],
                 ];
             }
-
             return [
                 'reply' => "قرار ممتاز — المعاينة الميدانية هي أفضل طريقة لاتخاذ قرار الشراء الصح! 🏠\n\nلحجز **معاينة مجانية**:\n1. تواصل مع فريقنا عبر واتساب: [اضغط هنا للتواصل معنا]({$whatsappUrl})\n2. أخبرهم باسم العقار والمواعيد المناسبة.\n3. مستشارنا سيرافقك في الزيارة ويشرحلك كل التفاصيل.\n\nالمعاينة **مجانية 100%** بدون أي التزامات.",
                 'recommended_units' => [],
@@ -444,7 +444,6 @@ class HossamKnowledgeService
                     'quick_replies' => ['Connect with legal advisor', 'Ready-to-register properties', 'Cash discount properties'],
                 ];
             }
-
             return [
                 'reply' => "**مصاريف التسجيل العقاري في مصر (2024-2025):**\n\n📋 **التفاصيل:**\n• **رسوم التوثيق:** حوالي 1.5% إلى 3% من القيمة المُعلنة\n• **رسوم الشهر العقاري:** 2.5% من القيمة المُسجلة\n• **رسوم الدمغة:** 0.3% من قيمة العقد\n• **أتعاب المحامي (اختياري):** 1% إلى 2%\n\n💡 احتفظ دائماً بالعقود الأصلية والإيصالات. الوحدات على الخريطة قد يكون لها مواعيد تسجيل مؤجلة.",
                 'recommended_units' => [],
@@ -463,7 +462,6 @@ class HossamKnowledgeService
                     'quick_replies' => ['Show installment properties', 'Compare loan vs installments', 'Connect with financial advisor'],
                 ];
             }
-
             return [
                 'reply' => "**التمويل العقاري البنكي في مصر:**\n\n🏦 أهم المعلومات:\n• **نسبة التمويل:** تصل إلى 80% للوحدات الجاهزة\n• **مدة التمويل:** من 5 إلى 20 سنة\n• **سعر الفائدة:** 10% إلى 16% سنوياً (متناقص)\n• **الوحدات المؤهلة:** وحدات مسجلة بسند واضح\n\n⚠️ الوحدات على الخريطة عادةً لا تؤهل للتمويل إلا بعد اكتمال التسجيل.\n\n💡 معظم شركاء المطورين يقدمون **أقساطاً داخلية بدون فوائد** وهي غالباً أفضل من القرض البنكي.",
                 'recommended_units' => [],
@@ -475,7 +473,7 @@ class HossamKnowledgeService
         // 12. Immediate Delivery / استلام فوري
         if (preg_match('/(استلام فوري|استلام حالي|تسليم فوري|تسليم حالي|جاهز للسكن|شقق جاهزة|وحدات جاهزة|ready to move|immediate delivery)/iu', $text)) {
             $units = Unit::where('is_active', true)
-                ->where(fn ($q) => $q->where('delivery_date', '<=', now()->addMonths(6))->orWhereNull('delivery_date'))
+                ->where(fn($q) => $q->where('delivery_date', '<=', now()->addMonths(6))->orWhereNull('delivery_date'))
                 ->with(['area', 'type', 'images', 'user', 'project'])
                 ->orderByDesc('is_pinned')
                 ->orderByDesc('priority_points')
@@ -486,18 +484,17 @@ class HossamKnowledgeService
 
             if ($locale === 'en') {
                 return [
-                    'reply' => ! $units->isEmpty()
-                        ? 'Great choice — ready-to-move units give you **immediate rental income** without construction delays! Here are available units: [SHOW_CARDS]'
+                    'reply' => !$units->isEmpty()
+                        ? "Great choice — ready-to-move units give you **immediate rental income** without construction delays! Here are available units: [SHOW_CARDS]"
                         : "Ready unit availability changes frequently. Contact our team for the latest: [{$whatsapp}]({$whatsappUrl})",
                     'recommended_units' => $formattedCards,
                     'is_hot_lead' => true,
                     'quick_replies' => ['Book a site visit', 'Calculate installments', 'Contact sales team'],
                 ];
             }
-
             return [
-                'reply' => ! $units->isEmpty()
-                    ? 'خيار ممتاز — الوحدات الجاهزة تمنحك **دخلاً إيجارياً فورياً** بدون انتظار! إليك الوحدات الجاهزة المتاحة: [SHOW_CARDS]'
+                'reply' => !$units->isEmpty()
+                    ? "خيار ممتاز — الوحدات الجاهزة تمنحك **دخلاً إيجارياً فورياً** بدون انتظار! إليك الوحدات الجاهزة المتاحة: [SHOW_CARDS]"
                     : "توافر الوحدات الجاهزة يتغير باستمرار. تواصل مع فريقنا لأحدث ما لدينا: [اضغط هنا للواتساب]({$whatsappUrl})",
                 'recommended_units' => $formattedCards,
                 'is_hot_lead' => true,
@@ -531,16 +528,15 @@ class HossamKnowledgeService
                 }
 
                 // 1. Keyword-based matching for admin custom Q&A
-                if (! empty($item['keywords']) && is_array($item['keywords'])) {
+                if (!empty($item['keywords']) && is_array($item['keywords'])) {
                     foreach ($item['keywords'] as $kw) {
                         $normKw = $this->normalizeText($kw);
-                        if (! empty($normKw) && (str_contains($normalized, $normKw) || str_contains($normKw, $normalized))) {
+                        if (!empty($normKw) && (str_contains($normalized, $normKw) || str_contains($normKw, $normalized))) {
                             $this->incrementHit($key);
-
                             return [
                                 'reply' => $item['reply'],
                                 'recommended_units' => [],
-                                'is_hot_lead' => ! empty($item['is_hot_lead']),
+                                'is_hot_lead' => !empty($item['is_hot_lead']),
                                 'quick_replies' => $item['quick_replies'] ?? [],
                             ];
                         }
@@ -555,11 +551,10 @@ class HossamKnowledgeService
                 // 2. Exact match
                 if ($normalized === $storedNormalized) {
                     $this->incrementHit($key);
-
                     return [
                         'reply' => $item['reply'],
                         'recommended_units' => [],
-                        'is_hot_lead' => ! empty($item['is_hot_lead']),
+                        'is_hot_lead' => !empty($item['is_hot_lead']),
                         'quick_replies' => $item['quick_replies'] ?? [],
                     ];
                 }
@@ -568,11 +563,10 @@ class HossamKnowledgeService
                 similar_text($normalized, $storedNormalized, $percent);
                 if ($percent >= 82) {
                     $this->incrementHit($key);
-
                     return [
                         'reply' => $item['reply'],
                         'recommended_units' => [],
-                        'is_hot_lead' => ! empty($item['is_hot_lead']),
+                        'is_hot_lead' => !empty($item['is_hot_lead']),
                         'quick_replies' => $item['quick_replies'] ?? [],
                     ];
                 }
@@ -590,13 +584,11 @@ class HossamKnowledgeService
     public function loadKnowledge(): array
     {
         return Cache::remember(self::KNOWLEDGE_CACHE_KEY, 86400, function () {
-            $storagePath = storage_path('app/'.self::KNOWLEDGE_FILE);
+            $storagePath = storage_path('app/' . self::KNOWLEDGE_FILE);
             if (file_exists($storagePath)) {
                 $raw = @file_get_contents($storagePath);
-
                 return json_decode($raw, true) ?: [];
             }
-
             return [];
         });
     }
@@ -607,7 +599,7 @@ class HossamKnowledgeService
     private function incrementHit(string $key): void
     {
         try {
-            $storagePath = storage_path('app/'.self::KNOWLEDGE_FILE);
+            $storagePath = storage_path('app/' . self::KNOWLEDGE_FILE);
             $knowledge = [];
             if (file_exists($storagePath)) {
                 $raw = @file_get_contents($storagePath);
@@ -651,7 +643,6 @@ class HossamKnowledgeService
             if ($b['hits'] !== $a['hits']) {
                 return $b['hits'] <=> $a['hits'];
             }
-
             return strcmp($b['learned_at'] ?? '', $a['learned_at'] ?? '');
         });
 
@@ -663,7 +654,7 @@ class HossamKnowledgeService
      */
     public function saveItem(array $data, ?string $id = null): string
     {
-        $storagePath = storage_path('app/'.self::KNOWLEDGE_FILE);
+        $storagePath = storage_path('app/' . self::KNOWLEDGE_FILE);
         $knowledge = [];
         if (file_exists($storagePath)) {
             $raw = @file_get_contents($storagePath);
@@ -675,11 +666,11 @@ class HossamKnowledgeService
         $locale = $data['locale'] ?? 'ar';
         $normalized = $this->normalizeText($question);
 
-        $key = $id ?: md5($normalized.'_'.$locale.'_'.uniqid());
+        $key = $id ?: md5($normalized . '_' . $locale . '_' . uniqid());
 
         // Process keywords
         $keywords = [];
-        if (! empty($data['keywords'])) {
+        if (!empty($data['keywords'])) {
             if (is_array($data['keywords'])) {
                 $keywords = array_values(array_filter(array_map('trim', $data['keywords'])));
             } else {
@@ -689,7 +680,7 @@ class HossamKnowledgeService
 
         // Process quick replies
         $quickReplies = [];
-        if (! empty($data['quick_replies'])) {
+        if (!empty($data['quick_replies'])) {
             if (is_array($data['quick_replies'])) {
                 $quickReplies = array_values(array_filter(array_map('trim', $data['quick_replies'])));
             } else {
@@ -725,15 +716,15 @@ class HossamKnowledgeService
      */
     public function deleteItem(string $id): bool
     {
-        $storagePath = storage_path('app/'.self::KNOWLEDGE_FILE);
-        if (! file_exists($storagePath)) {
+        $storagePath = storage_path('app/' . self::KNOWLEDGE_FILE);
+        if (!file_exists($storagePath)) {
             return false;
         }
 
         $raw = @file_get_contents($storagePath);
         $knowledge = json_decode($raw, true) ?: [];
 
-        if (! isset($knowledge[$id])) {
+        if (!isset($knowledge[$id])) {
             return false;
         }
 
@@ -749,20 +740,20 @@ class HossamKnowledgeService
      */
     public function toggleStatus(string $id): bool
     {
-        $storagePath = storage_path('app/'.self::KNOWLEDGE_FILE);
-        if (! file_exists($storagePath)) {
+        $storagePath = storage_path('app/' . self::KNOWLEDGE_FILE);
+        if (!file_exists($storagePath)) {
             return false;
         }
 
         $raw = @file_get_contents($storagePath);
         $knowledge = json_decode($raw, true) ?: [];
 
-        if (! isset($knowledge[$id])) {
+        if (!isset($knowledge[$id])) {
             return false;
         }
 
         $current = $knowledge[$id]['is_active'] ?? true;
-        $knowledge[$id]['is_active'] = ! $current;
+        $knowledge[$id]['is_active'] = !$current;
 
         @file_put_contents($storagePath, json_encode($knowledge, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
         Cache::put(self::KNOWLEDGE_CACHE_KEY, $knowledge, 86400 * 30);
@@ -782,7 +773,7 @@ class HossamKnowledgeService
         $totalHits = 0;
 
         foreach ($knowledge as $item) {
-            if (! empty($item['is_custom'])) {
+            if (!empty($item['is_custom'])) {
                 $customCount++;
             } else {
                 $learnedCount++;
@@ -845,16 +836,16 @@ class HossamKnowledgeService
             $firstImg = $u->images?->firstWhere('is_primary', true) ?? $u->images?->first();
             $imageUrl = asset('images/fallback.webp');
             if ($firstImg) {
-                $imageUrl = $firstImg->thumb_url ?: ($firstImg->url ?: asset('storage/'.ltrim($firstImg->path, '/')));
+                $imageUrl = $firstImg->thumb_url ?: ($firstImg->url ?: asset('storage/' . ltrim($firstImg->path, '/')));
             }
 
             $whatsapp = $u->user?->whatsapp ?? $u->user?->phone ?? $settingsWhatsapp ?: $settingsPhone;
             $cleanWhatsapp = preg_replace('/[^\d]/', '', (string) $whatsapp);
             $whatsappText = $locale === 'en'
-                ? 'Hello, I would like to inquire about property: '.$u->name
-                : 'مرحباً، أستفسر بخصوص العقار: '.$u->name;
-            $whatsappUrl = ! empty($cleanWhatsapp)
-                ? 'https://wa.me/'.$cleanWhatsapp.'?text='.urlencode($whatsappText)
+                ? 'Hello, I would like to inquire about property: ' . $u->name
+                : 'مرحباً، أستفسر بخصوص العقار: ' . $u->name;
+            $whatsappUrl = !empty($cleanWhatsapp)
+                ? 'https://wa.me/' . $cleanWhatsapp . '?text=' . urlencode($whatsappText)
                 : null;
 
             $areaName = $locale === 'en'
@@ -874,7 +865,7 @@ class HossamKnowledgeService
                 'transaction' => $u->transaction,
                 'payment_method' => $u->payment_method,
                 'image_url' => $imageUrl,
-                'url' => '/'.$locale.'/units/'.$slug,
+                'url' => '/' . $locale . '/units/' . $slug,
                 'whatsapp_url' => $whatsappUrl,
             ];
         }
@@ -903,7 +894,6 @@ class HossamKnowledgeService
 
         // Remove punctuation
         $text = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $text);
-
         return trim(preg_replace('/\s+/u', ' ', $text));
     }
 
@@ -913,7 +903,7 @@ class HossamKnowledgeService
     private function getLiveCurrencyRates(string $locale): string
     {
         try {
-            return Cache::remember('live_currency_rates_'.$locale, 3600 * 4, function () use ($locale) {
+            return Cache::remember('live_currency_rates_' . $locale, 3600 * 4, function () use ($locale) {
                 $response = Http::timeout(4)->get('https://api.exchangerate-api.com/v4/latest/USD');
                 if ($response->successful()) {
                     $data = $response->json();
@@ -923,13 +913,11 @@ class HossamKnowledgeService
                     if ($egp && $eur) {
                         $eurToEgp = $egp / $eur;
                         if ($locale === 'en') {
-                            return "💱 **Live Market Currency Rates Today:**\n\n• **USD to EGP:** ".round($egp, 2)." EGP\n• **EUR to EGP:** ".round($eurToEgp, 2)." EGP\n\nWould you like to calculate property prices or installment values in USD or EGP?";
+                            return "💱 **Live Market Currency Rates Today:**\n\n• **USD to EGP:** " . round($egp, 2) . " EGP\n• **EUR to EGP:** " . round($eurToEgp, 2) . " EGP\n\nWould you like to calculate property prices or installment values in USD or EGP?";
                         }
-
-                        return "💱 **أسعار العملات الحية المحدثة اليوم:**\n\n• **الدولار الأمريكي (USD):** ".round($egp, 2)." جنيه مصري\n• **اليورو الأوروبي (EUR):** ".round($eurToEgp, 2)." جنيه مصري\n\nتحب نحسب سعر أي وحدة أو إجمالي التقسيط بالدولار أو بالجنيه؟";
+                        return "💱 **أسعار العملات الحية المحدثة اليوم:**\n\n• **الدولار الأمريكي (USD):** " . round($egp, 2) . " جنيه مصري\n• **اليورو الأوروبي (EUR):** " . round($eurToEgp, 2) . " جنيه مصري\n\nتحب نحسب سعر أي وحدة أو إجمالي التقسيط بالدولار أو بالجنيه؟";
                     }
                 }
-
                 return '';
             });
         } catch (\Throwable $e) {
@@ -937,3 +925,4 @@ class HossamKnowledgeService
         }
     }
 }
+

@@ -10,7 +10,6 @@ use App\Domain\Listings\DTOs\CreateArticleData;
 use App\Domain\Listings\Models\Article;
 use App\Domain\Listings\Models\ArticleImage;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class ArticleService
@@ -108,7 +107,7 @@ class ArticleService
         ]);
 
         // إبطال cache المقالات الأحدث المُستخدم في صفحات الوحدات والمشاريع
-        Cache::forget('latest_published_articles_4');
+        \Illuminate\Support\Facades\Cache::forget('latest_published_articles_4');
 
         $this->sitemapService->regenerate();
 

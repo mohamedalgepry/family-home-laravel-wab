@@ -13,16 +13,14 @@ return new class extends Migration
             Schema::table('units', function (Blueprint $table) {
                 $table->index('priority_points', 'units_priority_points_idx');
             });
-        } catch (Throwable $e) {
-        }
+        } catch (\Throwable $e) {}
 
         // AUDIT-DB-002: scopeDeals() يفلتر بـ is_active + is_deal بدون composite index
         try {
             Schema::table('units', function (Blueprint $table) {
                 $table->index(['is_active', 'is_deal'], 'units_active_deal_idx');
             });
-        } catch (Throwable $e) {
-        }
+        } catch (\Throwable $e) {}
     }
 
     public function down(): void
@@ -31,14 +29,12 @@ return new class extends Migration
             Schema::table('units', function (Blueprint $table) {
                 $table->dropIndex('units_priority_points_idx');
             });
-        } catch (Throwable $e) {
-        }
+        } catch (\Throwable $e) {}
 
         try {
             Schema::table('units', function (Blueprint $table) {
                 $table->dropIndex('units_active_deal_idx');
             });
-        } catch (Throwable $e) {
-        }
+        } catch (\Throwable $e) {}
     }
 };

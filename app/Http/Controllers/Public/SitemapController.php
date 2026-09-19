@@ -67,14 +67,6 @@ class SitemapController
         ]);
     }
 
-    public function llms(): Response
-    {
-        return response($this->builder->buildLlmsTxt(), 200, [
-            'Content-Type' => 'text/plain; charset=UTF-8',
-            'Cache-Control' => 'public, max-age=86400',
-        ]);
-    }
-
     private function xmlResponse(string $content): Response
     {
         return response($content, 200, [

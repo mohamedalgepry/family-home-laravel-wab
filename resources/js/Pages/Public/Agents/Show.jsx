@@ -41,7 +41,7 @@ export default function Show({ agent, units, locale }) {
                     <div className="absolute top-0 end-0 w-64 h-64 bg-primary-50 rounded-full blur-3xl opacity-50 -z-10 translate-x-1/3 -translate-y-1/3"></div>
                     <div className="shrink-0 relative z-10">
                         {avatarSrc ? (
-                            <img src={avatarSrc} alt={agent.name} width={160} height={160} fetchPriority="high" decoding="async" className="w-32 h-32 sm:w-40 sm:h-40 rounded-full object-cover shadow-sm border-4 border-white" />
+                            <img src={avatarSrc} alt={agent.name} width={160} height={160} className="w-32 h-32 sm:w-40 sm:h-40 rounded-full object-cover shadow-sm border-4 border-white" />
                         ) : (
                             <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full bg-primary-50 flex items-center justify-center text-primary-900 font-black text-4xl sm:text-5xl border-4 border-white shadow-sm">
                                 {agent.name?.charAt(0)?.toUpperCase() || '?'}

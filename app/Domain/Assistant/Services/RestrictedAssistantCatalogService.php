@@ -113,9 +113,9 @@ class RestrictedAssistantCatalogService
         $units = $this->listUnits($arguments, $limit, $locale);
 
         return [
-            'found' => ! empty($units),
-            'units' => array_map(fn (UnitPublicDTO $u) => $u->toLlmSnippet(), $units),
-            'recommended_units' => array_map(fn (UnitPublicDTO $u) => $u->toCardPayload(), $units),
+            'found' => !empty($units),
+            'units' => array_map(fn(UnitPublicDTO $u) => $u->toLlmSnippet(), $units),
+            'recommended_units' => array_map(fn(UnitPublicDTO $u) => $u->toCardPayload(), $units),
         ];
     }
 
@@ -161,7 +161,7 @@ class RestrictedAssistantCatalogService
         $projects = $this->listProjects($limit, $locale);
 
         return [
-            'projects' => array_map(fn (ProjectPublicDTO $p) => $p->toSafeArray(), $projects),
+            'projects' => array_map(fn(ProjectPublicDTO $p) => $p->toSafeArray(), $projects),
         ];
     }
 }

@@ -25,23 +25,23 @@ class AiKnowledgeController extends Controller
         $locale = $request->input('locale');
         $filterType = $request->input('type'); // 'all', 'custom', 'learned'
 
-        if (! empty($search)) {
+        if (!empty($search)) {
             $normSearch = $this->knowledgeService->normalizeText($search);
             $items = array_values(array_filter($items, function ($item) use ($search, $normSearch) {
                 return str_contains(mb_strtolower($item['question']), mb_strtolower($search)) ||
                     str_contains(mb_strtolower($item['reply']), mb_strtolower($search)) ||
-                    (! empty($normSearch) && str_contains($this->knowledgeService->normalizeText($item['question']), $normSearch));
+                    (!empty($normSearch) && str_contains($this->knowledgeService->normalizeText($item['question']), $normSearch));
             }));
         }
 
-        if (! empty($locale) && in_array($locale, ['ar', 'en'])) {
-            $items = array_values(array_filter($items, fn ($item) => ($item['locale'] ?? 'ar') === $locale));
+        if (!empty($locale) && in_array($locale, ['ar', 'en'])) {
+            $items = array_values(array_filter($items, fn($item) => ($item['locale'] ?? 'ar') === $locale));
         }
 
         if ($filterType === 'custom') {
-            $items = array_values(array_filter($items, fn ($item) => ! empty($item['is_custom'])));
+            $items = array_values(array_filter($items, fn($item) => !empty($item['is_custom'])));
         } elseif ($filterType === 'learned') {
-            $items = array_values(array_filter($items, fn ($item) => empty($item['is_custom'])));
+            $items = array_values(array_filter($items, fn($item) => empty($item['is_custom'])));
         }
 
         return Inertia::render('Admin/Assistant/Knowledge', [
@@ -113,3 +113,4 @@ class AiKnowledgeController extends Controller
         return back()->with('success', 'تم تحديث كاش المعرفة فوراً');
     }
 }
+

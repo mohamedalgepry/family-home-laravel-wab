@@ -2,8 +2,6 @@
 
 namespace App\Providers;
 
-use App\Domain\Assistant\Contracts\AssistantCatalogRepositoryInterface;
-use App\Domain\Assistant\Repositories\AssistantCatalogRepository;
 use App\Domain\Listings\Models\AboutPage;
 use App\Domain\Listings\Models\Area;
 use App\Domain\Listings\Models\Article;
@@ -45,8 +43,8 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(
-            AssistantCatalogRepositoryInterface::class,
-            AssistantCatalogRepository::class
+            \App\Domain\Assistant\Contracts\AssistantCatalogRepositoryInterface::class,
+            \App\Domain\Assistant\Repositories\AssistantCatalogRepository::class
         );
     }
 
@@ -114,11 +112,6 @@ class AppServiceProvider extends ServiceProvider
         });
 
         RateLimiter::for('assistant_chat', function (Request $request) {
-            return Limit::perMinute(10)->by($request->ip() ?: 'unknown');
-        });
-
-        // CSP violation reports are unauthenticated and logged; throttle to prevent log flooding.
-        RateLimiter::for('csp-report', function (Request $request) {
             return Limit::perMinute(10)->by($request->ip() ?: 'unknown');
         });
     }

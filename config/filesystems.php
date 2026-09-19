@@ -33,11 +33,7 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            // Must stay disabled: when true Laravel auto-registers a
-            // "storage/{path}" route serving PRIVATE files (403 for
-            // unsigned requests) that shadows the custom public
-            // /storage/{path} route with image fallbacks in routes/web.php.
-            'serve' => false,
+            'serve' => true,
             'throw' => false,
             'report' => false,
         ],

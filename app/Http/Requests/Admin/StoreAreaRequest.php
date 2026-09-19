@@ -4,6 +4,7 @@ namespace App\Http\Requests\Admin;
 
 use App\Domain\Listings\Models\Area;
 use App\Http\Requests\Traits\ExtractsCoordinatesFromUrl;
+use App\Rules\AllowedIconName;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreAreaRequest extends FormRequest

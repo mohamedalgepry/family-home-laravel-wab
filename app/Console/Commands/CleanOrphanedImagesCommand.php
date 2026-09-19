@@ -82,7 +82,7 @@ class CleanOrphanedImagesCommand extends Command
         if ($isDryRun) {
             $this->warn("Total orphaned files found: {$totalDeleted}");
             $this->warn("Total reclaimable space: {$sizeStr}");
-            $this->comment('Run without --dry-run to permanently delete these files.');
+            $this->comment("Run without --dry-run to permanently delete these files.");
         } else {
             $this->info("✓ Successfully deleted {$totalDeleted} orphaned image files.");
             $this->info("✓ Reclaimed disk space: {$sizeStr}");
@@ -123,7 +123,7 @@ class CleanOrphanedImagesCommand extends Command
         foreach ($allFiles as $file) {
             $normalized = ltrim(str_replace('\\', '/', $file), '/');
             $basename = basename($normalized);
-
+            
             // Skip system or hidden files
             if ($basename === '.gitignore' || str_starts_with($basename, '.')) {
                 continue;
@@ -138,10 +138,10 @@ class CleanOrphanedImagesCommand extends Command
                 $bytesFreed += $fileSize;
 
                 if ($isDryRun) {
-                    $this->line(" [ORPHAN] {$file} (".round($fileSize / 1024, 1).' KB)');
+                    $this->line(" [ORPHAN] {$file} (" . round($fileSize / 1024, 1) . ' KB)');
                 } else {
                     $disk->delete($file);
-                    $this->line(" 🗑 Deleted: {$file} (".round($fileSize / 1024, 1).' KB)');
+                    $this->line(" 🗑 Deleted: {$file} (" . round($fileSize / 1024, 1) . ' KB)');
                 }
             }
         }

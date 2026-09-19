@@ -2,8 +2,6 @@
 
 namespace App\Domain\Users\Services;
 
-use App\Domain\Listings\Models\Unit;
-use App\Domain\Listings\Models\UnitImage;
 use App\Domain\Users\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Notifications\DatabaseNotification;
@@ -82,13 +80,13 @@ class NotificationService
                 "unit_{$unitId}_primary_thumb",
                 300,
                 function () use ($unitId) {
-                    $image = UnitImage::where('unit_id', $unitId)
+                    $image = \App\Domain\Listings\Models\UnitImage::where('unit_id', $unitId)
                         ->where('is_primary', true)
                         ->first();
 
                     if (! $image) {
                         // Fallback to first image
-                        $image = UnitImage::where('unit_id', $unitId)
+                        $image = \App\Domain\Listings\Models\UnitImage::where('unit_id', $unitId)
                             ->orderBy('sort_order')
                             ->first();
                     }
@@ -104,12 +102,12 @@ class NotificationService
                 "unit_{$unitId}_agent_name",
                 300,
                 function () use ($unitId) {
-                    $unit = Unit::select('user_id')
+                    $unit = \App\Domain\Listings\Models\Unit::select('user_id')
                         ->where('id', $unitId)
                         ->first();
 
                     if ($unit?->user_id) {
-                        return User::where('id', $unit->user_id)
+                        return \App\Domain\Users\Models\User::where('id', $unit->user_id)
                             ->value('name');
                     }
 

@@ -12,16 +12,6 @@ class PageViewService
 
     public function recordView(string $viewableType, int $viewableId, ?string $ip = null, ?string $userAgent = null): void
     {
-        // Inertia link prefetches (hover) send Purpose: prefetch and browsers
-        // send Sec-Purpose: prefetch — they are not real visits, so they must
-        // not inflate view counters or analytics.
-        $purpose = strtolower((string) request()->headers->get('Purpose'));
-        $secPurpose = strtolower((string) request()->headers->get('Sec-Purpose'));
-
-        if (in_array($purpose, ['prefetch', 'preview'], true) || str_contains($secPurpose, 'prefetch')) {
-            return;
-        }
-
         if ($ip && $ip !== '127.0.0.1' && $ip !== '::1') {
             $cacheKey = "pageview_{$viewableType}_{$viewableId}_{$ip}";
 
@@ -40,12 +30,7 @@ class PageViewService
         $model = $this->resolveModel($viewableType, $viewableId);
 
         if ($model) {
-            // Don't touch updated_at: a view is not a content change. Bumping it
-            // would churn <lastmod> in the sitemap and invalidate HTTP/CDN caches
-            // on every single visit.
-            $model->timestamps = false;
             $model->increment('views_count');
-            $model->timestamps = true;
         }
     }
 

@@ -2,7 +2,6 @@
 
 use App\Http\Middleware\DetectBot;
 use App\Http\Middleware\EnsureUserHasRole;
-use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\HttpCacheControl;
 use App\Http\Middleware\SecurityHeadersMiddleware;
@@ -36,7 +35,6 @@ return Application::configure(basePath: dirname(__DIR__))
             'csp-report',
         ]);
         $middleware->web(append: [
-            EnsureUserIsActive::class,
             HttpCacheControl::class,
             DetectBot::class,
             SetLocale::class,
@@ -46,12 +44,7 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
-            // AJAX callers that explicitly ask for JSON (axios uploads, chat
-            // widget, notification polling...) must receive JSON errors
-            // (e.g. 422 validation / 401 auth) instead of a 302 redirect.
-            // Inertia navigation requests accept text/html, so expectsJson()
-            // stays false for them and their redirect-based flow is unchanged.
-            fn (Request $request) => $request->expectsJson() || $request->is('api/*'),
+            fn (Request $request) => $request->is('api/*'),
         );
 
         $exceptions->render(function (Throwable $e, Request $request) {

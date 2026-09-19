@@ -2,18 +2,16 @@
 
 namespace Tests\Feature;
 
-use App\Domain\Assistant\Contracts\AssistantCatalogRepositoryInterface;
-use App\Domain\Assistant\Models\AssistantLead;
-use App\Domain\Assistant\Notifications\NewAssistantLeadNotification;
+use App\Domain\Assistant\DTOs\SafeUnitFiltersDTO;
 use App\Domain\Assistant\Services\AssistantOrchestratorService;
 use App\Domain\Assistant\Services\RestrictedAssistantCatalogService;
+use App\Domain\Assistant\Models\AssistantLead;
 use App\Domain\Listings\Models\Area;
 use App\Domain\Listings\Models\Project;
 use App\Domain\Listings\Models\Unit;
 use App\Domain\Listings\Models\UnitType;
 use App\Domain\Users\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\RateLimiter;
 use Tests\TestCase;
@@ -23,9 +21,7 @@ class AssistantSecurityArchitectureTest extends TestCase
     use RefreshDatabase;
 
     private User $user;
-
     private Area $area;
-
     private UnitType $unitType;
 
     protected function setUp(): void
@@ -34,7 +30,7 @@ class AssistantSecurityArchitectureTest extends TestCase
 
         $this->user = User::create([
             'name' => 'Admin Test',
-            'email' => 'admin-test-'.uniqid().'@example.com',
+            'email' => 'admin-test-' . uniqid() . '@example.com',
             'password' => bcrypt('password123'),
             'role' => 'admin',
             'is_active' => true,
@@ -200,7 +196,7 @@ class AssistantSecurityArchitectureTest extends TestCase
         $this->assertGreaterThanOrEqual(7, $lead->lead_score);
 
         // Assert database notification sent to admin
-        $adminNotification = DatabaseNotification::where('type', NewAssistantLeadNotification::class)
+        $adminNotification = \Illuminate\Notifications\DatabaseNotification::where('type', \App\Domain\Assistant\Notifications\NewAssistantLeadNotification::class)
             ->where('data->client_phone', '01012345678')
             ->first();
         $this->assertNotNull($adminNotification);
@@ -271,7 +267,7 @@ class AssistantSecurityArchitectureTest extends TestCase
             $this->assertNull($project);
 
             $units = $catalogService->listUnitsForProject($maliciousSlug, [
-                'sort' => 'price_asc; DELETE FROM units; --',
+                'sort' => "price_asc; DELETE FROM units; --",
                 'min_price' => "1000' OR '1'='1",
             ]);
             $this->assertEquals(0, $units->total);
@@ -412,8 +408,8 @@ class AssistantSecurityArchitectureTest extends TestCase
      */
     public function test_it_enforces_read_only_isolation_and_rejects_unauthorized_tables_or_writes(): void
     {
-        $repo = app(AssistantCatalogRepositoryInterface::class);
-        $service = app(RestrictedAssistantCatalogService::class);
+        $repo = app(\App\Domain\Assistant\Contracts\AssistantCatalogRepositoryInterface::class);
+        $service = app(\App\Domain\Assistant\Services\RestrictedAssistantCatalogService::class);
 
         // 1. Connection name in production configuration is assistant_readonly
         $this->assertEquals('assistant_readonly', config('assistant.db_connection'));
@@ -424,18 +420,18 @@ class AssistantSecurityArchitectureTest extends TestCase
         );
 
         // 2. Repository interface has strictly zero write methods (insert, update, delete)
-        $ref = new \ReflectionClass(AssistantCatalogRepositoryInterface::class);
-        $methods = array_map(fn ($m) => $m->getName(), $ref->getMethods());
+        $ref = new \ReflectionClass(\App\Domain\Assistant\Contracts\AssistantCatalogRepositoryInterface::class);
+        $methods = array_map(fn($m) => $m->getName(), $ref->getMethods());
         $this->assertNotContains('create', $methods);
         $this->assertNotContains('insert', $methods);
         $this->assertNotContains('update', $methods);
         $this->assertNotContains('delete', $methods);
 
         // 3. Service allowlist tools only accept projects & units
-        $orchestrator = app(AssistantOrchestratorService::class);
+        $orchestrator = app(\App\Domain\Assistant\Services\AssistantOrchestratorService::class);
         $refOrch = new \ReflectionMethod($orchestrator, 'getToolDefinitions');
         $allowedTools = $refOrch->invoke($orchestrator);
-        $toolNames = array_map(fn ($t) => $t['function']['name'], $allowedTools);
+        $toolNames = array_map(fn($t) => $t['function']['name'], $allowedTools);
         $this->assertContains('find_project', $toolNames);
         $this->assertContains('list_units_for_project', $toolNames);
         $this->assertContains('get_unit_in_project', $toolNames);
@@ -461,7 +457,7 @@ class AssistantSecurityArchitectureTest extends TestCase
      */
     public function test_it_sanitizes_phone_numbers_and_enforces_tight_per_request_budget(): void
     {
-        $orchestrator = app(AssistantOrchestratorService::class);
+        $orchestrator = app(\App\Domain\Assistant\Services\AssistantOrchestratorService::class);
 
         // 1. Phone number redaction on both current message and history turns
         $samplePhoneMessage = 'أريد التواصل ورقمي 01012345678 أو +201123456789 للمعاينة';
@@ -581,3 +577,4 @@ class AssistantSecurityArchitectureTest extends TestCase
         $this->assertNotEmpty($res['recommended_units']);
     }
 }
+

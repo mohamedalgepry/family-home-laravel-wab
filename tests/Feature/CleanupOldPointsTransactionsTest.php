@@ -1,6 +1,7 @@
 <?php
 
 use App\Domain\Points\Models\PointsTransaction;
+use App\Domain\Users\Models\User;
 use Illuminate\Support\Facades\Artisan;
 
 test('points:cleanup deletes daily_deduct transactions older than 180 days', function () {

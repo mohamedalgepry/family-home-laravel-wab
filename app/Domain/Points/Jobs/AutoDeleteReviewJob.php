@@ -3,15 +3,10 @@
 namespace App\Domain\Points\Jobs;
 
 use App\Domain\Listings\Models\Project;
-use App\Domain\Listings\Models\ProjectImage;
 use App\Domain\Listings\Models\Setting;
 use App\Domain\Listings\Models\Unit;
-use App\Domain\Listings\Models\UnitImage;
 use App\Domain\Listings\Notifications\ProjectExpiryWarningNotification;
-use App\Domain\Listings\Notifications\ProjectPermanentlyDeletedNotification;
 use App\Domain\Listings\Notifications\UnitExpiryNotification;
-use App\Domain\Listings\Notifications\UnitPermanentlyDeletedNotification;
-use App\Domain\Listings\Services\ListingImageService;
 use App\Domain\Listings\Services\SitemapService;
 use App\Domain\Users\Models\User;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -115,7 +110,7 @@ class AutoDeleteReviewJob implements ShouldQueue
 
                 $notificationsToSend[] = [
                     'recipients' => $recipients,
-                    'notification' => new UnitPermanentlyDeletedNotification(
+                    'notification' => new \App\Domain\Listings\Notifications\UnitPermanentlyDeletedNotification(
                         unitId: $unit->id,
                         unitNameAr: $unit->name_ar ?: ($unit->name ?: ''),
                         unitNameEn: $unit->name_en ?: ($unit->name ?: ''),
@@ -125,13 +120,13 @@ class AutoDeleteReviewJob implements ShouldQueue
 
             DB::transaction(function () use ($ids) {
                 // Delete image records first, then units
-                UnitImage::whereIn('unit_id', $ids)->delete();
+                \App\Domain\Listings\Models\UnitImage::whereIn('unit_id', $ids)->delete();
                 Unit::whereIn('id', $ids)->delete();
             });
 
             // Delete image files from disk after DB cleanup
             if (! empty($allImagePaths)) {
-                $imageService = app(ListingImageService::class);
+                $imageService = app(\App\Domain\Listings\Services\ListingImageService::class);
                 $imageService->deleteImageFiles($allImagePaths);
             }
 
@@ -220,7 +215,7 @@ class AutoDeleteReviewJob implements ShouldQueue
 
                 $projectNotificationsToSend[] = [
                     'recipients' => $recipients,
-                    'notification' => new ProjectPermanentlyDeletedNotification(
+                    'notification' => new \App\Domain\Listings\Notifications\ProjectPermanentlyDeletedNotification(
                         projectId: $project->id,
                         projectNameAr: $project->name_ar ?: ($project->name ?: ''),
                         projectNameEn: $project->name_en ?: ($project->name ?: ''),
@@ -229,13 +224,13 @@ class AutoDeleteReviewJob implements ShouldQueue
             }
 
             DB::transaction(function () use ($ids) {
-                ProjectImage::whereIn('project_id', $ids)->delete();
+                \App\Domain\Listings\Models\ProjectImage::whereIn('project_id', $ids)->delete();
                 Project::whereIn('id', $ids)->delete();
             });
 
             // Delete image files from disk after DB cleanup
             if (! empty($allImagePaths)) {
-                $imageService = app(ListingImageService::class);
+                $imageService = app(\App\Domain\Listings\Services\ListingImageService::class);
                 $imageService->deleteImageFiles($allImagePaths);
             }
 

@@ -1,13 +1,10 @@
 <?php
 
-use App\Domain\Listings\Models\Area;
 use App\Domain\Listings\Models\Article;
 use App\Domain\Listings\Models\Category;
-use App\Domain\Listings\Models\Unit;
-use App\Domain\Listings\Models\UnitType;
-use App\Domain\Points\Models\PointsTransaction;
 use App\Domain\Users\Models\Message;
-use Illuminate\Database\QueryException;
+use App\Domain\Listings\Models\Unit;
+use App\Domain\Users\Models\User;
 
 test('deleting a category sets article category_id to null and does NOT delete article', function () {
     $category = Category::create([
@@ -93,7 +90,7 @@ test('deleting a user sets points_transactions manager_id and performed_by to nu
     $manager = createUser('Manager '.uniqid(), 'manager', null);
     $agent = createUser('Agent Recipient '.uniqid(), 'agent', $manager->id);
 
-    $transaction = PointsTransaction::create([
+    $transaction = \App\Domain\Points\Models\PointsTransaction::create([
         'manager_id' => $manager->id,
         'points' => 50,
         'type' => 'allocate',
@@ -108,7 +105,7 @@ test('deleting a user sets points_transactions manager_id and performed_by to nu
     // Delete manager
     $manager->delete();
 
-    $freshTx = PointsTransaction::find($transaction->id);
+    $freshTx = \App\Domain\Points\Models\PointsTransaction::find($transaction->id);
     expect($freshTx)->not->toBeNull();
     expect($freshTx->manager_id)->toBeNull();
     expect($freshTx->performed_by)->toBeNull();
@@ -116,19 +113,19 @@ test('deleting a user sets points_transactions manager_id and performed_by to nu
 });
 
 test('deleting a unit_type that has active units is restricted by foreign key', function () {
-    $type = UnitType::create(['name_ar' => 'فيلا مميزة', 'name_en' => 'Special Villa']);
+    $type = \App\Domain\Listings\Models\UnitType::create(['name_ar' => 'فيلا مميزة', 'name_en' => 'Special Villa']);
     $unit = createTestUnit(['type_id' => $type->id]);
 
-    expect(fn () => $type->delete())->toThrow(QueryException::class);
+    expect(fn () => $type->delete())->toThrow(\Illuminate\Database\QueryException::class);
 });
 
 test('deleting an area that has active units is restricted by foreign key', function () {
-    $area = Area::create([
+    $area = \App\Domain\Listings\Models\Area::create([
         'name_ar' => 'منطقة تجريبية',
         'name_en' => 'Test Region',
         'slug' => 'test-region-'.uniqid(),
     ]);
     $unit = createTestUnit(['area_id' => $area->id]);
 
-    expect(fn () => $area->delete())->toThrow(QueryException::class);
+    expect(fn () => $area->delete())->toThrow(\Illuminate\Database\QueryException::class);
 });
