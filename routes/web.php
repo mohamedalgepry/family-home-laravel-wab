@@ -127,7 +127,7 @@ Route::post('/csp-report', function (Request $request) {
     ]);
 
     return response()->noContent();
-})->name('csp.report');
+})->middleware('throttle:csp-report')->name('csp.report');
 
 Route::post('/units/{unit:slug}/contact', [MessageController::class, 'store'])
     ->middleware('throttle:contact-form');

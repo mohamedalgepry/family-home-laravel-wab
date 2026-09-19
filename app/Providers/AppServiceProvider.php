@@ -116,5 +116,10 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('assistant_chat', function (Request $request) {
             return Limit::perMinute(10)->by($request->ip() ?: 'unknown');
         });
+
+        // CSP violation reports are unauthenticated and logged; throttle to prevent log flooding.
+        RateLimiter::for('csp-report', function (Request $request) {
+            return Limit::perMinute(10)->by($request->ip() ?: 'unknown');
+        });
     }
 }
