@@ -12,12 +12,23 @@ class SeoMetaService
 {
     public function forListing(Unit|Project $listing, string $section): array
     {
+        $description = $this->description($listing->meta_description ?? $listing->description);
+
+        // Never ship an empty meta description — generate one from the listing
+        // attributes so every detail page stays fully indexable.
+        if ($description === '') {
+            $description = $this->fallbackListingDescription($listing);
+        }
+
         return $this->build(
             title: ($listing->name ? $listing->name.' - ' : '').config('app.name'),
-            description: $this->description($listing->meta_description ?? $listing->description),
+            description: $description,
             section: $section,
             model: $listing,
-            schema: $this->listingSchema($listing),
+            schema: [
+                $this->breadcrumbSchema($section, $listing->name ?? '', $listing),
+                $this->listingSchema($listing),
+            ],
         );
     }
 
@@ -28,8 +39,73 @@ class SeoMetaService
             description: $this->description($article->meta_description ?? $article->content),
             section: 'articles',
             model: $article,
-            schema: $this->articleSchema($article),
+            schema: [
+                $this->breadcrumbSchema('articles', $article->title ?? '', $article),
+                $this->articleSchema($article),
+            ],
         );
+    }
+
+    /**
+     * Build a descriptive meta description from listing attributes when the
+     * stored description is empty (empty descriptions hurt CTR and indexing).
+     */
+    private function fallbackListingDescription(Unit|Project $listing): string
+    {
+        $locale = app()->getLocale();
+        $parts = [];
+
+        $parts[] = $listing->name;
+
+        $areaName = $listing->area
+            ? ($locale === 'ar' ? ($listing->area->name_ar ?? $listing->area->name) : ($listing->area->name_en ?? $listing->area->name))
+            : null;
+
+        if ($areaName) {
+            $parts[] = ($locale === 'ar' ? 'في ' : 'in ').$areaName;
+        }
+
+        if ($listing instanceof Unit && $listing->price) {
+            $parts[] = ($locale === 'ar' ? 'بسعر ' : 'priced at ').number_format((float) $listing->price).($locale === 'ar' ? ' جنيه' : ' EGP');
+        }
+
+        $suffix = $locale === 'ar'
+            ? '— تفاصيل كاملة وصور ووسائل التواصل عبر فاميلي هوم للعقارات.'
+            : '— full details, photos and contact info on Family Home Real Estate.';
+
+        return trim(implode(' ', array_filter($parts)).' '.$suffix);
+    }
+
+    /**
+     * BreadcrumbList schema: Home > Section > Item — shown as a breadcrumb
+     * trail under the result in Google SERPs instead of the raw URL.
+     */
+    private function breadcrumbSchema(string $section, string $itemName, Unit|Project|Article $model): array
+    {
+        $locale = app()->getLocale();
+        $slugField = "slug_{$locale}";
+        $sectionLabels = [
+            'units' => $locale === 'ar' ? 'الوحدات' : 'Units',
+            'projects' => $locale === 'ar' ? 'المشاريع' : 'Projects',
+            'articles' => $locale === 'ar' ? 'المقالات' : 'Articles',
+        ];
+
+        $items = [
+            [__('seo.site_name'), url("/{$locale}")],
+            [$sectionLabels[$section] ?? $section, url("/{$locale}/{$section}")],
+            [$itemName, url("/{$locale}/{$section}/".($model->$slugField ?? $model->slug))],
+        ];
+
+        return [
+            '@context' => 'https://schema.org',
+            '@type' => 'BreadcrumbList',
+            'itemListElement' => collect($items)->map(fn ($item, $i) => [
+                '@type' => 'ListItem',
+                'position' => $i + 1,
+                'name' => $item[0],
+                'item' => $item[1],
+            ])->values()->all(),
+        ];
     }
 
     public function forPage(string $pageKey, array $customMeta = []): array
