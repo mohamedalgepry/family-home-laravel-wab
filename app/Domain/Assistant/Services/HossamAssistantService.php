@@ -109,9 +109,9 @@ class HossamAssistantService
                         $q->where('is_active', true)->with(['area', 'type', 'images', 'user', 'project'])->take(15);
                     }])
                         ->withCount([
-                        'units as active_units_count' => fn ($q) => $q->where('is_active', true),
-                        'units as total_units_count',
-                    ])
+                            'units as active_units_count' => fn ($q) => $q->where('is_active', true),
+                            'units as total_units_count',
+                        ])
                         ->where('slug', $slug)
                         ->orWhere('slug_ar', $slug)
                         ->orWhere('slug_en', $slug)
