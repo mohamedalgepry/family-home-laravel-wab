@@ -184,6 +184,25 @@ class SeoMetaService
             ];
         }
 
+        // Unit specifics (rooms, bathrooms, floor size) — these attributes let
+        // answer engines quote exact facts ("a 3-bedroom apartment, 150 m²")
+        // instead of guessing from prose.
+        if ($isUnit) {
+            if (! empty($listing->rooms)) {
+                $schema['numberOfRooms'] = (int) $listing->rooms;
+            }
+            if (! empty($listing->bathrooms)) {
+                $schema['numberOfBathroomsTotal'] = (int) $listing->bathrooms;
+            }
+            if (! empty($listing->area_sqm)) {
+                $schema['floorSize'] = [
+                    '@type' => 'QuantitativeValue',
+                    'value' => (float) $listing->area_sqm,
+                    'unitCode' => 'MTK', // square metres
+                ];
+            }
+        }
+
         $hasCoords = ! empty($listing->latitude) && ! empty($listing->longitude) && $listing->latitude != '0' && $listing->longitude != '0';
         $locationAddress = $listing->location_address ?? null;
 

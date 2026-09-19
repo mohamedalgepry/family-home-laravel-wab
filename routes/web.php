@@ -33,6 +33,7 @@ Route::get('/sitemap-areas.xml', [SitemapController::class, 'areas']);
 Route::get('/sitemap-articles.xml', [SitemapController::class, 'articles']);
 
 Route::get('/robots.txt', [SitemapController::class, 'robots']);
+Route::get('/llms.txt', [SitemapController::class, 'llms']);
 
 Route::get('/storage/{path}', function ($path) {
     // منع Path Traversal

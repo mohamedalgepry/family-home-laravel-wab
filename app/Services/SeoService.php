@@ -192,7 +192,18 @@ class SeoService
         $siteLogo = $this->settingsService->get('site_logo');
         $logoUrl = $siteLogo ? asset('storage/'.$siteLogo) : asset('icon.png');
 
-        return [
+        // sameAs links tie the entity to its social profiles — a strong
+        // trust/identity signal for Google's Knowledge Graph and AI engines.
+        $sameAs = array_values(array_filter([
+            $this->settingsService->get('social_facebook'),
+            $this->settingsService->get('social_instagram'),
+            $this->settingsService->get('social_twitter'),
+            $this->settingsService->get('social_linkedin'),
+            $this->settingsService->get('social_youtube'),
+            $this->settingsService->get('social_tiktok'),
+        ]));
+
+        return array_filter([
             '@context' => 'https://schema.org',
             '@type' => 'RealEstateAgent',
             '@id' => url("/{$locale}").'#agent',
@@ -205,9 +216,16 @@ class SeoService
             'address' => [
                 '@type' => 'PostalAddress',
                 'streetAddress' => $this->settingsService->get('company_address') ?: 'القاهرة، مصر',
+                'addressLocality' => $locale === 'ar' ? 'القاهرة' : 'Cairo',
                 'addressCountry' => 'EG',
             ],
-        ];
+            'areaServed' => [
+                '@type' => 'Country',
+                'name' => $locale === 'ar' ? 'مصر' : 'Egypt',
+            ],
+            'priceRange' => 'EGP',
+            'sameAs' => $sameAs !== [] ? $sameAs : null,
+        ], fn ($v) => $v !== null);
     }
 
     public function getBreadcrumbSchema(array $items): array
