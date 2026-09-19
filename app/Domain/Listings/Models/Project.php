@@ -3,11 +3,11 @@
 namespace App\Domain\Listings\Models;
 
 use App\Domain\Common\Concerns\ByAnySlug;
+use App\Domain\Common\Support\SlugHelper;
 use App\Domain\Listings\Services\ListingService;
 use App\Domain\Users\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str;
 
 class Project extends Model
 {
@@ -74,13 +74,13 @@ class Project extends Model
     {
         static::creating(function (self $project) {
             if (! $project->slug) {
-                $project->slug = \App\Domain\Common\Support\SlugHelper::makeEnglish($project->name_en ?: $project->name, 'project');
+                $project->slug = SlugHelper::makeEnglish($project->name_en ?: $project->name, 'project');
             }
             if (! $project->slug_ar) {
-                $project->slug_ar = \App\Domain\Common\Support\SlugHelper::makeArabic($project->name_ar ?: $project->name, $project->slug);
+                $project->slug_ar = SlugHelper::makeArabic($project->name_ar ?: $project->name, $project->slug);
             }
             if (! $project->slug_en) {
-                $project->slug_en = \App\Domain\Common\Support\SlugHelper::makeEnglish($project->name_en ?: $project->name, $project->slug);
+                $project->slug_en = SlugHelper::makeEnglish($project->name_en ?: $project->name, $project->slug);
             }
             $project->ensureUniqueSlugs();
         });
@@ -88,11 +88,11 @@ class Project extends Model
         static::updating(function (self $project) {
             $changed = false;
             if ($project->isDirty('name_en') && ! $project->isDirty('slug_en')) {
-                $project->slug_en = \App\Domain\Common\Support\SlugHelper::makeEnglish($project->name_en, 'project');
+                $project->slug_en = SlugHelper::makeEnglish($project->name_en, 'project');
                 $changed = true;
             }
             if ($project->isDirty('name_ar') && ! $project->isDirty('slug_ar')) {
-                $project->slug_ar = \App\Domain\Common\Support\SlugHelper::makeArabic($project->name_ar, $project->slug_en ?? 'project');
+                $project->slug_ar = SlugHelper::makeArabic($project->name_ar, $project->slug_en ?? 'project');
                 $changed = true;
             }
             if ($changed) {

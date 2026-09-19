@@ -3,15 +3,17 @@
 namespace App\Observers;
 
 use App\Domain\Listings\Jobs\RegenerateSitemapJob;
+use App\Domain\Listings\Services\SitemapService;
+use Illuminate\Support\Facades\Log;
 
 class SitemapObserver
 {
     private function triggerRegeneration(): void
     {
         try {
-            app(\App\Domain\Listings\Services\SitemapService::class)->regenerate();
+            app(SitemapService::class)->regenerate();
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::warning('Direct sitemap regeneration failed in observer, dispatching job fallback: ' . $e->getMessage());
+            Log::warning('Direct sitemap regeneration failed in observer, dispatching job fallback: '.$e->getMessage());
             dispatch(new RegenerateSitemapJob)->afterCommit();
         }
     }

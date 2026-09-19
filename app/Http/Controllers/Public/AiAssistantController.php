@@ -36,10 +36,10 @@ class AiAssistantController
         $locale = $validated['locale'] ?? app()->getLocale() ?: 'ar';
 
         $pageContext = is_array($validated['page_context'] ?? null) ? $validated['page_context'] : [];
-        if (!empty($validated['context_url'])) {
+        if (! empty($validated['context_url'])) {
             $pageContext['url'] = (string) $validated['context_url'];
         }
-        if (!empty($validated['context_title'])) {
+        if (! empty($validated['context_title'])) {
             $pageContext['title'] = (string) $validated['context_title'];
         }
 
@@ -96,7 +96,7 @@ class AiAssistantController
             ]);
 
             // Match Egyptian mobile formats or international standard (+201..., 00201..., 01...)
-            if (!preg_match('/\b(?:\+?20|0020|0)?1[0125]\d{8}\b/', $normalized, $matches)) {
+            if (! preg_match('/\b(?:\+?20|0020|0)?1[0125]\d{8}\b/', $normalized, $matches)) {
                 return;
             }
 
@@ -108,22 +108,36 @@ class AiAssistantController
 
             // Determine context description
             $context = null;
-            if (!empty($pageContext['unit_name'])) {
-                $context = 'مهتم بوحدة: ' . $pageContext['unit_name'];
-            } elseif (!empty($pageContext['project_name'])) {
-                $context = 'مهتم بمشروع: ' . $pageContext['project_name'];
-            } elseif (!empty($pageContext['title'])) {
+            if (! empty($pageContext['unit_name'])) {
+                $context = 'مهتم بوحدة: '.$pageContext['unit_name'];
+            } elseif (! empty($pageContext['project_name'])) {
+                $context = 'مهتم بمشروع: '.$pageContext['project_name'];
+            } elseif (! empty($pageContext['title'])) {
                 $context = $pageContext['title'];
-            } elseif (!empty($pageContext['url'])) {
+            } elseif (! empty($pageContext['url'])) {
                 $context = $pageContext['url'];
             }
 
             // Extract client name if introduced (e.g. "اسمي أحمد", "معك محمد")
             $clientName = null;
             if (preg_match('/(?:اسمي|معك|معاك|أنا|انا|name is)\s+([^\s,،\.\n]+(?:\s+[^\s,،\.\n]+)?)/iu', $message, $nameMatches)) {
-                $candidate = trim($nameMatches[1]);
-                if (!in_array(mb_strtolower($candidate), ['مهتم', 'عايز', 'بخصوص', 'رقمي', 'تليفوني', 'phone', 'interested', 'في', 'من'])) {
-                    $clientName = $candidate;
+                $stopWords = ['مهتم', 'عايز', 'بخصوص', 'رقمي', 'تليفوني', 'رقم', 'موبايلي', 'phone', 'interested', 'في', 'من'];
+
+                // Drop trailing non-name words (including و-prefixed forms such as
+                // "ورقمي" in "اسمي كريم ورقمي 010...") so only the real name remains.
+                $words = preg_split('/\s+/u', trim($nameMatches[1])) ?: [];
+                $nameWords = [];
+                foreach ($words as $word) {
+                    $normalized = mb_strtolower($word);
+                    $withoutConjunction = preg_replace('/^و/u', '', $normalized);
+                    if (in_array($normalized, $stopWords, true) || in_array($withoutConjunction, $stopWords, true)) {
+                        break;
+                    }
+                    $nameWords[] = $word;
+                }
+
+                if ($nameWords !== []) {
+                    $clientName = implode(' ', $nameWords);
                 }
             }
 
@@ -131,7 +145,7 @@ class AiAssistantController
             $fullHistory[] = ['role' => 'user', 'content' => $message];
 
             $leadScore = 7;
-            if (!empty($pageContext['unit_id']) || !empty($pageContext['project_id'])) {
+            if (! empty($pageContext['unit_id']) || ! empty($pageContext['project_id'])) {
                 $leadScore += 2;
             }
             if (preg_match('/(شراء|حجز|معاينة|كاش|تقسيط|عاجل|urgent|buy|book)/iu', $message)) {
@@ -142,7 +156,7 @@ class AiAssistantController
             $lead = AssistantLead::where('phone', $phone)->latest()->first();
             $shouldNotify = false;
 
-            if (!$lead) {
+            if (! $lead) {
                 $lead = AssistantLead::create([
                     'name' => $clientName,
                     'phone' => $phone,
@@ -170,7 +184,7 @@ class AiAssistantController
                     ->where('created_at', '>=', now()->subMinutes(15))
                     ->exists();
 
-                if (!$recentNotificationExists) {
+                if (! $recentNotificationExists) {
                     $shouldNotify = true;
                 }
             }
@@ -191,8 +205,7 @@ class AiAssistantController
                 }
             }
         } catch (\Throwable $e) {
-            Log::warning('AiAssistantController failed to record lead or dispatch notification: ' . $e->getMessage());
+            Log::warning('AiAssistantController failed to record lead or dispatch notification: '.$e->getMessage());
         }
     }
 }
-

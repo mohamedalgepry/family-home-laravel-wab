@@ -39,7 +39,7 @@ class SmartSearchService
             if (isset($priceResult['price_max'])) {
                 $filters['price_max'] = $priceResult['price_max'];
             }
-            
+
             $matchedTerms['price'] = $priceResult['matched_term'];
             // Remove matched term from clean query
             $cleanQuery = str_replace($priceResult['matched_term'], ' ', $cleanQuery);
@@ -50,10 +50,10 @@ class SmartSearchService
         foreach (self::TRANSACTION_MAP as $transaction => $keywords) {
             foreach ($keywords as $keyword) {
                 // Must match whole word
-                if (preg_match('/\b' . preg_quote($keyword, '/') . '\b/u', $cleanQuery)) {
+                if (preg_match('/\b'.preg_quote($keyword, '/').'\b/u', $cleanQuery)) {
                     $filters['transaction'] = $transaction;
                     $matchedTerms['transaction'] = $keyword;
-                    $cleanQuery = preg_replace('/\b' . preg_quote($keyword, '/') . '\b/u', ' ', $cleanQuery);
+                    $cleanQuery = preg_replace('/\b'.preg_quote($keyword, '/').'\b/u', ' ', $cleanQuery);
                     $cleanQuery = $this->normalizer->normalize($cleanQuery);
                     break 2; // Found a transaction, stop looking
                 }
@@ -65,12 +65,12 @@ class SmartSearchService
         foreach ($unitTypes as $type) {
             $nameAr = $this->normalizer->normalize((string) $type->name_ar);
             $nameEn = $this->normalizer->normalize((string) $type->name_en);
-            
+
             foreach (array_filter([$nameAr, $nameEn]) as $name) {
-                if (preg_match('/\b' . preg_quote($name, '/') . '\b/u', $cleanQuery)) {
+                if (preg_match('/\b'.preg_quote($name, '/').'\b/u', $cleanQuery)) {
                     $filters['type_id'] = $type->id;
                     $matchedTerms['unit_type'] = $name;
-                    $cleanQuery = preg_replace('/\b' . preg_quote($name, '/') . '\b/u', ' ', $cleanQuery);
+                    $cleanQuery = preg_replace('/\b'.preg_quote($name, '/').'\b/u', ' ', $cleanQuery);
                     $cleanQuery = $this->normalizer->normalize($cleanQuery);
                     break 2; // Found a type, stop looking
                 }
@@ -82,12 +82,12 @@ class SmartSearchService
         foreach ($areas as $area) {
             $nameAr = $this->normalizer->normalize((string) $area->name_ar);
             $nameEn = $this->normalizer->normalize((string) $area->name_en);
-            
+
             foreach (array_filter([$nameAr, $nameEn]) as $name) {
-                if (preg_match('/\b' . preg_quote($name, '/') . '\b/u', $cleanQuery)) {
+                if (preg_match('/\b'.preg_quote($name, '/').'\b/u', $cleanQuery)) {
                     $filters['area_id'] = $area->id;
                     $matchedTerms['area'] = $name;
-                    $cleanQuery = preg_replace('/\b' . preg_quote($name, '/') . '\b/u', ' ', $cleanQuery);
+                    $cleanQuery = preg_replace('/\b'.preg_quote($name, '/').'\b/u', ' ', $cleanQuery);
                     $cleanQuery = $this->normalizer->normalize($cleanQuery);
                     break 2; // Found an area, stop looking
                 }

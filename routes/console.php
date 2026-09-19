@@ -1,5 +1,6 @@
 <?php
 
+use App\Console\Commands\ExportPrerenderData;
 use App\Domain\Listings\Models\Setting;
 use App\Domain\Points\Jobs\AutoDeleteReviewJob;
 use App\Domain\Points\Jobs\MonthlyResetJob;
@@ -10,7 +11,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('prerender:data', function () {
-    return $this->call(\App\Console\Commands\ExportPrerenderData::class);
+    return $this->call(ExportPrerenderData::class);
 })->purpose('Export all public page route HTML templates and Inertia page objects for static prerendering');
 
 Artisan::command('inspire', function () {
@@ -41,7 +42,7 @@ Artisan::command('points:monthly-reset', function () {
 
     try {
         dispatch(new MonthlyResetJob);
-    } catch (\Throwable $e) {
+    } catch (Throwable $e) {
         Cache::forget($key);
         throw $e;
     }
@@ -57,7 +58,7 @@ Artisan::command('units:check-expiry', function () {
 
     try {
         dispatch(new AutoDeleteReviewJob);
-    } catch (\Throwable $e) {
+    } catch (Throwable $e) {
         Cache::forget($key);
         throw $e;
     }

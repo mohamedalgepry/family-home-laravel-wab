@@ -76,7 +76,9 @@ Route::get('/storage/{path}', function ($path) {
 })->where('path', '.*');
 
 use App\Http\Controllers\Admin\AboutController;
+use App\Http\Controllers\Admin\AiKnowledgeController;
 use App\Http\Controllers\Admin\AreaController;
+use App\Http\Controllers\Admin\AssistantLeadController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\FeatureController;
@@ -91,6 +93,8 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Public\AgentController;
 use App\Http\Controllers\Public\PageController;
 use App\Http\Middleware\SetLocale;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 Route::get('/locale/{lang}', [PageController::class, 'switchLocale'])->name('locale.switch');
 
@@ -115,15 +119,15 @@ Route::middleware('auth')->group(function () {
 
 Route::get('/', [PageController::class, 'rootRedirect'])->name('root');
 
-Route::post('/csp-report', function (\Illuminate\Http\Request $request) {
-    \Illuminate\Support\Facades\Log::warning('CSP Violation Report', [
+Route::post('/csp-report', function (Request $request) {
+    Log::warning('CSP Violation Report', [
         'report' => $request->all() ?: json_decode($request->getContent(), true),
         'ip' => $request->ip(),
         'user_agent' => $request->userAgent(),
     ]);
 
     return response()->noContent();
-})->name('csp.report');
+})->middleware('throttle:csp-report')->name('csp.report');
 
 Route::post('/units/{unit:slug}/contact', [MessageController::class, 'store'])
     ->middleware('throttle:contact-form');
@@ -182,9 +186,6 @@ Route::prefix('{locale}')->whereIn('locale', ['ar', 'en'])->middleware(SetLocale
         ->name('assistant.chat');
 });
 
-
-
-
 Route::prefix('admin')->middleware(['auth', 'role:admin,manager,agent'])->group(function () {
     Route::get('/', DashboardController::class)->name('admin.dashboard');
     Route::post('/media/upload', [MediaController::class, 'upload'])->name('admin.media.upload');
@@ -242,18 +243,18 @@ Route::prefix('admin')->middleware(['auth', 'role:admin,manager,agent'])->group(
     });
 
     Route::prefix('assistant-leads')->name('admin.assistant-leads.')->middleware('role:admin')->group(function () {
-        Route::get('/', [App\Http\Controllers\Admin\AssistantLeadController::class, 'index'])->name('index');
-        Route::post('/{lead}/contacted', [App\Http\Controllers\Admin\AssistantLeadController::class, 'markAsContacted'])->name('mark-contacted');
-        Route::delete('/{lead}', [App\Http\Controllers\Admin\AssistantLeadController::class, 'destroy'])->name('destroy');
+        Route::get('/', [AssistantLeadController::class, 'index'])->name('index');
+        Route::post('/{lead}/contacted', [AssistantLeadController::class, 'markAsContacted'])->name('mark-contacted');
+        Route::delete('/{lead}', [AssistantLeadController::class, 'destroy'])->name('destroy');
     });
 
     Route::prefix('assistant-knowledge')->name('admin.assistant-knowledge.')->middleware('role:admin')->group(function () {
-        Route::get('/', [App\Http\Controllers\Admin\AiKnowledgeController::class, 'index'])->name('index');
-        Route::post('/', [App\Http\Controllers\Admin\AiKnowledgeController::class, 'store'])->name('store');
-        Route::put('/{id}', [App\Http\Controllers\Admin\AiKnowledgeController::class, 'update'])->name('update');
-        Route::delete('/{id}', [App\Http\Controllers\Admin\AiKnowledgeController::class, 'destroy'])->name('destroy');
-        Route::post('/{id}/toggle', [App\Http\Controllers\Admin\AiKnowledgeController::class, 'toggleActive'])->name('toggle');
-        Route::post('/clear-cache', [App\Http\Controllers\Admin\AiKnowledgeController::class, 'clearCache'])->name('clear-cache');
+        Route::get('/', [AiKnowledgeController::class, 'index'])->name('index');
+        Route::post('/', [AiKnowledgeController::class, 'store'])->name('store');
+        Route::put('/{id}', [AiKnowledgeController::class, 'update'])->name('update');
+        Route::delete('/{id}', [AiKnowledgeController::class, 'destroy'])->name('destroy');
+        Route::post('/{id}/toggle', [AiKnowledgeController::class, 'toggleActive'])->name('toggle');
+        Route::post('/clear-cache', [AiKnowledgeController::class, 'clearCache'])->name('clear-cache');
     });
 
     Route::prefix('notifications')->name('admin.notifications.')->group(function () {

@@ -24,22 +24,34 @@ class FreshDummySeeder extends Seeder
 {
     public function run(): void
     {
+        // حماية: هذا السيدر يمسح كل المستخدمين — ممنوع تشغيله في بيئة الإنتاج
+        if (app()->environment('production')) {
+            $this->command?->error('FreshDummySeeder is a destructive dev-only seeder and cannot run in production.');
+
+            return;
+        }
+
         // 1. Delete all users and create one Admin
         DB::statement('SET FOREIGN_KEY_CHECKS=0;');
         User::truncate();
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
+        $adminPassword = env('ADMIN_SEED_PASSWORD') ?: Str::random(16);
+
         $admin = User::create([
             'name' => 'مدير النظام',
             'email' => 'admin@admin.com',
-            'password' => Hash::make('12345678'),
+            'password' => Hash::make($adminPassword),
             'role' => 'admin',
             'is_active' => true,
             'points_balance' => 0,
             'initial_monthly_balance' => 0,
         ]);
 
-        $this->command->info('تم تنظيف قاعدة البيانات من المستخدمين وإنشاء مستخدم أدمن (admin@admin.com / 12345678).');
+        $this->command->info("تم تنظيف قاعدة البيانات من المستخدمين وإنشاء مستخدم أدمن (admin@admin.com / {$adminPassword}).");
+        if (empty(env('ADMIN_SEED_PASSWORD'))) {
+            $this->command->warn('⚠️  تم توليد باسورد عشوائي (مطبوع أعلاه). عرّف ADMIN_SEED_PASSWORD في .env لتحديده بنفسك.');
+        }
 
         // Ensure we have some prerequisites
         $this->call([
@@ -122,7 +134,7 @@ class FreshDummySeeder extends Seeder
         // 4. Create Dummy Units
         for ($i = 1; $i <= 6; $i++) {
             $project = $projects[array_rand($projects)];
-            $unit = new Unit();
+            $unit = new Unit;
             $unit->forceFill([
                 'project_id' => $project->id,
                 'user_id' => $admin->id,

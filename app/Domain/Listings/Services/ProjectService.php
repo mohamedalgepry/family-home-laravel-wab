@@ -9,6 +9,7 @@ use App\Domain\Listings\Actions\DeleteProjectAction;
 use App\Domain\Listings\Actions\UpdateProjectAction;
 use App\Domain\Listings\DTOs\CreateProjectData;
 use App\Domain\Listings\Models\Project;
+use App\Domain\Listings\Models\Setting;
 use App\Domain\Users\Models\User;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
@@ -113,7 +114,7 @@ class ProjectService
 
         if (! $wasActive && $project->is_active) {
             if (! $project->auto_delete_at || $project->auto_delete_at->isPast()) {
-                $days = (int) \App\Domain\Listings\Models\Setting::getValue('auto_delete_days', '30');
+                $days = (int) Setting::getValue('auto_delete_days', '30');
                 $days = $days > 0 ? $days : 30;
                 $project->auto_delete_at = now()->addDays($days);
             }

@@ -119,7 +119,7 @@ class SeoService
         ];
 
         $siteLogo = $this->settingsService->get('site_logo');
-        $imageUrl = ($siteLogo && !str_contains($siteLogo, '.webp'))
+        $imageUrl = ($siteLogo && ! str_contains($siteLogo, '.webp'))
             ? asset('storage/'.$siteLogo)
             : (file_exists(public_path('images/og-familyhome.png')) ? asset('images/og-familyhome.png') : asset('icon.png'));
 
