@@ -1,6 +1,7 @@
 <?php
 
 use App\Domain\Listings\Models\Unit;
+
 test('admin can adjust points for any unit', function () {
     $admin = createUser('Admin User', 'admin');
     $unit = createTestUnit([]);

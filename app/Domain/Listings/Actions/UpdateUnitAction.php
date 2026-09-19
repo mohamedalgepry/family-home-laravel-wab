@@ -4,6 +4,7 @@ namespace App\Domain\Listings\Actions;
 
 use App\Domain\Common\Support\Sanitizer;
 use App\Domain\Listings\DTOs\CreateUnitData;
+use App\Domain\Listings\Models\Setting;
 use App\Domain\Listings\Models\Unit;
 use App\Domain\Users\Models\User;
 
@@ -42,7 +43,7 @@ class UpdateUnitAction
         if (array_key_exists('is_active', $sanitized)) {
             $unit->is_active = $sanitized['is_active'];
             if ($unit->is_active && (! $unit->auto_delete_at || $unit->auto_delete_at->isPast())) {
-                $days = (int) \App\Domain\Listings\Models\Setting::getValue('auto_delete_days', '30');
+                $days = (int) Setting::getValue('auto_delete_days', '30');
                 $days = $days > 0 ? $days : 30;
                 $unit->auto_delete_at = now()->addDays($days);
             }

@@ -12,11 +12,22 @@ use Illuminate\Support\Facades\Cache;
 
 class StatisticsService
 {
+    /**
+     * "transaction" is a reserved SQL keyword, so it must be wrapped using the
+     * active connection grammar (backticks on MySQL, double quotes on SQLite/Postgres)
+     * before being interpolated into selectRaw() fragments.
+     */
+    private function transactionColumn(): string
+    {
+        return Unit::query()->getGrammar()->wrap('transaction');
+    }
+
     public function getStats(?User $user = null): array
     {
         $cacheKey = 'dashboard_stats_'.($user?->id ?? 'guest');
+        $transactionColumn = $this->transactionColumn();
 
-        return Cache::remember($cacheKey, 300, function () use ($user) {
+        return Cache::remember($cacheKey, 300, function () use ($user, $transactionColumn) {
             if ($user && $user->isAgent()) {
                 $teamUserIds = $user->manager_id
                     ? User::where('manager_id', $user->manager_id)->pluck('id')->push($user->manager_id)
@@ -25,8 +36,8 @@ class StatisticsService
                 $unitStats = Unit::whereIn('user_id', $teamUserIds)
                     ->selectRaw("
                         COUNT(*) as total_units,
-                        COUNT(CASE WHEN transaction = 'sale' THEN 1 END) as sale_units,
-                        COUNT(CASE WHEN transaction = 'rent' THEN 1 END) as rent_units,
+                        COUNT(CASE WHEN {$transactionColumn} = 'sale' THEN 1 END) as sale_units,
+                        COUNT(CASE WHEN {$transactionColumn} = 'rent' THEN 1 END) as rent_units,
                         COALESCE(SUM(views_count), 0) as total_views
                     ")
                     ->first();
@@ -56,8 +67,8 @@ class StatisticsService
                 $unitStats = Unit::whereIn('user_id', $teamUserIds)
                     ->selectRaw("
                         COUNT(*) as total_units,
-                        COUNT(CASE WHEN transaction = 'sale' THEN 1 END) as sale_units,
-                        COUNT(CASE WHEN transaction = 'rent' THEN 1 END) as rent_units,
+                        COUNT(CASE WHEN {$transactionColumn} = 'sale' THEN 1 END) as sale_units,
+                        COUNT(CASE WHEN {$transactionColumn} = 'rent' THEN 1 END) as rent_units,
                         COALESCE(SUM(views_count), 0) as total_views
                     ")
                     ->first();
@@ -84,8 +95,8 @@ class StatisticsService
             $unitStats = Unit::query()
                 ->selectRaw("
                     COUNT(*) as total_units,
-                    COUNT(CASE WHEN transaction = 'sale' THEN 1 END) as sale_units,
-                    COUNT(CASE WHEN transaction = 'rent' THEN 1 END) as rent_units,
+                    COUNT(CASE WHEN {$transactionColumn} = 'sale' THEN 1 END) as sale_units,
+                    COUNT(CASE WHEN {$transactionColumn} = 'rent' THEN 1 END) as rent_units,
                     COALESCE(SUM(views_count), 0) as total_views
                 ")
                 ->first();
@@ -98,10 +109,10 @@ class StatisticsService
                 ->first();
 
             $projStats = Project::query()
-                ->selectRaw("
+                ->selectRaw('
                     COUNT(*) as total_projects,
                     COALESCE(SUM(views_count), 0) as total_views
-                ")
+                ')
                 ->first();
 
             return [

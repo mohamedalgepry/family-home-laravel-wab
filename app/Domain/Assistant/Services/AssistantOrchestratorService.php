@@ -9,15 +9,25 @@ use Illuminate\Support\Facades\Log;
 class AssistantOrchestratorService
 {
     private string $provider;
+
     private string $geminiApiKey;
+
     private string $geminiModel;
+
     private string $geminiFallbackModel;
+
     private string $openrouterApiKey;
+
     private string $openrouterModel;
+
     private string $openrouterFallbackModel;
+
     private string $openrouterBaseUrl;
+
     private float $totalBudget;
+
     private float $perRequestTimeout;
+
     private int $maxIterations;
 
     public function __construct(
@@ -35,11 +45,11 @@ class AssistantOrchestratorService
 
         // Auto-detect active AI provider based on available key or explicit config
         $configuredProvider = (string) config('assistant.provider', env('ASSISTANT_PROVIDER', ''));
-        if (!empty($configuredProvider)) {
+        if (! empty($configuredProvider)) {
             $this->provider = strtolower($configuredProvider);
-        } elseif (!empty($this->geminiApiKey)) {
+        } elseif (! empty($this->geminiApiKey)) {
             $this->provider = 'gemini';
-        } elseif (!empty($this->openrouterApiKey)) {
+        } elseif (! empty($this->openrouterApiKey)) {
             $this->provider = 'openrouter';
         } else {
             $this->provider = '';
@@ -56,7 +66,7 @@ class AssistantOrchestratorService
      */
     public function hasApiKey(): bool
     {
-        return !empty($this->geminiApiKey) || !empty($this->openrouterApiKey);
+        return ! empty($this->geminiApiKey) || ! empty($this->openrouterApiKey);
     }
 
     /**
@@ -70,9 +80,6 @@ class AssistantOrchestratorService
     /**
      * Process user chat turn with intelligent multi-model orchestration, self-learning, and fail-closed safety.
      *
-     * @param  string  $message
-     * @param  array  $history
-     * @param  string  $locale
      * @return array{reply: string, recommended_units: array, quick_replies: array, is_fallback?: bool}
      */
     public function chat(
@@ -98,21 +105,21 @@ class AssistantOrchestratorService
         if ($this->knowledgeService !== null && empty($history)) {
             try {
                 $instantResponse = $this->knowledgeService->findCannedOrLearnedResponse($cleanMessage, $locale);
-                if ($instantResponse !== null && !empty($instantResponse['reply'])) {
+                if ($instantResponse !== null && ! empty($instantResponse['reply'])) {
                     return [
                         'reply' => $this->sanitizeOutputText($instantResponse['reply']),
                         'recommended_units' => $instantResponse['recommended_units'] ?? [],
-                        'quick_replies' => $instantResponse['quick_replies'] ?? $this->buildQuickReplies($locale, !empty($instantResponse['recommended_units'])),
+                        'quick_replies' => $instantResponse['quick_replies'] ?? $this->buildQuickReplies($locale, ! empty($instantResponse['recommended_units'])),
                         'is_fallback' => false,
                     ];
                 }
             } catch (\Throwable $e) {
-                Log::warning('HossamKnowledgeService instant check error: ' . $e->getMessage());
+                Log::warning('HossamKnowledgeService instant check error: '.$e->getMessage());
             }
         }
 
         // 2. If no external API key is configured, route directly to rich local intent engine
-        if (!$this->hasApiKey()) {
+        if (! $this->hasApiKey()) {
             return $this->handleLocalRuleBasedResponse($cleanMessage, $locale, [], $normalizedPageContext);
         }
 
@@ -144,7 +151,7 @@ class AssistantOrchestratorService
             ...$sanitizedHistory,
             [
                 'role' => 'user',
-                'content' => "<user_inquiry>\n" . htmlspecialchars($userMessage, ENT_QUOTES, 'UTF-8') . "\n</user_inquiry>",
+                'content' => "<user_inquiry>\n".htmlspecialchars($userMessage, ENT_QUOTES, 'UTF-8')."\n</user_inquiry>",
             ],
         ];
 
@@ -158,12 +165,14 @@ class AssistantOrchestratorService
             $recommendedUnits[$card['id']] = $card;
         }
 
-        // If user is on a project page, preload units from that specific project as well
-        if (!empty($normalizedPageContext['project_slug'])) {
+        // If the user is on a project page AND asked about listings, preload
+        // units from that project. Without listing intent we skip it so casual
+        // questions on a project page don't get flooded with unit cards.
+        if (! empty($normalizedPageContext['project_slug']) && $this->hasListingIntent($userMessage)) {
             try {
-                $projUnitsPag = $this->catalogService->listUnitsForProject($normalizedPageContext['project_slug'], [], 1, 4, $locale);
+                $projUnitsPag = $this->catalogService->listUnitsForProject($normalizedPageContext['project_slug'], [], 1, 3, $locale);
                 foreach ($projUnitsPag->toCardPayload() as $card) {
-                    if (!isset($recommendedUnits[$card['id']])) {
+                    if (! isset($recommendedUnits[$card['id']])) {
                         $recommendedUnits[$card['id']] = $card;
                     }
                 }
@@ -187,7 +196,7 @@ class AssistantOrchestratorService
             $requestTimeout = max(2.0, min($this->perRequestTimeout, $remainingBudget));
             $response = $this->callModel($messages, $tools, $requestTimeout);
 
-            if (!$response || !isset($response['choices'][0]['message'])) {
+            if (! $response || ! isset($response['choices'][0]['message'])) {
                 break;
             }
 
@@ -196,7 +205,7 @@ class AssistantOrchestratorService
 
             $toolCalls = $assistantMsg['tool_calls'] ?? [];
 
-            if (!empty($toolCalls)) {
+            if (! empty($toolCalls)) {
                 foreach ($toolCalls as $toolCall) {
                     $toolName = (string) ($toolCall['function']['name'] ?? '');
                     $callId = (string) ($toolCall['id'] ?? uniqid('call_'));
@@ -205,7 +214,7 @@ class AssistantOrchestratorService
 
                     $toolResult = $this->catalogService->executeTool($toolName, $args, $locale);
 
-                    if (!empty($toolResult['recommended_units'])) {
+                    if (! empty($toolResult['recommended_units'])) {
                         foreach ($toolResult['recommended_units'] as $card) {
                             $recommendedUnits[$card['id']] = $card;
                         }
@@ -231,11 +240,16 @@ class AssistantOrchestratorService
         // Clean output, linkify unit names, and build quick replies
         $cleanReply = $this->sanitizeOutputText($collectedReply);
         $cleanReply = $this->injectUnitLinks($cleanReply, $recommendedUnits, $locale);
-        $finalUnits = array_values(array_slice($recommendedUnits, 0, 6));
-        $quickReplies = $this->buildQuickReplies($locale, !empty($finalUnits));
+
+        // Attach unit cards ONLY when the turn is actually about listings —
+        // and cap at 3 focused picks instead of flooding the chat with 6.
+        $finalUnits = $this->hasListingIntent($userMessage)
+            ? array_values(array_slice($recommendedUnits, 0, 3))
+            : [];
+        $quickReplies = $this->buildQuickReplies($locale, ! empty($finalUnits));
 
         // Self-Learning: Store high-quality AI consultation in persistent knowledge base
-        if ($this->knowledgeService !== null && !empty($cleanReply) && mb_strlen($cleanReply) > 25) {
+        if ($this->knowledgeService !== null && ! empty($cleanReply) && mb_strlen($cleanReply) > 25) {
             try {
                 $this->knowledgeService->learn($userMessage, $cleanReply, $quickReplies, $locale);
             } catch (\Throwable $e) {
@@ -257,7 +271,7 @@ class AssistantOrchestratorService
     private function callModel(array $messages, array $tools, float $timeout = 30.0): ?array
     {
         // 1. If Gemini is active or only Gemini API key is configured
-        if ($this->provider === 'gemini' || (!empty($this->geminiApiKey) && empty($this->openrouterApiKey))) {
+        if ($this->provider === 'gemini' || (! empty($this->geminiApiKey) && empty($this->openrouterApiKey))) {
             $geminiRes = $this->callGemini($messages, $tools, $timeout);
             if ($geminiRes !== null) {
                 return $geminiRes;
@@ -265,7 +279,7 @@ class AssistantOrchestratorService
         }
 
         // 2. If OpenRouter is configured
-        if (!empty($this->openrouterApiKey)) {
+        if (! empty($this->openrouterApiKey)) {
             $openRouterRes = $this->callOpenRouter($messages, $tools, $timeout);
             if ($openRouterRes !== null) {
                 return $openRouterRes;
@@ -273,7 +287,7 @@ class AssistantOrchestratorService
         }
 
         // 3. Failover to Gemini if OpenRouter failed and Gemini key is available
-        if (!empty($this->geminiApiKey) && $this->provider !== 'gemini') {
+        if (! empty($this->geminiApiKey) && $this->provider !== 'gemini') {
             return $this->callGemini($messages, $tools, $timeout);
         }
 
@@ -300,6 +314,7 @@ class AssistantOrchestratorService
 
             if ($role === 'system') {
                 $systemInstruction = $content;
+
                 continue;
             }
 
@@ -320,12 +335,14 @@ class AssistantOrchestratorService
         $payload = [
             'contents' => $contents,
             'generationConfig' => [
-                'temperature' => 0.45,
-                'maxOutputTokens' => 3000,
+                // Lower temperature → more factual, on-point answers.
+                // Lower token ceiling → concise replies generated faster.
+                'temperature' => 0.3,
+                'maxOutputTokens' => 1024,
             ],
         ];
 
-        if (!empty($systemInstruction)) {
+        if (! empty($systemInstruction)) {
             $payload['system_instruction'] = [
                 'parts' => [
                     ['text' => $systemInstruction],
@@ -343,7 +360,7 @@ class AssistantOrchestratorService
                 $data = $response->json();
                 $replyText = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
 
-                if (!empty($replyText)) {
+                if (! empty($replyText)) {
                     return [
                         'choices' => [
                             [
@@ -362,12 +379,13 @@ class AssistantOrchestratorService
                 ]);
             }
         } catch (\Throwable $e) {
-            Log::warning('Gemini API call exception (model: ' . $model . '): ' . $e->getMessage());
+            Log::warning('Gemini API call exception (model: '.$model.'): '.$e->getMessage());
         }
 
         // Fallback to secondary Gemini model if primary failed
-        if ($model === $this->geminiModel && !empty($this->geminiFallbackModel) && $this->geminiFallbackModel !== $model) {
-            Log::info('Gemini primary model failed, trying fallback model: ' . $this->geminiFallbackModel);
+        if ($model === $this->geminiModel && ! empty($this->geminiFallbackModel) && $this->geminiFallbackModel !== $model) {
+            Log::info('Gemini primary model failed, trying fallback model: '.$this->geminiFallbackModel);
+
             return $this->callGemini($messages, $tools, $timeout, $this->geminiFallbackModel);
         }
 
@@ -386,16 +404,17 @@ class AssistantOrchestratorService
         $payload = [
             'model' => $this->openrouterModel,
             'messages' => $messages,
-            'tools' => !empty($tools) ? $tools : null,
-            'tool_choice' => !empty($tools) ? 'auto' : null,
-            'temperature' => 0.45,
-            'max_tokens' => 2500,
+            'tools' => ! empty($tools) ? $tools : null,
+            'tool_choice' => ! empty($tools) ? 'auto' : null,
+            // Lower temperature → factual, on-point; lower cap → faster replies
+            'temperature' => 0.3,
+            'max_tokens' => 1024,
         ];
 
         try {
             $response = Http::timeout((int) ceil($timeout))
                 ->withHeaders([
-                    'Authorization' => 'Bearer ' . $this->openrouterApiKey,
+                    'Authorization' => 'Bearer '.$this->openrouterApiKey,
                     'HTTP-Referer' => 'https://familyhome-co.com',
                     'X-Title' => 'Family Home Real Estate Assistant',
                 ])
@@ -406,11 +425,11 @@ class AssistantOrchestratorService
             }
 
             // Fallback model on OpenRouter if primary failed
-            if (!empty($this->openrouterFallbackModel) && $this->openrouterFallbackModel !== $this->openrouterModel) {
+            if (! empty($this->openrouterFallbackModel) && $this->openrouterFallbackModel !== $this->openrouterModel) {
                 $payload['model'] = $this->openrouterFallbackModel;
                 $fallbackResponse = Http::timeout((int) ceil($timeout))
                     ->withHeaders([
-                        'Authorization' => 'Bearer ' . $this->openrouterApiKey,
+                        'Authorization' => 'Bearer '.$this->openrouterApiKey,
                         'HTTP-Referer' => 'https://familyhome-co.com',
                         'X-Title' => 'Family Home Real Estate Assistant',
                     ])
@@ -421,7 +440,7 @@ class AssistantOrchestratorService
                 }
             }
         } catch (\Throwable $e) {
-            Log::info('OpenRouter LLM call failure: ' . $e->getMessage());
+            Log::info('OpenRouter LLM call failure: '.$e->getMessage());
         }
 
         return null;
@@ -432,8 +451,30 @@ class AssistantOrchestratorService
      *
      * @return UnitPublicDTO[]
      */
+    /**
+     * Does the message actually ask about properties/listings?
+     * Units must ONLY be attached when the user shows listing intent —
+     * otherwise the assistant spams unit cards on every casual message.
+     */
+    private function hasListingIntent(string $message): bool
+    {
+        return (bool) preg_match(
+            '/(فيلا|فيلات|فلل|شقة|شقه|شقق|دوبلكس|بنتهاوس|استوديو|ستوديو|مكتب|مكاتب|محل|محلات|وحدة|وحدات|عقار|عقارات|'.
+            'سعر|بسعر|بمبلغ|ميزانية|ميزانيه|مليون|ملايين|غرف|غرفة|غرفه|إيجار|ايجار|للبيع|اشتري|أشتري|معاينة|معاينه|'.
+            'رشح|رشحلي|اقترح|ورّيني|وريني|اعرض|أعرض|متاح|لقطة|لقطه|عروض|'.
+            'villa|apartment|apt|studio|office|shop|unit|property|properties|budget|price|rent|buy|bedroom|rooms|show me|available|deal)/iu',
+            $message
+        );
+    }
+
     private function preSearchRelevantUnits(string $message, string $locale): array
     {
+        // No listing intent → no units. This is what keeps replies clean:
+        // greetings, thanks, and general questions never trigger unit spam.
+        if (! $this->hasListingIntent($message)) {
+            return [];
+        }
+
         $filters = [];
 
         // Price extraction
@@ -455,10 +496,10 @@ class AssistantOrchestratorService
             $filters['transaction'] = 'rent';
         }
 
-        $units = $this->catalogService->listUnits($filters, 4, $locale);
+        $units = $this->catalogService->listUnits($filters, 3, $locale);
         if (empty($units) && isset($filters['rooms'])) {
             unset($filters['rooms']);
-            $units = $this->catalogService->listUnits($filters, 4, $locale);
+            $units = $this->catalogService->listUnits($filters, 3, $locale);
         }
 
         return $units;
@@ -471,7 +512,7 @@ class AssistantOrchestratorService
         $clean = [];
 
         foreach ($sliced as $item) {
-            if (!is_array($item) || empty($item['role']) || empty($item['content'])) {
+            if (! is_array($item) || empty($item['role']) || empty($item['content'])) {
                 continue;
             }
             $role = in_array($item['role'], ['user', 'assistant'], true) ? $item['role'] : 'user';
@@ -510,77 +551,97 @@ class AssistantOrchestratorService
     private function buildSystemPrompt(string $locale, array $preloadedUnits = [], array $pageContext = []): string
     {
         // Fetch verified company contact info
-        $companyContactSection = \App\Domain\Assistant\Services\AssistantContactResolver::formatCompanyPromptSection($locale);
+        $companyContactSection = AssistantContactResolver::formatCompanyPromptSection($locale);
 
         $inventoryContext = '';
-        if (!empty($preloadedUnits)) {
+        if (! empty($preloadedUnits)) {
             $items = [];
             foreach ($preloadedUnits as $u) {
-                $line = "• **{$u->name}** | السعر: " . number_format($u->price) . " ج.م | الغرف: {$u->rooms} | المساحة: {$u->areaSqm} م² | الدفع: {$u->paymentMethod} | الرابط: {$u->url}";
-                if (!empty($u->agentName)) {
+                $line = "• **{$u->name}** | السعر: ".number_format($u->price)." ج.م | الغرف: {$u->rooms} | المساحة: {$u->areaSqm} م² | الدفع: {$u->paymentMethod} | الرابط: {$u->url}";
+                if (! empty($u->agentName)) {
                     $line .= " | الوكيل: {$u->agentName}";
-                    if (!empty($u->agentPhone)) $line .= " (هاتف: {$u->agentPhone})";
-                    if (!empty($u->agentWhatsapp)) $line .= " (واتساب: {$u->agentWhatsapp})";
+                    if (! empty($u->agentPhone)) {
+                        $line .= " (هاتف: {$u->agentPhone})";
+                    }
+                    if (! empty($u->agentWhatsapp)) {
+                        $line .= " (واتساب: {$u->agentWhatsapp})";
+                    }
                 }
                 $items[] = $line;
             }
-            $inventoryContext = "\n\nالوحدات العقارية المتاحة فعلياً في كتالوج الشركة والمطابقة لبحث العميل:\n" . implode("\n", $items);
+            $inventoryContext = "\n\nالوحدات العقارية المتاحة فعلياً في كتالوج الشركة والمطابقة لبحث العميل:\n".implode("\n", $items);
         }
 
         $pageContextSection = '';
-        if (!empty($pageContext['page_type']) && $pageContext['page_type'] !== 'unknown') {
+        if (! empty($pageContext['page_type']) && $pageContext['page_type'] !== 'unknown') {
             $desc = [];
-            if (!empty($pageContext['project_name'])) {
+            if (! empty($pageContext['project_name'])) {
                 $pLine = "المشروع المعروض بالصفحة الحالية: «{$pageContext['project_name']}» (Slug: {$pageContext['project_slug']})";
-                if (!empty($pageContext['agent_name'])) {
+                if (! empty($pageContext['agent_name'])) {
                     $pLine .= " | الوكيل العقاري المسؤول: {$pageContext['agent_name']}";
-                    if (!empty($pageContext['agent_phone'])) $pLine .= " (هاتف: {$pageContext['agent_phone']})";
-                    if (!empty($pageContext['agent_whatsapp'])) $pLine .= " (واتساب: {$pageContext['agent_whatsapp']})";
+                    if (! empty($pageContext['agent_phone'])) {
+                        $pLine .= " (هاتف: {$pageContext['agent_phone']})";
+                    }
+                    if (! empty($pageContext['agent_whatsapp'])) {
+                        $pLine .= " (واتساب: {$pageContext['agent_whatsapp']})";
+                    }
                 }
                 $desc[] = $pLine;
-                if (!empty($pageContext['summary'])) {
+                if (! empty($pageContext['summary'])) {
                     $s = $pageContext['summary'];
                     $parts = [];
-                    if (!empty($s['location'])) $parts[] = "الموقع: {$s['location']}";
-                    if (!empty($s['price_range'])) $parts[] = "نطاق الأسعار: {$s['price_range']}";
-                    if (!empty($s['units_count'])) $parts[] = "إجمالي الوحدات: {$s['units_count']}";
-                    if (!empty($parts)) $desc[] = implode(' | ', $parts);
+                    if (! empty($s['location'])) {
+                        $parts[] = "الموقع: {$s['location']}";
+                    }
+                    if (! empty($s['price_range'])) {
+                        $parts[] = "نطاق الأسعار: {$s['price_range']}";
+                    }
+                    if (! empty($s['units_count'])) {
+                        $parts[] = "إجمالي الوحدات: {$s['units_count']}";
+                    }
+                    if (! empty($parts)) {
+                        $desc[] = implode(' | ', $parts);
+                    }
                 }
             }
-            if (!empty($pageContext['unit_name'])) {
-                $uLine = "الوحدة المعروضة بالصفحة الحالية: «{$pageContext['unit_name']}»" .
-                    (!empty($pageContext['unit_price']) ? " | السعر: " . number_format((float)$pageContext['unit_price']) . " ج.م" : "") .
-                    (!empty($pageContext['unit_rooms']) ? " | الغرف: {$pageContext['unit_rooms']}" : "");
-                if (!empty($pageContext['agent_name'])) {
+            if (! empty($pageContext['unit_name'])) {
+                $uLine = "الوحدة المعروضة بالصفحة الحالية: «{$pageContext['unit_name']}»".
+                    (! empty($pageContext['unit_price']) ? ' | السعر: '.number_format((float) $pageContext['unit_price']).' ج.م' : '').
+                    (! empty($pageContext['unit_rooms']) ? " | الغرف: {$pageContext['unit_rooms']}" : '');
+                if (! empty($pageContext['agent_name'])) {
                     $uLine .= " | الوكيل العقاري المسؤول: {$pageContext['agent_name']}";
-                    if (!empty($pageContext['agent_phone'])) $uLine .= " (هاتف: {$pageContext['agent_phone']})";
-                    if (!empty($pageContext['agent_whatsapp'])) $uLine .= " (واتساب: {$pageContext['agent_whatsapp']})";
+                    if (! empty($pageContext['agent_phone'])) {
+                        $uLine .= " (هاتف: {$pageContext['agent_phone']})";
+                    }
+                    if (! empty($pageContext['agent_whatsapp'])) {
+                        $uLine .= " (واتساب: {$pageContext['agent_whatsapp']})";
+                    }
                 }
                 $desc[] = $uLine;
             }
-            if (!empty($pageContext['title'])) {
+            if (! empty($pageContext['title'])) {
                 $desc[] = "عنوان الصفحة: {$pageContext['title']}";
             }
-            if (!empty($pageContext['pathname']) || !empty($pageContext['url'])) {
-                $desc[] = "رابط الصفحة: " . ($pageContext['pathname'] ?: $pageContext['url']);
+            if (! empty($pageContext['pathname']) || ! empty($pageContext['url'])) {
+                $desc[] = 'رابط الصفحة: '.($pageContext['pathname'] ?: $pageContext['url']);
             }
-            if (!empty($pageContext['page_type'])) {
+            if (! empty($pageContext['page_type'])) {
                 $desc[] = "نوع الصفحة: {$pageContext['page_type']}";
             }
 
             if ($locale === 'en') {
-                $pageContextSection = "\n\nCURRENT BROWSER PAGE CONTEXT:\n" .
-                    implode("\n", $desc) . "\n\n" .
-                    "PAGE CONTEXT INSTRUCTIONS:\n" .
-                    "1. You know exactly what page the user is currently browsing on Family Home website.\n" .
-                    "2. If the user asks 'Where am I?', 'What page am I on?', 'What am I viewing?', tell them accurately about the current page, welcoming them warmly.\n" .
+                $pageContextSection = "\n\nCURRENT BROWSER PAGE CONTEXT:\n".
+                    implode("\n", $desc)."\n\n".
+                    "PAGE CONTEXT INSTRUCTIONS:\n".
+                    "1. You know exactly what page the user is currently browsing on Family Home website.\n".
+                    "2. If the user asks 'Where am I?', 'What page am I on?', 'What am I viewing?', tell them accurately about the current page, welcoming them warmly.\n".
                     "3. If the user refers to 'this project', 'this apartment', 'the prices here', or asks for available units without naming them, they are referring to the project/unit on their current page.\n";
             } else {
-                $pageContextSection = "\n\nمعلومات الصفحة الحالية التي يتصفحها العميل الآن على موقع فاميلي هوم:\n" .
-                    implode("\n", $desc) . "\n\n" .
-                    "تعليمات خاصة بصفحة العميل الحالية:\n" .
-                    "1. أنت تعرف بدقة الصفحة التي يتصفحها العميل الآن في الموقع.\n" .
-                    "2. إذا سأل العميل: «أنا فين؟»، «أنا في أي صفحة؟»، «بتصفح إيه دلوقتي؟»، أو «تعرف مكاني؟»، أخبره فوراً بالصفحة التي يشاهدها وتفاصيلها بترحيب ولباقة.\n" .
+                $pageContextSection = "\n\nمعلومات الصفحة الحالية التي يتصفحها العميل الآن على موقع فاميلي هوم:\n".
+                    implode("\n", $desc)."\n\n".
+                    "تعليمات خاصة بصفحة العميل الحالية:\n".
+                    "1. أنت تعرف بدقة الصفحة التي يتصفحها العميل الآن في الموقع.\n".
+                    "2. إذا سأل العميل: «أنا فين؟»، «أنا في أي صفحة؟»، «بتصفح إيه دلوقتي؟»، أو «تعرف مكاني؟»، أخبره فوراً بالصفحة التي يشاهدها وتفاصيلها بترحيب ولباقة.\n".
                     "3. إذا سأل العميل عن «هذا المشروع»، «المشروع ده»، «الوحدة دي»، «الأسعار هنا»، فهو يقصد المشروع أو الوحدة المعروضة بالصفحة الحالية مباشرة.\n";
             }
         }
@@ -612,8 +673,8 @@ Before every response, silently think through:
    - Cash discount percentage vs installment total
    - Expected annual appreciation rate for the area (15-30% for prime areas)
    - Rental yield potential if investment-focused
-5. **Structure your responses:** Use headers, bullet points, and emojis for readability. Keep responses comprehensive but scannable.
-6. **Proactive suggestions:** Always end with a relevant suggestion or next step — don't leave the conversation hanging.
+5. **Be concise and precise:** Answer only what was asked. Short, direct, scannable — the client's time is valuable.
+6. **One next step:** End with a single relevant suggestion or question — never a menu of options.
 
 # AVAILABLE TOOLS
 Use these tools proactively when you need data:
@@ -623,12 +684,15 @@ Use these tools proactively when you need data:
 - **get_unit_in_project**: Verify a specific unit within a project
 - **list_projects**: List all active projects
 
-# RESPONSE FORMAT GUIDELINES
+# RESPONSE FORMAT GUIDELINES — PRECISION FIRST
+- **Answer the exact question asked. Nothing more.** No padding, no generic marketing filler.
+- Keep responses SHORT: 40-120 words for simple questions, up to 250 words only when comparing options or explaining finances.
+- **Only mention/recommend properties when the user explicitly asks for them** (search, budget, recommendation, "show me"). For greetings, thanks, general questions or advice — reply WITHOUT any property listing.
+- When you do recommend, suggest a MAXIMUM of 2-3 carefully chosen units — never dump a list.
 - Use **bold** for property names, prices, and key figures
-- Use emojis sparingly but effectively: 🏠 🏢 💰 📍 🛏️ 📐 🔑 📊 💡 ✅
-- Include price, rooms, area (sqm), payment method, and location for each property recommendation
-- When comparing options, use a brief comparison format highlighting trade-offs
-- Keep responses between 150-400 words — detailed enough to be useful, concise enough to be readable
+- Use at most 1-2 emojis per reply — not one per line
+- Include price, rooms, area (sqm) and payment method for each recommended property
+- Always end with ONE clear next step (a question or a suggestion) — never multiple
 
 # EXAMPLE INTERACTIONS
 **User:** "I want an apartment for 5 million"
@@ -671,8 +735,8 @@ EOT;
    - نسبة خصم الكاش مقابل إجمالي التقسيط
    - معدل الزيادة السنوية المتوقعة للمنطقة (15-30% في المناطق المميزة)
    - العائد الإيجاري المتوقع لو العميل بيفكر في استثمار
-5. **نظّم ردودك:** استخدم عناوين، نقاط، وإيموجي للوضوح. خلّي الرد شامل لكن سهل القراءة.
-6. **اقتراحات استباقية:** دايماً اختم باقتراح مناسب أو خطوة تالية — متسبش المحادثة معلّقة.
+5. **كن مختصر ودقيق:** جاوب على المطلوب بس. رد قصير ومباشر وسهل القراءة — وقت العميل غالي.
+6. **خطوة تالية واحدة:** اختم باقتراح أو سؤال واحد مناسب — مش قايمة اختيارات.
 
 # الأدوات المتاحة
 استخدم الأدوات دي بشكل استباقي لما تحتاج بيانات:
@@ -682,12 +746,15 @@ EOT;
 - **get_unit_in_project**: للتحقق من تفاصيل وحدة معينة
 - **list_projects**: لعرض المشاريع النشطة
 
-# إرشادات تنسيق الرد
+# إرشادات تنسيق الرد — الدقة أولاً
+- **جاوب على السؤال المطلوب بالظبط. ولا كلمة زيادة.** ممنوع الحشو والكلام التسويقي العام.
+- خلّي الرد قصير: 40-120 كلمة للأسئلة البسيطة، وحتى 250 كلمة بس لما تقارن خيارات أو تشرح حسابات مالية.
+- **ممنوع تعرض أو ترشح وحدات إلا لو العميل طلبها صراحةً** (بحث، ميزانية، ترشيح، «ورّيني»). التحيات والشكر والأسئلة العامة والنصايح — رد عليها من غير أي عرض وحدات.
+- لما ترشح فعلاً، رشّح 2-3 وحدات مختارة بعناية كحد أقصى — ممنوع ترمي قايمة طويلة.
 - استخدم **خط عريض** لأسماء العقارات والأسعار والأرقام المهمة
-- استخدم الإيموجي بشكل مناسب: 🏠 🏢 💰 📍 🛏️ 📐 🔑 📊 💡 ✅
-- لكل ترشيح عقاري، اذكر: السعر، عدد الغرف، المساحة (م²)، طريقة الدفع، والموقع
-- عند المقارنة بين خيارات، وضّح المميزات والعيوب لكل خيار
-- خلّي ردودك بين 150-400 كلمة — شاملة ومفيدة لكن مختصرة وسهلة القراءة
+- إيموجي واحد أو اتنين في الرد كله كحد أقصى — مش واحد في كل سطر
+- لكل ترشيح عقاري، اذكر: السعر، عدد الغرف، المساحة (م²)، وطريقة الدفع
+- اختم بخطوة تالية واحدة واضحة (سؤال أو اقتراح) — مش أكتر
 
 # أمثلة على التفاعل المثالي
 **العميل:** «عايز شقة بـ 5 مليون»
@@ -812,8 +879,8 @@ EOT;
     {
         $cleanMsg = trim($message);
         $lowerMsg = mb_strtolower($cleanMsg);
-        $companyContact = \App\Domain\Assistant\Services\AssistantContactResolver::getCompanyContact();
-        $whatsappUrl = $companyContact['whatsapp_url'] ?: ('https://wa.me/' . preg_replace('/[^\d]/', '', (string) config('assistant.default_whatsapp', '201000000000')) . '?text=' . urlencode($locale === 'en' ? 'Hello Family Home, I would like to inquire about properties' : 'مرحباً فاميلي هوم، أود الاستفسار عن العقارات المتاحة'));
+        $companyContact = AssistantContactResolver::getCompanyContact();
+        $whatsappUrl = $companyContact['whatsapp_url'] ?: ('https://wa.me/'.preg_replace('/[^\d]/', '', (string) config('assistant.default_whatsapp', '201000000000')).'?text='.urlencode($locale === 'en' ? 'Hello Family Home, I would like to inquire about properties' : 'مرحباً فاميلي هوم، أود الاستفسار عن العقارات المتاحة'));
         $companyPhone = $companyContact['phone'] ?: '';
         $companyEmail = $companyContact['email'] ?: '';
         $companyAddress = $companyContact['address'] ?: '';
@@ -823,19 +890,19 @@ EOT;
             $pType = $pageContext['page_type'] ?? 'unknown';
             $pTitle = $pageContext['title'] ?? '';
 
-            if ($pType === 'project' && !empty($pageContext['project_name'])) {
+            if ($pType === 'project' && ! empty($pageContext['project_name'])) {
                 $projName = $pageContext['project_name'];
                 $summary = $pageContext['summary'] ?? null;
                 $reply = $locale === 'en'
-                    ? "You are currently browsing the **{$projName}** project page! 🏢\n\n" .
-                      ($summary ? "📍 **Location:** {$summary['location']}\n💰 **Price Range:** {$summary['price_range']}\n🔢 **Available Units:** {$summary['units_count']}\n\n" : "") .
-                      "Would you like to explore available units, payment plans, or schedule a site visit?"
-                    : "أنت تتصفح حالياً صفحة مشروع **{$projName}**! 🏢\n\n" .
-                      ($summary ? "📍 **الموقع:** {$summary['location']}\n💰 **نطاق الأسعار:** {$summary['price_range']}\n🔢 **الوحدات المتاحة:** {$summary['units_count']} وحدة\n\n" : "") .
-                      "يسعدني تزويدك بأنظمة السداد، أو تفاصيل الوحدات المتوفرة بالمشروع، أو ترتيب معاينة ميدانية مجانية!";
+                    ? "You are currently browsing the **{$projName}** project page! 🏢\n\n".
+                      ($summary ? "📍 **Location:** {$summary['location']}\n💰 **Price Range:** {$summary['price_range']}\n🔢 **Available Units:** {$summary['units_count']}\n\n" : '').
+                      'Would you like to explore available units, payment plans, or schedule a site visit?'
+                    : "أنت تتصفح حالياً صفحة مشروع **{$projName}**! 🏢\n\n".
+                      ($summary ? "📍 **الموقع:** {$summary['location']}\n💰 **نطاق الأسعار:** {$summary['price_range']}\n🔢 **الوحدات المتاحة:** {$summary['units_count']} وحدة\n\n" : '').
+                      'يسعدني تزويدك بأنظمة السداد، أو تفاصيل الوحدات المتوفرة بالمشروع، أو ترتيب معاينة ميدانية مجانية!';
 
                 $units = [];
-                if (!empty($pageContext['project_slug'])) {
+                if (! empty($pageContext['project_slug'])) {
                     $pag = $this->catalogService->listUnitsForProject($pageContext['project_slug'], [], 1, 4, $locale);
                     $units = $pag->toCardPayload();
                 }
@@ -850,19 +917,19 @@ EOT;
                 ];
             }
 
-            if ($pType === 'unit' && !empty($pageContext['unit_name'])) {
+            if ($pType === 'unit' && ! empty($pageContext['unit_name'])) {
                 $unitName = $pageContext['unit_name'];
-                $price = !empty($pageContext['unit_price']) ? number_format((float)$pageContext['unit_price']) . ' ج.م' : '';
-                $rooms = !empty($pageContext['unit_rooms']) ? "{$pageContext['unit_rooms']} غرف" : '';
+                $price = ! empty($pageContext['unit_price']) ? number_format((float) $pageContext['unit_price']).' ج.م' : '';
+                $rooms = ! empty($pageContext['unit_rooms']) ? "{$pageContext['unit_rooms']} غرف" : '';
                 $reply = $locale === 'en'
-                    ? "You are currently viewing unit: **{$unitName}**! 🏠\n\n" .
-                      ($price ? "💰 **Price:** {$price}\n" : "") .
-                      ($rooms ? "🛏️ **Bedrooms:** {$rooms}\n\n" : "") .
-                      "Would you like to know the installment plan for this unit or book an inspection?"
-                    : "أنت تتصفح حالياً تفاصيل الوحدة: **{$unitName}**! 🏠\n\n" .
-                      ($price ? "💰 **السعر:** {$price}\n" : "") .
-                      ($rooms ? "🛏️ **عدد الغرف:** {$rooms}\n\n" : "") .
-                      "هل ترغب في معرفة تفاصيل التقسيط والمقدم المتاح لهذه الوحدة، أو حجز موعد للمعاينة؟";
+                    ? "You are currently viewing unit: **{$unitName}**! 🏠\n\n".
+                      ($price ? "💰 **Price:** {$price}\n" : '').
+                      ($rooms ? "🛏️ **Bedrooms:** {$rooms}\n\n" : '').
+                      'Would you like to know the installment plan for this unit or book an inspection?'
+                    : "أنت تتصفح حالياً تفاصيل الوحدة: **{$unitName}**! 🏠\n\n".
+                      ($price ? "💰 **السعر:** {$price}\n" : '').
+                      ($rooms ? "🛏️ **عدد الغرف:** {$rooms}\n\n" : '').
+                      'هل ترغب في معرفة تفاصيل التقسيط والمقدم المتاح لهذه الوحدة، أو حجز موعد للمعاينة؟';
 
                 return [
                     'reply' => $reply,
@@ -878,6 +945,7 @@ EOT;
                 $reply = $locale === 'en'
                     ? "You are on the **Exclusive Real Estate Deals & Opportunities** page! 💎\n\nHere you will find properties with instant cash discounts and premier flexible installment plans. How can I assist you?"
                     : "أنت تتصفح حالياً صفحة **الصفقات والفرص العقارية الحصرية (اللقطات)**! 💎\n\nتضم هذه الصفحة أفضل الفرص الاستثمارية بخصومات كاش حصرية وأنظمة سداد مرنة. كيف أستطيع مساعدتك اليوم؟";
+
                 return [
                     'reply' => $reply,
                     'recommended_units' => [],
@@ -892,6 +960,7 @@ EOT;
                 $reply = $locale === 'en'
                     ? "You are currently on our **Property Catalog** browsing available units across Egypt! 🏘️\n\nTell me your budget or preferred location, and I will filter the top matches for you."
                     : "أنت تتصفح حالياً **كتالوج الوحدات العقارية المتاحة** للبيع والإيجار في فاميلي هوم! 🏘️\n\nأخبرني بميزانيتك أو موقعك المفضل، وسأقوم بفرز وترشيح أفضل الوحدات المناسبة لك فوراً.";
+
                 return [
                     'reply' => $reply,
                     'recommended_units' => [],
@@ -906,6 +975,7 @@ EOT;
                 $reply = $locale === 'en'
                     ? "You are currently exploring our **Real Estate Projects Directory**! 🏢\n\nFeaturing premier developments across New Cairo, New Capital, Sheikh Zayed, and North Coast. Which area are you interested in?"
                     : "أنت تتصفح حالياً **دليل المشاريع العقارية الكبرى** في فاميلي هوم! 🏢\n\nيضم أحدث المشروعات السكنية والاستثمارية في القاهرة الجديدة، العاصمة الإدارية، والشيخ زايد، والساحل الشمالي. أي منطقة تود استكشافها؟";
+
                 return [
                     'reply' => $reply,
                     'recommended_units' => [],
@@ -917,7 +987,7 @@ EOT;
             }
 
             // General / Home or with title
-            $descName = !empty($pTitle) ? $pTitle : (!empty($pageContext['pathname']) ? $pageContext['pathname'] : 'موقع فاميلي هوم');
+            $descName = ! empty($pTitle) ? $pTitle : (! empty($pageContext['pathname']) ? $pageContext['pathname'] : 'موقع فاميلي هوم');
             $reply = $locale === 'en'
                 ? "You are currently browsing **{$descName}** on Family Home! 🤝\n\nI am Hossam, your real estate advisor. How can I help you today?"
                 : "أنت تتصفح حالياً: **{$descName}** في موقع فاميلي هوم! 🤝\n\nأنا «حسام»، مستشارك العقاري. يسعدني مساعدتك في استعراض الوحدات أو الرد على أي استفسار عقاري أو مالي!";
@@ -933,19 +1003,19 @@ EOT;
         }
 
         // Contextual: User asks about "المشروع ده" while on a project page
-        if ($pageContext['page_type'] === 'project' && !empty($pageContext['project_slug']) && preg_match('/(المشروع ده|هذا المشروع|المشروع هذا|عن المشروع|تفاصيل المشروع|نظام السداد هنا|الاسعار هنا|الأسعار هنا|الوحدات هنا)/iu', $cleanMsg)) {
+        if ($pageContext['page_type'] === 'project' && ! empty($pageContext['project_slug']) && preg_match('/(المشروع ده|هذا المشروع|المشروع هذا|عن المشروع|تفاصيل المشروع|نظام السداد هنا|الاسعار هنا|الأسعار هنا|الوحدات هنا)/iu', $cleanMsg)) {
             $projDto = $this->catalogService->findProject($pageContext['project_slug'], $locale);
             $pag = $this->catalogService->listUnitsForProject($pageContext['project_slug'], [], 1, 6, $locale);
             $projName = $pageContext['project_name'] ?? $projDto?->name ?? 'المشروع الحالي';
             $loc = $projDto?->locationAddress ?? $pageContext['summary']['location'] ?? null;
 
             $reply = $locale === 'en'
-                ? "Here is the verified information for **{$projName}**:\n\n" .
-                  ($loc ? "📍 **Location:** {$loc}\n\n" : "") .
-                  "Here are the active units available in this project:"
-                : "إليك كافة التفاصيل المعتمدة لمشروع **{$projName}**:\n\n" .
-                  ($loc ? "📍 **الموقع:** {$loc}\n\n" : "") .
-                  "وهذه أبرز الوحدات المتاحة حالياً داخل المشروع:";
+                ? "Here is the verified information for **{$projName}**:\n\n".
+                  ($loc ? "📍 **Location:** {$loc}\n\n" : '').
+                  'Here are the active units available in this project:'
+                : "إليك كافة التفاصيل المعتمدة لمشروع **{$projName}**:\n\n".
+                  ($loc ? "📍 **الموقع:** {$loc}\n\n" : '').
+                  'وهذه أبرز الوحدات المتاحة حالياً داخل المشروع:';
 
             return [
                 'reply' => $reply,
@@ -958,16 +1028,16 @@ EOT;
         }
 
         // Contextual: User asks about "الوحدة دي" while on a unit page
-        if ($pageContext['page_type'] === 'unit' && !empty($pageContext['unit_name']) && preg_match('/(الوحدة دي|الوحده دي|هذه الوحدة|الشقة دي|الشقه دي|سعرها كام|تفاصيل الوحدة|تفاصيل الشقة)/iu', $cleanMsg)) {
+        if ($pageContext['page_type'] === 'unit' && ! empty($pageContext['unit_name']) && preg_match('/(الوحدة دي|الوحده دي|هذه الوحدة|الشقة دي|الشقه دي|سعرها كام|تفاصيل الوحدة|تفاصيل الشقة)/iu', $cleanMsg)) {
             $unitName = $pageContext['unit_name'];
-            $price = !empty($pageContext['unit_price']) ? number_format((float)$pageContext['unit_price']) . ' ج.م' : 'تواصل لمعرفة السعر';
-            $rooms = !empty($pageContext['unit_rooms']) ? "{$pageContext['unit_rooms']} غرف" : '';
+            $price = ! empty($pageContext['unit_price']) ? number_format((float) $pageContext['unit_price']).' ج.م' : 'تواصل لمعرفة السعر';
+            $rooms = ! empty($pageContext['unit_rooms']) ? "{$pageContext['unit_rooms']} غرف" : '';
 
             $reply = $locale === 'en'
-                ? "Here are the details for **{$unitName}**:\n\n💰 **Price:** {$price}\n" . ($rooms ? "🛏️ **Bedrooms:** {$rooms}\n\n" : "\n") .
-                  "Would you like to review payment schedules or arrange a viewing?"
-                : "إليك تفاصيل الوحدة التي تشاهدها الآن (**{$unitName}**):\n\n💰 **السعر:** {$price}\n" . ($rooms ? "🛏️ **عدد الغرف:** {$rooms}\n\n" : "\n") .
-                  "هل تود معرفة نظام التقسيط والدفعة المقدمة لهذه الوحدة، أو ترتيب موعد لمعاينتها على الطبيعة؟";
+                ? "Here are the details for **{$unitName}**:\n\n💰 **Price:** {$price}\n".($rooms ? "🛏️ **Bedrooms:** {$rooms}\n\n" : "\n").
+                  'Would you like to review payment schedules or arrange a viewing?'
+                : "إليك تفاصيل الوحدة التي تشاهدها الآن (**{$unitName}**):\n\n💰 **السعر:** {$price}\n".($rooms ? "🛏️ **عدد الغرف:** {$rooms}\n\n" : "\n").
+                  'هل تود معرفة نظام التقسيط والدفعة المقدمة لهذه الوحدة، أو ترتيب موعد لمعاينتها على الطبيعة؟';
 
             return [
                 'reply' => $reply,
@@ -987,34 +1057,44 @@ EOT;
             $agentPhone = $pageContext['agent_phone'] ?? null;
             $agentWa = $pageContext['agent_whatsapp'] ?? null;
 
-            if ($hasAgentQuery && !empty($agentName)) {
+            if ($hasAgentQuery && ! empty($agentName)) {
                 $cleanAgentWa = $agentWa ? preg_replace('/[^\d]/', '', $agentWa) : null;
                 $agentWaUrl = $cleanAgentWa ? "https://wa.me/{$cleanAgentWa}" : null;
 
                 $details = [];
-                if ($agentPhone) $details[] = ($locale === 'en' ? "📞 **Phone:** {$agentPhone}" : "📞 **الهاتف المباشر:** {$agentPhone}");
-                if ($agentWaUrl) $details[] = ($locale === 'en' ? "💬 **WhatsApp:** [Chat on WhatsApp]({$agentWaUrl})" : "💬 **واتساب المباشر:** [اضغط هنا للمحادثة عبر واتساب]({$agentWaUrl})");
+                if ($agentPhone) {
+                    $details[] = ($locale === 'en' ? "📞 **Phone:** {$agentPhone}" : "📞 **الهاتف المباشر:** {$agentPhone}");
+                }
+                if ($agentWaUrl) {
+                    $details[] = ($locale === 'en' ? "💬 **WhatsApp:** [Chat on WhatsApp]({$agentWaUrl})" : "💬 **واتساب المباشر:** [اضغط هنا للمحادثة عبر واتساب]({$agentWaUrl})");
+                }
 
-                if (!empty($details)) {
+                if (! empty($details)) {
                     $reply = $locale === 'en'
-                        ? "The real estate advisor managing this property is **{$agentName}**:\n\n" . implode("\n", $details) . "\n\nYou can reach out directly to coordinate details or book an inspection!"
-                        : "الوكيل العقاري المسؤول عن هذا العقار هو **{$agentName}**:\n\n" . implode("\n", $details) . "\n\nيمكنك التواصل معه مباشرة لتنسيق كافة التفاصيل أو حجز موعد معاينة ميدانية!";
+                        ? "The real estate advisor managing this property is **{$agentName}**:\n\n".implode("\n", $details)."\n\nYou can reach out directly to coordinate details or book an inspection!"
+                        : "الوكيل العقاري المسؤول عن هذا العقار هو **{$agentName}**:\n\n".implode("\n", $details)."\n\nيمكنك التواصل معه مباشرة لتنسيق كافة التفاصيل أو حجز موعد معاينة ميدانية!";
                 } else {
                     $reply = $locale === 'en'
-                        ? "The advisor assigned to this property is **{$agentName}**. For immediate assistance, our central sales team will connect you directly:\n\n💬 **WhatsApp:** [Chat with Family Home]({$whatsappUrl})" . ($companyPhone ? "\n📞 **Phone:** {$companyPhone}" : "")
-                        : "الوكيل العقاري المسؤول عن هذا العقار هو **{$agentName}**. للتواصل الفوري، يقوم فريق مبيعات فاميلي هوم المركزي بربطك به مباشرة:\n\n💬 **واتساب فاميلي هوم:** [اضغط هنا للمحادثة الفورية]({$whatsappUrl})" . ($companyPhone ? "\n📞 **هاتف الإدارة:** {$companyPhone}" : "");
+                        ? "The advisor assigned to this property is **{$agentName}**. For immediate assistance, our central sales team will connect you directly:\n\n💬 **WhatsApp:** [Chat with Family Home]({$whatsappUrl})".($companyPhone ? "\n📞 **Phone:** {$companyPhone}" : '')
+                        : "الوكيل العقاري المسؤول عن هذا العقار هو **{$agentName}**. للتواصل الفوري، يقوم فريق مبيعات فاميلي هوم المركزي بربطك به مباشرة:\n\n💬 **واتساب فاميلي هوم:** [اضغط هنا للمحادثة الفورية]({$whatsappUrl})".($companyPhone ? "\n📞 **هاتف الإدارة:** {$companyPhone}" : '');
                 }
             } else {
                 // Official company contact details
                 $companyDetails = [];
-                if ($companyPhone) $companyDetails[] = ($locale === 'en' ? "📞 **Phone:** {$companyPhone}" : "📞 **الهاتف:** {$companyPhone}");
+                if ($companyPhone) {
+                    $companyDetails[] = ($locale === 'en' ? "📞 **Phone:** {$companyPhone}" : "📞 **الهاتف:** {$companyPhone}");
+                }
                 $companyDetails[] = ($locale === 'en' ? "💬 **Direct WhatsApp:** [Chat on WhatsApp]({$whatsappUrl})" : "💬 **واتساب المبيعات والدعم:** [اضغط هنا للتواصل عبر واتساب مباشرة]({$whatsappUrl})");
-                if ($companyEmail) $companyDetails[] = ($locale === 'en' ? "✉️ **Email:** {$companyEmail}" : "✉️ **البريد الإلكتروني:** {$companyEmail}");
-                if ($companyAddress) $companyDetails[] = ($locale === 'en' ? "📍 **Address:** {$companyAddress}" : "📍 **المقر الرئيسي:** {$companyAddress}");
+                if ($companyEmail) {
+                    $companyDetails[] = ($locale === 'en' ? "✉️ **Email:** {$companyEmail}" : "✉️ **البريد الإلكتروني:** {$companyEmail}");
+                }
+                if ($companyAddress) {
+                    $companyDetails[] = ($locale === 'en' ? "📍 **Address:** {$companyAddress}" : "📍 **المقر الرئيسي:** {$companyAddress}");
+                }
 
                 $reply = $locale === 'en'
-                    ? "We are delighted to assist you directly through **Family Home** official verified contacts:\n\n" . implode("\n", $companyDetails) . "\n\nOur advisory team is available daily to help you find the ideal property and schedule free site viewings."
-                    : "يسعدنا تواصلك المباشر مع شركة **فاميلي هوم** عبر قنوات الاتصال الرسمية والمعتمدة:\n\n" . implode("\n", $companyDetails) . "\n\nفريق مستشارينا متواجد يومياً لمساعدتك في اختيار أنسب عقار وترتيب معاينات ميدانية مجانية.";
+                    ? "We are delighted to assist you directly through **Family Home** official verified contacts:\n\n".implode("\n", $companyDetails)."\n\nOur advisory team is available daily to help you find the ideal property and schedule free site viewings."
+                    : "يسعدنا تواصلك المباشر مع شركة **فاميلي هوم** عبر قنوات الاتصال الرسمية والمعتمدة:\n\n".implode("\n", $companyDetails)."\n\nفريق مستشارينا متواجد يومياً لمساعدتك في اختيار أنسب عقار وترتيب معاينات ميدانية مجانية.";
             }
 
             return [
@@ -1029,8 +1109,8 @@ EOT;
 
         // 2. Installments & Payment Plans inquiry (e.g. "شقق للبيع بالتقسيط")
         if (preg_match('/(شقق للبيع بالتقسيط|شقق بنظام التقسيط|شقق بالتقسيط|شقق تقسيط|شقق قسط|عايز شقه قسط|عايز شقة قسط|أنظمة السداد|انظمة السداد|نظام التقسيط|انظمه التقسيط|أطول فترة سداد|اطول فتره سداد|أقل مقدم|اقل مقدم|اقساط|أقساط|installment|down payment)/iu', $cleanMsg)) {
-            $installmentUnits = $this->catalogService->listUnits(['payment_method' => 'installment'], 4, $locale);
-            $unitCards = array_map(fn($u) => $u->toCardPayload(), $installmentUnits);
+            $installmentUnits = $this->catalogService->listUnits(['payment_method' => 'installment'], 3, $locale);
+            $unitCards = array_map(fn ($u) => $u->toCardPayload(), $installmentUnits);
 
             $reply = $locale === 'en'
                 ? "At **Family Home**, we provide a prime portfolio of apartments and residential units with flexible, bank-interest-free payment plans:\n\n• **Down Payment:** Typically starting from 10% to 15%.\n• **Payment Terms:** Spread over 6, 8, and up to 10 years in equal installments.\n• **Handover:** Diverse options ranging from immediate delivery to 1–3 years.\n\nHere are some of our top available installment units:"
@@ -1047,17 +1127,16 @@ EOT;
         }
 
         // 3. Investment Opportunities & Growth Areas
+        // NOTE: this is an *advice* question about areas — answering with a
+        // random unit dump dilutes the reply. Offer units as a follow-up instead.
         if (preg_match('/(مناطق ليها مستقبل استثماري|مناطق لها مستقبل استثماري|مستقبل استثماري|أفضل مناطق الاستثمار|افضل مناطق الاستثمار|أفضل استثمار|افضل استثمار|استثمار عقاري|عائد استثماري|فرص الاستثمار|أعلى عائد|اعلى عائد|شقق لقطة|شقق لقطه|best investment|best areas to invest|high roi)/iu', $cleanMsg)) {
-            $activeUnits = $this->catalogService->listUnits([], 4, $locale);
-            $unitCards = array_map(fn($u) => $u->toCardPayload(), $activeUnits);
-
             $reply = $locale === 'en'
-                ? "Egypt's real estate market offers exceptional capital growth, with the highest-yield opportunities concentrated in 4 strategic destinations:\n\n1. **New Cairo (Fifth Settlement & Golden Square):** High market liquidity, steady rental demand, and annual capital appreciation of 20% to 30%.\n2. **New Administrative Capital:** The future administrative hub and corporate headquarters offering massive capital upside upon full operation.\n3. **Sheikh Zayed & New Zayed:** Upscale, master-planned residential communities with sustained appreciation and high executive demand.\n4. **North Coast (Ras El Hekma & Sidi Heneish):** World-class international tourism destination delivering exceptional seasonal rental yields in foreign currencies.\n\nHere are selected top property opportunities available in our catalog:"
-                : "سوق العقارات في مصر يشهد طفرة نمو قوية، وتتركز أفضل الفرص الاستثمارية ذات العائد المرتفع في 4 وجهات رئيسية:\n\n1. **القاهرة الجديدة (التجمع الخامس وجولدن سكوير):** المنطقة الأكثر طلباً وسرعة في إعادة البيع والإيجار، بعائد رأسمالي سنوي يتراوح بين 20% و30%.\n2. **العاصمة الإدارية الجديدة:** المركز المستقبلي للشركات العالمية والمقرات الحكومية، وتمنحك أعلى زيادة رأسمالية حتى تاريخ التشغيل الكامل للمقرات.\n3. **الشيخ زايد وتوسعاتها (زايد الجديدة):** مجتمعات عمرانية راقية متكاملة الخدمات مع طلب قوي ومستمر من الصفوة والعائلات.\n4. **الساحل الشمالي (رأس الحكمة وسيدي حنيش):** وجهة سياحية واستثمارية عالمية تحقق عوائد إيجارية سياحية قياسية بالعملة الصعبة.\n\nإليك نخبة من أفضل الوحدات المعروضة لدينا حالياً:";
+                ? "Egypt's real estate market offers exceptional capital growth, with the highest-yield opportunities concentrated in 4 strategic destinations:\n\n1. **New Cairo (Fifth Settlement & Golden Square):** High market liquidity, steady rental demand, and annual capital appreciation of 20% to 30%.\n2. **New Administrative Capital:** The future administrative hub and corporate headquarters offering massive capital upside upon full operation.\n3. **Sheikh Zayed & New Zayed:** Upscale, master-planned residential communities with sustained appreciation and high executive demand.\n4. **North Coast (Ras El Hekma & Sidi Heneish):** World-class international tourism destination delivering exceptional seasonal rental yields in foreign currencies.\n\nTell me your budget and I will hand-pick the best matching opportunities for you."
+                : "سوق العقارات في مصر يشهد طفرة نمو قوية، وتتركز أفضل الفرص الاستثمارية ذات العائد المرتفع في 4 وجهات رئيسية:\n\n1. **القاهرة الجديدة (التجمع الخامس وجولدن سكوير):** المنطقة الأكثر طلباً وسرعة في إعادة البيع والإيجار، بعائد رأسمالي سنوي يتراوح بين 20% و30%.\n2. **العاصمة الإدارية الجديدة:** المركز المستقبلي للشركات العالمية والمقرات الحكومية، وتمنحك أعلى زيادة رأسمالية حتى تاريخ التشغيل الكامل للمقرات.\n3. **الشيخ زايد وتوسعاتها (زايد الجديدة):** مجتمعات عمرانية راقية متكاملة الخدمات مع طلب قوي ومستمر من الصفوة والعائلات.\n4. **الساحل الشمالي (رأس الحكمة وسيدي حنيش):** وجهة سياحية واستثمارية عالمية تحقق عوائد إيجارية سياحية قياسية بالعملة الصعبة.\n\nقولّي ميزانيتك وهرشحلك بنفسي أفضل الفرص المناسبة ليك.";
 
             return [
                 'reply' => $reply,
-                'recommended_units' => $unitCards,
+                'recommended_units' => [],
                 'quick_replies' => $locale === 'en'
                     ? ['Featured projects', 'Apartments for sale', 'Contact via WhatsApp']
                     : ['المشاريع المميزة', 'شقق للبيع بالتقسيط', 'تواصل عبر واتساب'],
@@ -1112,7 +1191,8 @@ EOT;
         }
 
         if ($projectFound) {
-            $pagination = $this->catalogService->listUnitsForProject($projectFound->slug, [], 1, 6, $locale);
+            // Explicit project inquiry → showing units is expected, but keep it focused
+            $pagination = $this->catalogService->listUnitsForProject($projectFound->slug, [], 1, 4, $locale);
             $units = $pagination->toCardPayload();
 
             $reply = $locale === 'en'
@@ -1128,34 +1208,39 @@ EOT;
             return [
                 'reply' => $reply,
                 'recommended_units' => $units,
-                'quick_replies' => $this->buildQuickReplies($locale, !empty($units)),
+                'quick_replies' => $this->buildQuickReplies($locale, ! empty($units)),
                 'is_fallback' => true,
             ];
         }
 
         // 7. Featured Projects Inquiry
         if (preg_match('/(المشاريع المميزة|المشاريع المميزه|المشاريع المتاحة|المشاريع المتاحه|استعراض المشاريع|مشاريعكم|المشاريع|featured projects|top projects|available projects)/iu', $cleanMsg)) {
-            if (!empty($activeProjects)) {
+            if (! empty($activeProjects)) {
                 $itemsList = [];
                 foreach (array_slice($activeProjects, 0, 5) as $p) {
                     $details = [];
-                    if ($p->locationAddress) $details[] = $p->locationAddress;
-                    if ($p->installmentYears) $details[] = ($locale === 'en' ? "Installments up to {$p->installmentYears} yrs" : "تقسيط حتى {$p->installmentYears} سنوات");
-                    if ($p->downPayment) $details[] = ($locale === 'en' ? "Down payment from {$p->downPayment}%" : "مقدم {$p->downPayment}%");
-                    $detailStr = !empty($details) ? ' (' . implode('، ', $details) . ')' : '';
+                    if ($p->locationAddress) {
+                        $details[] = $p->locationAddress;
+                    }
+                    if ($p->installmentYears) {
+                        $details[] = ($locale === 'en' ? "Installments up to {$p->installmentYears} yrs" : "تقسيط حتى {$p->installmentYears} سنوات");
+                    }
+                    if ($p->downPayment) {
+                        $details[] = ($locale === 'en' ? "Down payment from {$p->downPayment}%" : "مقدم {$p->downPayment}%");
+                    }
+                    $detailStr = ! empty($details) ? ' ('.implode('، ', $details).')' : '';
                     $itemsList[] = "• **{$p->name}**{$detailStr}";
                 }
 
                 $reply = $locale === 'en'
-                    ? "Here are the premier real estate projects available at **Family Home**:\n\n" . implode("\n", $itemsList) . "\n\nWhich project would you like to explore its available units and pricing?"
-                    : "إليك أبرز المشاريع العقارية الرائدة المتاحة حالياً لدى **فاميلي هوم**:\n\n" . implode("\n", $itemsList) . "\n\nعن أي مشروع تود معرفة تفاصيل وحداته وأسعاره؟";
+                    ? "Here are the premier real estate projects available at **Family Home**:\n\n".implode("\n", $itemsList)."\n\nWhich project would you like to explore its available units and pricing?"
+                    : "إليك أبرز المشاريع العقارية الرائدة المتاحة حالياً لدى **فاميلي هوم**:\n\n".implode("\n", $itemsList)."\n\nعن أي مشروع تود معرفة تفاصيل وحداته وأسعاره؟";
 
-                $featuredUnits = $this->catalogService->listUnits([], 4, $locale);
-                $unitCards = array_map(fn($u) => $u->toCardPayload(), $featuredUnits);
-
+                // The user asked about PROJECTS — attaching random unit cards
+                // here is noise. Units follow once they pick a project.
                 return [
                     'reply' => $reply,
-                    'recommended_units' => $unitCards,
+                    'recommended_units' => [],
                     'quick_replies' => $locale === 'en'
                         ? ['Apartments for sale', 'Best investment areas', 'Contact via WhatsApp']
                         : ['شقق للبيع بالتقسيط', 'أفضل مناطق الاستثمار', 'تواصل عبر واتساب'],
@@ -1210,18 +1295,33 @@ EOT;
                 $filters['transaction'] = 'rent';
             }
 
-            $matchedUnits = $this->catalogService->listUnits($filters, 4, $locale);
+            $matchedUnits = $this->catalogService->listUnits($filters, 3, $locale);
             if (empty($matchedUnits) && isset($filters['rooms'])) {
                 // If no exact match with room count, broaden by price
                 unset($filters['rooms']);
-                $matchedUnits = $this->catalogService->listUnits($filters, 4, $locale);
-            }
-            if (empty($matchedUnits) && ($maxPrice !== null || $minPrice !== null)) {
-                $matchedUnits = $this->catalogService->listUnits([], 4, $locale);
+                $matchedUnits = $this->catalogService->listUnits($filters, 3, $locale);
             }
 
-            if (!empty($matchedUnits)) {
-                $unitCards = array_map(fn($u) => $u->toCardPayload(), $matchedUnits);
+            // No match within the requested budget → be honest about it instead
+            // of dumping unrelated units that ignore the user's constraints.
+            if (empty($matchedUnits) && ($maxPrice !== null || $minPrice !== null)) {
+                $formattedPrice = number_format($maxPrice ?? $minPrice, 0, '.', ',');
+                $reply = $locale === 'en'
+                    ? "I could not find units matching that exact budget of **{$formattedPrice} EGP** right now. Would you like me to broaden the search range, or explore nearby budgets and other areas?"
+                    : "معنديش حالياً وحدات مطابقة بالظبط للميزانية دي (**{$formattedPrice} ج.م**). تحب أوسّع نطاق البحث شوية، ولا أعرض عليك خيارات في ميزانيات قريبة أو مناطق تانية؟";
+
+                return [
+                    'reply' => $reply,
+                    'recommended_units' => [],
+                    'quick_replies' => $locale === 'en'
+                        ? ['Broaden the search', 'Featured projects', 'Contact via WhatsApp']
+                        : ['وسّع نطاق البحث', 'المشاريع المميزة', 'تواصل عبر واتساب'],
+                    'is_fallback' => true,
+                ];
+            }
+
+            if (! empty($matchedUnits)) {
+                $unitCards = array_map(fn ($u) => $u->toCardPayload(), $matchedUnits);
 
                 if ($maxPrice !== null) {
                     $formattedPrice = number_format($maxPrice, 0, '.', ',');
@@ -1235,8 +1335,8 @@ EOT;
                         : "إليك أفضل العقارات المتاحة بدءاً من **{$formattedPrice} ج.م** فما فوق:";
                 } else {
                     $reply = $locale === 'en'
-                        ? "Based on your search, here are top matching properties available in our portfolio:"
-                        : "بناءً على طلبك، إليك مجموعة من أفضل الوحدات العقارية المتاحة لدينا:";
+                        ? 'Based on your search, here are top matching properties available in our portfolio:'
+                        : 'بناءً على طلبك، إليك مجموعة من أفضل الوحدات العقارية المتاحة لدينا:';
                 }
 
                 return [
@@ -1249,16 +1349,18 @@ EOT;
         }
 
         // 9. Intelligent General Fallback
-        if (!empty($activeProjects)) {
-            $projectNames = implode('، ', array_map(fn($p) => $p->name, array_slice($activeProjects, 0, 4)));
+        if (! empty($activeProjects)) {
+            $projectNames = implode('، ', array_map(fn ($p) => $p->name, array_slice($activeProjects, 0, 4)));
             $reply = $locale === 'en'
                 ? "I am here to guide your property search at **Family Home**! You can ask me about:\n\n• **Featured Projects:** Such as {$projectNames}\n• **Installment Properties:** Plans extending up to 10 years without bank interest\n• **High-ROI Investment Areas:** New Cairo, Sheikh Zayed, and New Capital\n• **Project Units:** e.g., 'What units belong to project X?'\n\nWhat would you like to explore?"
                 : "أنا هنا لمساعدتك في استكشاف أفضل الفرص العقارية لدى **فاميلي هوم**! يمكنك سؤالي عن:\n\n• **المشاريع المتميزة:** مثل {$projectNames}\n• **شقق بالتقسيط:** بأنظمة سداد تصل حتى 10 سنوات بدون فوائد\n• **أفضل مناطق الاستثمار:** في التجمع الخامس، الشيخ زايد، والعاصمة الإدارية\n• **وحدات مشروع معين:** مثل «ما الوحدات التابعة لمشروع X؟»\n\nعن أي منها تود الاستفسار؟";
 
+            // $preloadedUnits is only non-empty when the caller detected real
+            // listing intent — still cap it to 3 focused suggestions.
             return [
                 'reply' => $reply,
-                'recommended_units' => $preloadedUnits,
-                'quick_replies' => $this->buildQuickReplies($locale, !empty($preloadedUnits)),
+                'recommended_units' => array_slice($preloadedUnits, 0, 3),
+                'quick_replies' => $this->buildQuickReplies($locale, ! empty($preloadedUnits)),
                 'is_fallback' => true,
             ];
         }
@@ -1289,8 +1391,8 @@ EOT;
 
             $escaped = preg_quote($name, '/');
             // If the name is bolded like **Name**, turn it into link
-            if (preg_match('/\*\*' . $escaped . '\*\*/u', $text)) {
-                $text = preg_replace('/\*\*' . $escaped . '\*\*/u', "[{$name}]({$url})", $text, 1);
+            if (preg_match('/\*\*'.$escaped.'\*\*/u', $text)) {
+                $text = preg_replace('/\*\*'.$escaped.'\*\*/u', "[{$name}]({$url})", $text, 1);
             }
         }
 
@@ -1370,7 +1472,7 @@ EOT;
         }
 
         // If project_slug is resolved, fetch project details
-        if (!empty($normalized['project_slug'])) {
+        if (! empty($normalized['project_slug'])) {
             $normalized['page_type'] = 'project';
             try {
                 $projectDto = $this->catalogService->findProject($normalized['project_slug'], $locale);
@@ -1394,7 +1496,7 @@ EOT;
             } catch (\Throwable $e) {
                 // Ignore DB error
             }
-        } elseif (!empty($normalized['unit_slug'])) {
+        } elseif (! empty($normalized['unit_slug'])) {
             $normalized['page_type'] = 'unit';
             try {
                 $unitDto = $this->catalogService->findUnit($normalized['unit_slug'], $locale);

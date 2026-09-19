@@ -13,6 +13,7 @@ use App\Http\Requests\Admin\TransferProjectsRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -146,7 +147,7 @@ class UserController extends Controller
             return redirect()->route('admin.users.index')
                 ->with('success', __('users.user_deleted'));
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('User deletion failed', [
+            Log::error('User deletion failed', [
                 'user_id' => $user->id,
                 'error' => $e->getMessage(),
             ]);

@@ -45,7 +45,7 @@ class AssistantContactResolver
                 }])
                 ->find($userId);
 
-            if (!$user) {
+            if (! $user) {
                 return self::$agentCache[$userId] = null;
             }
 
@@ -56,10 +56,10 @@ class AssistantContactResolver
                 'name' => htmlspecialchars((string) $user->name, ENT_QUOTES, 'UTF-8'),
                 'role' => (string) $user->role,
                 'email' => filter_var($user->email, FILTER_VALIDATE_EMAIL) ? $user->email : null,
-                'phone' => !empty($profile?->phone) ? trim((string) $profile->phone) : null,
-                'whatsapp' => !empty($profile?->whatsapp) ? trim((string) $profile->whatsapp) : null,
-                'facebook' => !empty($profile?->facebook) ? trim((string) $profile->facebook) : null,
-                'linkedin' => !empty($profile?->linkedin) ? trim((string) $profile->linkedin) : null,
+                'phone' => ! empty($profile?->phone) ? trim((string) $profile->phone) : null,
+                'whatsapp' => ! empty($profile?->whatsapp) ? trim((string) $profile->whatsapp) : null,
+                'facebook' => ! empty($profile?->facebook) ? trim((string) $profile->facebook) : null,
+                'linkedin' => ! empty($profile?->linkedin) ? trim((string) $profile->linkedin) : null,
             ];
 
             return self::$agentCache[$userId] = $contact;
@@ -91,18 +91,18 @@ class AssistantContactResolver
 
         // Clean WhatsApp digits
         $cleanWa = preg_replace('/[^\d]/', '', (string) $whatsapp);
-        $waUrl = !empty($cleanWa) ? "https://wa.me/{$cleanWa}" : null;
+        $waUrl = ! empty($cleanWa) ? "https://wa.me/{$cleanWa}" : null;
 
         return [
-            'phone' => !empty($phone) ? trim($phone) : null,
-            'whatsapp' => !empty($whatsapp) ? trim($whatsapp) : null,
+            'phone' => ! empty($phone) ? trim($phone) : null,
+            'whatsapp' => ! empty($whatsapp) ? trim($whatsapp) : null,
             'whatsapp_url' => $waUrl,
-            'email' => !empty($email) ? trim($email) : null,
-            'address' => !empty($address) ? trim($address) : null,
-            'facebook' => !empty($facebook) ? trim($facebook) : null,
-            'instagram' => !empty($instagram) ? trim($instagram) : null,
-            'linkedin' => !empty($linkedin) ? trim($linkedin) : null,
-            'twitter' => !empty($twitter) ? trim($twitter) : null,
+            'email' => ! empty($email) ? trim($email) : null,
+            'address' => ! empty($address) ? trim($address) : null,
+            'facebook' => ! empty($facebook) ? trim($facebook) : null,
+            'instagram' => ! empty($instagram) ? trim($instagram) : null,
+            'linkedin' => ! empty($linkedin) ? trim($linkedin) : null,
+            'twitter' => ! empty($twitter) ? trim($twitter) : null,
         ];
     }
 
@@ -115,45 +115,73 @@ class AssistantContactResolver
 
         $lines = [];
         if ($locale === 'en') {
-            if ($contact['phone']) $lines[] = "• Phone: {$contact['phone']}";
-            if ($contact['whatsapp_url']) $lines[] = "• WhatsApp: {$contact['whatsapp_url']} (Direct: {$contact['whatsapp']})";
-            if ($contact['email']) $lines[] = "• Email: {$contact['email']}";
-            if ($contact['address']) $lines[] = "• Address: {$contact['address']}";
-            if ($contact['facebook']) $lines[] = "• Facebook: {$contact['facebook']}";
-            if ($contact['instagram']) $lines[] = "• Instagram: {$contact['instagram']}";
-            if ($contact['linkedin']) $lines[] = "• LinkedIn: {$contact['linkedin']}";
+            if ($contact['phone']) {
+                $lines[] = "• Phone: {$contact['phone']}";
+            }
+            if ($contact['whatsapp_url']) {
+                $lines[] = "• WhatsApp: {$contact['whatsapp_url']} (Direct: {$contact['whatsapp']})";
+            }
+            if ($contact['email']) {
+                $lines[] = "• Email: {$contact['email']}";
+            }
+            if ($contact['address']) {
+                $lines[] = "• Address: {$contact['address']}";
+            }
+            if ($contact['facebook']) {
+                $lines[] = "• Facebook: {$contact['facebook']}";
+            }
+            if ($contact['instagram']) {
+                $lines[] = "• Instagram: {$contact['instagram']}";
+            }
+            if ($contact['linkedin']) {
+                $lines[] = "• LinkedIn: {$contact['linkedin']}";
+            }
 
             if (empty($lines)) {
                 return '';
             }
 
             return "\n\n# OFFICIAL FAMILY HOME CONTACT INFORMATION (VERIFIED — USE THESE DIRECTLY):\n"
-                . implode("\n", $lines)
-                . "\n\n# CONTACT & AGENT RULES (STRICT):\n"
-                . "1. Whenever a user asks for contact info, booking a viewing, or inquiring with customer service, provide these verified contact details.\n"
-                . "2. Units and projects contain the assigned agent/broker info (agent_name, agent_phone, agent_whatsapp). When discussing a specific property, provide the assigned agent's contact details.\n"
-                . "3. If a unit/project does not have a direct agent phone number, provide the official Family Home phone/WhatsApp above and inform the customer that the team will connect them directly with the property manager.\n"
-                . "4. CRITICAL: NEVER hallucinate or invent fake phone numbers, emails, or names under any circumstances.\n";
+                .implode("\n", $lines)
+                ."\n\n# CONTACT & AGENT RULES (STRICT):\n"
+                ."1. Whenever a user asks for contact info, booking a viewing, or inquiring with customer service, provide these verified contact details.\n"
+                ."2. Units and projects contain the assigned agent/broker info (agent_name, agent_phone, agent_whatsapp). When discussing a specific property, provide the assigned agent's contact details.\n"
+                ."3. If a unit/project does not have a direct agent phone number, provide the official Family Home phone/WhatsApp above and inform the customer that the team will connect them directly with the property manager.\n"
+                ."4. CRITICAL: NEVER hallucinate or invent fake phone numbers, emails, or names under any circumstances.\n";
         }
 
-        if ($contact['phone']) $lines[] = "• رقم الهاتف: {$contact['phone']}";
-        if ($contact['whatsapp_url']) $lines[] = "• واتساب المبيعات والدعم: {$contact['whatsapp_url']} ({$contact['whatsapp']})";
-        if ($contact['email']) $lines[] = "• البريد الإلكتروني الرسمي: {$contact['email']}";
-        if ($contact['address']) $lines[] = "• عنوان المقر الرئيسي: {$contact['address']}";
-        if ($contact['facebook']) $lines[] = "• صفحة فيسبوك: {$contact['facebook']}";
-        if ($contact['instagram']) $lines[] = "• حساب إنستغرام: {$contact['instagram']}";
-        if ($contact['linkedin']) $lines[] = "• حساب لينكدإن: {$contact['linkedin']}";
+        if ($contact['phone']) {
+            $lines[] = "• رقم الهاتف: {$contact['phone']}";
+        }
+        if ($contact['whatsapp_url']) {
+            $lines[] = "• واتساب المبيعات والدعم: {$contact['whatsapp_url']} ({$contact['whatsapp']})";
+        }
+        if ($contact['email']) {
+            $lines[] = "• البريد الإلكتروني الرسمي: {$contact['email']}";
+        }
+        if ($contact['address']) {
+            $lines[] = "• عنوان المقر الرئيسي: {$contact['address']}";
+        }
+        if ($contact['facebook']) {
+            $lines[] = "• صفحة فيسبوك: {$contact['facebook']}";
+        }
+        if ($contact['instagram']) {
+            $lines[] = "• حساب إنستغرام: {$contact['instagram']}";
+        }
+        if ($contact['linkedin']) {
+            $lines[] = "• حساب لينكدإن: {$contact['linkedin']}";
+        }
 
         if (empty($lines)) {
             return '';
         }
 
         return "\n\n# بيانات التواصل الرسمية لشركة «فاميلي هوم» (معتمدة وحقيقية — استخدمها كما هي):\n"
-            . implode("\n", $lines)
-            . "\n\n# قواعد صارمة لبيانات التواصل والوكلاء العقاريين:\n"
-            . "1. بيانات تواصل الشركة/الموقع: عند طلب العميل التواصل مع الشركة أو الاستفسار أو حجز موعد، قدّم له بيانات التواصل الرسمية المذكورة أعلاه.\n"
-            . "2. الوكيل العقاري المسؤول: كل وحدة أو مشروع يحتوي على بيانات الوكيل العقاري المرفوع باسمه (agent_name، agent_phone، agent_whatsapp). إذا سأل العميل عن الوكيل أو كيفية التواصل بشأن وحدة معينة، قدّم له اسم الوكيل ورقم هاتفه ورابط الواتساب الخاص به بدقة.\n"
-            . "3. في حال عدم توفر رقم هاتف مباشر للوكيل، وضّح للعميل فوراً: «يمكنك التواصل مع فريق مبيعات فاميلي هوم على [رقم الهاتف] أو عبر الواتساب، وسيقوم فريقنا بربطك مباشرة بالمستشار العقاري المسؤول عن هذه الوحدة».\n"
-            . "4. تحذير حاسم: ممنوع منعاً باتاً اختراع أو توليد أي أرقام هواتف أو إيميلات أو بيانات تواصل وهمية أو غير مطابقة للبيانات المتاحة.\n";
+            .implode("\n", $lines)
+            ."\n\n# قواعد صارمة لبيانات التواصل والوكلاء العقاريين:\n"
+            ."1. بيانات تواصل الشركة/الموقع: عند طلب العميل التواصل مع الشركة أو الاستفسار أو حجز موعد، قدّم له بيانات التواصل الرسمية المذكورة أعلاه.\n"
+            ."2. الوكيل العقاري المسؤول: كل وحدة أو مشروع يحتوي على بيانات الوكيل العقاري المرفوع باسمه (agent_name، agent_phone، agent_whatsapp). إذا سأل العميل عن الوكيل أو كيفية التواصل بشأن وحدة معينة، قدّم له اسم الوكيل ورقم هاتفه ورابط الواتساب الخاص به بدقة.\n"
+            ."3. في حال عدم توفر رقم هاتف مباشر للوكيل، وضّح للعميل فوراً: «يمكنك التواصل مع فريق مبيعات فاميلي هوم على [رقم الهاتف] أو عبر الواتساب، وسيقوم فريقنا بربطك مباشرة بالمستشار العقاري المسؤول عن هذه الوحدة».\n"
+            ."4. تحذير حاسم: ممنوع منعاً باتاً اختراع أو توليد أي أرقام هواتف أو إيميلات أو بيانات تواصل وهمية أو غير مطابقة للبيانات المتاحة.\n";
     }
 }

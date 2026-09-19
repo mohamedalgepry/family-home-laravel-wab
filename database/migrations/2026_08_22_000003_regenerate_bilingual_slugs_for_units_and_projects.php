@@ -107,7 +107,7 @@ return new class extends Migration
 
         try {
             app(SitemapService::class)->regenerate();
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             // Ignore if in testing or migration
         }
     }
