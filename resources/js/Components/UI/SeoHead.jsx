@@ -11,6 +11,10 @@ export default function SeoHead({
     jsonLd,
     hreflang,
     robots,
+    geoRegion,
+    geoPlacename,
+    geoPosition,
+    icbm,
 }) {
     const { locale, seo_page, appUrl, seo_meta, settings } = usePage().props
     const { url } = usePage()
@@ -54,6 +58,12 @@ export default function SeoHead({
     // Clean canonical URL without query string
     const rawCanonical = canonical || seo_meta?.canonical || (baseUrl ? `${baseUrl}${cleanPath}` : cleanPath);
     const finalCanonical = rawCanonical.split('?')[0];
+
+    // GEO metadata
+    const finalGeoRegion = geoRegion || seo_meta?.geo_region || null;
+    const finalGeoPlacename = geoPlacename || seo_meta?.geo_placename || null;
+    const finalGeoPosition = geoPosition || seo_meta?.geo_position || null;
+    const finalIcbm = icbm || seo_meta?.icbm || null;
 
     const urlAr = hreflang?.ar || seo_meta?.hreflang?.ar || (baseUrl + (pathWithoutLocale === '/' ? '/ar' : `/ar${pathWithoutLocale === '/' ? '' : pathWithoutLocale}`));
     const urlEn = hreflang?.en || seo_meta?.hreflang?.en || (baseUrl + (pathWithoutLocale === '/' ? '/en' : `/en${pathWithoutLocale === '/' ? '' : pathWithoutLocale}`));
@@ -112,18 +122,30 @@ export default function SeoHead({
 
             {/* Canonical */}
             <link head-key="canonical" rel="canonical" href={finalCanonical} />
+
+            {/* Geographic / Local SEO */}
+            {finalGeoRegion && <meta head-key="geo.region" name="geo.region" content={finalGeoRegion} />}
+            {finalGeoPlacename && <meta head-key="geo.placename" name="geo.placename" content={finalGeoPlacename} />}
+            {finalGeoPosition && <meta head-key="geo.position" name="geo.position" content={finalGeoPosition} />}
+            {finalIcbm && <meta head-key="icbm" name="ICBM" content={finalIcbm} />}
             
             {/* Hreflang */}
             <link head-key="hreflang-ar" rel="alternate" hrefLang="ar" href={urlAr} />
             <link head-key="hreflang-en" rel="alternate" hrefLang="en" href={urlEn} />
             <link head-key="hreflang-x-default" rel="alternate" hrefLang="x-default" href={urlAr} />
 
-            {/* Structured Data (Schema.org) */}
-            {jsonLdData && (
+            {/* Structured Data (Schema.org / JSON-LD) */}
+            {Array.isArray(jsonLdData) ? (
+                jsonLdData.map((item, idx) => (
+                    <script key={idx} head-key={`jsonld-${idx}`} type="application/ld+json">
+                        {JSON.stringify(item)}
+                    </script>
+                ))
+            ) : jsonLdData ? (
                 <script head-key="jsonld" type="application/ld+json">
                     {JSON.stringify(jsonLdData)}
                 </script>
-            )}
+            ) : null}
         </Head>
     )
 }

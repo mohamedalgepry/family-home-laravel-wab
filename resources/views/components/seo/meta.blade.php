@@ -62,6 +62,18 @@
 <meta name="robots" content="{{ $meta['robots'] }}" inertia head-key="robots">
 @endif
 <link rel="canonical" href="{{ $canonical }}" inertia head-key="canonical">
+@if(!empty($meta['geo_region']))
+<meta name="geo.region" content="{{ $meta['geo_region'] }}" inertia head-key="geo.region">
+@endif
+@if(!empty($meta['geo_placename']))
+<meta name="geo.placename" content="{{ $meta['geo_placename'] }}" inertia head-key="geo.placename">
+@endif
+@if(!empty($meta['geo_position']))
+<meta name="geo.position" content="{{ $meta['geo_position'] }}" inertia head-key="geo.position">
+@endif
+@if(!empty($meta['icbm']))
+<meta name="ICBM" content="{{ $meta['icbm'] }}" inertia head-key="ICBM">
+@endif
 
 @foreach($hreflang as $lang => $url)
     <link rel="alternate" hreflang="{{ $lang }}" href="{{ $url }}" inertia head-key="hreflang-{{ $lang }}">

@@ -7,7 +7,7 @@ import UnitCard from '../../../Components/UI/UnitCard'
 import Pagination from '../../../Components/UI/Pagination'
 import SeoHead from '../../../Components/UI/SeoHead'
 
-export default function UnitsIndex({ units, filters, areas, unitTypes, features, finishingTypes }) {
+export default function UnitsIndex({ units, filters, areas, unitTypes, features, finishingTypes, seo_meta }) {
     const { locale } = usePage().props
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
@@ -22,8 +22,14 @@ export default function UnitsIndex({ units, filters, areas, unitTypes, features,
     return (
         <div dir={isRtl ? 'rtl' : 'ltr'} className="min-h-screen bg-surface flex flex-col">
             <SeoHead
-                title={`${trans('page_title')} - ${trans('site_title')}`}
-                description={trans('page_description')}
+                title={seo_meta?.title || `${trans('page_title')} - ${trans('site_title')}`}
+                description={seo_meta?.description || trans('page_description')}
+                canonical={seo_meta?.canonical}
+                keywords={seo_meta?.keywords}
+                jsonLd={seo_meta?.schema}
+                robots={seo_meta?.robots}
+                geoRegion={seo_meta?.geo_region}
+                geoPlacename={seo_meta?.geo_placename}
             />
             <Header />
 

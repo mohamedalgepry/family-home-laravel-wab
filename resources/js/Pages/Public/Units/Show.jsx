@@ -17,9 +17,10 @@ import { hasValidCoords } from '../../../Utils/location'
 import { WhatsAppIcon, LazyMapEmbed } from '../../../Components/UI'
 import { useState, useEffect, useMemo } from 'react'
 
-export default function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
+export default function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles, seo_meta }) {
     const page = usePage()
-    const { locale, flash, appUrl, seo_meta } = page.props
+    const { locale, flash, appUrl, seo_meta: pageSeoMeta } = page.props
+    const meta = seo_meta || pageSeoMeta
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
     const [lightboxIndex, setLightboxIndex] = useState(null)
@@ -128,12 +129,16 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
     return (
         <div dir={isRtl ? 'rtl' : 'ltr'} className="min-h-screen bg-surface flex flex-col">
             <SeoHead
-                title={`${unit?.name || ''} - ${trans('site_title')}`}
-                description={unit?.meta_description || unit?.description || ''}
-                keywords={isRtl ? (unit?.keywords_ar || unit?.keywords) : (unit?.keywords_en || unit?.keywords || unit?.keywords_ar)}
+                title={meta?.title || `${unit?.name || ''} - ${trans('site_title')}`}
+                description={meta?.description || unit?.meta_description || unit?.description || ''}
+                keywords={meta?.keywords || (isRtl ? (unit?.keywords_ar || unit?.keywords) : (unit?.keywords_en || unit?.keywords || unit?.keywords_ar))}
                 ogImage={unit?.images?.find(img => img.is_main || img.is_primary)?.url || unit?.images?.[0]?.url || null}
-                ogType={seo_meta?.og_type || 'article'}
-                jsonLd={jsonLd}
+                ogType={meta?.og_type || 'article'}
+                jsonLd={meta?.schema || jsonLd}
+                geoRegion={meta?.geo_region}
+                geoPlacename={meta?.geo_placename}
+                geoPosition={meta?.geo_position}
+                icbm={meta?.icbm}
             />
             <Header />
 
@@ -539,7 +544,33 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                             </div>
                         </div>
 
-                        {/* Anchor Navigation Tabs Bar (Desktop) */}
+                {/* Semantic Quick Facts for Users & AI Search Engines (AEO) */}
+                <section className="bg-white rounded-2xl shadow-xs border border-secondary-200/80 p-5 mb-8" aria-label={isRtl ? 'حقائق سريعة عن الوحدة' : 'Unit Quick Facts'}>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-primary-900 mb-3 flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-primary-900 animate-pulse"></span>
+                        <span>{isRtl ? 'ملخص وحقائق العقار السريعة' : 'Property Quick Summary'}</span>
+                    </h3>
+                    <dl className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+                        <div className="p-2.5 rounded-xl bg-surface/60 border border-secondary-100">
+                            <dt className="text-secondary-500 font-semibold">{isRtl ? 'المنطقة والموقع' : 'Location'}</dt>
+                            <dd className="font-bold text-secondary-950 mt-1">{areaName || (isRtl ? 'مصر' : 'Egypt')}</dd>
+                        </div>
+                        <div className="p-2.5 rounded-xl bg-surface/60 border border-secondary-100">
+                            <dt className="text-secondary-500 font-semibold">{isRtl ? 'السعر المطلوب' : 'Price'}</dt>
+                            <dd className="font-bold text-primary-900 mt-1">{Number(unit.price).toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-US')} {trans('currency_egp')}</dd>
+                        </div>
+                        <div className="p-2.5 rounded-xl bg-surface/60 border border-secondary-100">
+                            <dt className="text-secondary-500 font-semibold">{isRtl ? 'المساحة والتقسيم' : 'Size & Layout'}</dt>
+                            <dd className="font-bold text-secondary-950 mt-1">{unit.area_sqm ? `${unit.area_sqm} ${trans('unit_sqm')}` : ''} {unit.rooms ? `• ${unit.rooms} ${isRtl ? 'غرف' : 'rooms'}` : ''}</dd>
+                        </div>
+                        <div className="p-2.5 rounded-xl bg-surface/60 border border-secondary-100">
+                            <dt className="text-secondary-500 font-semibold">{isRtl ? 'نظام الدفع' : 'Payment'}</dt>
+                            <dd className="font-bold text-secondary-950 mt-1">{trans(unit.payment_method || 'cash')}</dd>
+                        </div>
+                    </dl>
+                </section>
+
+                {/* Anchor Navigation Tabs Bar (Desktop) */}
                         <div className="hidden md:flex items-center gap-8 border-b border-secondary-200 mb-8 overflow-x-auto text-xs font-bold text-secondary-600">
                             <a href="#overview" className="py-3 text-[#CC0000] border-b-2 border-[#CC0000] transition-colors">{isRtl ? 'نبذة عن الوحدة' : 'Overview'}</a>
                             {embedUrl && <a href="#video" className="py-3 hover:text-[#CC0000] transition-colors">{isRtl ? 'الفيديو التعريفي' : 'Video'}</a>}

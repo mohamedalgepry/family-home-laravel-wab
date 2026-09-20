@@ -7,7 +7,7 @@ import UnitCard from '../../../Components/UI/UnitCard'
 import Pagination from '../../../Components/UI/Pagination'
 import SeoHead from '../../../Components/UI/SeoHead'
 
-export default function UnitsDeals({ units, filters, areas, unitTypes, features, finishingTypes }) {
+export default function UnitsDeals({ units, filters, areas, unitTypes, features, finishingTypes, seo_meta }) {
     const { locale } = usePage().props
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
@@ -22,9 +22,14 @@ export default function UnitsDeals({ units, filters, areas, unitTypes, features,
     return (
         <div dir={isRtl ? 'rtl' : 'ltr'} className="min-h-screen bg-surface flex flex-col">
             <SeoHead
-                title={`${trans('deals_page_title')} - ${trans('site_title')}`}
-                description={trans('deals_description')}
-                canonical={typeof window !== 'undefined' ? window.location.href : ''}
+                title={seo_meta?.title || `${trans('deals_page_title')} - ${trans('site_title')}`}
+                description={seo_meta?.description || trans('deals_description')}
+                canonical={seo_meta?.canonical}
+                keywords={seo_meta?.keywords}
+                jsonLd={seo_meta?.schema}
+                robots={seo_meta?.robots}
+                geoRegion={seo_meta?.geo_region}
+                geoPlacename={seo_meta?.geo_placename}
             />
             <Header />
 
@@ -65,8 +70,8 @@ export default function UnitsDeals({ units, filters, areas, unitTypes, features,
                     ) : hasUnits ? (
                         <div className="flex flex-col gap-8">
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                {units.data.map(unit => (
-                                    <UnitCard key={unit.id} unit={unit} />
+                                {units.data.map((unit, i) => (
+                                    <UnitCard key={unit.id} unit={unit} priority={i === 0} />
                                 ))}
                             </div>
                             <Pagination meta={units.meta || units} links={units.links} />

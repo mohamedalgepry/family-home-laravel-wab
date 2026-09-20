@@ -17,9 +17,10 @@ import { hasValidCoords } from '../../../Utils/location'
 import { WhatsAppIcon, LazyMapEmbed } from '../../../Components/UI'
 import { useState, useMemo } from 'react'
 
-export default function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }) {
+export default function ProjectShow({ project, projectUnits, similarProjects, relatedArticles, seo_meta }) {
     const page = usePage()
-    const { locale, appUrl } = page.props
+    const { locale, appUrl, seo_meta: pageSeoMeta } = page.props
+    const meta = seo_meta || pageSeoMeta
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
     const [lightboxIndex, setLightboxIndex] = useState(null)
@@ -99,12 +100,16 @@ export default function ProjectShow({ project, projectUnits, similarProjects, re
     return (
         <div dir={isRtl ? 'rtl' : 'ltr'} className="min-h-screen bg-surface flex flex-col">
             <SeoHead
-                title={`${project?.name || ''} - ${trans('site_title')}`}
-                description={project?.meta_description || project?.description || ''}
-                keywords={isRtl ? (project?.keywords_ar || project?.keywords) : (project?.keywords_en || project?.keywords || project?.keywords_ar)}
+                title={meta?.title || `${project?.name || ''} - ${trans('site_title')}`}
+                description={meta?.description || project?.meta_description || project?.description || ''}
+                keywords={meta?.keywords || (isRtl ? (project?.keywords_ar || project?.keywords) : (project?.keywords_en || project?.keywords || project?.keywords_ar))}
                 ogImage={mainImage?.url || (mainImage?.path ? `/storage/${mainImage.path}` : null)}
                 ogType="website"
-                jsonLd={jsonLd}
+                jsonLd={meta?.schema || jsonLd}
+                geoRegion={meta?.geo_region}
+                geoPlacename={meta?.geo_placename}
+                geoPosition={meta?.geo_position}
+                icbm={meta?.icbm}
             />
             <Header />
 
@@ -399,6 +404,32 @@ export default function ProjectShow({ project, projectUnits, similarProjects, re
                         </div>
                     </div>
                 </div>
+
+                {/* Semantic Quick Facts for Users & AI Search Engines (AEO) */}
+                <section className="bg-white rounded-2xl shadow-xs border border-secondary-200/80 p-5 mb-8" aria-label={isRtl ? 'حقائق سريعة عن المشروع' : 'Project Quick Facts'}>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-primary-900 mb-3 flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-primary-900 animate-pulse"></span>
+                        <span>{isRtl ? 'ملخص وحقائق المشروع السريعة' : 'Project Quick Summary'}</span>
+                    </h3>
+                    <dl className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+                        <div className="p-2.5 rounded-xl bg-surface/60 border border-secondary-100">
+                            <dt className="text-secondary-500 font-semibold">{isRtl ? 'المنطقة والموقع' : 'Location'}</dt>
+                            <dd className="font-bold text-secondary-950 mt-1">{areaName || (isRtl ? 'مصر' : 'Egypt')}</dd>
+                        </div>
+                        <div className="p-2.5 rounded-xl bg-surface/60 border border-secondary-100">
+                            <dt className="text-secondary-500 font-semibold">{isRtl ? 'إجمالي الوحدات' : 'Total Units'}</dt>
+                            <dd className="font-bold text-secondary-950 mt-1">{project.units_count ?? units.length} {isRtl ? 'وحدة' : 'units'}</dd>
+                        </div>
+                        <div className="p-2.5 rounded-xl bg-surface/60 border border-secondary-100">
+                            <dt className="text-secondary-500 font-semibold">{isRtl ? 'مقدم الحجز' : 'Down Payment'}</dt>
+                            <dd className="font-bold text-secondary-950 mt-1">{project.down_payment ? `${project.down_payment}%` : (isRtl ? 'تسهيلات متاحة' : 'Flexible')}</dd>
+                        </div>
+                        <div className="p-2.5 rounded-xl bg-surface/60 border border-secondary-100">
+                            <dt className="text-secondary-500 font-semibold">{isRtl ? 'سنوات التقسيط' : 'Installment Years'}</dt>
+                            <dd className="font-bold text-secondary-950 mt-1">{project.installment_years ? `${project.installment_years} ${isRtl ? 'سنوات' : 'years'}` : (isRtl ? 'أنظمة متعددة' : 'Available')}</dd>
+                        </div>
+                    </dl>
+                </section>
 
                 {/* Anchor Navigation Tabs Bar (Desktop) */}
                 <div className="hidden md:flex items-center gap-8 border-b border-secondary-200 mb-8 overflow-x-auto text-xs font-bold text-secondary-600">

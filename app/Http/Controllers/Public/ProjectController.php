@@ -38,13 +38,16 @@ class ProjectController
 
         $projects = $this->listingService->getProjectsByFilters($filters);
 
+        $areas = $this->lookupService->areas();
         $customMeta = [];
         if (! empty($filters['area_id'])) {
-            $areas = $this->lookupService->areas();
             $area = collect($areas)->firstWhere('id', (int) $filters['area_id']);
             if ($area) {
                 $areaName = app()->getLocale() === 'ar' ? ($area->name_ar ?? $area->name) : ($area->name_en ?? $area->name);
                 $customMeta['title'] = (app()->getLocale() === 'ar' ? 'مشاريع سكنية وتجارية في ' : 'Real Estate Projects in ').$areaName.' - '.config('app.name');
+                $customMeta['description'] = (app()->getLocale() === 'ar' ? 'تصفح أحدث المشاريع العقارية والكمبوندات السكنية في ' : 'Browse premium real estate projects and compounds in ').$areaName.' '.(app()->getLocale() === 'ar' ? 'بأفضل أنظمة سداد وتقسيط' : 'with best payment plans');
+                $customMeta['geo_placename'] = $areaName.(app()->getLocale() === 'ar' ? '، مصر' : ', Egypt');
+                $customMeta['robots'] = 'noindex, follow';
             }
         }
 
@@ -54,7 +57,7 @@ class ProjectController
             'projects' => ProjectPublicResource::collection($projects),
             'filters' => $filters,
             'seo_meta' => $meta,
-            'areas' => $this->lookupService->areas(),
+            'areas' => $areas,
             'features' => $this->lookupService->features(),
             'finishingTypes' => $this->lookupService->finishingTypes(),
         ])->withViewData(['meta' => $meta]);
@@ -75,12 +78,17 @@ class ProjectController
             request()->userAgent(),
         );
 
-        $projectUnits = Unit::where('project_id', $project->id)
-            ->where('is_active', true)
-            ->with(['type', 'area', 'images', 'user'])
-            ->orderByFeatured()
-            ->limit(24)
-            ->get();
+        // تخزين وحدات المشروع مؤقتاً لتفادي استعلام العلاقات الثقيل في كل زيارة
+        $projectUnits = \Illuminate\Support\Facades\Cache::remember(
+            "project_show_units_{$project->id}_v{$this->listingService->version()}",
+            300,
+            fn () => Unit::where('project_id', $project->id)
+                ->where('is_active', true)
+                ->with(['type', 'area', 'images', 'user'])
+                ->orderByFeatured()
+                ->limit(24)
+                ->get()
+        );
 
         // BUG-005 FIX: query واحدة تُفضّل المنطقة المطابقة ثم الأحدث — بدلاً من query + fallback
         $similarProjects = \Illuminate\Support\Facades\Cache::remember(

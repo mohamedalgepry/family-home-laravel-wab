@@ -8,7 +8,7 @@ import Pagination from '../../../Components/UI/Pagination'
 import SeoHead from '../../../Components/UI/SeoHead'
 import { useState } from 'react'
 
-export default function ProjectsIndex({ projects, filters, areas, features, finishingTypes }) {
+export default function ProjectsIndex({ projects, filters, areas, features, finishingTypes, seo_meta }) {
     const { locale } = usePage().props
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
@@ -55,8 +55,14 @@ export default function ProjectsIndex({ projects, filters, areas, features, fini
     return (
         <div dir={isRtl ? 'rtl' : 'ltr'} className="min-h-screen bg-surface flex flex-col font-sans">
             <SeoHead
-                title={`${trans('projects_page_title')} - ${trans('site_title')}`}
-                description={trans('projects_description')}
+                title={seo_meta?.title || `${trans('projects_page_title')} - ${trans('site_title')}`}
+                description={seo_meta?.description || trans('projects_description')}
+                canonical={seo_meta?.canonical}
+                keywords={seo_meta?.keywords}
+                jsonLd={seo_meta?.schema}
+                robots={seo_meta?.robots}
+                geoRegion={seo_meta?.geo_region}
+                geoPlacename={seo_meta?.geo_placename}
             />
             <Header />
 

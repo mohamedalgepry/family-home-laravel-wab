@@ -16439,7 +16439,7 @@ function Footer() {
 }
 //#endregion
 //#region resources/js/Components/UI/SeoHead.jsx
-function SeoHead({ title, description, keywords, ogImage, ogType = "website", canonical, jsonLd, hreflang, robots }) {
+function SeoHead({ title, description, keywords, ogImage, ogType = "website", canonical, jsonLd, hreflang, robots, geoRegion, geoPlacename, geoPosition, icbm }) {
 	const { locale, seo_page, appUrl, seo_meta, settings } = usePage().props;
 	const { url } = usePage();
 	const siteName = useTrans(locale)("site_title");
@@ -16460,6 +16460,10 @@ function SeoHead({ title, description, keywords, ogImage, ogType = "website", ca
 	const hasFilterQuery = typeof url === "string" && url.includes("?") && /[?&](area_id|type_id|page|price_|size_|features|transaction|search|finishing_type|payment_method|rooms|bathrooms|sort|direction)/.test(url);
 	const finalRobots = robots || seo_meta?.robots || (hasFilterQuery ? "noindex, follow" : null);
 	const finalCanonical = (canonical || seo_meta?.canonical || (baseUrl ? `${baseUrl}${cleanPath}` : cleanPath)).split("?")[0];
+	const finalGeoRegion = geoRegion || seo_meta?.geo_region || null;
+	const finalGeoPlacename = geoPlacename || seo_meta?.geo_placename || null;
+	const finalGeoPosition = geoPosition || seo_meta?.geo_position || null;
+	const finalIcbm = icbm || seo_meta?.icbm || null;
 	const urlAr = hreflang?.ar || seo_meta?.hreflang?.ar || baseUrl + (pathWithoutLocale === "/" ? "/ar" : `/ar${pathWithoutLocale === "/" ? "" : pathWithoutLocale}`);
 	const urlEn = hreflang?.en || seo_meta?.hreflang?.en || baseUrl + (pathWithoutLocale === "/" ? "/en" : `/en${pathWithoutLocale === "/" ? "" : pathWithoutLocale}`);
 	let finalOgImage = ogImage || seo_meta?.image;
@@ -16585,6 +16589,26 @@ function SeoHead({ title, description, keywords, ogImage, ogType = "website", ca
 			rel: "canonical",
 			href: finalCanonical
 		}),
+		finalGeoRegion && /* @__PURE__ */ jsx("meta", {
+			"head-key": "geo.region",
+			name: "geo.region",
+			content: finalGeoRegion
+		}),
+		finalGeoPlacename && /* @__PURE__ */ jsx("meta", {
+			"head-key": "geo.placename",
+			name: "geo.placename",
+			content: finalGeoPlacename
+		}),
+		finalGeoPosition && /* @__PURE__ */ jsx("meta", {
+			"head-key": "geo.position",
+			name: "geo.position",
+			content: finalGeoPosition
+		}),
+		finalIcbm && /* @__PURE__ */ jsx("meta", {
+			"head-key": "icbm",
+			name: "ICBM",
+			content: finalIcbm
+		}),
 		/* @__PURE__ */ jsx("link", {
 			"head-key": "hreflang-ar",
 			rel: "alternate",
@@ -16603,11 +16627,15 @@ function SeoHead({ title, description, keywords, ogImage, ogType = "website", ca
 			hrefLang: "x-default",
 			href: urlAr
 		}),
-		jsonLdData && /* @__PURE__ */ jsx("script", {
+		Array.isArray(jsonLdData) ? jsonLdData.map((item, idx) => /* @__PURE__ */ jsx("script", {
+			"head-key": `jsonld-${idx}`,
+			type: "application/ld+json",
+			children: JSON.stringify(item)
+		}, idx)) : jsonLdData ? /* @__PURE__ */ jsx("script", {
 			"head-key": "jsonld",
 			type: "application/ld+json",
 			children: JSON.stringify(jsonLdData)
-		})
+		}) : null
 	] });
 }
 //#endregion
@@ -20462,7 +20490,7 @@ function Home({ featuredUnits, latestUnits, latestProjects, popularSearches, are
 //#endregion
 //#region resources/js/Pages/Public/Projects/Index.jsx
 var Index_exports$1 = /* @__PURE__ */ __exportAll({ default: () => ProjectsIndex });
-function ProjectsIndex({ projects, filters, areas, features, finishingTypes }) {
+function ProjectsIndex({ projects, filters, areas, features, finishingTypes, seo_meta }) {
 	const { locale } = usePage().props;
 	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
@@ -20502,8 +20530,14 @@ function ProjectsIndex({ projects, filters, areas, features, finishingTypes }) {
 		className: "min-h-screen bg-surface flex flex-col font-sans",
 		children: [
 			/* @__PURE__ */ jsx(SeoHead, {
-				title: `${trans("projects_page_title")} - ${trans("site_title")}`,
-				description: trans("projects_description")
+				title: seo_meta?.title || `${trans("projects_page_title")} - ${trans("site_title")}`,
+				description: seo_meta?.description || trans("projects_description"),
+				canonical: seo_meta?.canonical,
+				keywords: seo_meta?.keywords,
+				jsonLd: seo_meta?.schema,
+				robots: seo_meta?.robots,
+				geoRegion: seo_meta?.geo_region,
+				geoPlacename: seo_meta?.geo_placename
 			}),
 			/* @__PURE__ */ jsx(Header, {}),
 			/* @__PURE__ */ jsxs("main", {
@@ -20877,9 +20911,10 @@ function hasValidCoords(item) {
 //#endregion
 //#region resources/js/Pages/Public/Projects/Show.jsx
 var Show_exports$1 = /* @__PURE__ */ __exportAll({ default: () => ProjectShow });
-function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }) {
+function ProjectShow({ project, projectUnits, similarProjects, relatedArticles, seo_meta }) {
 	const page = usePage();
-	const { locale, appUrl } = page.props;
+	const { locale, appUrl, seo_meta: pageSeoMeta } = page.props;
+	const meta = seo_meta || pageSeoMeta;
 	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
 	const [lightboxIndex, setLightboxIndex] = useState(null);
@@ -20954,12 +20989,16 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 		className: "min-h-screen bg-surface flex flex-col",
 		children: [
 			/* @__PURE__ */ jsx(SeoHead, {
-				title: `${project?.name || ""} - ${trans("site_title")}`,
-				description: project?.meta_description || project?.description || "",
-				keywords: isRtl ? project?.keywords_ar || project?.keywords : project?.keywords_en || project?.keywords || project?.keywords_ar,
+				title: meta?.title || `${project?.name || ""} - ${trans("site_title")}`,
+				description: meta?.description || project?.meta_description || project?.description || "",
+				keywords: meta?.keywords || (isRtl ? project?.keywords_ar || project?.keywords : project?.keywords_en || project?.keywords || project?.keywords_ar),
 				ogImage: mainImage?.url || (mainImage?.path ? `/storage/${mainImage.path}` : null),
 				ogType: "website",
-				jsonLd
+				jsonLd: meta?.schema || jsonLd,
+				geoRegion: meta?.geo_region,
+				geoPlacename: meta?.geo_placename,
+				geoPosition: meta?.geo_position,
+				icbm: meta?.icbm
 			}),
 			/* @__PURE__ */ jsx(Header, {}),
 			/* @__PURE__ */ jsxs("main", {
@@ -21314,6 +21353,62 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 											})]
 										})]
 									})
+								})
+							]
+						})]
+					}),
+					/* @__PURE__ */ jsxs("section", {
+						className: "bg-white rounded-2xl shadow-xs border border-secondary-200/80 p-5 mb-8",
+						"aria-label": isRtl ? "حقائق سريعة عن المشروع" : "Project Quick Facts",
+						children: [/* @__PURE__ */ jsxs("h3", {
+							className: "text-xs font-bold uppercase tracking-wider text-primary-900 mb-3 flex items-center gap-2",
+							children: [/* @__PURE__ */ jsx("span", { className: "w-2 h-2 rounded-full bg-primary-900 animate-pulse" }), /* @__PURE__ */ jsx("span", { children: isRtl ? "ملخص وحقائق المشروع السريعة" : "Project Quick Summary" })]
+						}), /* @__PURE__ */ jsxs("dl", {
+							className: "grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs",
+							children: [
+								/* @__PURE__ */ jsxs("div", {
+									className: "p-2.5 rounded-xl bg-surface/60 border border-secondary-100",
+									children: [/* @__PURE__ */ jsx("dt", {
+										className: "text-secondary-500 font-semibold",
+										children: isRtl ? "المنطقة والموقع" : "Location"
+									}), /* @__PURE__ */ jsx("dd", {
+										className: "font-bold text-secondary-950 mt-1",
+										children: areaName || (isRtl ? "مصر" : "Egypt")
+									})]
+								}),
+								/* @__PURE__ */ jsxs("div", {
+									className: "p-2.5 rounded-xl bg-surface/60 border border-secondary-100",
+									children: [/* @__PURE__ */ jsx("dt", {
+										className: "text-secondary-500 font-semibold",
+										children: isRtl ? "إجمالي الوحدات" : "Total Units"
+									}), /* @__PURE__ */ jsxs("dd", {
+										className: "font-bold text-secondary-950 mt-1",
+										children: [
+											project.units_count ?? units.length,
+											" ",
+											isRtl ? "وحدة" : "units"
+										]
+									})]
+								}),
+								/* @__PURE__ */ jsxs("div", {
+									className: "p-2.5 rounded-xl bg-surface/60 border border-secondary-100",
+									children: [/* @__PURE__ */ jsx("dt", {
+										className: "text-secondary-500 font-semibold",
+										children: isRtl ? "مقدم الحجز" : "Down Payment"
+									}), /* @__PURE__ */ jsx("dd", {
+										className: "font-bold text-secondary-950 mt-1",
+										children: project.down_payment ? `${project.down_payment}%` : isRtl ? "تسهيلات متاحة" : "Flexible"
+									})]
+								}),
+								/* @__PURE__ */ jsxs("div", {
+									className: "p-2.5 rounded-xl bg-surface/60 border border-secondary-100",
+									children: [/* @__PURE__ */ jsx("dt", {
+										className: "text-secondary-500 font-semibold",
+										children: isRtl ? "سنوات التقسيط" : "Installment Years"
+									}), /* @__PURE__ */ jsx("dd", {
+										className: "font-bold text-secondary-950 mt-1",
+										children: project.installment_years ? `${project.installment_years} ${isRtl ? "سنوات" : "years"}` : isRtl ? "أنظمة متعددة" : "Available"
+									})]
 								})
 							]
 						})]
@@ -21925,7 +22020,7 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 //#endregion
 //#region resources/js/Pages/Public/Units/Deals.jsx
 var Deals_exports = /* @__PURE__ */ __exportAll({ default: () => UnitsDeals });
-function UnitsDeals({ units, filters, areas, unitTypes, features, finishingTypes }) {
+function UnitsDeals({ units, filters, areas, unitTypes, features, finishingTypes, seo_meta }) {
 	const { locale } = usePage().props;
 	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
@@ -21939,9 +22034,14 @@ function UnitsDeals({ units, filters, areas, unitTypes, features, finishingTypes
 		className: "min-h-screen bg-surface flex flex-col",
 		children: [
 			/* @__PURE__ */ jsx(SeoHead, {
-				title: `${trans("deals_page_title")} - ${trans("site_title")}`,
-				description: trans("deals_description"),
-				canonical: typeof window !== "undefined" ? window.location.href : ""
+				title: seo_meta?.title || `${trans("deals_page_title")} - ${trans("site_title")}`,
+				description: seo_meta?.description || trans("deals_description"),
+				canonical: seo_meta?.canonical,
+				keywords: seo_meta?.keywords,
+				jsonLd: seo_meta?.schema,
+				robots: seo_meta?.robots,
+				geoRegion: seo_meta?.geo_region,
+				geoPlacename: seo_meta?.geo_placename
 			}),
 			/* @__PURE__ */ jsx(Header, {}),
 			/* @__PURE__ */ jsxs("main", {
@@ -21982,7 +22082,10 @@ function UnitsDeals({ units, filters, areas, unitTypes, features, finishingTypes
 						className: "flex flex-col gap-8",
 						children: [/* @__PURE__ */ jsx("div", {
 							className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6",
-							children: units.data.map((unit) => /* @__PURE__ */ jsx(UnitCard_default, { unit }, unit.id))
+							children: units.data.map((unit, i) => /* @__PURE__ */ jsx(UnitCard_default, {
+								unit,
+								priority: i === 0
+							}, unit.id))
 						}), /* @__PURE__ */ jsx(Pagination, {
 							meta: units.meta || units,
 							links: units.links
@@ -22024,7 +22127,7 @@ function UnitsDeals({ units, filters, areas, unitTypes, features, finishingTypes
 //#endregion
 //#region resources/js/Pages/Public/Units/Index.jsx
 var Index_exports = /* @__PURE__ */ __exportAll({ default: () => UnitsIndex });
-function UnitsIndex({ units, filters, areas, unitTypes, features, finishingTypes }) {
+function UnitsIndex({ units, filters, areas, unitTypes, features, finishingTypes, seo_meta }) {
 	const { locale } = usePage().props;
 	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
@@ -22038,8 +22141,14 @@ function UnitsIndex({ units, filters, areas, unitTypes, features, finishingTypes
 		className: "min-h-screen bg-surface flex flex-col",
 		children: [
 			/* @__PURE__ */ jsx(SeoHead, {
-				title: `${trans("page_title")} - ${trans("site_title")}`,
-				description: trans("page_description")
+				title: seo_meta?.title || `${trans("page_title")} - ${trans("site_title")}`,
+				description: seo_meta?.description || trans("page_description"),
+				canonical: seo_meta?.canonical,
+				keywords: seo_meta?.keywords,
+				jsonLd: seo_meta?.schema,
+				robots: seo_meta?.robots,
+				geoRegion: seo_meta?.geo_region,
+				geoPlacename: seo_meta?.geo_placename
 			}),
 			/* @__PURE__ */ jsx(Header, {}),
 			/* @__PURE__ */ jsxs("main", {
@@ -22125,9 +22234,10 @@ function UnitsIndex({ units, filters, areas, unitTypes, features, finishingTypes
 //#endregion
 //#region resources/js/Pages/Public/Units/Show.jsx
 var Show_exports = /* @__PURE__ */ __exportAll({ default: () => UnitShow });
-function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
+function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles, seo_meta }) {
 	const page = usePage();
-	const { locale, flash, appUrl, seo_meta } = page.props;
+	const { locale, flash, appUrl, seo_meta: pageSeoMeta } = page.props;
+	const meta = seo_meta || pageSeoMeta;
 	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
 	const [lightboxIndex, setLightboxIndex] = useState(null);
@@ -22221,12 +22331,16 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 		className: "min-h-screen bg-surface flex flex-col",
 		children: [
 			/* @__PURE__ */ jsx(SeoHead, {
-				title: `${unit?.name || ""} - ${trans("site_title")}`,
-				description: unit?.meta_description || unit?.description || "",
-				keywords: isRtl ? unit?.keywords_ar || unit?.keywords : unit?.keywords_en || unit?.keywords || unit?.keywords_ar,
+				title: meta?.title || `${unit?.name || ""} - ${trans("site_title")}`,
+				description: meta?.description || unit?.meta_description || unit?.description || "",
+				keywords: meta?.keywords || (isRtl ? unit?.keywords_ar || unit?.keywords : unit?.keywords_en || unit?.keywords || unit?.keywords_ar),
 				ogImage: unit?.images?.find((img) => img.is_main || img.is_primary)?.url || unit?.images?.[0]?.url || null,
-				ogType: seo_meta?.og_type || "article",
-				jsonLd
+				ogType: meta?.og_type || "article",
+				jsonLd: meta?.schema || jsonLd,
+				geoRegion: meta?.geo_region,
+				geoPlacename: meta?.geo_placename,
+				geoPosition: meta?.geo_position,
+				icbm: meta?.icbm
 			}),
 			/* @__PURE__ */ jsx(Header, {}),
 			/* @__PURE__ */ jsxs("main", {
@@ -22732,6 +22846,66 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 												})]
 											})]
 										})
+									})
+								]
+							})]
+						}),
+						/* @__PURE__ */ jsxs("section", {
+							className: "bg-white rounded-2xl shadow-xs border border-secondary-200/80 p-5 mb-8",
+							"aria-label": isRtl ? "حقائق سريعة عن الوحدة" : "Unit Quick Facts",
+							children: [/* @__PURE__ */ jsxs("h3", {
+								className: "text-xs font-bold uppercase tracking-wider text-primary-900 mb-3 flex items-center gap-2",
+								children: [/* @__PURE__ */ jsx("span", { className: "w-2 h-2 rounded-full bg-primary-900 animate-pulse" }), /* @__PURE__ */ jsx("span", { children: isRtl ? "ملخص وحقائق العقار السريعة" : "Property Quick Summary" })]
+							}), /* @__PURE__ */ jsxs("dl", {
+								className: "grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs",
+								children: [
+									/* @__PURE__ */ jsxs("div", {
+										className: "p-2.5 rounded-xl bg-surface/60 border border-secondary-100",
+										children: [/* @__PURE__ */ jsx("dt", {
+											className: "text-secondary-500 font-semibold",
+											children: isRtl ? "المنطقة والموقع" : "Location"
+										}), /* @__PURE__ */ jsx("dd", {
+											className: "font-bold text-secondary-950 mt-1",
+											children: areaName || (isRtl ? "مصر" : "Egypt")
+										})]
+									}),
+									/* @__PURE__ */ jsxs("div", {
+										className: "p-2.5 rounded-xl bg-surface/60 border border-secondary-100",
+										children: [/* @__PURE__ */ jsx("dt", {
+											className: "text-secondary-500 font-semibold",
+											children: isRtl ? "السعر المطلوب" : "Price"
+										}), /* @__PURE__ */ jsxs("dd", {
+											className: "font-bold text-primary-900 mt-1",
+											children: [
+												Number(unit.price).toLocaleString(locale === "ar" ? "ar-EG" : "en-US"),
+												" ",
+												trans("currency_egp")
+											]
+										})]
+									}),
+									/* @__PURE__ */ jsxs("div", {
+										className: "p-2.5 rounded-xl bg-surface/60 border border-secondary-100",
+										children: [/* @__PURE__ */ jsx("dt", {
+											className: "text-secondary-500 font-semibold",
+											children: isRtl ? "المساحة والتقسيم" : "Size & Layout"
+										}), /* @__PURE__ */ jsxs("dd", {
+											className: "font-bold text-secondary-950 mt-1",
+											children: [
+												unit.area_sqm ? `${unit.area_sqm} ${trans("unit_sqm")}` : "",
+												" ",
+												unit.rooms ? `• ${unit.rooms} ${isRtl ? "غرف" : "rooms"}` : ""
+											]
+										})]
+									}),
+									/* @__PURE__ */ jsxs("div", {
+										className: "p-2.5 rounded-xl bg-surface/60 border border-secondary-100",
+										children: [/* @__PURE__ */ jsx("dt", {
+											className: "text-secondary-500 font-semibold",
+											children: isRtl ? "نظام الدفع" : "Payment"
+										}), /* @__PURE__ */ jsx("dd", {
+											className: "font-bold text-secondary-950 mt-1",
+											children: trans(unit.payment_method || "cash")
+										})]
 									})
 								]
 							})]
