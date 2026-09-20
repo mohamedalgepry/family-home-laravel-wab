@@ -98,29 +98,34 @@ export default function NotificationsIndex({ notifications, unreadCount, autoDel
 
     const grouped = useMemo(() => groupByDate(filteredItems, isRtl, trans), [filteredItems, isRtl, trans])
 
+    // FIX: إضافة preserveState: true لجميع العمليات في صفحة الإشعارات
+    // هذا يمنع Inertia من فقدان حالة الصفحة بعد كل طلب POST/DELETE
+    // مما كان يسبب إعادة توجيه غير مقصود للصفحة الرئيسية
+
     function handleMarkAllRead() {
-        router.post('/admin/notifications/read-all', {}, { preserveScroll: true })
+        router.post('/admin/notifications/read-all', {}, { preserveScroll: true, preserveState: true })
     }
 
     function handleMarkRead(id) {
-        router.post(`/admin/notifications/${id}/read`, {}, { preserveScroll: true })
+        router.post(`/admin/notifications/${id}/read`, {}, { preserveScroll: true, preserveState: true })
     }
 
     function handleDismiss(id) {
-        router.post(`/admin/notifications/${id}/dismiss`, {}, { preserveScroll: true })
+        router.post(`/admin/notifications/${id}/dismiss`, {}, { preserveScroll: true, preserveState: true })
     }
 
     function handleDeleteOne(id) {
-        router.delete(`/admin/notifications/${id}`, {}, { preserveScroll: true })
+        router.delete(`/admin/notifications/${id}`, {}, { preserveScroll: true, preserveState: true })
     }
 
     function handleDeleteAll() {
+        // حذف جميع الإشعارات - لا نحتاج preserveState هنا لأن الصفحة ستتحدث بالكامل
         router.delete('/admin/notifications/all/clear', {}, { preserveScroll: true })
         setConfirmClearAll(false)
     }
 
     function handleExtendProject(projectId) {
-        router.post(`/admin/projects/${projectId}/extend`, {}, { preserveScroll: true })
+        router.post(`/admin/projects/${projectId}/extend`, {}, { preserveScroll: true, preserveState: true })
     }
 
     function openExtendModal(unitId, unitName) {
@@ -138,25 +143,38 @@ export default function NotificationsIndex({ notifications, unreadCount, autoDel
         if (selectedDuration === 'custom') {
             payload.days = parseInt(customDays, 10) || autoDeleteDays || 30
         }
+        // FIX: إضافة preserveState: true لمنع إعادة التوجيه للصفحة الرئيسية
+        // عند استخدام router.post بدون preserveState، يفقد Inertia حالة الصفحة الحالية
+        // مما يسبب إعادة redirect غير مقصود بعد redirect()->back() من السيرفر
         router.post(`/admin/units/${extendModalUnit.id}/extend-expiry`, payload, {
             preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => {
+                // أغلق الـ modal عند نجاح العملية
+                setExtendModalUnit(null)
+                setSelectedDuration('auto_delete_setting')
+                setCustomDays('')
+            },
+            onError: (errors) => {
+                // أبقِ الـ modal مفتوحاً عند حدوث خطأ
+                console.error('Extend unit error:', errors)
+            },
             onFinish: () => {
                 setIsExtending(false)
-                setExtendModalUnit(null)
             },
         })
     }
 
     function handleApproveProject(projectId) {
-        router.post(`/admin/projects/${projectId}/approve`, {}, { preserveScroll: true })
+        router.post(`/admin/projects/${projectId}/approve`, {}, { preserveScroll: true, preserveState: true })
     }
 
     function handleApproveUnit(unitId) {
-        router.post(`/admin/units/${unitId}/approve`, {}, { preserveScroll: true })
+        router.post(`/admin/units/${unitId}/approve`, {}, { preserveScroll: true, preserveState: true })
     }
 
     function handleDeleteUnit(unitId) {
-        router.delete(`/admin/units/${unitId}/force`, {}, { preserveScroll: true })
+        router.delete(`/admin/units/${unitId}/force`, {}, { preserveScroll: true, preserveState: true })
         setConfirmDeleteId(null)
     }
 
@@ -678,8 +696,17 @@ export default function NotificationsIndex({ notifications, unreadCount, autoDel
 
                 {/* === Extend Unit Modal === */}
                 {extendModalUnit && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-                        <div className="bg-white rounded-2xl shadow-2xl border border-secondary-100 max-w-md w-full p-6 space-y-5 animate-scale-up">
+                    // Backdrop: إغلاق الـ modal عند النقر خارجه
+                    <div
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
+                        onClick={() => !isExtending && setExtendModalUnit(null)}
+                    >
+                        {/* Modal content: منع إغلاق الـ modal عند النقر داخله */}
+                        <div
+                            className="bg-white rounded-2xl shadow-2xl border border-secondary-100 max-w-md w-full p-6 space-y-5 animate-scale-up"
+                            onClick={e => e.stopPropagation()}
+                        >
+
                             {/* Modal Header */}
                             <div className="flex items-start justify-between gap-3 border-b border-secondary-100 pb-4">
                                 <div>
