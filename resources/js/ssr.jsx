@@ -55,6 +55,12 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(200, { 'Content-Type': 'application/json' })
         res.end(JSON.stringify(result))
     } catch (e) {
+        // If no component name, this is likely a health-check probe — respond 200 so waitForServer succeeds
+        if (!page?.component) {
+            res.writeHead(200, { 'Content-Type': 'application/json' })
+            res.end(JSON.stringify({ body: '', head: [] }))
+            return
+        }
         console.error(`[SSR] Render error: ${e.message}`)
         res.writeHead(500, { 'Content-Type': 'application/json' })
         res.end(JSON.stringify({ error: e.message, url: page?.url, type: 'render' }))

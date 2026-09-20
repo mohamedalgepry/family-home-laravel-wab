@@ -227,7 +227,7 @@ async function boot() {
 
     createInertiaApp({
         resolve: name => {
-            const pages = import.meta.glob('./Pages/**/*.jsx')
+            const pages = import.meta.glob('./Pages/**/*.jsx', { lazy: true })
             return pages[`./Pages/${name}.jsx`]()
         },
         setup({ el, App, props }) {

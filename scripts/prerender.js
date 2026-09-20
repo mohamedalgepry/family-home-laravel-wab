@@ -25,6 +25,24 @@ async function main() {
         process.exit(1)
     }
 
+    // Kill any lingering SSR process from a previous build attempt (prevents EADDRINUSE on Windows)
+    try {
+        const net = await import('node:net')
+        await new Promise((resolve) => {
+            const probe = net.createConnection({ host: '127.0.0.1', port: SSR_PORT })
+            probe.on('connect', () => { probe.destroy(); resolve() })
+            probe.on('error', () => resolve())
+        })
+        // If we got here, something is already listening — try to kill it via a dummy request
+        await new Promise((resolve) => {
+            const req = http.request({ hostname: '127.0.0.1', port: SSR_PORT, path: '/shutdown', method: 'POST', timeout: 1000 }, () => resolve())
+            req.on('error', () => resolve())
+            req.end()
+        })
+        // Give it a moment to die
+        await new Promise((r) => setTimeout(r, 1500))
+    } catch { /* ignore */ }
+
     // Launch SSR server
     console.log('[Prerender] Spawning SSR server process...')
     const ssrProcess = spawn(process.execPath, [ssrBundlePath], {
@@ -33,10 +51,10 @@ async function main() {
         env: { ...process.env, PORT: SSR_PORT },
     })
 
-    // Wait until SSR server is actively accepting connections
-    const serverReady = await waitForServer(SSR_PORT, 15000)
+    // Wait until SSR server is actively accepting connections (30s timeout for Windows)
+    const serverReady = await waitForServer(SSR_PORT, 30000)
     if (!serverReady) {
-        console.error(`[Prerender] Error: SSR server did not start on port ${SSR_PORT} within 15 seconds.`)
+        console.error(`[Prerender] Error: SSR server did not start on port ${SSR_PORT} within 30 seconds.`)
         try { ssrProcess.kill('SIGTERM') } catch { }
         process.exit(1)
     }

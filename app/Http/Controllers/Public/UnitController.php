@@ -38,17 +38,23 @@ class UnitController
 
         $filters = $filterResolver->resolve($filters);
 
+        // تحميل بيانات الـ lookup مرة واحدة لإعادة استخدامها في meta والـ render
+        $areas = $this->lookupService->areas();
+        $unitTypes = $this->lookupService->unitTypes();
+        $features = $this->lookupService->features();
+        $finishingTypes = $this->lookupService->finishingTypes();
+
         $units = $this->listingService->getUnitsByFilters($filters);
-        $meta = $this->buildFilteredUnitsMeta($filters);
+        $meta = $this->buildFilteredUnitsMeta($filters, false, $areas, $unitTypes);
 
         return Inertia::render('Public/Units/Index', [
             'units' => UnitPublicResource::collection($units),
             'filters' => $filters,
             'seo_meta' => $meta,
-            'areas' => $this->lookupService->areas(),
-            'unitTypes' => $this->lookupService->unitTypes(),
-            'features' => $this->lookupService->features(),
-            'finishingTypes' => $this->lookupService->finishingTypes(),
+            'areas' => $areas,
+            'unitTypes' => $unitTypes,
+            'features' => $features,
+            'finishingTypes' => $finishingTypes,
         ])->withViewData(['meta' => $meta]);
     }
 
@@ -59,17 +65,23 @@ class UnitController
             ['is_deal' => true]
         );
 
+        // تحميل بيانات الـ lookup مرة واحدة لإعادة استخدامها في meta والـ render
+        $areas = $this->lookupService->areas();
+        $unitTypes = $this->lookupService->unitTypes();
+        $features = $this->lookupService->features();
+        $finishingTypes = $this->lookupService->finishingTypes();
+
         $units = $this->listingService->getUnitsByFilters($filters);
-        $meta = $this->buildFilteredUnitsMeta($filters, true);
+        $meta = $this->buildFilteredUnitsMeta($filters, true, $areas, $unitTypes);
 
         return Inertia::render('Public/Units/Deals', [
             'units' => UnitPublicResource::collection($units),
             'filters' => $filters,
             'seo_meta' => $meta,
-            'areas' => $this->lookupService->areas(),
-            'unitTypes' => $this->lookupService->unitTypes(),
-            'features' => $this->lookupService->features(),
-            'finishingTypes' => $this->lookupService->finishingTypes(),
+            'areas' => $areas,
+            'unitTypes' => $unitTypes,
+            'features' => $features,
+            'finishingTypes' => $finishingTypes,
         ])->withViewData(['meta' => $meta]);
     }
 
@@ -133,13 +145,17 @@ class UnitController
         ])->withViewData(['meta' => $meta, 'lcpImage' => $lcpImage]);
     }
 
-    private function buildFilteredUnitsMeta(array $filters, bool $isDeals = false): array
+    /**
+     * @param  \Illuminate\Database\Eloquent\Collection|null  $areas     Pre-loaded areas (avoid duplicate cache call)
+     * @param  \Illuminate\Database\Eloquent\Collection|null  $unitTypes Pre-loaded unit types (avoid duplicate cache call)
+     */
+    private function buildFilteredUnitsMeta(array $filters, bool $isDeals = false, $areas = null, $unitTypes = null): array
     {
         $customMeta = [];
         $parts = [];
 
         if (! empty($filters['type_id'])) {
-            $types = $this->lookupService->unitTypes();
+            $types = $unitTypes ?? $this->lookupService->unitTypes();
             $type = collect($types)->firstWhere('id', (int) $filters['type_id']);
             if ($type) {
                 $parts[] = app()->getLocale() === 'ar' ? ($type->name_ar ?? $type->name) : ($type->name_en ?? $type->name);
@@ -147,8 +163,8 @@ class UnitController
         }
 
         if (! empty($filters['area_id'])) {
-            $areas = $this->lookupService->areas();
-            $area = collect($areas)->firstWhere('id', (int) $filters['area_id']);
+            $areaList = $areas ?? $this->lookupService->areas();
+            $area = collect($areaList)->firstWhere('id', (int) $filters['area_id']);
             if ($area) {
                 $areaName = app()->getLocale() === 'ar' ? ($area->name_ar ?? $area->name) : ($area->name_en ?? $area->name);
                 $parts[] = (app()->getLocale() === 'ar' ? 'في ' : 'in ').$areaName;

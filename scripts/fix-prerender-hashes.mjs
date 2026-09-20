@@ -77,8 +77,8 @@ for (const [stable, files] of stableMap) {
     const stemPrefix = escapeRx(stable.slice(0, -ext.length)) // prefix without ext
     const escapedExt = escapeRx(ext)
     // Match: PREFIX followed by one or more -SEGMENT groups, then .EXT
-    // where at least one segment is hash-like  →  covers both old and new format
-    const rx = new RegExp(`\\b${stemPrefix}(?:-[A-Za-z0-9]+)+${escapedExt}\\b`, 'g')
+    // Segments may contain underscores (e.g. Rolldown: ar-C0Bl8Z_1.js)
+    const rx = new RegExp(`\\b${stemPrefix}(?:-[A-Za-z0-9_]+)+${escapedExt}\\b`, 'g')
     replaceTable.set(stable, { rx, newFile })
 }
 

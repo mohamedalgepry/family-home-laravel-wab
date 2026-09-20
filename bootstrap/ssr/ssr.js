@@ -7393,20 +7393,32 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 		trans
 	]);
 	function handleMarkAllRead() {
-		router.post("/admin/notifications/read-all", {}, { preserveScroll: true });
+		router.post("/admin/notifications/read-all", {}, {
+			preserveScroll: true,
+			preserveState: true
+		});
 	}
 	function handleMarkRead(id) {
-		router.post(`/admin/notifications/${id}/read`, {}, { preserveScroll: true });
+		router.post(`/admin/notifications/${id}/read`, {}, {
+			preserveScroll: true,
+			preserveState: true
+		});
 	}
 	function handleDeleteOne(id) {
-		router.delete(`/admin/notifications/${id}`, {}, { preserveScroll: true });
+		router.delete(`/admin/notifications/${id}`, {}, {
+			preserveScroll: true,
+			preserveState: true
+		});
 	}
 	function handleDeleteAll() {
 		router.delete("/admin/notifications/all/clear", {}, { preserveScroll: true });
 		setConfirmClearAll(false);
 	}
 	function handleExtendProject(projectId) {
-		router.post(`/admin/projects/${projectId}/extend`, {}, { preserveScroll: true });
+		router.post(`/admin/projects/${projectId}/extend`, {}, {
+			preserveScroll: true,
+			preserveState: true
+		});
 	}
 	function openExtendModal(unitId, unitName) {
 		setExtendModalUnit({
@@ -7423,20 +7435,37 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 		if (selectedDuration === "custom") payload.days = parseInt(customDays, 10) || autoDeleteDays || 30;
 		router.post(`/admin/units/${extendModalUnit.id}/extend-expiry`, payload, {
 			preserveScroll: true,
+			preserveState: true,
+			onSuccess: () => {
+				setExtendModalUnit(null);
+				setSelectedDuration("auto_delete_setting");
+				setCustomDays("");
+			},
+			onError: (errors) => {
+				console.error("Extend unit error:", errors);
+			},
 			onFinish: () => {
 				setIsExtending(false);
-				setExtendModalUnit(null);
 			}
 		});
 	}
 	function handleApproveProject(projectId) {
-		router.post(`/admin/projects/${projectId}/approve`, {}, { preserveScroll: true });
+		router.post(`/admin/projects/${projectId}/approve`, {}, {
+			preserveScroll: true,
+			preserveState: true
+		});
 	}
 	function handleApproveUnit(unitId) {
-		router.post(`/admin/units/${unitId}/approve`, {}, { preserveScroll: true });
+		router.post(`/admin/units/${unitId}/approve`, {}, {
+			preserveScroll: true,
+			preserveState: true
+		});
 	}
 	function handleDeleteUnit(unitId) {
-		router.delete(`/admin/units/${unitId}/force`, {}, { preserveScroll: true });
+		router.delete(`/admin/units/${unitId}/force`, {}, {
+			preserveScroll: true,
+			preserveState: true
+		});
 		setConfirmDeleteId(null);
 	}
 	function getMeta(type) {
@@ -8059,8 +8088,10 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 			}),
 			extendModalUnit && /* @__PURE__ */ jsx("div", {
 				className: "fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in",
+				onClick: () => !isExtending && setExtendModalUnit(null),
 				children: /* @__PURE__ */ jsxs("div", {
 					className: "bg-white rounded-2xl shadow-2xl border border-secondary-100 max-w-md w-full p-6 space-y-5 animate-scale-up",
+					onClick: (e) => e.stopPropagation(),
 					children: [
 						/* @__PURE__ */ jsxs("div", {
 							className: "flex items-start justify-between gap-3 border-b border-secondary-100 pb-4",
@@ -24792,6 +24823,14 @@ http.createServer(async (req, res) => {
 		res.writeHead(200, { "Content-Type": "application/json" });
 		res.end(JSON.stringify(result));
 	} catch (e) {
+		if (!page?.component) {
+			res.writeHead(200, { "Content-Type": "application/json" });
+			res.end(JSON.stringify({
+				body: "",
+				head: []
+			}));
+			return;
+		}
 		console.error(`[SSR] Render error: ${e.message}`);
 		res.writeHead(500, { "Content-Type": "application/json" });
 		res.end(JSON.stringify({
