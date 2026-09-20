@@ -14,6 +14,7 @@ class SafeUnitFiltersDTO
         public readonly ?int $maxAreaSqm = null,
         public readonly ?string $paymentMethod = null,
         public readonly ?string $sort = null,
+        public readonly ?string $search = null,
     ) {}
 
     /**
@@ -71,6 +72,16 @@ class SafeUnitFiltersDTO
             $sort = 'newest';
         }
 
+        // 5. Keyword / location / project search (sanitized)
+        $search = isset($data['search']) && is_string($data['search'])
+            ? mb_substr(trim($data['search']), 0, 100)
+            : null;
+        if ($search !== null) {
+            $search = strip_tags($search);
+            $search = preg_replace('/[\x00-\x1F\x7F]/u', '', $search);
+            $search = !empty($search) ? $search : null;
+        }
+
         return new self(
             transaction: $transaction,
             minPrice: $minPrice,
@@ -81,6 +92,7 @@ class SafeUnitFiltersDTO
             maxAreaSqm: $maxAreaSqm,
             paymentMethod: $paymentMethod,
             sort: $sort,
+            search: $search,
         );
     }
 }

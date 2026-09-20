@@ -295,6 +295,20 @@ class AssistantCatalogRepository implements AssistantCatalogRepositoryInterface
             $query->where('area_sqm', '<=', $filters->maxAreaSqm);
         }
 
+        if ($filters->search !== null && $filters->search !== '') {
+            $term = $filters->search;
+            $query->where(function ($q) use ($term) {
+                $q->where('name', 'like', "%{$term}%")
+                  ->orWhere('name_ar', 'like', "%{$term}%")
+                  ->orWhere('name_en', 'like', "%{$term}%")
+                  ->orWhere('location_address_ar', 'like', "%{$term}%")
+                  ->orWhere('location_address_en', 'like', "%{$term}%")
+                  ->orWhere('description', 'like', "%{$term}%")
+                  ->orWhere('description_ar', 'like', "%{$term}%")
+                  ->orWhere('description_en', 'like', "%{$term}%");
+            });
+        }
+
         match ($filters->sort) {
             'price_asc' => $query->orderBy('price', 'asc'),
             'price_desc' => $query->orderBy('price', 'desc'),

@@ -494,7 +494,7 @@ export default function HossamChatWidget() {
                             href={rawUrl}
                             target={rawUrl.startsWith('https://') ? "_blank" : undefined}
                             rel={rawUrl.startsWith('https://') ? "noopener noreferrer" : undefined}
-                            className="text-[#CC0000] font-bold underline underline-offset-2 decoration-[#CC0000]/30 hover:text-[#990000] hover:decoration-[#990000]/60 transition-colors"
+                            className="text-[#CC0000] font-bold underline underline-offset-3 decoration-[#CC0000]/60 hover:text-[#990000] hover:decoration-[#990000] transition-colors inline-flex items-center gap-1 mx-0.5"
                         >
                             {linkMatch[1]}
                         </a>
@@ -506,7 +506,7 @@ export default function HossamChatWidget() {
                         key={pIdx}
                         href={rawUrl}
                         onClick={handleUnitLinkClick}
-                        className="text-[#CC0000] font-bold underline underline-offset-2 decoration-[#CC0000]/30 hover:text-[#990000] hover:decoration-[#990000]/60 transition-colors"
+                        className="text-[#CC0000] font-bold underline underline-offset-3 decoration-[#CC0000]/60 hover:text-[#990000] hover:decoration-[#990000] transition-colors inline-flex items-center gap-1 mx-0.5"
                     >
                         {linkMatch[1]}
                     </Link>
@@ -909,84 +909,7 @@ export default function HossamChatWidget() {
                                             </div>
                                         )}
 
-                                        {/* Recommended property cards — under assistant messages */}
-                                        {msg.recommended_units && msg.recommended_units.length > 0 && (
-                                            <div className="w-full mt-3 space-y-2 max-w-[96%]">
-                                                <div className="flex items-center gap-2 px-1">
-                                                    <span className="w-1 h-3 bg-[#CC0000] rounded-full"></span>
-                                                    <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500">
-                                                        {isRtl ? 'العقارات المتاحة' : 'Matching inventory'}
-                                                    </p>
-                                                </div>
-                                                {msg.recommended_units.map((unit) => (
-                                                    <div
-                                                        key={unit.id}
-                                                        className="bg-white rounded-xl p-2.5 border border-slate-200 hover:border-slate-300 transition-all flex gap-3 items-center group"
-                                                    >
-                                                        <Link
-                                                            href={unit.url}
-                                                            onClick={handleUnitLinkClick}
-                                                            className="shrink-0"
-                                                        >
-                                                            <img
-                                                                src={unit.image_url}
-                                                                alt={unit.name}
-                                                                className="w-16 h-16 rounded-lg object-cover border border-slate-100 bg-slate-100 group-hover:opacity-90 transition-opacity"
-                                                                loading="lazy"
-                                                                onError={(e) => { e.target.onerror = null; e.target.src = '/images/fallback.webp'; }}
-                                                            />
-                                                        </Link>
-                                                        <div className="flex-1 min-w-0">
-                                                            <Link
-                                                                href={unit.url}
-                                                                onClick={handleUnitLinkClick}
-                                                                className="block font-bold text-slate-900 text-[12.5px] truncate group-hover:text-[#CC0000] transition-colors"
-                                                            >
-                                                                {unit.name}
-                                                            </Link>
-                                                            <p className="text-[10.5px] text-slate-500 truncate mt-0.5">
-                                                                {unit.area_name || (isRtl ? 'موقع متميز' : 'Prime Location')}
-                                                            </p>
-                                                            <div className="flex items-center gap-1.5 mt-0.5">
-                                                                <span className="text-[12px] font-black text-[#CC0000] tabular-nums">
-                                                                    {unit.price_formatted}
-                                                                </span>
-                                                                <span className="text-[9px] font-semibold text-slate-500">
-                                                                    {unit.currency}
-                                                                </span>
-                                                                {unit.rooms > 0 && (
-                                                                    <span className="text-[9.5px] text-slate-400 ms-auto">
-                                                                        • {unit.rooms} {isRtl ? 'غرف' : 'rm'}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                            <div className="flex items-center gap-1 mt-1.5">
-                                                                <Link
-                                                                    href={unit.url}
-                                                                    onClick={handleUnitLinkClick}
-                                                                    className="text-[10px] font-bold text-slate-900 hover:text-[#CC0000] underline underline-offset-2 decoration-slate-300 hover:decoration-[#CC0000] transition-colors"
-                                                                >
-                                                                    {trans('assistant_view_unit')}
-                                                                </Link>
-                                                                {unit.whatsapp_url && (
-                                                                    <a
-                                                                        href={unit.whatsapp_url}
-                                                                        target="_blank"
-                                                                        rel="noopener noreferrer"
-                                                                        className="text-[10px] font-bold text-emerald-700 hover:text-emerald-800 ms-2 inline-flex items-center gap-0.5"
-                                                                    >
-                                                                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
-                                                                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347zM12 2C6.5 2 2 6.5 2 12c0 1.78.46 3.45 1.26 4.9L2 22l5.25-1.23C8.7 21.56 10.31 22 12 22c5.5 0 10-4.5 10-10S17.5 2 12 2z" />
-                                                                        </svg>
-                                                                        <span>{trans('assistant_whatsapp')}</span>
-                                                                    </a>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
+
 
                                         {/* Dynamic Quick Replies */}
                                         {!isUser && !isStreaming && msg.quick_replies && msg.quick_replies.length > 0 && !isLoading && (

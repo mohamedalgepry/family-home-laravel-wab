@@ -124,6 +124,8 @@ class UnitPublicDTO
         $snippet = [
             'name' => $this->name,
             'slug' => $this->slug,
+            'url' => $this->url,
+            'markdown_link' => "[{$this->name}]({$this->url})",
             'price' => $this->priceFormatted . ' ' . $this->currency,
             'area_sqm' => $this->areaSqm,
             'rooms' => $this->rooms,

@@ -245,7 +245,7 @@ class AssistantOrchestratorService
 
         return [
             'reply' => $cleanReply,
-            'recommended_units' => $finalUnits,
+            'recommended_units' => [],
             'quick_replies' => $quickReplies,
             'is_fallback' => false,
         ];
@@ -436,28 +436,65 @@ class AssistantOrchestratorService
     {
         $filters = [];
 
-        // Price extraction
+        // 1. Price extraction
         if (preg_match('/(\d+(?:\.\d+)?)\s*(?:مليون|ملايين|م)/iu', $message, $m)) {
             $filters['max_price'] = (float) $m[1] * 1000000;
+            $filters['sort'] = 'price_desc';
+        } elseif (preg_match('/(\d+(?:\.\d+)?)\s*(?:ألف|الف|k)/iu', $message, $m)) {
+            $filters['max_price'] = (float) $m[1] * 1000;
             $filters['sort'] = 'price_desc';
         } elseif (preg_match('/(?:بسعر|سعر|بـ|ميزانية)\s*(\d{5,})/iu', $message, $m)) {
             $filters['max_price'] = (float) $m[1];
         }
 
-        // Room count extraction
-        if (preg_match('/(كبيره|كبيرة|واسعه|واسعة|large|spacious)/iu', $message)) {
+        // 2. Room count extraction
+        if (preg_match('/(استوديو|ستوديو|studio)/iu', $message)) {
+            $filters['rooms'] = 1;
+        } elseif (preg_match('/(غرفتين|غرفتان|2\s*(?:غرف|غرفة|غرفه)|two\s*rooms?)/iu', $message)) {
+            $filters['rooms'] = 2;
+        } elseif (preg_match('/(كبيره|كبيرة|واسعه|واسعة|large|spacious)/iu', $message)) {
             $filters['rooms'] = 3;
         } elseif (preg_match('/(\d+)\s*(?:غرف|غرفة|غرفه|rooms)/iu', $message, $rm)) {
             $filters['rooms'] = (int) $rm[1];
         }
 
+        // 3. Transaction type
         if (preg_match('/(إيجار|ايجار|rent)/iu', $message)) {
             $filters['transaction'] = 'rent';
+        } elseif (preg_match('/(شراء|تمليك|بيع|للبيع|buy|sale)/iu', $message)) {
+            $filters['transaction'] = 'sale';
+        }
+
+        // 4. Payment method
+        if (preg_match('/(تقسيط|قسط|installment)/iu', $message)) {
+            $filters['payment_method'] = 'installment';
+        } elseif (preg_match('/(كاش|نقدي|نقداً|cash)/iu', $message)) {
+            $filters['payment_method'] = 'cash';
+        }
+
+        // 5. Keyword search (locations, projects, specific types)
+        $knownKeywords = [
+            'التجمع الخامس', 'التجمع', 'القاهرة الجديدة', 'الشيخ زايد', 'زايد',
+            'العاصمة الإدارية', 'العاصمة', 'الساحل الشمالي', 'الساحل', 'رأس الحكمة', 'سيدي حنيش',
+            'الشروق', 'المستقبل', 'أكتوبر', 'اكتوبر', '6 أكتوبر', 'المعادي',
+            'النخيل', 'الريف', 'أبراج المدينة', 'ابراج المدينة',
+            'فيلا', 'فيلات', 'فلل', 'دوبلكس', 'بنتهاوس', 'استوديو', 'ستوديو', 'شقة'
+        ];
+
+        foreach ($knownKeywords as $kw) {
+            if (mb_stripos($message, $kw) !== false) {
+                $filters['search'] = $kw;
+                break;
+            }
         }
 
         $units = $this->catalogService->listUnits($filters, 4, $locale);
         if (empty($units) && isset($filters['rooms'])) {
             unset($filters['rooms']);
+            $units = $this->catalogService->listUnits($filters, 4, $locale);
+        }
+        if (empty($units) && isset($filters['search'])) {
+            unset($filters['search']);
             $units = $this->catalogService->listUnits($filters, 4, $locale);
         }
 
@@ -516,7 +553,7 @@ class AssistantOrchestratorService
         if (!empty($preloadedUnits)) {
             $items = [];
             foreach ($preloadedUnits as $u) {
-                $line = "• **{$u->name}** | السعر: " . number_format($u->price) . " ج.م | الغرف: {$u->rooms} | المساحة: {$u->areaSqm} م² | الدفع: {$u->paymentMethod} | الرابط: {$u->url}";
+                $line = "• **[{$u->name}]({$u->url})** | السعر: " . number_format($u->price) . " ج.م | الغرف: {$u->rooms} | المساحة: {$u->areaSqm} م² | الدفع: {$u->paymentMethod} | الرابط: {$u->url}";
                 if (!empty($u->agentName)) {
                     $line .= " | الوكيل: {$u->agentName}";
                     if (!empty($u->agentPhone)) $line .= " (هاتف: {$u->agentPhone})";
@@ -623,7 +660,11 @@ Use these tools proactively when you need data:
 - **get_unit_in_project**: Verify a specific unit within a project
 - **list_projects**: List all active projects
 
-# RESPONSE FORMAT GUIDELINES
+# RESPONSE FORMAT GUIDELINES & INLINE PROPERTY LINKS
+- **MANDATORY INLINE PROPERTY LINKING:** The chat interface does NOT show property cards or boxes below messages.
+  Whenever you recommend, suggest, or discuss any unit or project, you MUST format the name as a direct markdown link: `[Property Name](property_url)` (e.g. `[Luxury 3-Bedroom Apartment in Al-Nakheel](/en/units/...)`).
+  This link will automatically display as a prominent RED clickable link inside the chat text.
+- **Accurate Request Matching:** Match the user's requested location, budget, room count, and payment method with extreme accuracy.
 - Use **bold** for property names, prices, and key figures
 - Use emojis sparingly but effectively: 🏠 🏢 💰 📍 🛏️ 📐 🔑 📊 💡 ✅
 - Include price, rooms, area (sqm), payment method, and location for each property recommendation
@@ -682,10 +723,14 @@ EOT;
 - **get_unit_in_project**: للتحقق من تفاصيل وحدة معينة
 - **list_projects**: لعرض المشاريع النشطة
 
-# إرشادات تنسيق الرد
+# إرشادات تنسيق الرد وروابط العقارات (قاعدة أساسية وإلزامية)
+- **قاعدة الروابط الحمراء في قلب الشات:** واجهة الشات لا تعرض أي بطاقات أو مربعات منفصلة تحت الرسائل.
+  عندما يطلب العميل وحدة أو ترشح له أي وحدة عقارية أو مشروع، **يجب دائماً وبلا استثناء** كتابة اسم العقار كرابط ماركداون مباشر بالرابط الدقيق المعطى لك: `[اسم الوحدة](رابط_الوحدة)`، مثل: `[شقة فاخرة 3 غرف في مشروع النخيل](/ar/units/...)`.
+  هذا الرابط سيظهر للعميل في قلب نص الشات باللون الأحمر البارز والمميز ليتمكن من الضغط عليه مباشرة لفتح صفحة الوحدة.
+- **الدقة العالية في تلبية الطلب:** التزم بدقة متناهية بمواصفات طلب العميل (الموقع والمنطقة، الميزانية، عدد الغرف، نوع التشطيب ونظام السداد). إذا لم تتوفر وحدة مطابقة 100%، اذكر أقرب خيار واشرح الفرق بأمانة ووضوح مع إدراج رابطها المباشر.
 - استخدم **خط عريض** لأسماء العقارات والأسعار والأرقام المهمة
 - استخدم الإيموجي بشكل مناسب: 🏠 🏢 💰 📍 🛏️ 📐 🔑 📊 💡 ✅
-- لكل ترشيح عقاري، اذكر: السعر، عدد الغرف، المساحة (م²)، طريقة الدفع، والموقع
+- لكل ترشيح عقاري، اذكر: السعر، عدد الغرف، المساحة (م²)، طريقة الدفع، والموقع مع الرابط المباشر
 - عند المقارنة بين خيارات، وضّح المميزات والعيوب لكل خيار
 - خلّي ردودك بين 150-400 كلمة — شاملة ومفيدة لكن مختصرة وسهلة القراءة
 
@@ -727,6 +772,7 @@ EOT;
                             'min_area_sqm' => ['type' => 'number', 'description' => 'Minimum area in square meters'],
                             'payment_method' => ['type' => 'string', 'enum' => ['cash', 'installment']],
                             'sort' => ['type' => 'string', 'enum' => ['price_asc', 'price_desc', 'newest']],
+                            'search' => ['type' => 'string', 'description' => 'Keyword to match location (e.g. التجمع, الشيخ زايد, العاصمة, الساحل), project (e.g. النخيل, الريف), or property type (e.g. فيلا, دوبلكس, شقة, استوديو)'],
                             'limit' => ['type' => 'integer', 'description' => 'Max units to return (default 6)'],
                         ],
                     ],
@@ -947,9 +993,17 @@ EOT;
                   ($loc ? "📍 **الموقع:** {$loc}\n\n" : "") .
                   "وهذه أبرز الوحدات المتاحة حالياً داخل المشروع:";
 
+            if (!empty($pag->items)) {
+                $unitLines = [];
+                foreach ($pag->items as $u) {
+                    $unitLines[] = "• **[{$u->name}]({$u->url})** — السعر: **{$u->priceFormatted} {$u->currency}**" . ($u->areaSqm ? " | المساحة: {$u->areaSqm} م²" : "") . ($u->rooms ? " | {$u->rooms} غرف" : "");
+                }
+                $reply .= "\n\n" . implode("\n", $unitLines);
+            }
+
             return [
                 'reply' => $reply,
-                'recommended_units' => $pag->toCardPayload(),
+                'recommended_units' => [],
                 'quick_replies' => $locale === 'en'
                     ? ['Payment plans', 'Book a visit', 'Contact team']
                     : ['أنظمة السداد والتقسيط', 'حجز موعد معاينة', 'تواصل عبر واتساب'],
@@ -1030,15 +1084,22 @@ EOT;
         // 2. Installments & Payment Plans inquiry (e.g. "شقق للبيع بالتقسيط")
         if (preg_match('/(شقق للبيع بالتقسيط|شقق بنظام التقسيط|شقق بالتقسيط|شقق تقسيط|شقق قسط|عايز شقه قسط|عايز شقة قسط|أنظمة السداد|انظمة السداد|نظام التقسيط|انظمه التقسيط|أطول فترة سداد|اطول فتره سداد|أقل مقدم|اقل مقدم|اقساط|أقساط|installment|down payment)/iu', $cleanMsg)) {
             $installmentUnits = $this->catalogService->listUnits(['payment_method' => 'installment'], 4, $locale);
-            $unitCards = array_map(fn($u) => $u->toCardPayload(), $installmentUnits);
 
             $reply = $locale === 'en'
                 ? "At **Family Home**, we provide a prime portfolio of apartments and residential units with flexible, bank-interest-free payment plans:\n\n• **Down Payment:** Typically starting from 10% to 15%.\n• **Payment Terms:** Spread over 6, 8, and up to 10 years in equal installments.\n• **Handover:** Diverse options ranging from immediate delivery to 1–3 years.\n\nHere are some of our top available installment units:"
                 : "نوفر في **فاميلي هوم** باقة مميزة من أفضل الشقق والوحدات السكنية بأنظمة تقسيط مريحة تناسب ميزانيتك وبدون فوائد بنكية:\n\n• **المقدم:** يبدأ من 10% إلى 15% فقط.\n• **فترة السداد:** تمتد من 6 إلى 8 سنوات وتصل حتى 10 سنوات بأقساط متساوية.\n• **الاستلام:** خيارات متنوعة تشمل الاستلام الفوري، أو خلال 1 إلى 3 سنوات.\n\nإليك باقة من أبرز الوحدات المتاحة للتقسيط حالياً:";
 
+            if (!empty($installmentUnits)) {
+                $unitLines = [];
+                foreach ($installmentUnits as $u) {
+                    $unitLines[] = "• **[{$u->name}]({$u->url})** — السعر: **{$u->priceFormatted} {$u->currency}**" . ($u->areaSqm ? " | المساحة: {$u->areaSqm} م²" : "") . ($u->rooms ? " | {$u->rooms} غرف" : "") . ($u->location ? " | 📍 {$u->location}" : "");
+                }
+                $reply .= "\n\n" . implode("\n", $unitLines);
+            }
+
             return [
                 'reply' => $reply,
-                'recommended_units' => $unitCards,
+                'recommended_units' => [],
                 'quick_replies' => $locale === 'en'
                     ? ['Featured projects', 'Best investment areas', 'Contact via WhatsApp']
                     : ['المشاريع المميزة', 'أفضل مناطق الاستثمار', 'تواصل عبر واتساب'],
@@ -1049,15 +1110,22 @@ EOT;
         // 3. Investment Opportunities & Growth Areas
         if (preg_match('/(مناطق ليها مستقبل استثماري|مناطق لها مستقبل استثماري|مستقبل استثماري|أفضل مناطق الاستثمار|افضل مناطق الاستثمار|أفضل استثمار|افضل استثمار|استثمار عقاري|عائد استثماري|فرص الاستثمار|أعلى عائد|اعلى عائد|شقق لقطة|شقق لقطه|best investment|best areas to invest|high roi)/iu', $cleanMsg)) {
             $activeUnits = $this->catalogService->listUnits([], 4, $locale);
-            $unitCards = array_map(fn($u) => $u->toCardPayload(), $activeUnits);
 
             $reply = $locale === 'en'
                 ? "Egypt's real estate market offers exceptional capital growth, with the highest-yield opportunities concentrated in 4 strategic destinations:\n\n1. **New Cairo (Fifth Settlement & Golden Square):** High market liquidity, steady rental demand, and annual capital appreciation of 20% to 30%.\n2. **New Administrative Capital:** The future administrative hub and corporate headquarters offering massive capital upside upon full operation.\n3. **Sheikh Zayed & New Zayed:** Upscale, master-planned residential communities with sustained appreciation and high executive demand.\n4. **North Coast (Ras El Hekma & Sidi Heneish):** World-class international tourism destination delivering exceptional seasonal rental yields in foreign currencies.\n\nHere are selected top property opportunities available in our catalog:"
                 : "سوق العقارات في مصر يشهد طفرة نمو قوية، وتتركز أفضل الفرص الاستثمارية ذات العائد المرتفع في 4 وجهات رئيسية:\n\n1. **القاهرة الجديدة (التجمع الخامس وجولدن سكوير):** المنطقة الأكثر طلباً وسرعة في إعادة البيع والإيجار، بعائد رأسمالي سنوي يتراوح بين 20% و30%.\n2. **العاصمة الإدارية الجديدة:** المركز المستقبلي للشركات العالمية والمقرات الحكومية، وتمنحك أعلى زيادة رأسمالية حتى تاريخ التشغيل الكامل للمقرات.\n3. **الشيخ زايد وتوسعاتها (زايد الجديدة):** مجتمعات عمرانية راقية متكاملة الخدمات مع طلب قوي ومستمر من الصفوة والعائلات.\n4. **الساحل الشمالي (رأس الحكمة وسيدي حنيش):** وجهة سياحية واستثمارية عالمية تحقق عوائد إيجارية سياحية قياسية بالعملة الصعبة.\n\nإليك نخبة من أفضل الوحدات المعروضة لدينا حالياً:";
 
+            if (!empty($activeUnits)) {
+                $unitLines = [];
+                foreach ($activeUnits as $u) {
+                    $unitLines[] = "• **[{$u->name}]({$u->url})** — السعر: **{$u->priceFormatted} {$u->currency}**" . ($u->areaSqm ? " | المساحة: {$u->areaSqm} م²" : "") . ($u->rooms ? " | {$u->rooms} غرف" : "") . ($u->location ? " | 📍 {$u->location}" : "");
+                }
+                $reply .= "\n\n" . implode("\n", $unitLines);
+            }
+
             return [
                 'reply' => $reply,
-                'recommended_units' => $unitCards,
+                'recommended_units' => [],
                 'quick_replies' => $locale === 'en'
                     ? ['Featured projects', 'Apartments for sale', 'Contact via WhatsApp']
                     : ['المشاريع المميزة', 'شقق للبيع بالتقسيط', 'تواصل عبر واتساب'],
@@ -1113,22 +1181,27 @@ EOT;
 
         if ($projectFound) {
             $pagination = $this->catalogService->listUnitsForProject($projectFound->slug, [], 1, 6, $locale);
-            $units = $pagination->toCardPayload();
 
             $reply = $locale === 'en'
-                ? "Here are the active units available in project **{$projectFound->name}** (Page 1 of {$pagination->lastPage}, Total: {$pagination->total} units):"
-                : "إليك الوحدات النشطة المتاحة في مشروع **{$projectFound->name}** (الصفحة 1 من {$pagination->lastPage}، بإجمالي {$pagination->total} وحدة):";
+                ? "Here are active units available in project **[{$projectFound->name}]({$projectFound->url})** (Total: {$pagination->total} units):"
+                : "إليك الوحدات النشطة المتاحة في مشروع **[{$projectFound->name}]({$projectFound->url})** (إجمالي {$pagination->total} وحدة):";
 
             if ($pagination->total === 0) {
                 $reply = $locale === 'en'
-                    ? "Currently, there are no active units listed under project **{$projectFound->name}**. Feel free to explore our other projects!"
-                    : "لا توجد وحدات نشطة معروضة حالياً ضمن مشروع **{$projectFound->name}**. يمكنك استعراض باقي المشاريع المتاحة لدينا!";
+                    ? "Currently, there are no active units listed under project **[{$projectFound->name}]({$projectFound->url})**. Feel free to explore our other projects!"
+                    : "لا توجد وحدات نشطة معروضة حالياً ضمن مشروع **[{$projectFound->name}]({$projectFound->url})**. يمكنك استعراض باقي المشاريع المتاحة لدينا!";
+            } else {
+                $unitLines = [];
+                foreach ($pagination->items as $u) {
+                    $unitLines[] = "• **[{$u->name}]({$u->url})** — السعر: **{$u->priceFormatted} {$u->currency}**" . ($u->areaSqm ? " | المساحة: {$u->areaSqm} م²" : "") . ($u->rooms ? " | {$u->rooms} غرف" : "");
+                }
+                $reply .= "\n\n" . implode("\n", $unitLines);
             }
 
             return [
                 'reply' => $reply,
-                'recommended_units' => $units,
-                'quick_replies' => $this->buildQuickReplies($locale, !empty($units)),
+                'recommended_units' => [],
+                'quick_replies' => $this->buildQuickReplies($locale, !empty($pagination->items)),
                 'is_fallback' => true,
             ];
         }
@@ -1143,19 +1216,16 @@ EOT;
                     if ($p->installmentYears) $details[] = ($locale === 'en' ? "Installments up to {$p->installmentYears} yrs" : "تقسيط حتى {$p->installmentYears} سنوات");
                     if ($p->downPayment) $details[] = ($locale === 'en' ? "Down payment from {$p->downPayment}%" : "مقدم {$p->downPayment}%");
                     $detailStr = !empty($details) ? ' (' . implode('، ', $details) . ')' : '';
-                    $itemsList[] = "• **{$p->name}**{$detailStr}";
+                    $itemsList[] = "• **[{$p->name}]({$p->url})**{$detailStr}";
                 }
 
                 $reply = $locale === 'en'
                     ? "Here are the premier real estate projects available at **Family Home**:\n\n" . implode("\n", $itemsList) . "\n\nWhich project would you like to explore its available units and pricing?"
                     : "إليك أبرز المشاريع العقارية الرائدة المتاحة حالياً لدى **فاميلي هوم**:\n\n" . implode("\n", $itemsList) . "\n\nعن أي مشروع تود معرفة تفاصيل وحداته وأسعاره؟";
 
-                $featuredUnits = $this->catalogService->listUnits([], 4, $locale);
-                $unitCards = array_map(fn($u) => $u->toCardPayload(), $featuredUnits);
-
                 return [
                     'reply' => $reply,
-                    'recommended_units' => $unitCards,
+                    'recommended_units' => [],
                     'quick_replies' => $locale === 'en'
                         ? ['Apartments for sale', 'Best investment areas', 'Contact via WhatsApp']
                         : ['شقق للبيع بالتقسيط', 'أفضل مناطق الاستثمار', 'تواصل عبر واتساب'],
@@ -1198,8 +1268,12 @@ EOT;
                 $filters['sort'] = 'price_asc';
             }
 
-            // Room requirements (e.g. "كبيرة", "3 غرف")
-            if (preg_match('/(كبيره|كبيرة|واسعه|واسعة|large|spacious)/iu', $cleanMsg)) {
+            // Room requirements (e.g. "كبيرة", "3 غرف", "استوديو")
+            if (preg_match('/(استوديو|ستوديو|studio)/iu', $cleanMsg)) {
+                $filters['rooms'] = 1;
+            } elseif (preg_match('/(غرفتين|غرفتان|2\s*(?:غرف|غرفة|غرفه))/iu', $cleanMsg)) {
+                $filters['rooms'] = 2;
+            } elseif (preg_match('/(كبيره|كبيرة|واسعه|واسعة|large|spacious)/iu', $cleanMsg)) {
                 $filters['rooms'] = 3;
             } elseif (preg_match('/(\d+)\s*(?:غرف|غرفة|غرفه|rooms)/iu', $cleanMsg, $rm)) {
                 $filters['rooms'] = (int) $rm[1];
@@ -1208,12 +1282,41 @@ EOT;
             // Detect rent vs sale
             if (preg_match('/(إيجار|ايجار|للايجار|للإيجار|rent)/iu', $cleanMsg)) {
                 $filters['transaction'] = 'rent';
+            } elseif (preg_match('/(شراء|تمليك|بيع|للبيع|sale|buy)/iu', $cleanMsg)) {
+                $filters['transaction'] = 'sale';
+            }
+
+            // Detect payment method
+            if (preg_match('/(تقسيط|قسط|installment)/iu', $cleanMsg)) {
+                $filters['payment_method'] = 'installment';
+            } elseif (preg_match('/(كاش|نقدي|نقداً|cash)/iu', $cleanMsg)) {
+                $filters['payment_method'] = 'cash';
+            }
+
+            // Keyword search (location, project, property type)
+            $knownKeywords = [
+                'التجمع الخامس', 'التجمع', 'القاهرة الجديدة', 'الشيخ زايد', 'زايد',
+                'العاصمة الإدارية', 'العاصمة', 'الساحل الشمالي', 'الساحل', 'رأس الحكمة', 'سيدي حنيش',
+                'الشروق', 'المستقبل', 'أكتوبر', 'اكتوبر', '6 أكتوبر', 'المعادي',
+                'النخيل', 'الريف', 'أبراج المدينة', 'ابراج المدينة',
+                'فيلا', 'فيلات', 'فلل', 'دوبلكس', 'بنتهاوس', 'استوديو', 'ستوديو', 'شقة'
+            ];
+
+            foreach ($knownKeywords as $kw) {
+                if (mb_stripos($cleanMsg, $kw) !== false) {
+                    $filters['search'] = $kw;
+                    break;
+                }
             }
 
             $matchedUnits = $this->catalogService->listUnits($filters, 4, $locale);
             if (empty($matchedUnits) && isset($filters['rooms'])) {
-                // If no exact match with room count, broaden by price
+                // If no exact match with room count, broaden by price and search
                 unset($filters['rooms']);
+                $matchedUnits = $this->catalogService->listUnits($filters, 4, $locale);
+            }
+            if (empty($matchedUnits) && isset($filters['search'])) {
+                unset($filters['search']);
                 $matchedUnits = $this->catalogService->listUnits($filters, 4, $locale);
             }
             if (empty($matchedUnits) && ($maxPrice !== null || $minPrice !== null)) {
@@ -1221,8 +1324,6 @@ EOT;
             }
 
             if (!empty($matchedUnits)) {
-                $unitCards = array_map(fn($u) => $u->toCardPayload(), $matchedUnits);
-
                 if ($maxPrice !== null) {
                     $formattedPrice = number_format($maxPrice, 0, '.', ',');
                     $reply = $locale === 'en'
@@ -1235,13 +1336,19 @@ EOT;
                         : "إليك أفضل العقارات المتاحة بدءاً من **{$formattedPrice} ج.م** فما فوق:";
                 } else {
                     $reply = $locale === 'en'
-                        ? "Based on your search, here are top matching properties available in our portfolio:"
-                        : "بناءً على طلبك، إليك مجموعة من أفضل الوحدات العقارية المتاحة لدينا:";
+                        ? "Based on your request, here are top matching properties in our portfolio:"
+                        : "بناءً على طلبك، إليك أدق الوحدات العقارية المطابقة لمواصفاتك:";
                 }
+
+                $unitLines = [];
+                foreach ($matchedUnits as $u) {
+                    $unitLines[] = "• **[{$u->name}]({$u->url})**\n  💰 **السعر:** {$u->priceFormatted} {$u->currency}" . ($u->areaSqm ? " | 📐 **المساحة:** {$u->areaSqm} م²" : "") . ($u->rooms ? " | 🛏️ **الغرف:** {$u->rooms}" : "") . ($u->location ? "\n  📍 **الموقع:** {$u->location}" : "");
+                }
+                $reply .= "\n\n" . implode("\n\n", $unitLines);
 
                 return [
                     'reply' => $reply,
-                    'recommended_units' => $unitCards,
+                    'recommended_units' => [],
                     'quick_replies' => $this->buildQuickReplies($locale, true),
                     'is_fallback' => true,
                 ];
@@ -1250,15 +1357,15 @@ EOT;
 
         // 9. Intelligent General Fallback
         if (!empty($activeProjects)) {
-            $projectNames = implode('، ', array_map(fn($p) => $p->name, array_slice($activeProjects, 0, 4)));
+            $projectNames = implode('، ', array_map(fn($p) => "[{$p->name}]({$p->url})", array_slice($activeProjects, 0, 4)));
             $reply = $locale === 'en'
                 ? "I am here to guide your property search at **Family Home**! You can ask me about:\n\n• **Featured Projects:** Such as {$projectNames}\n• **Installment Properties:** Plans extending up to 10 years without bank interest\n• **High-ROI Investment Areas:** New Cairo, Sheikh Zayed, and New Capital\n• **Project Units:** e.g., 'What units belong to project X?'\n\nWhat would you like to explore?"
                 : "أنا هنا لمساعدتك في استكشاف أفضل الفرص العقارية لدى **فاميلي هوم**! يمكنك سؤالي عن:\n\n• **المشاريع المتميزة:** مثل {$projectNames}\n• **شقق بالتقسيط:** بأنظمة سداد تصل حتى 10 سنوات بدون فوائد\n• **أفضل مناطق الاستثمار:** في التجمع الخامس، الشيخ زايد، والعاصمة الإدارية\n• **وحدات مشروع معين:** مثل «ما الوحدات التابعة لمشروع X؟»\n\nعن أي منها تود الاستفسار؟";
 
             return [
                 'reply' => $reply,
-                'recommended_units' => $preloadedUnits,
-                'quick_replies' => $this->buildQuickReplies($locale, !empty($preloadedUnits)),
+                'recommended_units' => [],
+                'quick_replies' => $this->buildQuickReplies($locale, false),
                 'is_fallback' => true,
             ];
         }
@@ -1288,10 +1395,37 @@ EOT;
             }
 
             $escaped = preg_quote($name, '/');
-            // If the name is bolded like **Name**, turn it into link
+            // 1. Bold pattern: **Name** -> [**Name**](url)
             if (preg_match('/\*\*' . $escaped . '\*\*/u', $text)) {
-                $text = preg_replace('/\*\*' . $escaped . '\*\*/u', "[{$name}]({$url})", $text, 1);
+                $text = preg_replace('/\*\*' . $escaped . '\*\*/u', "[**{$name}**]({$url})", $text, 1);
+            } elseif (preg_match('/«' . $escaped . '»/u', $text)) {
+                // 2. Arabic quotes: «Name» -> [«Name»](url)
+                $text = preg_replace('/«' . $escaped . '»/u', "[«{$name}»]({$url})", $text, 1);
+            } elseif (preg_match('/(?<!\[)\b' . $escaped . '\b(?![^\[]*\])/u', $text)) {
+                // 3. Plain name occurrence outside existing links
+                $text = preg_replace('/(?<!\[)\b' . $escaped . '\b(?![^\[]*\])/u', "[{$name}]({$url})", $text, 1);
             }
+        }
+
+        // If units were recommended by tools/catalog but none of their links appear in the response text yet,
+        // automatically append them as direct red markdown links at the end of the message!
+        $unlinkedCards = array_filter($cards, fn($c) => !empty($c['url']) && !empty($c['name']) && !str_contains($text, "({$c['url']})"));
+
+        if (!empty($unlinkedCards)) {
+            $list = [];
+            foreach (array_slice($unlinkedCards, 0, 4) as $card) {
+                $priceStr = !empty($card['price_formatted']) ? " — 💰 **{$card['price_formatted']} " . ($card['currency'] ?? 'ج.م') . "**" : "";
+                $areaStr = !empty($card['area_sqm']) ? " | 📐 {$card['area_sqm']} م²" : "";
+                $roomsStr = !empty($card['rooms']) ? " | 🛏️ {$card['rooms']} " . ($locale === 'en' ? 'rooms' : 'غرف') : "";
+                $locStr = !empty($card['area_name']) ? " | 📍 {$card['area_name']}" : "";
+                $list[] = "• **[{$card['name']}]({$card['url']})**{$priceStr}{$areaStr}{$roomsStr}{$locStr}";
+            }
+
+            $heading = $locale === 'en'
+                ? "\n\n🔗 **Suggested Units:**\n"
+                : "\n\n🔗 **الوحدات العقارية المقترحة:**\n";
+
+            $text .= $heading . implode("\n", $list);
         }
 
         return $text;

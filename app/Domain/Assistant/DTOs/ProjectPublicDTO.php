@@ -71,6 +71,7 @@ class ProjectPublicDTO
             'name' => $this->name,
             'slug' => $this->slug,
             'url' => $this->url,
+            'markdown_link' => "[{$this->name}]({$this->url})",
             'description' => $this->descriptionSnippet,
             'payment_method' => $this->paymentMethod,
             'down_payment' => $this->downPayment,
