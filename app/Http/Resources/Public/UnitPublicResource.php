@@ -36,9 +36,9 @@ class UnitPublicResource extends JsonResource
             'down_payment' => $this->down_payment,
             'installment_years' => $this->installment_years,
             'alt_text' => $this->alt_text,
-            'priority_points' => $this->priority_points,
-            'is_active' => $this->is_active,
-            'is_deal' => $this->is_deal,
+            // priority_points (paid ranking), is_active and is_deal are internal
+            // fields — never expose them publicly. Public queries already filter
+            // by is_active/is_deal server-side.
             'location_address' => $this->location_address,
             'location_address_ar' => $this->location_address_ar,
             'location_address_en' => $this->location_address_en,

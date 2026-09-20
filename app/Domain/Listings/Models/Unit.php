@@ -3,13 +3,13 @@
 namespace App\Domain\Listings\Models;
 
 use App\Domain\Common\Concerns\ByAnySlug;
+use App\Domain\Common\Support\SlugHelper;
 use App\Domain\Listings\Services\ListingService;
 use App\Domain\Points\Models\PointsTransaction;
 use App\Domain\Users\Models\Message;
 use App\Domain\Users\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str;
 
 class Unit extends Model
 {
@@ -82,13 +82,13 @@ class Unit extends Model
     {
         static::creating(function (self $unit) {
             if (! $unit->slug) {
-                $unit->slug = \App\Domain\Common\Support\SlugHelper::makeEnglish($unit->name_en ?: $unit->name, 'unit');
+                $unit->slug = SlugHelper::makeEnglish($unit->name_en ?: $unit->name, 'unit');
             }
             if (! $unit->slug_ar) {
-                $unit->slug_ar = \App\Domain\Common\Support\SlugHelper::makeArabic($unit->name_ar ?: $unit->name, $unit->slug);
+                $unit->slug_ar = SlugHelper::makeArabic($unit->name_ar ?: $unit->name, $unit->slug);
             }
             if (! $unit->slug_en) {
-                $unit->slug_en = \App\Domain\Common\Support\SlugHelper::makeEnglish($unit->name_en ?: $unit->name, $unit->slug);
+                $unit->slug_en = SlugHelper::makeEnglish($unit->name_en ?: $unit->name, $unit->slug);
             }
             $unit->ensureUniqueSlugs();
         });
@@ -96,11 +96,11 @@ class Unit extends Model
         static::updating(function (self $unit) {
             $changed = false;
             if ($unit->isDirty('name_en') && ! $unit->isDirty('slug_en')) {
-                $unit->slug_en = \App\Domain\Common\Support\SlugHelper::makeEnglish($unit->name_en, 'unit');
+                $unit->slug_en = SlugHelper::makeEnglish($unit->name_en, 'unit');
                 $changed = true;
             }
             if ($unit->isDirty('name_ar') && ! $unit->isDirty('slug_ar')) {
-                $unit->slug_ar = \App\Domain\Common\Support\SlugHelper::makeArabic($unit->name_ar, $unit->slug_en ?? 'unit');
+                $unit->slug_ar = SlugHelper::makeArabic($unit->name_ar, $unit->slug_en ?? 'unit');
                 $changed = true;
             }
             if ($changed) {
@@ -167,7 +167,6 @@ class Unit extends Model
     {
         return $this->belongsTo(FinishingType::class, 'finishing_type_id');
     }
-
 
     public function scopeFeatured(Builder $query): Builder
     {

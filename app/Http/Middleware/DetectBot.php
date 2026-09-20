@@ -15,6 +15,13 @@ class DetectBot
         'twitterbot', 'linkedinbot', 'whatsapp', 'telegrambot', 'pinterest',
         'applebot', 'semrushbot', 'ahrefsbot', 'mj12bot',
         'chrome-lighthouse', 'lighthouse', 'pagespeed', 'gtmetrix',
+        // AI / answer-engine crawlers (AEO/GEO): these bots don't execute JS,
+        // so they MUST get the prerendered HTML or the site is invisible to
+        // ChatGPT, Claude, Perplexity, Gemini and AI Overviews.
+        'gptbot', 'oai-searchbot', 'chatgpt-user', 'claudebot', 'claude-web',
+        'anthropic-ai', 'perplexitybot', 'perplexity-user', 'google-extended',
+        'meta-externalagent', 'meta-externalfetcher', 'amazonbot', 'bytespider',
+        'ccbot', 'cohere-ai', 'mistralai-user', 'youbot', 'diffbot', 'timpibot',
     ];
 
     private static ?array $manifestAssets = null;

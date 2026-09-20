@@ -119,7 +119,7 @@ class SeoService
         ];
 
         $siteLogo = $this->settingsService->get('site_logo');
-        $imageUrl = ($siteLogo && !str_contains($siteLogo, '.webp'))
+        $imageUrl = ($siteLogo && ! str_contains($siteLogo, '.webp'))
             ? asset('storage/'.$siteLogo)
             : (file_exists(public_path('images/og-familyhome.png')) ? asset('images/og-familyhome.png') : asset('icon.png'));
 
@@ -192,7 +192,18 @@ class SeoService
         $siteLogo = $this->settingsService->get('site_logo');
         $logoUrl = $siteLogo ? asset('storage/'.$siteLogo) : asset('icon.png');
 
-        return [
+        // sameAs links tie the entity to its social profiles — a strong
+        // trust/identity signal for Google's Knowledge Graph and AI engines.
+        $sameAs = array_values(array_filter([
+            $this->settingsService->get('social_facebook'),
+            $this->settingsService->get('social_instagram'),
+            $this->settingsService->get('social_twitter'),
+            $this->settingsService->get('social_linkedin'),
+            $this->settingsService->get('social_youtube'),
+            $this->settingsService->get('social_tiktok'),
+        ]));
+
+        return array_filter([
             '@context' => 'https://schema.org',
             '@type' => 'RealEstateAgent',
             '@id' => url("/{$locale}").'#agent',
@@ -205,9 +216,16 @@ class SeoService
             'address' => [
                 '@type' => 'PostalAddress',
                 'streetAddress' => $this->settingsService->get('company_address') ?: 'القاهرة، مصر',
+                'addressLocality' => $locale === 'ar' ? 'القاهرة' : 'Cairo',
                 'addressCountry' => 'EG',
             ],
-        ];
+            'areaServed' => [
+                '@type' => 'Country',
+                'name' => $locale === 'ar' ? 'مصر' : 'Egypt',
+            ],
+            'priceRange' => 'EGP',
+            'sameAs' => $sameAs !== [] ? $sameAs : null,
+        ], fn ($v) => $v !== null);
     }
 
     public function getBreadcrumbSchema(array $items): array
@@ -241,9 +259,35 @@ class SeoService
             'canonical' => $params['canonical'] ?? url()->current(),
             'hreflang' => $params['hreflang'] ?? [],
             'og_type' => $params['og_type'] ?? 'website',
-            'robots' => $params['robots'] ?? (! empty($params['noindex']) ? 'noindex, follow' : null),
+            'robots' => $params['robots']
+                ?? (! empty($params['noindex']) ? 'noindex, follow' : null)
+                ?? ($this->hasIndexBlockingQuery() ? 'noindex, follow' : null),
             'schema' => $params['schema'] ?? [],
         ];
+    }
+
+    /**
+     * Filtered/paginated listing URLs (?page=2, ?area_id=5 ...) must not be indexed:
+     * they duplicate the canonical listing page content. The client-side <SeoHead>
+     * already applies this rule on SPA navigations; this mirrors it in the initial
+     * HTML so crawlers see the same directive.
+     */
+    private function hasIndexBlockingQuery(): bool
+    {
+        $blocking = [
+            'page', 'area_id', 'type_id', 'transaction', 'search', 'features',
+            'finishing_type', 'payment_method', 'rooms', 'bathrooms', 'sort', 'direction',
+        ];
+
+        $query = request()->query();
+
+        foreach (array_keys($query) as $key) {
+            if (in_array($key, $blocking, true) || str_starts_with($key, 'price_') || str_starts_with($key, 'size_')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function getPageSeoFromDb(string $pageKey, string $locale): array

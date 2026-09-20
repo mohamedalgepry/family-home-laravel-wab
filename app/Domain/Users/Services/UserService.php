@@ -2,6 +2,11 @@
 
 namespace App\Domain\Users\Services;
 
+use App\Domain\Listings\Models\Project;
+use App\Domain\Listings\Models\ProjectImage;
+use App\Domain\Listings\Models\Unit;
+use App\Domain\Listings\Models\UnitImage;
+use App\Domain\Listings\Services\ListingImageService;
 use App\Domain\Users\DTOs\CreateUserData;
 use App\Domain\Users\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -104,11 +109,11 @@ class UserService
                 }
             } else {
                 // If not transferring, explicitly clean up unit images, units, project images, projects, and avatar
-                $projectImages = \App\Domain\Listings\Models\ProjectImage::whereHas('project', function ($q) use ($userId) {
+                $projectImages = ProjectImage::whereHas('project', function ($q) use ($userId) {
                     $q->where('user_id', $userId);
                 })->pluck('path')->toArray();
 
-                $unitImages = \App\Domain\Listings\Models\UnitImage::whereHas('unit', function ($q) use ($userId) {
+                $unitImages = UnitImage::whereHas('unit', function ($q) use ($userId) {
                     $q->where('user_id', $userId);
                 })->pluck('path')->toArray();
 
@@ -118,14 +123,14 @@ class UserService
                 }
 
                 // Delete child image records first
-                \App\Domain\Listings\Models\UnitImage::whereHas('unit', fn ($q) => $q->where('user_id', $userId))->delete();
-                \App\Domain\Listings\Models\Unit::where('user_id', $userId)->delete();
+                UnitImage::whereHas('unit', fn ($q) => $q->where('user_id', $userId))->delete();
+                Unit::where('user_id', $userId)->delete();
 
-                \App\Domain\Listings\Models\ProjectImage::whereHas('project', fn ($q) => $q->where('user_id', $userId))->delete();
-                \App\Domain\Listings\Models\Project::where('user_id', $userId)->delete();
+                ProjectImage::whereHas('project', fn ($q) => $q->where('user_id', $userId))->delete();
+                Project::where('user_id', $userId)->delete();
 
                 if (! empty($allImages)) {
-                    app(\App\Domain\Listings\Services\ListingImageService::class)->deleteImageFiles($allImages);
+                    app(ListingImageService::class)->deleteImageFiles($allImages);
                 }
             }
 

@@ -8,10 +8,13 @@ use App\Domain\Listings\Actions\CreateUnitAction;
 use App\Domain\Listings\Actions\DeleteUnitAction;
 use App\Domain\Listings\Actions\UpdateUnitAction;
 use App\Domain\Listings\DTOs\CreateUnitData;
+use App\Domain\Listings\Models\Setting;
 use App\Domain\Listings\Models\Unit;
 use App\Domain\Listings\Notifications\UnitApprovedNotification;
+use App\Domain\Listings\Notifications\UnitExpiryNotification;
 use App\Domain\Listings\Notifications\UnitPendingApprovalNotification;
 use App\Domain\Users\Models\User;
+use App\Domain\Users\Services\NotificationService;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -155,16 +158,16 @@ class UnitService
         // Auto-extend expiration if activating an expired or near-expired unit
         if (! $wasActive && $unit->is_active) {
             if (! $unit->auto_delete_at || $unit->auto_delete_at->isPast()) {
-                $days = (int) \App\Domain\Listings\Models\Setting::getValue('auto_delete_days', '30');
+                $days = (int) Setting::getValue('auto_delete_days', '30');
                 $days = $days > 0 ? $days : 30;
                 $unit->auto_delete_at = now()->addDays($days);
             }
 
             // Remove any stale expiry warning notifications for this unit
-            app(\App\Domain\Users\Services\NotificationService::class)->removeEntityNotifications(
+            app(NotificationService::class)->removeEntityNotifications(
                 'unit_id',
                 $unit->id,
-                [\App\Domain\Listings\Notifications\UnitExpiryNotification::class]
+                [UnitExpiryNotification::class]
             );
         }
 

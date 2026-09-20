@@ -5,7 +5,6 @@ use App\Domain\Listings\Models\Unit;
 use App\Domain\Listings\Notifications\UnitExtendedNotification;
 use App\Domain\Listings\Services\SitemapService;
 use App\Domain\Points\Jobs\AutoDeleteReviewJob;
-use App\Domain\Users\Models\User;
 use Illuminate\Support\Facades\Notification;
 
 test('1. admin extends unit by 7 days', function () {

@@ -2,6 +2,8 @@
 
 namespace App\Domain\Assistant\DTOs;
 
+use App\Domain\Assistant\Services\AssistantContactResolver;
+
 class ProjectPublicDTO
 {
     public function __construct(
@@ -41,8 +43,8 @@ class ProjectPublicDTO
             : ($project->location_address_en ?: $project->location_address_ar);
 
         // Load agent/broker info if available via safe contact resolver
-        $agent = !empty($project->user_id)
-            ? \App\Domain\Assistant\Services\AssistantContactResolver::resolveAgentContact((int) $project->user_id)
+        $agent = ! empty($project->user_id)
+            ? AssistantContactResolver::resolveAgentContact((int) $project->user_id)
             : null;
 
         $agentName = $agent['name'] ?? null;
@@ -53,7 +55,7 @@ class ProjectPublicDTO
             id: (int) $project->id,
             name: htmlspecialchars((string) $name, ENT_QUOTES, 'UTF-8'),
             slug: (string) $slug,
-            url: "/{$locale}/projects/" . urlencode((string) $slug),
+            url: "/{$locale}/projects/".urlencode((string) $slug),
             descriptionSnippet: $cleanDescription ?: null,
             paymentMethod: $project->payment_method ? (string) $project->payment_method : null,
             downPayment: $project->down_payment !== null ? (float) $project->down_payment : null,

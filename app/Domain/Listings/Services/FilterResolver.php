@@ -32,7 +32,7 @@ class FilterResolver
         $finalFilters = array_merge($smartFilters, $explicitFilters);
 
         // Replace 'search' with 'clean_query' so the DB text search only searches the remainder of the text
-        if (!empty($parsed->cleanQuery)) {
+        if (! empty($parsed->cleanQuery)) {
             $finalFilters['search'] = $parsed->cleanQuery;
         } else {
             // If the query was fully parsed (e.g. "للبيع" -> transaction=sale, clean_query=""), we should unset search

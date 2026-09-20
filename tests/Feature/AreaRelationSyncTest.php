@@ -1,7 +1,6 @@
 <?php
 
 use App\Domain\Listings\Models\Area;
-use App\Domain\Users\Models\User;
 use Illuminate\Support\Facades\DB;
 
 test('area relation sync strips system fields and does not corrupt timestamps', function () {
