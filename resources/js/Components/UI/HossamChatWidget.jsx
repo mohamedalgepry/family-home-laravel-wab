@@ -34,12 +34,44 @@ const formatTime = (date, locale) =>
 
 
 export default function HossamChatWidget() {
-    const pageProps = usePage()?.props || {}
+    const pageObj = usePage() || {}
+    const pageProps = pageObj.props || {}
+    const component = pageObj.component || ''
+    const url = pageObj.url || ''
     const locale = pageProps.locale || (typeof document !== 'undefined' ? document.documentElement.lang : 'ar') || 'ar'
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
 
     const isAdmin = typeof window !== 'undefined' && window.location.pathname.includes('/admin')
+
+    // Detect whether current page has a fixed mobile bottom action bar (Unit Details or Project Details)
+    const isTargetPage = Boolean(
+        component === 'Public/Units/Show' ||
+        component === 'Public/Projects/Show' ||
+        (url && /^\/(?:(?:ar|en)\/)?(?:units|projects)\/[^/?#]+/i.test(url) && !url.includes('/deals'))
+    )
+
+    const [hasFixedBottomBar, setHasFixedBottomBar] = useState(() => {
+        if (typeof window === 'undefined') return isTargetPage
+        return isTargetPage && window.innerWidth < 768
+    })
+
+    useEffect(() => {
+        const updateBottomBarStatus = () => {
+            if (typeof window === 'undefined') return
+            const isMobile = window.innerWidth < 768
+            const hasDomBottomBar = Boolean(document.querySelector('.fixed.bottom-0'))
+            setHasFixedBottomBar(isMobile && (isTargetPage || hasDomBottomBar))
+        }
+
+        updateBottomBarStatus()
+        window.addEventListener('resize', updateBottomBarStatus, { passive: true })
+        window.addEventListener('orientationchange', updateBottomBarStatus, { passive: true })
+        return () => {
+            window.removeEventListener('resize', updateBottomBarStatus)
+            window.removeEventListener('orientationchange', updateBottomBarStatus)
+        }
+    }, [component, url, isTargetPage])
 
     /* ---------- state ---------- */
     const [isOpen, setIsOpen] = useState(() => {
@@ -734,7 +766,14 @@ export default function HossamChatWidget() {
     }
 
     return (
-        <div dir={isRtl ? 'rtl' : 'ltr'} className="fixed z-50 bottom-6 end-4 sm:bottom-8 sm:end-8 print:hidden font-sans">
+        <div
+            dir={isRtl ? 'rtl' : 'ltr'}
+            className={`fixed z-50 end-4 sm:bottom-8 sm:end-8 print:hidden font-sans transition-all duration-300 ${
+                hasFixedBottomBar
+                    ? 'bottom-[88px]'
+                    : 'bottom-6'
+            }`}
+        >
 
             {/* =================== FAB =================== */}
             {!isOpen && (
@@ -831,7 +870,7 @@ export default function HossamChatWidget() {
                     className={`concierge-open flex flex-col bg-white overflow-hidden border border-slate-200/80 ${
                         isFullscreen
                             ? 'fixed inset-0 w-screen h-[100dvh] rounded-none sm:inset-4 sm:w-[calc(100vw-32px)] sm:h-[calc(100dvh-32px)] sm:max-w-[460px] sm:ml-auto sm:rounded-[28px]'
-                            : 'w-[calc(100vw-32px)] sm:w-[440px] h-[640px] max-h-[84vh] rounded-[28px] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.30)]'
+                            : `w-[calc(100vw-32px)] sm:w-[440px] h-[640px] ${hasFixedBottomBar ? 'max-h-[calc(100dvh-106px)]' : 'max-h-[84vh]'} sm:max-h-[84vh] rounded-[28px] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.30)]`
                     }`}
                     role="dialog"
                     aria-label={trans('assistant_name')}

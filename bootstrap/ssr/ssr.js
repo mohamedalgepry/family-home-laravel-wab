@@ -16219,7 +16219,7 @@ function CompareBar() {
 }
 //#endregion
 //#region resources/js/Components/Layout/Footer.jsx
-var HossamChatWidget = lazy(() => import("./assets/HossamChatWidget-BbTxh6Jm.js"));
+var HossamChatWidget = lazy(() => import("./assets/HossamChatWidget-Bz7orney.js"));
 var QUICK_LINKS = [
 	{
 		key: "home",
@@ -21894,7 +21894,7 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles }
 				]
 			}),
 			/* @__PURE__ */ jsxs("div", {
-				className: "fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-secondary-200 p-3 md:hidden flex items-center gap-3 shadow-2xl",
+				className: "fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-secondary-200 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:hidden flex items-center gap-3 shadow-2xl",
 				children: [/* @__PURE__ */ jsxs("a", {
 					href: `https://wa.me/${agentContacts.whatsapp}`,
 					target: "_blank",
@@ -23476,7 +23476,7 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles }) {
 				]
 			}),
 			unit && /* @__PURE__ */ jsxs("div", {
-				className: "fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-secondary-200 p-3 md:hidden flex items-center justify-between gap-3 shadow-2xl",
+				className: "fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-secondary-200 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:hidden flex items-center justify-between gap-3 shadow-2xl",
 				children: [/* @__PURE__ */ jsxs("div", {
 					className: "min-w-0",
 					children: [/* @__PURE__ */ jsx("span", {

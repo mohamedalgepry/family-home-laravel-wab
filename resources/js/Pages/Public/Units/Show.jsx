@@ -1030,7 +1030,7 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
 
             {/* Single Fixed Mobile Bottom Action Bar */}
             {unit && (
-                <div className="fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-secondary-200 p-3 md:hidden flex items-center justify-between gap-3 shadow-2xl">
+                <div className="fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-secondary-200 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:hidden flex items-center justify-between gap-3 shadow-2xl">
                     <div className="min-w-0">
                         <span className="text-[10px] font-bold text-secondary-500 uppercase block">{isRtl ? 'السعر' : 'Price'}</span>
                         <span className="text-base font-black text-[#CC0000] truncate block">
