@@ -460,61 +460,148 @@ export default function HossamChatWidget() {
         setFeedback(prev => ({ ...prev, [messageId]: prev[messageId] === reaction ? null : reaction }))
     }
 
-    /* Minimize chat on mobile when a property link is clicked */
+    /* Minimize chat on mobile or fullscreen when a property link is clicked */
     const handleUnitLinkClick = () => {
-        if (typeof window !== 'undefined' && window.innerWidth < 768) {
-            setIsOpen(false)
-            setIsFullscreen(false)
+        if (typeof window !== 'undefined') {
+            if (window.innerWidth < 768 || isFullscreen) {
+                setIsOpen(false)
+                setIsFullscreen(false)
+            }
         }
+    }
+
+    /* Helper: Render clickable, prominent crimson red hyperlink */
+    const renderInteractiveLink = (rawUrl, label, key) => {
+        let cleanUrl = (rawUrl || '').trim()
+
+        // 1. URL Normalization: If full URL has localhost or site origin, convert to relative pathname
+        let isInternal = false
+        try {
+            if (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')) {
+                const parsed = new URL(cleanUrl)
+                const currentOrigin = typeof window !== 'undefined' ? window.location.origin : ''
+                if (currentOrigin && parsed.origin === currentOrigin) {
+                    cleanUrl = parsed.pathname + parsed.search + parsed.hash
+                    isInternal = true
+                } else if (/^\/(?:(?:ar|en)\/)?(?:units|projects|about|contact)/i.test(parsed.pathname)) {
+                    cleanUrl = parsed.pathname + parsed.search + parsed.hash
+                    isInternal = true
+                }
+            } else if (cleanUrl.startsWith('/') && !cleanUrl.startsWith('//')) {
+                isInternal = true
+            }
+        } catch (e) {
+            // Ignore parse errors
+        }
+
+        // Safety checks: internal routes or trusted external schemes
+        const isInternalUnitOrProject = isInternal && /^\/(?:(?:ar|en)\/)?(?:units|projects|about|contact)(?:[/?#]|$)/i.test(cleanUrl)
+        const isExternalSafe = /^https:\/\/wa\.me\//i.test(cleanUrl) ||
+            /^tel:[+0-9\s-]+$/i.test(cleanUrl) ||
+            /^mailto:[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/i.test(cleanUrl) ||
+            cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')
+
+        if (!isInternalUnitOrProject && !isExternalSafe) {
+            return <span key={key} className="font-semibold text-slate-800">{label}</span>
+        }
+
+        // Hyperlink styling: Prominent crimson red with bold font, distinct underline, and hover effect
+        const linkClasses = "text-[#CC0000] hover:text-[#990000] font-bold underline underline-offset-4 decoration-[#CC0000]/70 hover:decoration-[#990000] transition-colors inline-flex items-center gap-1 mx-0.5 cursor-pointer select-auto"
+
+        // External Link: WhatsApp, Phone, Email, or external site
+        if (!isInternalUnitOrProject) {
+            return (
+                <a
+                    key={key}
+                    href={cleanUrl}
+                    target={cleanUrl.startsWith('http') ? "_blank" : undefined}
+                    rel={cleanUrl.startsWith('http') ? "noopener noreferrer" : undefined}
+                    className={linkClasses}
+                    title={label}
+                >
+                    <span>{label}</span>
+                    <svg className="w-3.5 h-3.5 shrink-0 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                </a>
+            )
+        }
+
+        // Internal Link: Units, Projects, etc. via Inertia Link
+        return (
+            <Link
+                key={key}
+                href={cleanUrl}
+                onClick={handleUnitLinkClick}
+                className={linkClasses}
+                title={label}
+            >
+                <span>{label}</span>
+                <svg className="w-3.5 h-3.5 shrink-0 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
+            </Link>
+        )
     }
 
     /* ---------- markdown helpers ---------- */
     const formatInline = (str) => {
         if (!str) return null
-        const parts = str.split(/(\[[^\]]+\]\([^)]+\)|\*\*[^*]+\*\*)/g)
+
+        // Tokenizer matches in priority order:
+        // 1. Bold-wrapped link: **[Text](Url)**
+        // 2. Standard link: [Text](Url)
+        // 3. Bold text: **Text**
+        // 4. Standalone unit/project path: /(?:ar|en)/(?:units|projects)/...
+        // 5. Standalone HTTP/HTTPS URL: https?://...
+        const tokenRegex = /(\*\*\[[^\]]+\]\([^)]+\)\*\*|\[[^\]]+\]\([^)]+\)|\*\*[^*]+\*\*|\/(?:ar|en)\/(?:units|projects)\/[^\s<),"]+|https?:\/\/[^\s<),"]+)/g
+
+        const parts = str.split(tokenRegex)
+
         return parts.map((part, pIdx) => {
-            const linkMatch = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/)
+            if (!part) return null
+
+            // 1. Bold-wrapped link: **[Title](Url)**
+            const boldLinkMatch = part.match(/^\*\*\[([^\]]+)\]\(([^)]+)\)\*\*$/)
+            // 2. Standard link: [Title](Url)
+            const stdLinkMatch = !boldLinkMatch ? part.match(/^\[([^\]]+)\]\(([^)]+)\)$/) : null
+
+            const linkMatch = boldLinkMatch || stdLinkMatch
+
             if (linkMatch) {
+                let label = (linkMatch[1] || '').trim()
+                // Strip inner bold markers if present (e.g. [**Title**](url) -> Title)
+                if (label.startsWith('**') && label.endsWith('**') && label.length > 4) {
+                    label = label.slice(2, -2).trim()
+                }
                 const rawUrl = (linkMatch[2] || '').trim()
-                // Strict validation: Block protocol-relative links (//), enforce single / with allowed internal paths or trusted protocols
-                const isInternalSafe = rawUrl.startsWith('/') && !rawUrl.startsWith('//') &&
-                    /^\/(?:(?:ar|en)\/)?(?:units|projects|about|contact)(?:[/?#]|$)/i.test(rawUrl)
-                const isExternalSafe = /^https:\/\/wa\.me\//i.test(rawUrl) ||
-                    /^tel:[+0-9\s-]+$/i.test(rawUrl) ||
-                    /^mailto:[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/i.test(rawUrl)
-
-                if (!isInternalSafe && !isExternalSafe) {
-                    return <span key={pIdx} className="font-semibold text-slate-800">{linkMatch[1]}</span>
-                }
-
-                if (rawUrl.startsWith('https://wa.me/') || rawUrl.startsWith('tel:') || rawUrl.startsWith('mailto:')) {
-                    return (
-                        <a
-                            key={pIdx}
-                            href={rawUrl}
-                            target={rawUrl.startsWith('https://') ? "_blank" : undefined}
-                            rel={rawUrl.startsWith('https://') ? "noopener noreferrer" : undefined}
-                            className="text-[#CC0000] font-bold underline underline-offset-3 decoration-[#CC0000]/60 hover:text-[#990000] hover:decoration-[#990000] transition-colors inline-flex items-center gap-1 mx-0.5"
-                        >
-                            {linkMatch[1]}
-                        </a>
-                    )
-                }
-
-                return (
-                    <Link
-                        key={pIdx}
-                        href={rawUrl}
-                        onClick={handleUnitLinkClick}
-                        className="text-[#CC0000] font-bold underline underline-offset-3 decoration-[#CC0000]/60 hover:text-[#990000] hover:decoration-[#990000] transition-colors inline-flex items-center gap-1 mx-0.5"
-                    >
-                        {linkMatch[1]}
-                    </Link>
-                )
+                return renderInteractiveLink(rawUrl, label, pIdx)
             }
-            if (part.startsWith('**') && part.endsWith('**')) {
-                return <strong key={pIdx} className="font-bold text-slate-950">{part.slice(2, -2)}</strong>
+
+            // 3. Bold text: **Text**
+            if (part.startsWith('**') && part.endsWith('**') && part.length >= 4) {
+                const inner = part.slice(2, -2)
+                // If inner text somehow has a link, parse recursively
+                if (/\[[^\]]+\]\([^)]+\)/.test(inner)) {
+                    return <strong key={pIdx} className="font-bold text-slate-950">{formatInline(inner)}</strong>
+                }
+                return <strong key={pIdx} className="font-bold text-slate-950">{inner}</strong>
             }
+
+            // 4. Standalone raw unit/project path (e.g. /ar/units/slug)
+            if (/^\/(?:ar|en)\/(?:units|projects)\/[^\s<),"]+$/i.test(part)) {
+                const isProject = part.includes('/projects/')
+                const fallbackLabel = isProject
+                    ? (isRtl ? 'عرض تفاصيل المشروع 🏢' : 'View Project Details 🏢')
+                    : (isRtl ? 'عرض تفاصيل الوحدة 🏠' : 'View Unit Details 🏠')
+                return renderInteractiveLink(part, fallbackLabel, pIdx)
+            }
+
+            // 5. Standalone raw HTTP/HTTPS URL
+            if (/^https?:\/\/[^\s<),"]+$/i.test(part)) {
+                return renderInteractiveLink(part, part, pIdx)
+            }
+
             return part
         })
     }

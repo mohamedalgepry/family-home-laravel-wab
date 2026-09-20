@@ -553,7 +553,7 @@ class AssistantOrchestratorService
         if (!empty($preloadedUnits)) {
             $items = [];
             foreach ($preloadedUnits as $u) {
-                $line = "• **[{$u->name}]({$u->url})** | السعر: " . number_format($u->price) . " ج.م | الغرف: {$u->rooms} | المساحة: {$u->areaSqm} م² | الدفع: {$u->paymentMethod} | الرابط: {$u->url}";
+                $line = "• [{$u->name}]({$u->url}) | السعر: " . number_format($u->price) . " ج.م | الغرف: {$u->rooms} | المساحة: {$u->areaSqm} م² | الدفع: {$u->paymentMethod} | الرابط: {$u->url}";
                 if (!empty($u->agentName)) {
                     $line .= " | الوكيل: {$u->agentName}";
                     if (!empty($u->agentPhone)) $line .= " (هاتف: {$u->agentPhone})";
@@ -662,10 +662,11 @@ Use these tools proactively when you need data:
 
 # RESPONSE FORMAT GUIDELINES & INLINE PROPERTY LINKS
 - **MANDATORY INLINE PROPERTY LINKING:** The chat interface does NOT show property cards or boxes below messages.
-  Whenever you recommend, suggest, or discuss any unit or project, you MUST format the name as a direct markdown link: `[Property Name](property_url)` (e.g. `[Luxury 3-Bedroom Apartment in Al-Nakheel](/en/units/...)`).
-  This link will automatically display as a prominent RED clickable link inside the chat text.
+  Whenever you recommend, suggest, or discuss any unit or project, you MUST format the name as a direct markdown hyperlink: `[Property Name](property_url)` (e.g. `[Luxury 3-Bedroom Apartment in Al-Nakheel](/en/units/...)`).
+  Never wrap asterisks around the brackets like `**[...]**`; write the link cleanly as `[Property Name](property_url)`.
+  This link will automatically render as an interactive, prominent RED clickable hyperlink directly in the chat body.
 - **Accurate Request Matching:** Match the user's requested location, budget, room count, and payment method with extreme accuracy.
-- Use **bold** for property names, prices, and key figures
+- Use **bold** for prices, features, and key figures
 - Use emojis sparingly but effectively: 🏠 🏢 💰 📍 🛏️ 📐 🔑 📊 💡 ✅
 - Include price, rooms, area (sqm), payment method, and location for each property recommendation
 - When comparing options, use a brief comparison format highlighting trade-offs
@@ -726,9 +727,9 @@ EOT;
 # إرشادات تنسيق الرد وروابط العقارات (قاعدة أساسية وإلزامية)
 - **قاعدة الروابط الحمراء في قلب الشات:** واجهة الشات لا تعرض أي بطاقات أو مربعات منفصلة تحت الرسائل.
   عندما يطلب العميل وحدة أو ترشح له أي وحدة عقارية أو مشروع، **يجب دائماً وبلا استثناء** كتابة اسم العقار كرابط ماركداون مباشر بالرابط الدقيق المعطى لك: `[اسم الوحدة](رابط_الوحدة)`، مثل: `[شقة فاخرة 3 غرف في مشروع النخيل](/ar/units/...)`.
-  هذا الرابط سيظهر للعميل في قلب نص الشات باللون الأحمر البارز والمميز ليتمكن من الضغط عليه مباشرة لفتح صفحة الوحدة.
+  **مهم جداً:** لا تضع أبداً نجوم ** حول أقواس الرابط مثل `**[...]**`، بل اكتب الرابط مباشرة بصيغة `[اسم الوحدة](رابط_الوحدة)`؛ ليتحول تلقائياً في واجهة الشات إلى هايبرلينك تفاعلي باللون الأحمر البارز يضغط عليه العميل لفتح صفحة الوحدة فوراً.
 - **الدقة العالية في تلبية الطلب:** التزم بدقة متناهية بمواصفات طلب العميل (الموقع والمنطقة، الميزانية، عدد الغرف، نوع التشطيب ونظام السداد). إذا لم تتوفر وحدة مطابقة 100%، اذكر أقرب خيار واشرح الفرق بأمانة ووضوح مع إدراج رابطها المباشر.
-- استخدم **خط عريض** لأسماء العقارات والأسعار والأرقام المهمة
+- استخدم **خط عريض** للأسعار والمواصفات والأرقام المهمة وليس للروابط
 - استخدم الإيموجي بشكل مناسب: 🏠 🏢 💰 📍 🛏️ 📐 🔑 📊 💡 ✅
 - لكل ترشيح عقاري، اذكر: السعر، عدد الغرف، المساحة (م²)، طريقة الدفع، والموقع مع الرابط المباشر
 - عند المقارنة بين خيارات، وضّح المميزات والعيوب لكل خيار
@@ -996,7 +997,7 @@ EOT;
             if (!empty($pag->items)) {
                 $unitLines = [];
                 foreach ($pag->items as $u) {
-                    $unitLines[] = "• **[{$u->name}]({$u->url})** — السعر: **{$u->priceFormatted} {$u->currency}**" . ($u->areaSqm ? " | المساحة: {$u->areaSqm} م²" : "") . ($u->rooms ? " | {$u->rooms} غرف" : "");
+                    $unitLines[] = "• [{$u->name}]({$u->url}) — السعر: **{$u->priceFormatted} {$u->currency}**" . ($u->areaSqm ? " | المساحة: {$u->areaSqm} م²" : "") . ($u->rooms ? " | {$u->rooms} غرف" : "");
                 }
                 $reply .= "\n\n" . implode("\n", $unitLines);
             }
@@ -1092,7 +1093,7 @@ EOT;
             if (!empty($installmentUnits)) {
                 $unitLines = [];
                 foreach ($installmentUnits as $u) {
-                    $unitLines[] = "• **[{$u->name}]({$u->url})** — السعر: **{$u->priceFormatted} {$u->currency}**" . ($u->areaSqm ? " | المساحة: {$u->areaSqm} م²" : "") . ($u->rooms ? " | {$u->rooms} غرف" : "") . ($u->location ? " | 📍 {$u->location}" : "");
+                    $unitLines[] = "• [{$u->name}]({$u->url}) — السعر: **{$u->priceFormatted} {$u->currency}**" . ($u->areaSqm ? " | المساحة: {$u->areaSqm} م²" : "") . ($u->rooms ? " | {$u->rooms} غرف" : "") . ($u->location ? " | 📍 {$u->location}" : "");
                 }
                 $reply .= "\n\n" . implode("\n", $unitLines);
             }
@@ -1118,7 +1119,7 @@ EOT;
             if (!empty($activeUnits)) {
                 $unitLines = [];
                 foreach ($activeUnits as $u) {
-                    $unitLines[] = "• **[{$u->name}]({$u->url})** — السعر: **{$u->priceFormatted} {$u->currency}**" . ($u->areaSqm ? " | المساحة: {$u->areaSqm} م²" : "") . ($u->rooms ? " | {$u->rooms} غرف" : "") . ($u->location ? " | 📍 {$u->location}" : "");
+                    $unitLines[] = "• [{$u->name}]({$u->url}) — السعر: **{$u->priceFormatted} {$u->currency}**" . ($u->areaSqm ? " | المساحة: {$u->areaSqm} م²" : "") . ($u->rooms ? " | {$u->rooms} غرف" : "") . ($u->location ? " | 📍 {$u->location}" : "");
                 }
                 $reply .= "\n\n" . implode("\n", $unitLines);
             }
@@ -1183,17 +1184,17 @@ EOT;
             $pagination = $this->catalogService->listUnitsForProject($projectFound->slug, [], 1, 6, $locale);
 
             $reply = $locale === 'en'
-                ? "Here are active units available in project **[{$projectFound->name}]({$projectFound->url})** (Total: {$pagination->total} units):"
-                : "إليك الوحدات النشطة المتاحة في مشروع **[{$projectFound->name}]({$projectFound->url})** (إجمالي {$pagination->total} وحدة):";
+                ? "Here are active units available in project [{$projectFound->name}]({$projectFound->url}) (Total: {$pagination->total} units):"
+                : "إليك الوحدات النشطة المتاحة في مشروع [{$projectFound->name}]({$projectFound->url}) (إجمالي {$pagination->total} وحدة):";
 
             if ($pagination->total === 0) {
                 $reply = $locale === 'en'
-                    ? "Currently, there are no active units listed under project **[{$projectFound->name}]({$projectFound->url})**. Feel free to explore our other projects!"
-                    : "لا توجد وحدات نشطة معروضة حالياً ضمن مشروع **[{$projectFound->name}]({$projectFound->url})**. يمكنك استعراض باقي المشاريع المتاحة لدينا!";
+                    ? "Currently, there are no active units listed under project [{$projectFound->name}]({$projectFound->url}). Feel free to explore our other projects!"
+                    : "لا توجد وحدات نشطة معروضة حالياً ضمن مشروع [{$projectFound->name}]({$projectFound->url}). يمكنك استعراض باقي المشاريع المتاحة لدينا!";
             } else {
                 $unitLines = [];
                 foreach ($pagination->items as $u) {
-                    $unitLines[] = "• **[{$u->name}]({$u->url})** — السعر: **{$u->priceFormatted} {$u->currency}**" . ($u->areaSqm ? " | المساحة: {$u->areaSqm} م²" : "") . ($u->rooms ? " | {$u->rooms} غرف" : "");
+                    $unitLines[] = "• [{$u->name}]({$u->url}) — السعر: **{$u->priceFormatted} {$u->currency}**" . ($u->areaSqm ? " | المساحة: {$u->areaSqm} م²" : "") . ($u->rooms ? " | {$u->rooms} غرف" : "");
                 }
                 $reply .= "\n\n" . implode("\n", $unitLines);
             }
@@ -1216,7 +1217,7 @@ EOT;
                     if ($p->installmentYears) $details[] = ($locale === 'en' ? "Installments up to {$p->installmentYears} yrs" : "تقسيط حتى {$p->installmentYears} سنوات");
                     if ($p->downPayment) $details[] = ($locale === 'en' ? "Down payment from {$p->downPayment}%" : "مقدم {$p->downPayment}%");
                     $detailStr = !empty($details) ? ' (' . implode('، ', $details) . ')' : '';
-                    $itemsList[] = "• **[{$p->name}]({$p->url})**{$detailStr}";
+                    $itemsList[] = "• [{$p->name}]({$p->url}){$detailStr}";
                 }
 
                 $reply = $locale === 'en'
@@ -1342,7 +1343,7 @@ EOT;
 
                 $unitLines = [];
                 foreach ($matchedUnits as $u) {
-                    $unitLines[] = "• **[{$u->name}]({$u->url})**\n  💰 **السعر:** {$u->priceFormatted} {$u->currency}" . ($u->areaSqm ? " | 📐 **المساحة:** {$u->areaSqm} م²" : "") . ($u->rooms ? " | 🛏️ **الغرف:** {$u->rooms}" : "") . ($u->location ? "\n  📍 **الموقع:** {$u->location}" : "");
+                    $unitLines[] = "• [{$u->name}]({$u->url})\n  💰 **السعر:** {$u->priceFormatted} {$u->currency}" . ($u->areaSqm ? " | 📐 **المساحة:** {$u->areaSqm} م²" : "") . ($u->rooms ? " | 🛏️ **الغرف:** {$u->rooms}" : "") . ($u->location ? "\n  📍 **الموقع:** {$u->location}" : "");
                 }
                 $reply .= "\n\n" . implode("\n\n", $unitLines);
 
@@ -1395,12 +1396,12 @@ EOT;
             }
 
             $escaped = preg_quote($name, '/');
-            // 1. Bold pattern: **Name** -> [**Name**](url)
+            // 1. Bold pattern: **Name** -> [Name](url)
             if (preg_match('/\*\*' . $escaped . '\*\*/u', $text)) {
-                $text = preg_replace('/\*\*' . $escaped . '\*\*/u', "[**{$name}**]({$url})", $text, 1);
+                $text = preg_replace('/\*\*' . $escaped . '\*\*/u', "[{$name}]({$url})", $text, 1);
             } elseif (preg_match('/«' . $escaped . '»/u', $text)) {
-                // 2. Arabic quotes: «Name» -> [«Name»](url)
-                $text = preg_replace('/«' . $escaped . '»/u', "[«{$name}»]({$url})", $text, 1);
+                // 2. Arabic quotes: «Name» -> [Name](url)
+                $text = preg_replace('/«' . $escaped . '»/u', "[{$name}]({$url})", $text, 1);
             } elseif (preg_match('/(?<!\[)\b' . $escaped . '\b(?![^\[]*\])/u', $text)) {
                 // 3. Plain name occurrence outside existing links
                 $text = preg_replace('/(?<!\[)\b' . $escaped . '\b(?![^\[]*\])/u', "[{$name}]({$url})", $text, 1);
@@ -1418,7 +1419,7 @@ EOT;
                 $areaStr = !empty($card['area_sqm']) ? " | 📐 {$card['area_sqm']} م²" : "";
                 $roomsStr = !empty($card['rooms']) ? " | 🛏️ {$card['rooms']} " . ($locale === 'en' ? 'rooms' : 'غرف') : "";
                 $locStr = !empty($card['area_name']) ? " | 📍 {$card['area_name']}" : "";
-                $list[] = "• **[{$card['name']}]({$card['url']})**{$priceStr}{$areaStr}{$roomsStr}{$locStr}";
+                $list[] = "• [{$card['name']}]({$card['url']}){$priceStr}{$areaStr}{$roomsStr}{$locStr}";
             }
 
             $heading = $locale === 'en'
