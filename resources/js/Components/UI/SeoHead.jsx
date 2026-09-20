@@ -49,7 +49,12 @@ export default function SeoHead({
 
     const hasFilterQuery = typeof url === 'string' && url.includes('?') &&
         /[?&](area_id|type_id|page|price_|size_|features|transaction|search|finishing_type|payment_method|rooms|bathrooms|sort|direction)/.test(url);
-    const finalRobots = robots || seo_meta?.robots || (hasFilterQuery ? 'noindex, follow' : null);
+    // Default allows large image previews in Google Discover / image search results
+    const finalRobots = robots || seo_meta?.robots || (hasFilterQuery
+        ? 'noindex, follow'
+        : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1');
+    const ogLocale = isRtl ? 'ar_EG' : 'en_US';
+    const ogLocaleAlt = isRtl ? 'en_US' : 'ar_EG';
 
     // Clean canonical URL without query string
     const rawCanonical = canonical || seo_meta?.canonical || (baseUrl ? `${baseUrl}${cleanPath}` : cleanPath);
@@ -95,6 +100,8 @@ export default function SeoHead({
             {finalDescription && <meta head-key="og:description" property="og:description" content={finalDescription} />}
             <meta head-key="og:type" property="og:type" content={ogType} />
             <meta head-key="og:site_name" property="og:site_name" content={siteName} />
+            <meta head-key="og:locale" property="og:locale" content={ogLocale} />
+            <meta head-key="og:locale:alternate" property="og:locale:alternate" content={ogLocaleAlt} />
             {finalOgImage && <meta head-key="og:image" property="og:image" content={finalOgImage} />}
             {finalOgImage && <meta head-key="og:image:secure_url" property="og:image:secure_url" content={finalOgImage} />}
             {finalOgImage && <meta head-key="og:image:type" property="og:image:type" content={ogImageType} />}

@@ -6,6 +6,7 @@ use App\Domain\Common\Services\SeoMetaService;
 use App\Domain\Listings\Models\Article;
 use App\Domain\Listings\Models\Project;
 use App\Domain\Listings\Models\Unit;
+use App\Domain\Listings\Services\FilterResolver;
 use App\Domain\Listings\Services\ListingLookupService;
 use App\Domain\Listings\Services\ListingService;
 use App\Domain\Listings\Services\PageViewService;
@@ -14,6 +15,7 @@ use App\Http\Resources\Public\ArticlePublicResource;
 use App\Http\Resources\Public\ProjectPublicResource;
 use App\Http\Resources\Public\UnitPublicResource;
 use App\Services\SeoService;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -26,7 +28,7 @@ class ProjectController
         private readonly SeoMetaService $seoMetaService,
     ) {}
 
-    public function index(SearchService $searchService, \App\Domain\Listings\Services\FilterResolver $filterResolver): Response
+    public function index(SearchService $searchService, FilterResolver $filterResolver): Response
     {
         $filters = request()->only(['area_id', 'search', 'payment_method', 'finishing_type_id', 'features']);
 
@@ -83,7 +85,7 @@ class ProjectController
             ->get();
 
         // BUG-005 FIX: query واحدة تُفضّل المنطقة المطابقة ثم الأحدث — بدلاً من query + fallback
-        $similarProjects = \Illuminate\Support\Facades\Cache::remember(
+        $similarProjects = Cache::remember(
             "project_show_similar_{$project->id}_v{$this->listingService->version()}",
             300,
             function () use ($project) {
@@ -98,7 +100,7 @@ class ProjectController
             }
         );
 
-        $relatedArticles = \Illuminate\Support\Facades\Cache::remember(
+        $relatedArticles = Cache::remember(
             'latest_published_articles_4',
             600,
             fn () => Article::where('is_published', true)

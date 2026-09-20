@@ -8,7 +8,7 @@ use App\Domain\Listings\Models\Category;
 use App\Domain\Listings\Services\ArticleService;
 use App\Domain\Media\Jobs\GenerateThumbnailsJob;
 use App\Domain\Users\Models\User;
-use Illuminate\Http\UploadedFile;
+use App\Http\Resources\Public\ArticlePublicResource;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 
@@ -363,7 +363,7 @@ describe('HTTP article store/update with link_url', function () {
             ),
         );
 
-        $resource = \App\Http\Resources\Public\ArticlePublicResource::make($article->load('images'))->resolve();
+        $resource = ArticlePublicResource::make($article->load('images'))->resolve();
 
         expect($resource['images'])->toHaveCount(1)
             ->and($resource['images'][0]['position'])->toBe('middle')

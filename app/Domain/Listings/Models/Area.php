@@ -67,9 +67,6 @@ class Area extends Model
         return $query->where('is_active', true);
     }
 
-
-
-
     public function units()
     {
         return $this->hasMany(Unit::class);

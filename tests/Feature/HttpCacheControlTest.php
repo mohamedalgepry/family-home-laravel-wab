@@ -59,4 +59,13 @@ test('contact form submission succeeds without csrf errors', function () {
     ]);
 
     $response->assertSessionHasNoErrors();
+    $response->assertRedirect();
+    $response->assertSessionHas('success');
+
+    // The message must actually be persisted, not just accepted
+    $this->assertDatabaseHas('messages', [
+        'client_name' => 'Test Client',
+        'client_phone' => '01012345678',
+        'content' => 'Test inquiry message',
+    ]);
 });

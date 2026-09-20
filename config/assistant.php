@@ -27,13 +27,15 @@ return [
     ],
 
     // Client request timeout in seconds
-    'timeout_seconds' => (int) env('ASSISTANT_TIMEOUT_SECONDS', 30),
+    'timeout_seconds' => (int) env('ASSISTANT_TIMEOUT_SECONDS', 20),
 
-    // Real overall server timeout budget across entire chat turn (seconds)
-    'total_budget_seconds' => (float) env('ASSISTANT_TOTAL_BUDGET_SECONDS', 40.0),
+    // Real overall server timeout budget across entire chat turn (seconds).
+    // Kept tight so the user never stares at a spinner for half a minute —
+    // if the LLM is slow, the rich local intent engine answers instead.
+    'total_budget_seconds' => (float) env('ASSISTANT_TOTAL_BUDGET_SECONDS', 18.0),
 
     // Ceiling per individual LLM request call (seconds)
-    'per_request_timeout_seconds' => (float) env('ASSISTANT_PER_REQUEST_TIMEOUT_SECONDS', 30.0),
+    'per_request_timeout_seconds' => (float) env('ASSISTANT_PER_REQUEST_TIMEOUT_SECONDS', 12.0),
 
     // Maximum tool execution turns per request
     'max_tool_iterations' => 3,

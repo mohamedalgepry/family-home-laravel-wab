@@ -26,7 +26,7 @@ class SafeUnitFiltersDTO
         $transaction = isset($data['transaction']) && is_string($data['transaction'])
             ? strtolower(trim($data['transaction']))
             : null;
-        if (!in_array($transaction, ['sale', 'rent'], true)) {
+        if (! in_array($transaction, ['sale', 'rent'], true)) {
             $transaction = null;
         }
 
@@ -59,7 +59,7 @@ class SafeUnitFiltersDTO
         $paymentMethod = isset($data['payment_method']) && is_string($data['payment_method'])
             ? strtolower(trim($data['payment_method']))
             : null;
-        if (!in_array($paymentMethod, ['cash', 'installment'], true)) {
+        if (! in_array($paymentMethod, ['cash', 'installment'], true)) {
             $paymentMethod = null;
         }
 
@@ -67,7 +67,7 @@ class SafeUnitFiltersDTO
         $sort = isset($data['sort']) && is_string($data['sort'])
             ? strtolower(trim($data['sort']))
             : null;
-        if (!in_array($sort, ['price_asc', 'price_desc', 'newest'], true)) {
+        if (! in_array($sort, ['price_asc', 'price_desc', 'newest'], true)) {
             $sort = 'newest';
         }
 

@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -147,7 +148,7 @@ class DatabaseBackupCommand extends Command
 
             // 3. Footer
             $write("SET FOREIGN_KEY_CHECKS = 1;\n");
-            $write("-- Dump completed on ".date('Y-m-d H:i:s')."\n");
+            $write('-- Dump completed on '.date('Y-m-d H:i:s')."\n");
 
             // Close stream safely
             if ($useGzip) {
@@ -212,7 +213,7 @@ class DatabaseBackupCommand extends Command
         }
     }
 
-    private function cleanupOldBackups(\Illuminate\Contracts\Filesystem\Filesystem $storage, int $keepDays): void
+    private function cleanupOldBackups(Filesystem $storage, int $keepDays): void
     {
         try {
             $files = $storage->files('backups');

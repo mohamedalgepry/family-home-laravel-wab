@@ -66,15 +66,15 @@ class PageController extends Controller
     {
         $about = AboutPage::first();
 
-        if ($about) {
-            $about->content_ar = Sanitizer::rich($about->content_ar ?? '');
-            $about->content_en = Sanitizer::rich($about->content_en ?? '');
-        }
-
         $meta = app(SeoService::class)->forPage('about');
 
         return Inertia::render('Public/About', [
-            'page' => $about,
+            // Whitelist the fields the page consumes instead of passing the raw model.
+            'page' => $about ? [
+                'content_ar' => Sanitizer::rich($about->content_ar ?? ''),
+                'content_en' => Sanitizer::rich($about->content_en ?? ''),
+                'images' => $about->images ?? [],
+            ] : null,
             'seo_meta' => $meta,
         ])->withViewData(['meta' => $meta]);
     }

@@ -6,12 +6,12 @@ use App\Domain\Listings\Models\Project;
 use App\Domain\Listings\Models\Unit;
 use App\Domain\Listings\Models\UnitType;
 use App\Domain\Users\Models\User;
-use Illuminate\Http\UploadedFile;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
     // Disable CSRF verification specifically, rather than all middleware (which broke route binding)
-    $this->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\PreventRequestForgery::class]);
+    $this->withoutMiddleware([PreventRequestForgery::class]);
 
     $this->admin = new User(['name' => 'Admin', 'email' => 'admin@test.com', 'password' => 'x']);
     $this->admin->role = 'admin';

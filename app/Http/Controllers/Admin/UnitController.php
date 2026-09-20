@@ -9,6 +9,7 @@ use App\Domain\Listings\Models\Area;
 use App\Domain\Listings\Models\Feature;
 use App\Domain\Listings\Models\FinishingType;
 use App\Domain\Listings\Models\Project;
+use App\Domain\Listings\Models\Setting;
 use App\Domain\Listings\Models\Unit;
 use App\Domain\Listings\Models\UnitImage;
 use App\Domain\Listings\Models\UnitType;
@@ -42,12 +43,12 @@ class UnitController extends Controller
 
         $statsRow = Unit::query()
             ->when($user && $user->role === 'agent', fn ($q) => $q->where('user_id', $user->id))
-            ->selectRaw("
+            ->selectRaw('
                 COUNT(*) as total,
                 COUNT(CASE WHEN is_active = 1 THEN 1 END) as active,
                 COUNT(CASE WHEN is_deal = 1 THEN 1 END) as deals,
                 COUNT(CASE WHEN is_pinned = 1 THEN 1 END) as pinned
-            ")
+            ')
             ->first();
 
         $stats = [
@@ -66,7 +67,7 @@ class UnitController extends Controller
             'areas' => $areas,
             'unitTypes' => $unitTypes,
             'filters' => $filters,
-            'autoDeleteDays' => (int) \App\Domain\Listings\Models\Setting::getValue('auto_delete_days', '30'),
+            'autoDeleteDays' => (int) Setting::getValue('auto_delete_days', '30'),
         ]);
     }
 
