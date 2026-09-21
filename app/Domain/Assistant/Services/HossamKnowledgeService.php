@@ -241,37 +241,73 @@ class HossamKnowledgeService
 
         // 3. Installments & Payment Plans / شقق بالتقسيط
         if (preg_match('/(شقق بنظام التقسيط|شقق تقسيط|شقق بالتقسيط|عايز شقه قسط|عايز شقة قسط|نظام التقسيط|انظمه التقسيط|اطول فتره سداد|أطول فترة سداد|اقل مقدم|أقل مقدم|اقساط|installment|installments)/iu', $text)) {
-            $units = Unit::where('is_active', true)
-                ->whereIn('payment_method', ['installment', 'both'])
-                ->with(['area', 'type', 'images', 'user', 'project'])
-                ->orderByDesc('is_deal')
-                ->orderByDesc('is_pinned')
-                ->orderByDesc('priority_points')
-                ->take(4)
-                ->get();
+            $userWantsUnits = (bool) preg_match('/(شقق|شقه|شقة|وحدات|وحدة|وحده|عايز|عاوز|محتاج|وريني|ابعتلي|رشحلي|اعرضلي|apartments?|units?)/iu', $text);
 
-            $formattedCards = $this->formatUnitCards($units->all(), $locale);
+            if ($userWantsUnits) {
+                $units = Unit::where('is_active', true)
+                    ->whereIn('payment_method', ['installment', 'both'])
+                    ->with(['area', 'type', 'images', 'user', 'project'])
+                    ->orderByDesc('is_deal')
+                    ->orderByDesc('is_pinned')
+                    ->orderByDesc('priority_points')
+                    ->take(4)
+                    ->get();
 
-            if ($locale === 'en') {
+                $formattedCards = $this->formatUnitCards($units->all(), $locale);
+                $unitLinks = [];
+                foreach ($formattedCards as $card) {
+                    $priceStr = !empty($card['price_formatted']) ? " — 💰 **{$card['price_formatted']} " . ($card['currency'] ?? 'ج.م') . "**" : "";
+                    $areaStr = !empty($card['area_sqm']) ? " | 📐 {$card['area_sqm']} م²" : "";
+                    $roomsStr = !empty($card['rooms']) ? " | 🛏️ {$card['rooms']} " . ($locale === 'en' ? 'rooms' : 'غرف') : "";
+                    $unitLinks[] = "• [{$card['name']}]({$card['url']}){$priceStr}{$areaStr}{$roomsStr}";
+                }
+                $unitsSection = !empty($unitLinks) ? "\n\n" . ($locale === 'en' ? "🔗 **Top Installment Units:**\n" : "🔗 **أبرز شقق التقسيط المتاحة حالياً:**\n") . implode("\n", $unitLinks) : "";
+
+                if ($locale === 'en') {
+                    return [
+                        'reply' => "We offer an extensive portfolio of apartments and units with ultra-flexible installment schemes in prime locations:\n\n• **Down Payment:** Typically starting from 10% to 15%.\n• **Payment Duration:** Spread over 6, 8, and up to 10 years in equal installments without bank interest.\n• **Delivery Dates:** Options range from immediate ready-to-move units to 1–3 years delivery.{$unitsSection}",
+                        'recommended_units' => $formattedCards,
+                        'is_hot_lead' => true,
+                        'quick_replies' => [
+                            'Units under 5 Million',
+                            'New Cairo installments',
+                            'Immediate delivery',
+                        ],
+                    ];
+                }
+
                 return [
-                    'reply' => "We offer an extensive portfolio of apartments and units with ultra-flexible installment schemes in prime locations:\n\n• **Down Payment:** Typically starting from 10% to 15%.\n• **Payment Duration:** Spread over 6, 8, and up to 10 years in equal installments without bank interest.\n• **Delivery Dates:** Options range from immediate ready-to-move units to 1–3 years delivery.\n\nHere are some of our top available installment units: [SHOW_CARDS]",
+                    'reply' => "نوفر في **فاميلي هوم** تشكيلة واسعة من أفضل الشقق والوحدات السكنية بأنظمة تقسيط مريحة تناسب كافة الميزانيات:\n\n• **المقدم:** يبدأ من 10% إلى 15% فقط.\n• **فترة السداد:** تمتد من 6 إلى 8 سنوات وحتى 10 سنوات بأقساط متساوية وبدون فوائد بنكية.\n• **موعد الاستلام:** خيارات متنوعة بين الاستلام الفوري، أو خلال 1 إلى 3 سنوات.{$unitsSection}",
                     'recommended_units' => $formattedCards,
                     'is_hot_lead' => true,
                     'quick_replies' => [
+                        'شقق أقل من 5 مليون',
+                        'شقق تقسيط في التجمع',
+                        'عايز استلام فوري',
+                    ],
+                ];
+            }
+
+            if ($locale === 'en') {
+                return [
+                    'reply' => "We offer an extensive portfolio of apartments and units with ultra-flexible installment schemes in prime locations:\n\n• **Down Payment:** Typically starting from 10% to 15%.\n• **Payment Duration:** Spread over 6, 8, and up to 10 years in equal installments without bank interest.\n• **Delivery Dates:** Options range from immediate ready-to-move units to 1–3 years delivery.\n\nWould you like me to recommend specific available installment units that fit your budget or preferred area?",
+                    'recommended_units' => [],
+                    'is_hot_lead' => false,
+                    'quick_replies' => [
+                        'Show installment units',
                         'Units under 5 Million',
-                        'New Cairo installments',
                         'Immediate delivery',
                     ],
                 ];
             }
 
             return [
-                'reply' => "نوفر في **فاميلي هوم** تشكيلة واسعة من أفضل الشقق والوحدات السكنية بأنظمة تقسيط مريحة تناسب كافة الميزانيات:\n\n• **المقدم:** يبدأ من 10% إلى 15% فقط.\n• **فترة السداد:** تمتد من 6 إلى 8 سنوات وحتى 10 سنوات بأقساط متساوية وبدون فوائد بنكية.\n• **موعد الاستلام:** خيارات متنوعة بين الاستلام الفوري، أو خلال 1 إلى 3 سنوات.\n\nإليك باقة من أفضل الشقق المتاحة للتقسيط حالياً: [SHOW_CARDS]",
-                'recommended_units' => $formattedCards,
-                'is_hot_lead' => true,
+                'reply' => "نوفر في **فاميلي هوم** تشكيلة واسعة من أفضل الشقق والوحدات السكنية بأنظمة تقسيط مريحة تناسب كافة الميزانيات:\n\n• **المقدم:** يبدأ من 10% إلى 15% فقط.\n• **فترة السداد:** تمتد من 6 إلى 8 سنوات وحتى 10 سنوات بأقساط متساوية وبدون فوائد بنكية.\n• **موعد الاستلام:** خيارات متنوعة بين الاستلام الفوري، أو خلال 1 إلى 3 سنوات.\n\nتحب أرشحلك وحدات أو شقق محددة بالتقسيط تناسب ميزانيتك والمنطقة المفضلة لديك؟",
+                'recommended_units' => [],
+                'is_hot_lead' => false,
                 'quick_replies' => [
+                    'رشحلي شقق تقسيط',
                     'شقق أقل من 5 مليون',
-                    'شقق تقسيط في التجمع',
                     'عايز استلام فوري',
                 ],
             ];
@@ -279,43 +315,79 @@ class HossamKnowledgeService
 
         // 4. Best Investment Opportunities / أفضل فرص الاستثمار
         if (preg_match('/(افضل فرص الاستثمار|أفضل فرص الاستثمار|فرص الاستثمار المتاحه|فرص الاستثمار المتاحة|استثمار عقاري|افضل استثمار|أفضل استثمار|استثمر فلوسي|اعلى عائد|أعلى عائد|عائد استثماري|شقق لقطه|شقق لقطة|عروض خاصه|عروض خاصة|best investment|high roi)/iu', $text)) {
-            $units = Unit::where('is_active', true)
-                ->where('is_deal', true)
-                ->with(['area', 'type', 'images', 'user', 'project'])
-                ->orderByDesc('priority_points')
-                ->take(4)
-                ->get();
+            $userWantsUnits = (bool) preg_match('/(شقق|شقه|شقة|وحدات|وحدة|وحده|عايز|عاوز|محتاج|وريني|ابعتلي|رشحلي|اعرضلي|صفقات|لقطة|لقطه|deals?|apartments?|units?)/iu', $text);
 
-            if ($units->isEmpty()) {
+            if ($userWantsUnits) {
                 $units = Unit::where('is_active', true)
+                    ->where('is_deal', true)
                     ->with(['area', 'type', 'images', 'user', 'project'])
                     ->orderByDesc('priority_points')
                     ->take(4)
                     ->get();
-            }
 
-            $formattedCards = $this->formatUnitCards($units->all(), $locale);
+                if ($units->isEmpty()) {
+                    $units = Unit::where('is_active', true)
+                        ->with(['area', 'type', 'images', 'user', 'project'])
+                        ->orderByDesc('priority_points')
+                        ->take(4)
+                        ->get();
+                }
 
-            if ($locale === 'en') {
+                $formattedCards = $this->formatUnitCards($units->all(), $locale);
+                $unitLinks = [];
+                foreach ($formattedCards as $card) {
+                    $priceStr = !empty($card['price_formatted']) ? " — 💰 **{$card['price_formatted']} " . ($card['currency'] ?? 'ج.م') . "**" : "";
+                    $areaStr = !empty($card['area_sqm']) ? " | 📐 {$card['area_sqm']} م²" : "";
+                    $roomsStr = !empty($card['rooms']) ? " | 🛏️ {$card['rooms']} " . ($locale === 'en' ? 'rooms' : 'غرف') : "";
+                    $unitLinks[] = "• [{$card['name']}]({$card['url']}){$priceStr}{$areaStr}{$roomsStr}";
+                }
+                $unitsSection = !empty($unitLinks) ? "\n\n" . ($locale === 'en' ? "🔗 **Top Investment Deals:**\n" : "🔗 **أبرز الصفقات والفرص الاستثمارية الحصرية:**\n") . implode("\n", $unitLinks) : "";
+
+                if ($locale === 'en') {
+                    return [
+                        'reply' => "To maximize your Return on Investment (ROI) and hedge against inflation, here are the top real estate strategies right now:\n\n1. **Commercial & Administrative Units:** Yielding 10% to 15% annual rental returns with rapid leasing demand.\n2. **Early-Launch Residential in New Cairo:** Capital appreciation of 25% to 35% annually upon project handover.\n3. **North Coast Luxury Developments:** Exceptional dollar-denominated short-term holiday rental returns.{$unitsSection}",
+                        'recommended_units' => $formattedCards,
+                        'is_hot_lead' => true,
+                        'quick_replies' => [
+                            'Commercial & retail units',
+                            'Investment deals in New Cairo',
+                            'Speak with an investment advisor',
+                        ],
+                    ];
+                }
+
                 return [
-                    'reply' => "To maximize your Return on Investment (ROI) and hedge against inflation, here are the top real estate strategies right now:\n\n1. **Commercial & Administrative Units:** Yielding 10% to 15% annual rental returns with rapid leasing demand.\n2. **Early-Launch Residential in New Cairo:** Capital appreciation of 25% to 35% annually upon project handover.\n3. **North Coast Luxury Developments:** Exceptional dollar-denominated short-term holiday rental returns.\n\nHere are the top investment deals in our portfolio today: [SHOW_CARDS]",
+                    'reply' => "لتحقيق أعلى عائد استثماري (ROI) وأفضل تحوّط ضد التضخم في السوق العقاري المصري، نوصي دائماً بالخيارات التالية:\n\n1. **الوحدات التجارية والإدارية:** تحقق عائداً إيجارياً سنوياً بين 10% إلى 15% مع سهولة إعادة التأجير للشركات والماركات.\n2. **شقق التجمع الخامس والمدن الجديدة في مراحل الطرح الأولى:** تمنحك زيادة رأسمالية سنوية (Capital Appreciation) تتراوح بين 25% و35% حتى تاريخ الاستلام.\n3. **عقارات الساحل الشمالي:** تحقق أقوى عوائد إيجارية سياحية بالدولار والجنيه خلال موسم الصيف.{$unitsSection}",
                     'recommended_units' => $formattedCards,
                     'is_hot_lead' => true,
                     'quick_replies' => [
+                        'محلات ومكاتب تجارية',
+                        'شقق لقطة في التجمع',
+                        'تحدث مع مستشار استثماري',
+                    ],
+                ];
+            }
+
+            if ($locale === 'en') {
+                return [
+                    'reply' => "To maximize your Return on Investment (ROI) and hedge against inflation, here are the top real estate strategies right now:\n\n1. **Commercial & Administrative Units:** Yielding 10% to 15% annual rental returns with rapid leasing demand.\n2. **Early-Launch Residential in New Cairo:** Capital appreciation of 25% to 35% annually upon project handover.\n3. **North Coast Luxury Developments:** Exceptional dollar-denominated short-term holiday rental returns.\n\nWould you like me to recommend specific high-ROI investment properties or commercial units tailored to your budget?",
+                    'recommended_units' => [],
+                    'is_hot_lead' => false,
+                    'quick_replies' => [
+                        'Show investment deals',
                         'Commercial & retail units',
-                        'Investment deals in New Cairo',
                         'Speak with an investment advisor',
                     ],
                 ];
             }
 
             return [
-                'reply' => "لتحقيق أعلى عائد استثماري (ROI) وأفضل تحوّط ضد التضخم في السوق العقاري المصري، نوصي دائماً بالخيارات التالية:\n\n1. **الوحدات التجارية والإدارية:** تحقق عائداً إيجارياً سنوياً بين 10% إلى 15% مع سهولة إعادة التأجير للشركات والماركات.\n2. **شقق التجمع الخامس والمدن الجديدة في مراحل الطرح الأولى:** تمنحك زيادة رأسمالية سنوية (Capital Appreciation) تتراوح بين 25% و35% حتى تاريخ الاستلام.\n3. **عقارات الساحل الشمالي:** تحقق أقوى عوائد إيجارية سياحية بالدولار والجنيه خلال موسم الصيف.\n\nإليك أبرز الفرص الاستثمارية والصفقات الحصرية المتاحة الآن: [SHOW_CARDS]",
-                'recommended_units' => $formattedCards,
-                'is_hot_lead' => true,
+                'reply' => "لتحقيق أعلى عائد استثماري (ROI) وأفضل تحوّط ضد التضخم في السوق العقاري المصري، نوصي دائماً بالخيارات التالية:\n\n1. **الوحدات التجارية والإدارية:** تحقق عائداً إيجارياً سنوياً بين 10% إلى 15% مع سهولة إعادة التأجير للشركات والماركات.\n2. **شقق التجمع الخامس والمدن الجديدة في مراحل الطرح الأولى:** تمنحك زيادة رأسمالية سنوية (Capital Appreciation) تتراوح بين 25% و35% حتى تاريخ الاستلام.\n3. **عقارات الساحل الشمالي:** تحقق أقوى عوائد إيجارية سياحية بالدولار والجنيه خلال موسم الصيف.\n\nتحب أرشحلك أبرز الوحدات الاستثمارية أو الصفقات الحصرية المتاحة حالياً بأعلى عائد؟",
+                'recommended_units' => [],
+                'is_hot_lead' => false,
                 'quick_replies' => [
+                    'رشحلي فرص استثمار',
                     'محلات ومكاتب تجارية',
-                    'شقق لقطة في التجمع',
                     'تحدث مع مستشار استثماري',
                 ],
             ];
@@ -472,33 +544,60 @@ class HossamKnowledgeService
 
         // 12. Immediate Delivery / استلام فوري
         if (preg_match('/(استلام فوري|استلام حالي|تسليم فوري|تسليم حالي|جاهز للسكن|شقق جاهزة|وحدات جاهزة|ready to move|immediate delivery)/iu', $text)) {
-            $units = Unit::where('is_active', true)
-                ->where(fn($q) => $q->where('delivery_date', '<=', now()->addMonths(6))->orWhereNull('delivery_date'))
-                ->with(['area', 'type', 'images', 'user', 'project'])
-                ->orderByDesc('is_pinned')
-                ->orderByDesc('priority_points')
-                ->take(4)
-                ->get();
+            $userWantsUnits = (bool) preg_match('/(شقق|شقه|شقة|وحدات|وحدة|وحده|عايز|عاوز|محتاج|وريني|ابعتلي|رشحلي|اعرضلي|جاهزة|جاهزه|apartments?|units?)/iu', $text);
 
-            $formattedCards = $this->formatUnitCards($units->all(), $locale);
+            if ($userWantsUnits) {
+                $units = Unit::where('is_active', true)
+                    ->where(fn($q) => $q->where('delivery_date', '<=', now()->addMonths(6))->orWhereNull('delivery_date'))
+                    ->with(['area', 'type', 'images', 'user', 'project'])
+                    ->orderByDesc('is_pinned')
+                    ->orderByDesc('priority_points')
+                    ->take(4)
+                    ->get();
+
+                $formattedCards = $this->formatUnitCards($units->all(), $locale);
+                $unitLinks = [];
+                foreach ($formattedCards as $card) {
+                    $priceStr = !empty($card['price_formatted']) ? " — 💰 **{$card['price_formatted']} " . ($card['currency'] ?? 'ج.م') . "**" : "";
+                    $areaStr = !empty($card['area_sqm']) ? " | 📐 {$card['area_sqm']} م²" : "";
+                    $roomsStr = !empty($card['rooms']) ? " | 🛏️ {$card['rooms']} " . ($locale === 'en' ? 'rooms' : 'غرف') : "";
+                    $unitLinks[] = "• [{$card['name']}]({$card['url']}){$priceStr}{$areaStr}{$roomsStr}";
+                }
+                $unitsSection = !empty($unitLinks) ? "\n\n" . ($locale === 'en' ? "🔗 **Ready-to-Move Units:**\n" : "🔗 **الوحدات الجاهزة للاستلام الفوري المتاحة:**\n") . implode("\n", $unitLinks) : "";
+
+                if ($locale === 'en') {
+                    return [
+                        'reply' => !$units->isEmpty()
+                            ? "Great choice — ready-to-move units give you **immediate rental income** or instant residency without construction delays!{$unitsSection}"
+                            : "Ready unit availability changes frequently. Contact our team for the latest: [{$whatsapp}]({$whatsappUrl})",
+                        'recommended_units' => $formattedCards,
+                        'is_hot_lead' => true,
+                        'quick_replies' => ['Book a site visit', 'Calculate installments', 'Contact sales team'],
+                    ];
+                }
+                return [
+                    'reply' => !$units->isEmpty()
+                        ? "خيار ممتاز — الوحدات الجاهزة تمنحك **دخلاً إيجارياً فورياً** أو سكناً مباشراً بدون انتظار فترات الإنشاء!{$unitsSection}"
+                        : "توافر الوحدات الجاهزة يتغير باستمرار. تواصل مع فريقنا لأحدث ما لدينا: [اضغط هنا للواتساب]({$whatsappUrl})",
+                    'recommended_units' => $formattedCards,
+                    'is_hot_lead' => true,
+                    'quick_replies' => ['احجز معاينة', 'احسب القسط الشهري', 'تحدث مع المبيعات'],
+                ];
+            }
 
             if ($locale === 'en') {
                 return [
-                    'reply' => !$units->isEmpty()
-                        ? "Great choice — ready-to-move units give you **immediate rental income** without construction delays! Here are available units: [SHOW_CARDS]"
-                        : "Ready unit availability changes frequently. Contact our team for the latest: [{$whatsapp}]({$whatsappUrl})",
-                    'recommended_units' => $formattedCards,
-                    'is_hot_lead' => true,
-                    'quick_replies' => ['Book a site visit', 'Calculate installments', 'Contact sales team'],
+                    'reply' => "Ready-to-move properties give you **immediate residency and instant rental returns** with no construction risk. We have ready units with cash discounts and flexible installment plans up to 5-7 years.\n\nWould you like me to show you available ready-to-move units matching your budget?",
+                    'recommended_units' => [],
+                    'is_hot_lead' => false,
+                    'quick_replies' => ['Show ready units', 'Calculate installments', 'Contact sales team'],
                 ];
             }
             return [
-                'reply' => !$units->isEmpty()
-                    ? "خيار ممتاز — الوحدات الجاهزة تمنحك **دخلاً إيجارياً فورياً** بدون انتظار! إليك الوحدات الجاهزة المتاحة: [SHOW_CARDS]"
-                    : "توافر الوحدات الجاهزة يتغير باستمرار. تواصل مع فريقنا لأحدث ما لدينا: [اضغط هنا للواتساب]({$whatsappUrl})",
-                'recommended_units' => $formattedCards,
-                'is_hot_lead' => true,
-                'quick_replies' => ['احجز معاينة', 'احسب القسط الشهري', 'تحدث مع المبيعات'],
+                'reply' => "ميزة الاستلام الفوري تمنحك **السكن المباشر أو تحقيق عائد إيجاري فوري** بدون أي مخاطر لتأخر التسليم، مع إمكانية التقسيط على فترات مريحة تصل إلى 5-7 سنوات أو الحصول على خصم كاش قوي.\n\nتحب أرشحلك شقق ووحدات جاهزة للاستلام الفوري تناسب ميزانيتك؟",
+                'recommended_units' => [],
+                'is_hot_lead' => false,
+                'quick_replies' => ['وريني وحدات جاهزة', 'احسب القسط الشهري', 'تحدث مع المبيعات'],
             ];
         }
 
