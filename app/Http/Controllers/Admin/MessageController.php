@@ -59,6 +59,78 @@ class MessageController extends Controller
         ]);
     }
 
+    public function export(Request $request)
+    {
+        $this->authorize('viewAny', Message::class);
+
+        $user = $request->user();
+        $filters = $request->only(['status', 'agent_id']);
+
+        $query = Message::with([
+            'unit:id,name,name_ar,name_en',
+            'agent:id,name',
+        ]);
+
+        UserScopeQueryBuilder::applyTeamScope($query, $user);
+
+        if (! empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        if (! empty($filters['agent_id'])) {
+            $query->where('agent_id', $filters['agent_id']);
+        }
+
+        $messages = $query->orderByDesc('created_at')->get();
+
+        $filename = 'messages_' . date('Y-m-d_His') . '.csv';
+
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            'Pragma' => 'no-cache',
+            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+            'Expires' => '0',
+        ];
+
+        $callback = function () use ($messages) {
+            $file = fopen('php://output', 'w');
+            fputs($file, "\xEF\xBB\xBF");
+
+            fputcsv($file, [
+                __('admin.csv_id'),
+                __('admin.csv_name'),
+                __('admin.csv_phone'),
+                __('admin.csv_email'),
+                __('admin.csv_unit'),
+                __('admin.csv_agent'),
+                __('admin.csv_status'),
+                __('admin.csv_content'),
+                __('admin.csv_created_at'),
+                __('admin.csv_replied_at'),
+            ]);
+
+            foreach ($messages as $msg) {
+                fputcsv($file, [
+                    $msg->id,
+                    $msg->name,
+                    $msg->phone ?? '',
+                    $msg->email ?? '',
+                    $msg->unit ? ($msg->unit->name_ar ?: ($msg->unit->name ?: $msg->unit->name_en)) : __('admin.csv_general'),
+                    $msg->agent?->name ?? __('admin.csv_unspecified'),
+                    $msg->status === 'replied' ? __('admin.csv_status_replied') : __('admin.csv_status_pending'),
+                    $msg->content,
+                    $msg->created_at?->format('Y-m-d H:i') ?? '',
+                    $msg->replied_at?->format('Y-m-d H:i') ?? '',
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
     public function unreadCount(Request $request): JsonResponse
     {
         $request->headers->remove('X-Inertia');

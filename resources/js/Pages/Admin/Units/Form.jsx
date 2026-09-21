@@ -1,4 +1,4 @@
-import { Select } from '../../../Components/UI'
+import { Select, ConfirmationModal } from '../../../Components/UI'
 import { usePage, useForm, Link, router, Head } from '@inertiajs/react'
 import { useTrans } from '../../../Utils/trans'
 import { useState, useEffect, useRef } from 'react'
@@ -11,207 +11,6 @@ const STEPS = [
     { key: 'seo', title_key: 'seo' },
     { key: 'location', title_key: 'location' },
 ]
-
-// ========================
-// ImageManager Component
-// ========================
-function ImageManager({ unit, trans, locale }) {
-    const [primaryFile, setPrimaryFile] = useState(null)
-    const [primaryPreview, setPrimaryPreview] = useState(null)
-    const [newFiles, setNewFiles] = useState([])
-    const [newPreviews, setNewPreviews] = useState([])
-    const primaryRef = useRef()
-    const moreRef = useRef()
-
-    const MAX_SIZE = 10 * 1024 * 1024 // 10MB
-    const MAX_TOTAL = 40 * 1024 * 1024 // 40MB
-
-    const existingImages = unit?.images ?? []
-    const primaryImage = existingImages.find(img => img.is_primary) || existingImages[0] || null
-
-    function handlePrimaryChange(e) {
-        const file = e.target.files[0]
-        if (!file) return
-        if (file.size > MAX_SIZE) {
-            alert(locale === 'ar' ? `حجم الصورة كبير جداً. الحد 10 ميجابايت.` : `Image too large. Max 10MB.`)
-            return
-        }
-        setPrimaryFile(file)
-        setPrimaryPreview(URL.createObjectURL(file))
-    }
-
-    function handleMoreImages(e) {
-        const files = Array.from(e.target.files || [])
-        const valid = []
-        let total = 0
-        for (const f of files) {
-            if (f.size > MAX_SIZE) {
-                alert(locale === 'ar' ? `${f.name}: حجم كبير جداً.` : `${f.name}: Too large.`)
-                continue
-            }
-            total += f.size
-            if (total > MAX_TOTAL) {
-                alert(locale === 'ar' ? 'تجاوز الحد الإجمالي 40 ميجابايت.' : 'Total exceeds 40MB limit.')
-                break
-            }
-            valid.push(f)
-        }
-        setNewFiles(prev => [...prev, ...valid])
-        setNewPreviews(prev => [...prev, ...valid.map(f => URL.createObjectURL(f))])
-    }
-
-    function removeNewImage(idx) {
-        setNewFiles(prev => prev.filter((_, i) => i !== idx))
-        setNewPreviews(prev => prev.filter((_, i) => i !== idx))
-    }
-
-    function deleteExistingImage(img) {
-        if (!unit?.id) return
-        if (!confirm(locale === 'ar' ? 'هل تريد حذف هذه الصورة؟' : 'Delete this image?')) return
-        router.delete(`/admin/units/${unit.id}/images/${img.id}`, { preserveScroll: true })
-    }
-
-    function setExistingAsPrimary(img) {
-        if (!unit?.id) return
-        router.post(`/admin/units/${unit.id}/images/${img.id}/primary`, {}, { preserveScroll: true })
-    }
-
-    // Expose files to parent form via hidden input trick
-    // We use a ref-based approach: the form in parent reads these states
-    // Return state so parent can include in submit
-    return {
-        primaryFile,
-        newFiles,
-        render: () => (
-            <div className="space-y-6">
-                {/* Primary Image */}
-                <div>
-                    <label className="block text-sm font-semibold text-secondary-950 mb-2">
-                        {trans('primary_image', {}, 'units')} *
-                    </label>
-                    <div className="border-2 border-dashed border-secondary-200 rounded-xl overflow-hidden bg-surface">
-                        {(primaryPreview || (primaryImage && !primaryFile)) ? (
-                            <div className="relative group">
-                                <img
-                                    src={primaryPreview || primaryImage.url}
-                                    alt=""
-                                    className="w-full h-48 object-cover"
-                                />
-                                {primaryImage && !primaryPreview && (
-                                    <span className="absolute top-2 start-2 bg-primary-900 text-white text-xs px-2 py-0.5 rounded-full font-medium">
-                                        {trans('primary_badge', {}, 'units')}
-                                    </span>
-                                )}
-                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => primaryRef.current?.click()}
-                                        className="px-3 py-1.5 bg-white text-secondary-950 rounded-lg text-xs font-medium hover:bg-secondary-100"
-                                    >
-                                        {locale === 'ar' ? 'تغيير' : 'Change'}
-                                    </button>
-                                </div>
-                            </div>
-                        ) : (
-                            <button
-                                type="button"
-                                onClick={() => primaryRef.current?.click()}
-                                className="w-full h-40 flex flex-col items-center justify-center gap-2 text-muted hover:text-primary-900 transition-colors focus-visible:ring-2 focus-visible:ring-primary-900 focus-visible:outline-none rounded-xl"
-                            >
-                                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-                                </svg>
-                                <span className="text-sm">{trans('primary_image', {}, 'units')}</span>
-                            </button>
-                        )}
-                        <input ref={primaryRef} type="file" accept="image/*" onChange={handlePrimaryChange} className="hidden" />
-                    </div>
-                </div>
-
-                {/* Existing secondary images (edit mode) */}
-                {existingImages.length > 0 && (
-                    <div>
-                        <label className="block text-sm font-semibold text-secondary-950 mb-2">
-                            {locale === 'ar' ? 'الصور الحالية' : 'Current Images'}
-                        </label>
-                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                            {existingImages.map(img => (
-                                <div key={img.id} className="relative group rounded-xl overflow-hidden border-2 border-secondary-100">
-                                    <img src={img.url} alt="" className="w-full h-24 object-cover" />
-                                    {img.is_primary && (
-                                        <span className="absolute top-1 start-1 bg-primary-900 text-white text-xs px-1.5 py-0.5 rounded-full font-medium">
-                                            {trans('primary_badge', {}, 'units')}
-                                        </span>
-                                    )}
-                                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5 p-1">
-                                        {!img.is_primary && (
-                                            <button
-                                                type="button"
-                                                onClick={() => setExistingAsPrimary(img)}
-                                                className="w-full py-1 bg-primary-900 text-white rounded text-xs font-medium focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none"
-                                            >
-                                                {trans('set_as_primary', {}, 'units')}
-                                            </button>
-                                        )}
-                                        <button
-                                            type="button"
-                                            onClick={() => deleteExistingImage(img)}
-                                            className="w-full py-1 bg-red-600 text-white rounded text-xs font-medium focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none"
-                                        >
-                                            {trans('remove_image', {}, 'units')}
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* New secondary images */}
-                <div>
-                    <label className="block text-sm font-semibold text-secondary-950 mb-2">
-                        {trans('secondary_images', {}, 'units')}
-                    </label>
-
-                    {newPreviews.length > 0 && (
-                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-3">
-                            {newPreviews.map((src, i) => (
-                                <div key={i} className="relative group rounded-xl overflow-hidden border-2 border-primary-900/20">
-                                    <img src={src} alt="" className="w-full h-24 object-cover" />
-                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                        <button
-                                            type="button"
-                                            onClick={() => removeNewImage(i)}
-                                            className="p-1.5 bg-red-600 text-white rounded-full focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none"
-                                            aria-label="Remove image"
-                                        >
-                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                            </svg>
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    <button
-                        type="button"
-                        onClick={() => moreRef.current?.click()}
-                        className="w-full py-3 border-2 border-dashed border-secondary-200 rounded-xl text-sm text-muted hover:text-primary-900 hover:border-primary-900/40 transition-colors flex items-center justify-center gap-2"
-                    >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.5v15m7.5-7.5h-15" />
-                        </svg>
-                        {trans('add_more_images', {}, 'units')}
-                    </button>
-                    <input ref={moreRef} type="file" multiple accept="image/*" onChange={handleMoreImages} className="hidden" />
-                    <p className="text-xs text-muted mt-1">{trans('max_images', {}, 'units')}</p>
-                </div>
-            </div>
-        )
-    }
-}
 
 export default function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTypes, managers = [] }) {
     const { locale, errors, auth } = usePage().props
@@ -470,10 +269,24 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
         setNewPreviews(prev => prev.filter((_, i) => i !== idx))
     }
 
+    const [deletingImage, setDeletingImage] = useState(null)
+    const [isDeletingImage, setIsDeletingImage] = useState(false)
+
     function deleteExistingImage(img) {
         if (!unit?.id) return
-        if (!confirm(locale === 'ar' ? 'هل تريد حذف هذه الصورة؟' : 'Delete this image?')) return
-        router.delete(`/admin/units/${unit.id}/images/${img.id}`, { preserveScroll: true })
+        setDeletingImage(img)
+    }
+
+    function handleConfirmDeleteImage() {
+        if (!deletingImage || !unit?.id) return
+        setIsDeletingImage(true)
+        router.delete(`/admin/units/${unit.id}/images/${deletingImage.id}`, {
+            preserveScroll: true,
+            onFinish: () => {
+                setIsDeletingImage(false)
+                setDeletingImage(null)
+            },
+        })
     }
 
     function setExistingAsPrimary(img) {
@@ -1236,6 +1049,18 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
                         </div>
                     </div>
                 </form>
+
+                <ConfirmationModal
+                    isOpen={!!deletingImage}
+                    title={locale === 'ar' ? 'حذف الصورة' : 'Delete Image'}
+                    message={locale === 'ar' ? 'هل تريد حذف هذه الصورة نهائياً؟ لا يمكن التراجع عن هذا الإجراء.' : 'Are you sure you want to delete this image? This action cannot be undone.'}
+                    confirmLabel={trans('delete')}
+                    cancelLabel={trans('cancel')}
+                    variant="danger"
+                    isLoading={isDeletingImage}
+                    onConfirm={handleConfirmDeleteImage}
+                    onCancel={() => setDeletingImage(null)}
+                />
             </div>
         </AdminSidebar>
     )

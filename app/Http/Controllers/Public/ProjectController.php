@@ -44,9 +44,9 @@ class ProjectController
             $area = collect($areas)->firstWhere('id', (int) $filters['area_id']);
             if ($area) {
                 $areaName = app()->getLocale() === 'ar' ? ($area->name_ar ?? $area->name) : ($area->name_en ?? $area->name);
-                $customMeta['title'] = (app()->getLocale() === 'ar' ? 'مشاريع سكنية وتجارية في ' : 'Real Estate Projects in ').$areaName.' - '.config('app.name');
-                $customMeta['description'] = (app()->getLocale() === 'ar' ? 'تصفح أحدث المشاريع العقارية والكمبوندات السكنية في ' : 'Browse premium real estate projects and compounds in ').$areaName.' '.(app()->getLocale() === 'ar' ? 'بأفضل أنظمة سداد وتقسيط' : 'with best payment plans');
-                $customMeta['geo_placename'] = $areaName.(app()->getLocale() === 'ar' ? '، مصر' : ', Egypt');
+                $customMeta['title'] = __('seo.projects_area_meta_title', ['area' => $areaName, 'app' => config('app.name')]);
+                $customMeta['description'] = __('seo.projects_area_meta_desc', ['area' => $areaName]);
+                $customMeta['geo_placename'] = __('seo.geo_placename_egypt', ['area' => $areaName]);
                 $customMeta['robots'] = 'noindex, follow';
             }
         }

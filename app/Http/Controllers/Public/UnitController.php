@@ -167,7 +167,7 @@ class UnitController
             $area = collect($areaList)->firstWhere('id', (int) $filters['area_id']);
             if ($area) {
                 $areaName = app()->getLocale() === 'ar' ? ($area->name_ar ?? $area->name) : ($area->name_en ?? $area->name);
-                $parts[] = (app()->getLocale() === 'ar' ? 'في ' : 'in ').$areaName;
+                $parts[] = __('seo.in_area', ['area' => $areaName]);
             }
         }
 
@@ -177,10 +177,19 @@ class UnitController
 
         if (! empty($parts)) {
             $prefix = $isDeals
-                ? (app()->getLocale() === 'ar' ? 'عروض شقق وعقارات ' : 'Property Deals ')
-                : (app()->getLocale() === 'ar' ? 'وحدات وعقارات للبيع ' : 'Properties for sale ');
-            $customMeta['title'] = $prefix.implode(' ', $parts).' - '.config('app.name');
-            $customMeta['description'] = (app()->getLocale() === 'ar' ? 'تصفح ' : 'Browse ').$prefix.implode(' ', $parts).' '.(app()->getLocale() === 'ar' ? 'بأفضل الأسعار والتسهيلات من فاميلي هوم' : 'with best prices from Family Home');
+                ? __('seo.deals_units_prefix')
+                : __('seo.units_for_sale_prefix');
+            $partsText = implode(' ', $parts);
+            $customMeta['title'] = __('seo.units_search_title', [
+                'prefix' => $prefix,
+                'parts' => $partsText,
+                'app' => config('app.name'),
+            ]);
+            $customMeta['description'] = __('seo.units_search_desc', [
+                'prefix' => $prefix,
+                'parts' => $partsText,
+                'app' => config('app.name'),
+            ]);
             $customMeta['robots'] = 'noindex, follow';
         }
 

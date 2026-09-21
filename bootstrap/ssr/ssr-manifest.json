@@ -9,6 +9,7 @@
   "resources/js/Components/OptimizedImage.jsx": [],
   "resources/js/Components/UI/ArticleCard.jsx": [],
   "resources/js/Components/UI/Button.jsx": [],
+  "resources/js/Components/UI/ConfirmationModal.jsx": [],
   "resources/js/Components/UI/HossamChatWidget.jsx": [
     "/build/assets/HossamChatWidget-Bz7orney.js"
   ],

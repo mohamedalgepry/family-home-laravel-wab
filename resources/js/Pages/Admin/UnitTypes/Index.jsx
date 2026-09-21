@@ -2,12 +2,15 @@ import { usePage, useForm, Link, Head } from '@inertiajs/react'
 import { useTrans } from '../../../Utils/trans'
 import { useState } from 'react'
 import AdminSidebar from '../../../Components/Layout/AdminSidebar'
+import { ConfirmationModal } from '../../../Components/UI'
 
 export default function AdminUnitTypesIndex({ unitTypes }) {
     const { locale, flash, errors } = usePage().props
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
     const [editing, setEditing] = useState(null)
+    const [deletingType, setDeletingType] = useState(null)
+    const [isDeleting, setIsDeleting] = useState(false)
 
     const { data, setData, post, put, delete: destroy, processing, reset } = useForm({
         name_ar: '',
@@ -52,9 +55,19 @@ export default function AdminUnitTypesIndex({ unitTypes }) {
     }
 
     function handleDelete(type) {
-        if (confirm(trans('confirm_delete'))) {
-            destroy(`/admin/unit-types/${type.id}`, { preserveScroll: true })
-        }
+        setDeletingType(type)
+    }
+
+    function handleConfirmDelete() {
+        if (!deletingType) return
+        setIsDeleting(true)
+        destroy(`/admin/unit-types/${deletingType.id}`, {
+            preserveScroll: true,
+            onFinish: () => {
+                setIsDeleting(false)
+                setDeletingType(null)
+            },
+        })
     }
 
     return (
@@ -143,6 +156,18 @@ export default function AdminUnitTypesIndex({ unitTypes }) {
                         </tbody>
                     </table>
                 </div>
+
+                <ConfirmationModal
+                    isOpen={!!deletingType}
+                    title={trans('confirm_delete_title')}
+                    message={trans('confirm_delete_desc')}
+                    confirmLabel={trans('delete')}
+                    cancelLabel={trans('cancel')}
+                    variant="danger"
+                    isLoading={isDeleting}
+                    onConfirm={handleConfirmDelete}
+                    onCancel={() => setDeletingType(null)}
+                />
             </div>
         </AdminSidebar>
     )

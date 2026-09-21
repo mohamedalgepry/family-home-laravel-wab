@@ -3,7 +3,7 @@ import { useTrans } from '../../../Utils/trans'
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import AdminSidebar from '../../../Components/Layout/AdminSidebar'
-import { SkeletonRow, Select } from '../../../Components/UI'
+import { SkeletonRow, Select, ConfirmationModal } from '../../../Components/UI'
 import Pagination from '../../../Components/UI/Pagination'
 
 export default function AdminProjectsIndex({ projects, stats, areas, filters }) {
@@ -15,6 +15,8 @@ export default function AdminProjectsIndex({ projects, stats, areas, filters }) 
     const [projectList, setProjectList] = useState(projects?.data || [])
     const [currentStats, setCurrentStats] = useState(stats || {})
     const [togglingId, setTogglingId] = useState(null)
+    const [deletingProject, setDeletingProject] = useState(null)
+    const [isDeleting, setIsDeleting] = useState(false)
 
     useEffect(() => {
         setProjectList(projects?.data || [])
@@ -53,9 +55,19 @@ export default function AdminProjectsIndex({ projects, stats, areas, filters }) 
     }
 
     function deleteProject(project) {
-        if (confirm(trans('confirm_delete'))) {
-            router.delete(`/admin/projects/${project.id}`, { preserveScroll: true })
-        }
+        setDeletingProject(project)
+    }
+
+    function handleConfirmDelete() {
+        if (!deletingProject) return
+        setIsDeleting(true)
+        router.delete(`/admin/projects/${deletingProject.id}`, {
+            preserveScroll: true,
+            onFinish: () => {
+                setIsDeleting(false)
+                setDeletingProject(null)
+            },
+        })
     }
 
     async function toggleActive(project) {
@@ -525,6 +537,17 @@ export default function AdminProjectsIndex({ projects, stats, areas, filters }) 
                     </div>
                 )}
 
+                <ConfirmationModal
+                    isOpen={!!deletingProject}
+                    title={trans('confirm_delete_title')}
+                    message={trans('confirm_delete_desc')}
+                    confirmLabel={trans('delete')}
+                    cancelLabel={trans('cancel')}
+                    variant="danger"
+                    isLoading={isDeleting}
+                    onConfirm={handleConfirmDelete}
+                    onCancel={() => setDeletingProject(null)}
+                />
             </div>
         </AdminSidebar>
     )

@@ -236,6 +236,7 @@ Route::prefix('admin')->middleware(['auth', 'role:admin,manager,agent'])->group(
 
     Route::prefix('messages')->name('admin.messages.')->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\MessageController::class, 'index'])->name('index');
+        Route::get('/export', [App\Http\Controllers\Admin\MessageController::class, 'export'])->name('export');
         Route::get('/unread-count', [App\Http\Controllers\Admin\MessageController::class, 'unreadCount'])->name('unread-count');
         Route::post('/{message}/replied', [App\Http\Controllers\Admin\MessageController::class, 'markAsReplied'])->name('mark-replied');
         Route::delete('/{message}', [App\Http\Controllers\Admin\MessageController::class, 'destroy'])->name('destroy');
@@ -243,6 +244,7 @@ Route::prefix('admin')->middleware(['auth', 'role:admin,manager,agent'])->group(
 
     Route::prefix('assistant-leads')->name('admin.assistant-leads.')->middleware('role:admin')->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\AssistantLeadController::class, 'index'])->name('index');
+        Route::get('/export', [App\Http\Controllers\Admin\AssistantLeadController::class, 'export'])->name('export');
         Route::post('/{lead}/contacted', [App\Http\Controllers\Admin\AssistantLeadController::class, 'markAsContacted'])->name('mark-contacted');
         Route::delete('/{lead}', [App\Http\Controllers\Admin\AssistantLeadController::class, 'destroy'])->name('destroy');
     });

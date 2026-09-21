@@ -3,6 +3,7 @@ import { useTrans } from '../../../Utils/trans'
 import { getStorageUrl } from '../../../Utils/image'
 import { useState, useEffect, useRef } from 'react'
 import AdminSidebar from '../../../Components/Layout/AdminSidebar'
+import { ConfirmationModal } from '../../../Components/UI'
 
 export default function AdminAreasIndex({ areas, filters }) {
     const { locale, flash } = usePage().props
@@ -10,6 +11,8 @@ export default function AdminAreasIndex({ areas, filters }) {
     const isRtl = locale === 'ar'
     const [search, setSearch] = useState(filters.search || '')
     const [status, setStatus] = useState(filters.status || '')
+    const [deletingArea, setDeletingArea] = useState(null)
+    const [isDeleting, setIsDeleting] = useState(false)
     const searchTimeout = useRef(null)
 
     useEffect(() => {
@@ -27,9 +30,19 @@ export default function AdminAreasIndex({ areas, filters }) {
     }, [search, status])
 
     function handleDelete(area) {
-        if (confirm(trans('confirm_delete'))) {
-            router.delete(`/admin/areas/${area.id}`, { preserveScroll: true })
-        }
+        setDeletingArea(area)
+    }
+
+    function handleConfirmDelete() {
+        if (!deletingArea) return
+        setIsDeleting(true)
+        router.delete(`/admin/areas/${deletingArea.id}`, {
+            preserveScroll: true,
+            onFinish: () => {
+                setIsDeleting(false)
+                setDeletingArea(null)
+            },
+        })
     }
 
     return (
@@ -219,6 +232,18 @@ export default function AdminAreasIndex({ areas, filters }) {
                         ))}
                     </div>
                 )}
+
+                <ConfirmationModal
+                    isOpen={!!deletingArea}
+                    title={trans('confirm_delete_title')}
+                    message={trans('confirm_delete_desc')}
+                    confirmLabel={trans('delete')}
+                    cancelLabel={trans('cancel')}
+                    variant="danger"
+                    isLoading={isDeleting}
+                    onConfirm={handleConfirmDelete}
+                    onCancel={() => setDeletingArea(null)}
+                />
             </div>
         </AdminSidebar>
     )

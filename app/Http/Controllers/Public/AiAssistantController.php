@@ -72,13 +72,13 @@ class AiAssistantController
             return response()->json([
                 'success' => true,
                 'is_fallback' => true,
-                'reply' => $locale === 'en'
-                    ? 'Hello! I am Hossam from Family Home. Would you like to explore our active projects or check available units?'
-                    : 'أهلاً بك! أنا «حسام» من فاميلي هوم. تحب أساعدك في استعراض أحدث المشاريع العقارية أو الوحدات المتاحة للبيع والإيجار؟',
+                'reply' => __('common.assistant_fallback_reply', [], $locale),
                 'recommended_units' => [],
-                'quick_replies' => $locale === 'en'
-                    ? ['Show available projects', 'Apartments for sale', 'Contact our team']
-                    : ['استعراض المشاريع المتاحة', 'شقق للبيع بالتقسيط', 'تواصل مع فريق المبيعات'],
+                'quick_replies' => [
+                    __('common.assistant_quick_reply_projects', [], $locale),
+                    __('common.assistant_quick_reply_units', [], $locale),
+                    __('common.assistant_quick_reply_contact', [], $locale),
+                ],
             ], 200);
         }
     }
@@ -109,9 +109,9 @@ class AiAssistantController
             // Determine context description
             $context = null;
             if (!empty($pageContext['unit_name'])) {
-                $context = 'مهتم بوحدة: ' . $pageContext['unit_name'];
+                $context = __('common.assistant_context_unit', ['name' => $pageContext['unit_name']]);
             } elseif (!empty($pageContext['project_name'])) {
-                $context = 'مهتم بمشروع: ' . $pageContext['project_name'];
+                $context = __('common.assistant_context_project', ['name' => $pageContext['project_name']]);
             } elseif (!empty($pageContext['title'])) {
                 $context = $pageContext['title'];
             } elseif (!empty($pageContext['url'])) {

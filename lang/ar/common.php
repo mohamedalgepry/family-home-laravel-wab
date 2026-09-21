@@ -137,4 +137,10 @@ return [
     'invalid_map_url' => 'رابط خرائط جوجل غير صالح أو لم يتم العثور على الإحداثيات',
     'invalid_icon_name' => 'أيقونة غير صالحة: يُسمح فقط بأسماء الأيقونات الآمنة والمحددة مسبقاً',
     'coordinates_not_zero' => 'خط العرض وخط الطول لا يمكن أن يكونا صفراً معاً',
+    'assistant_fallback_reply' => 'أهلاً بك! أنا «حسام» من فاميلي هوم. تحب أساعدك في استعراض أحدث المشاريع العقارية أو الوحدات المتاحة للبيع والإيجار؟',
+    'assistant_quick_reply_projects' => 'استعراض المشاريع المتاحة',
+    'assistant_quick_reply_units' => 'شقق للبيع بالتقسيط',
+    'assistant_quick_reply_contact' => 'تواصل مع فريق المبيعات',
+    'assistant_context_unit' => 'مهتم بوحدة: :name',
+    'assistant_context_project' => 'مهتم بمشروع: :name',
 ];

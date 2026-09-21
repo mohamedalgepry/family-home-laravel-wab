@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domain\Common\QueryBuilders\UserScopeQueryBuilder;
 use App\Domain\Listings\Actions\StoreUploadedImagesAction;
 use App\Domain\Listings\DTOs\CreateProjectData;
 use App\Domain\Listings\Jobs\NotifyNewProjectJob;
@@ -38,17 +39,22 @@ class ProjectController extends Controller
             user: $user,
         );
 
-        $projectStats = Project::query()
+        $projectStatsQuery = Project::query();
+        UserScopeQueryBuilder::applyOwnershipScope($projectStatsQuery, $user);
+        $projectStats = $projectStatsQuery
             ->selectRaw("
                 COUNT(*) as total,
                 COUNT(CASE WHEN is_active = 1 THEN 1 END) as active
             ")
             ->first();
 
+        $unitsQuery = \App\Domain\Listings\Models\Unit::whereNotNull('project_id');
+        UserScopeQueryBuilder::applyListingsScope($unitsQuery, $user);
+
         $stats = [
             'total' => (int) ($projectStats?->total ?? 0),
             'active' => (int) ($projectStats?->active ?? 0),
-            'total_units' => \App\Domain\Listings\Models\Unit::whereNotNull('project_id')->count(),
+            'total_units' => $unitsQuery->count(),
         ];
 
         $areas = Area::select('id', 'name_ar', 'name_en')->orderBy('name_ar')->get();

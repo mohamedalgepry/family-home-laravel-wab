@@ -61,13 +61,11 @@ class AreaController
         $locale = app()->getLocale();
         $areaName = $locale === 'ar' ? ($area->name_ar ?? $area->name_en) : ($area->name_en ?? $area->name_ar);
 
-        $metaTitle = $locale === 'ar'
-            ? ($area->meta_title_ar ?: "عقارات ومشاريع في {$areaName} - ".config('app.name'))
-            : ($area->meta_title_en ?: "Properties & Projects in {$areaName} - ".config('app.name'));
+        $fallbackTitle = __('seo.area_meta_title_fallback', ['area' => $areaName, 'app' => config('app.name')]);
+        $fallbackDesc = __('seo.area_meta_desc_fallback', ['area' => $areaName]);
 
-        $metaDescription = $locale === 'ar'
-            ? ($area->meta_description_ar ?: "تصفح أفضل الوحدات والمشاريع العقارية المتاحة للبيع والاستثمار في منطقة {$areaName}.")
-            : ($area->meta_description_en ?: "Explore the best real estate units and projects available in {$areaName}.");
+        $metaTitle = ($locale === 'ar' ? $area->meta_title_ar : $area->meta_title_en) ?: $fallbackTitle;
+        $metaDescription = ($locale === 'ar' ? $area->meta_description_ar : $area->meta_description_en) ?: $fallbackDesc;
 
         $ogImage = null;
         if ($area->image_path) {

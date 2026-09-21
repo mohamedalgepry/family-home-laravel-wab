@@ -70,7 +70,7 @@ class AiKnowledgeController extends Controller
         $this->knowledgeService->saveItem($validated);
 
         return redirect()->route('admin.assistant-knowledge.index')
-            ->with('success', 'تم حفظ الرد الجاهز في بنك المعرفة بنجاح');
+            ->with('success', __('admin.knowledge_saved'));
     }
 
     public function update(Request $request, string $id): RedirectResponse
@@ -88,7 +88,7 @@ class AiKnowledgeController extends Controller
         $this->knowledgeService->saveItem($validated, $id);
 
         return redirect()->route('admin.assistant-knowledge.index')
-            ->with('success', 'تم تحديث الرد في بنك المعرفة بنجاح');
+            ->with('success', __('admin.knowledge_updated'));
     }
 
     public function destroy(string $id): RedirectResponse
@@ -96,21 +96,21 @@ class AiKnowledgeController extends Controller
         $this->knowledgeService->deleteItem($id);
 
         return redirect()->route('admin.assistant-knowledge.index')
-            ->with('success', 'تم حذف الرد من بنك المعرفة بنجاح');
+            ->with('success', __('admin.knowledge_deleted'));
     }
 
     public function toggleActive(string $id): RedirectResponse
     {
         $active = $this->knowledgeService->toggleStatus($id);
 
-        return back()->with('success', $active ? 'تم تفعيل الرد بنجاح' : 'تم تعطيل الرد');
+        return back()->with('success', $active ? __('admin.knowledge_enabled') : __('admin.knowledge_disabled'));
     }
 
     public function clearCache(): RedirectResponse
     {
         $this->knowledgeService->clearCache();
 
-        return back()->with('success', 'تم تحديث كاش المعرفة فوراً');
+        return back()->with('success', __('admin.knowledge_cache_cleared'));
     }
 }
 

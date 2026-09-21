@@ -2,12 +2,15 @@ import { usePage, useForm, Head } from '@inertiajs/react'
 import { useTrans } from '../../../Utils/trans'
 import { useState } from 'react'
 import AdminSidebar from '../../../Components/Layout/AdminSidebar'
+import { ConfirmationModal } from '../../../Components/UI'
 
 export default function AdminFeaturesIndex({ features }) {
     const { locale, flash } = usePage().props
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
     const [editing, setEditing] = useState(null)
+    const [deletingFeature, setDeletingFeature] = useState(null)
+    const [isDeleting, setIsDeleting] = useState(false)
 
     const { data, setData, post, put, delete: destroy, processing, reset } = useForm({
         name_ar: '',
@@ -50,9 +53,19 @@ export default function AdminFeaturesIndex({ features }) {
     }
 
     function handleDelete(feature) {
-        if (confirm(trans('confirm_delete') || 'Are you sure you want to delete this item?')) {
-            destroy(`/admin/features/${feature.id}`, { preserveScroll: true })
-        }
+        setDeletingFeature(feature)
+    }
+
+    function handleConfirmDelete() {
+        if (!deletingFeature) return
+        setIsDeleting(true)
+        destroy(`/admin/features/${deletingFeature.id}`, {
+            preserveScroll: true,
+            onFinish: () => {
+                setIsDeleting(false)
+                setDeletingFeature(null)
+            },
+        })
     }
 
     return (
@@ -126,6 +139,18 @@ export default function AdminFeaturesIndex({ features }) {
                         </tbody>
                     </table>
                 </div>
+
+                <ConfirmationModal
+                    isOpen={!!deletingFeature}
+                    title={trans('confirm_delete_title')}
+                    message={trans('confirm_delete_desc')}
+                    confirmLabel={trans('delete')}
+                    cancelLabel={trans('cancel')}
+                    variant="danger"
+                    isLoading={isDeleting}
+                    onConfirm={handleConfirmDelete}
+                    onCancel={() => setDeletingFeature(null)}
+                />
             </div>
         </AdminSidebar>
     )

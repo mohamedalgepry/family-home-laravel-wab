@@ -21,6 +21,54 @@ class AssistantLeadController extends Controller
         ]);
     }
 
+    public function export()
+    {
+        $leads = AssistantLead::query()->orderByDesc('created_at')->get();
+
+        $filename = 'assistant_leads_' . date('Y-m-d_His') . '.csv';
+
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            'Pragma' => 'no-cache',
+            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+            'Expires' => '0',
+        ];
+
+        $callback = function () use ($leads) {
+            $file = fopen('php://output', 'w');
+            fputs($file, "\xEF\xBB\xBF");
+
+            fputcsv($file, [
+                __('admin.csv_id'),
+                __('admin.csv_name'),
+                __('admin.csv_phone'),
+                __('admin.csv_status'),
+                __('admin.csv_lead_score'),
+                __('admin.csv_lead_type'),
+                __('admin.csv_context'),
+                __('admin.csv_registered_at'),
+            ]);
+
+            foreach ($leads as $lead) {
+                fputcsv($file, [
+                    $lead->id,
+                    $lead->name ?: __('admin.csv_unspecified'),
+                    $lead->phone,
+                    $lead->status === 'contacted' ? __('admin.csv_status_contacted') : __('admin.csv_status_new'),
+                    $lead->lead_score ?? 0,
+                    $lead->lead_status ?? 'normal',
+                    $lead->context ?? '',
+                    $lead->created_at?->format('Y-m-d H:i') ?? '',
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
     public function markAsContacted(AssistantLead $lead): RedirectResponse
     {
         $lead->update([

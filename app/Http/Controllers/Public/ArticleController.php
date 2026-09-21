@@ -45,7 +45,7 @@ class ArticleController
         $customMeta = [];
         if ($currentCategory) {
             $catName = app()->getLocale() === 'ar' ? ($currentCategory->name_ar ?? $currentCategory->name) : ($currentCategory->name_en ?? $currentCategory->name);
-            $customMeta['title'] = (app()->getLocale() === 'ar' ? 'مقالات ' : 'Articles in ').$catName.' - '.config('app.name');
+            $customMeta['title'] = __('seo.articles_category_meta_title', ['category' => $catName, 'app' => config('app.name')]);
         }
 
         $meta = app(SeoService::class)->forPage('articles_index', $customMeta);

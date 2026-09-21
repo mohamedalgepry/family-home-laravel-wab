@@ -10,6 +10,7 @@ export default function Contact() {
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
     const [sentSuccess, setSentSuccess] = useState(false)
+    const [clientErrors, setClientErrors] = useState({})
 
     const { data, setData, post, processing, errors } = useForm({
         client_name: '',
@@ -20,9 +21,45 @@ export default function Contact() {
 
     const [isSubmitting, setIsSubmitting] = useState(false)
 
+    function validateClient() {
+        const errs = {}
+        const name = (data.client_name || '').trim()
+        const phone = (data.client_phone || '').trim().replace(/[\s-]/g, '')
+        const email = (data.client_email || '').trim()
+        const content = (data.content || '').trim()
+
+        if (!name || name.length < 2) {
+            errs.client_name = isRtl ? 'يرجى إدخال الاسم بالكامل' : 'Please enter your full name'
+        }
+
+        if (!phone && !email) {
+            errs.client_phone = isRtl ? 'يرجى كتابة رقم الهاتف أو البريد الإلكتروني للتواصل' : 'Please provide either a phone number or email address'
+        } else {
+            if (phone && !/^\+?[0-9]{7,16}$/.test(phone)) {
+                errs.client_phone = isRtl ? 'رقم الهاتف غير صحيح' : 'Invalid phone number format'
+            }
+            if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                errs.client_email = isRtl ? 'البريد الإلكتروني غير صحيح' : 'Invalid email format'
+            }
+        }
+
+        if (!content || content.length < 5) {
+            errs.content = isRtl ? 'يرجى كتابة تفاصيل رسالتك أو استفسارك (5 أحرف على الأقل)' : 'Please enter your message (at least 5 characters)'
+        }
+
+        return errs
+    }
+
     function handleSubmit(e) {
         e.preventDefault()
         if (processing || isSubmitting) return;
+
+        const validation = validateClient()
+        if (Object.keys(validation).length > 0) {
+            setClientErrors(validation)
+            return
+        }
+        setClientErrors({})
 
         setIsSubmitting(true)
         const submitUrl = window.location.pathname.startsWith('/en') ? '/en/contact' : (window.location.pathname.startsWith('/ar') ? '/ar/contact' : '/contact')
@@ -31,6 +68,7 @@ export default function Contact() {
             onSuccess: () => {
                 setData({ client_name: '', client_phone: '', client_email: '', content: '' })
                 setSentSuccess(true)
+                setClientErrors({})
                 setTimeout(() => setSentSuccess(false), 5000)
             },
             onFinish: () => setIsSubmitting(false),
@@ -71,11 +109,22 @@ export default function Contact() {
                                 id="client_name"
                                 type="text"
                                 value={data.client_name}
-                                onChange={e => setData('client_name', e.target.value)}
+                                onChange={e => {
+                                    setData('client_name', e.target.value)
+                                    if (clientErrors.client_name) setClientErrors(prev => ({ ...prev, client_name: null }))
+                                }}
                                 required
-                                className="w-full px-4 py-3 border border-secondary-200 rounded-2xl text-sm bg-surface focus:bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 transition-colors"
+                                aria-invalid={(clientErrors.client_name || errors.client_name) ? 'true' : 'false'}
+                                aria-describedby={(clientErrors.client_name || errors.client_name) ? 'client_name_err' : undefined}
+                                className={`w-full px-4 py-3 border rounded-2xl text-sm transition-colors ${
+                                    (clientErrors.client_name || errors.client_name)
+                                        ? 'border-red-500 bg-red-50/50 focus:ring-red-500/20'
+                                        : 'border-secondary-200 bg-surface focus:bg-white focus:ring-primary-900/20 focus:border-primary-900'
+                                }`}
                             />
-                            {errors.client_name && <p className="text-xs text-red-600 font-medium mt-1.5">{errors.client_name}</p>}
+                            {(clientErrors.client_name || errors.client_name) && (
+                                <p id="client_name_err" role="alert" className="text-xs text-red-600 font-medium mt-1.5">{clientErrors.client_name || errors.client_name}</p>
+                            )}
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
@@ -85,9 +134,22 @@ export default function Contact() {
                                     id="client_phone"
                                     type="tel"
                                     value={data.client_phone}
-                                    onChange={e => setData('client_phone', e.target.value)}
-                                    className="w-full px-4 py-3 border border-secondary-200 rounded-2xl text-sm bg-surface focus:bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 transition-colors"
+                                    onChange={e => {
+                                        setData('client_phone', e.target.value)
+                                        if (clientErrors.client_phone) setClientErrors(prev => ({ ...prev, client_phone: null }))
+                                    }}
+                                    dir="ltr"
+                                    aria-invalid={(clientErrors.client_phone || errors.client_phone) ? 'true' : 'false'}
+                                    aria-describedby={(clientErrors.client_phone || errors.client_phone) ? 'client_phone_err' : undefined}
+                                    className={`w-full px-4 py-3 border rounded-2xl text-sm transition-colors ${
+                                        (clientErrors.client_phone || errors.client_phone)
+                                            ? 'border-red-500 bg-red-50/50 focus:ring-red-500/20'
+                                            : 'border-secondary-200 bg-surface focus:bg-white focus:ring-primary-900/20 focus:border-primary-900'
+                                    }`}
                                 />
+                                {(clientErrors.client_phone || errors.client_phone) && (
+                                    <p id="client_phone_err" role="alert" className="text-xs text-red-600 font-medium mt-1.5">{clientErrors.client_phone || errors.client_phone}</p>
+                                )}
                             </div>
                             <div>
                                 <label htmlFor="client_email" className="block text-sm font-bold text-secondary-950 mb-2">{trans('your_email', {}, 'messages')}</label>
@@ -95,9 +157,22 @@ export default function Contact() {
                                     id="client_email"
                                     type="email"
                                     value={data.client_email}
-                                    onChange={e => setData('client_email', e.target.value)}
-                                    className="w-full px-4 py-3 border border-secondary-200 rounded-2xl text-sm bg-surface focus:bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 transition-colors"
+                                    onChange={e => {
+                                        setData('client_email', e.target.value)
+                                        if (clientErrors.client_email) setClientErrors(prev => ({ ...prev, client_email: null }))
+                                    }}
+                                    dir="ltr"
+                                    aria-invalid={(clientErrors.client_email || errors.client_email) ? 'true' : 'false'}
+                                    aria-describedby={(clientErrors.client_email || errors.client_email) ? 'client_email_err' : undefined}
+                                    className={`w-full px-4 py-3 border rounded-2xl text-sm transition-colors ${
+                                        (clientErrors.client_email || errors.client_email)
+                                            ? 'border-red-500 bg-red-50/50 focus:ring-red-500/20'
+                                            : 'border-secondary-200 bg-surface focus:bg-white focus:ring-primary-900/20 focus:border-primary-900'
+                                    }`}
                                 />
+                                {(clientErrors.client_email || errors.client_email) && (
+                                    <p id="client_email_err" role="alert" className="text-xs text-red-600 font-medium mt-1.5">{clientErrors.client_email || errors.client_email}</p>
+                                )}
                             </div>
                         </div>
 
@@ -106,12 +181,23 @@ export default function Contact() {
                             <textarea
                                 id="content"
                                 value={data.content}
-                                onChange={e => setData('content', e.target.value)}
+                                onChange={e => {
+                                    setData('content', e.target.value)
+                                    if (clientErrors.content) setClientErrors(prev => ({ ...prev, content: null }))
+                                }}
                                 required
                                 rows={5}
-                                className="w-full px-4 py-3 border border-secondary-200 rounded-2xl text-sm bg-surface focus:bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 transition-colors resize-y"
+                                aria-invalid={(clientErrors.content || errors.content) ? 'true' : 'false'}
+                                aria-describedby={(clientErrors.content || errors.content) ? 'content_err' : undefined}
+                                className={`w-full px-4 py-3 border rounded-2xl text-sm transition-colors resize-y ${
+                                    (clientErrors.content || errors.content)
+                                        ? 'border-red-500 bg-red-50/50 focus:ring-red-500/20'
+                                        : 'border-secondary-200 bg-surface focus:bg-white focus:ring-primary-900/20 focus:border-primary-900'
+                                }`}
                             />
-                            {errors.content && <p className="text-xs text-red-600 font-medium mt-1.5">{errors.content}</p>}
+                            {(clientErrors.content || errors.content) && (
+                                <p id="content_err" role="alert" className="text-xs text-red-600 font-medium mt-1.5">{clientErrors.content || errors.content}</p>
+                            )}
                         </div>
 
                         <button

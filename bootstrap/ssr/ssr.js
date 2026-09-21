@@ -100,6 +100,486 @@ var safeStorage = {
 	}
 };
 //#endregion
+//#region resources/js/Components/UI/InputField.jsx
+function InputField({ id, name, label, type = "text", value, onChange, placeholder, required = false, autoComplete, dir }) {
+	const generatedId = useId();
+	const { errors } = usePage().props;
+	const error = errors[name];
+	const inputDir = dir || (type === "email" || type === "password" ? "ltr" : void 0);
+	const inputId = id || (name ? `${name}-${generatedId}` : generatedId);
+	return /* @__PURE__ */ jsxs("div", {
+		className: "mb-4",
+		children: [
+			label && /* @__PURE__ */ jsxs("label", {
+				htmlFor: inputId,
+				className: "block text-sm font-medium text-secondary-950 mb-1",
+				children: [label, required && /* @__PURE__ */ jsx("span", {
+					className: "text-primary-900 me-1",
+					children: "*"
+				})]
+			}),
+			/* @__PURE__ */ jsx("input", {
+				id: inputId,
+				name,
+				type,
+				value,
+				onChange,
+				placeholder,
+				autoComplete,
+				dir: inputDir,
+				"aria-invalid": error ? "true" : "false",
+				"aria-describedby": error ? `${inputId}-error` : void 0,
+				className: `w-full px-4 py-3 border rounded-xl text-sm transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-primary-900/10 focus:border-primary-900 shadow-sm ${error ? "border-error bg-error/5 text-error" : "border-border bg-white hover:border-secondary-300 hover:bg-surface-hover/50 text-secondary-950"}`
+			}),
+			error && /* @__PURE__ */ jsx("p", {
+				id: `${inputId}-error`,
+				role: "alert",
+				className: "mt-1 text-xs text-error rtl:text-right",
+				children: error
+			})
+		]
+	});
+}
+//#endregion
+//#region resources/js/Components/UI/Button.jsx
+function Button({ children, type = "submit", variant = "primary", disabled = false, className = "", onClick }) {
+	return /* @__PURE__ */ jsx("button", {
+		type,
+		disabled,
+		onClick,
+		className: `w-full inline-flex justify-center items-center px-5 py-3 rounded-xl text-sm font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none ${{
+			primary: "bg-primary-900 text-white hover:bg-primary-950 hover:shadow-lg hover:-translate-y-0.5 focus:ring-primary-900",
+			secondary: "bg-white text-secondary-950 border border-border hover:bg-surface-hover hover:shadow-sm focus:ring-secondary-300",
+			ghost: "bg-transparent text-secondary-700 hover:bg-surface-hover hover:text-secondary-950 focus:ring-secondary-200"
+		}[variant]} ${className}`,
+		children
+	});
+}
+//#endregion
+//#region resources/js/Components/UI/SkeletonRow.jsx
+function SkeletonRow({ cols }) {
+	return /* @__PURE__ */ jsx("tr", {
+		className: "border-t border-secondary-100",
+		children: Array.from({ length: cols }).map((_, i) => /* @__PURE__ */ jsx("td", {
+			className: "px-4 py-3",
+			children: /* @__PURE__ */ jsx("div", {
+				className: "h-4 bg-secondary-200 rounded animate-pulse",
+				style: { width: `${60 + Math.random() * 30}%` }
+			})
+		}, i))
+	});
+}
+//#endregion
+//#region resources/js/Components/UI/Select.jsx
+function Select({ value, onChange, children, className = "", disabled = false, required = false, id, name, defaultValue, "aria-label": ariaLabel, variant = "default" }) {
+	const { locale } = usePage().props || {};
+	const trans = useTrans(locale);
+	const [isOpen, setIsOpen] = useState(false);
+	const [search, setSearch] = useState("");
+	const [focusedIndex, setFocusedIndex] = useState(-1);
+	const wrapperRef = useRef(null);
+	const triggerRef = useRef(null);
+	const searchInputRef = useRef(null);
+	const generatedId = useId();
+	const listboxId = `select-listbox-${id || name || generatedId}`;
+	const currentValue = value !== void 0 ? value : defaultValue;
+	useEffect(() => {
+		function handleClickOutside(event) {
+			if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+				setIsOpen(false);
+				setFocusedIndex(-1);
+			}
+		}
+		document.addEventListener("mousedown", handleClickOutside);
+		return () => document.removeEventListener("mousedown", handleClickOutside);
+	}, []);
+	useEffect(() => {
+		if (isOpen && searchInputRef.current) setTimeout(() => searchInputRef.current?.focus(), 50);
+	}, [isOpen]);
+	const options = [];
+	React.Children.forEach(children, (child) => {
+		if (!child) return;
+		if (Array.isArray(child)) child.forEach((c) => {
+			if (c && c.props) options.push({
+				value: c.props.value,
+				label: c.props.children
+			});
+		});
+		else if (child.type === "option" || child.props?.value !== void 0) options.push({
+			value: child.props.value,
+			label: child.props.children
+		});
+	});
+	const filteredOptions = options.filter((opt) => {
+		if (!search) return true;
+		return (typeof opt.label === "string" ? opt.label : String(opt.label || "")).toLowerCase().includes(search.toLowerCase());
+	});
+	const selectedOption = options.find((opt) => String(opt.value) === String(currentValue)) || options[0];
+	const showSearch = options.length > 10;
+	const handleSelect = (val) => {
+		if (onChange) onChange({
+			target: {
+				value: val,
+				name
+			},
+			preventDefault: () => {},
+			stopPropagation: () => {}
+		});
+		setIsOpen(false);
+		setSearch("");
+		setFocusedIndex(-1);
+		triggerRef.current?.focus();
+	};
+	const handleKeyDown = (e) => {
+		if (disabled) return;
+		switch (e.key) {
+			case "ArrowDown":
+				e.preventDefault();
+				if (!isOpen) {
+					setIsOpen(true);
+					setFocusedIndex(0);
+				} else setFocusedIndex((prev) => prev < filteredOptions.length - 1 ? prev + 1 : 0);
+				break;
+			case "ArrowUp":
+				e.preventDefault();
+				if (!isOpen) {
+					setIsOpen(true);
+					setFocusedIndex(filteredOptions.length - 1);
+				} else setFocusedIndex((prev) => prev > 0 ? prev - 1 : filteredOptions.length - 1);
+				break;
+			case "Enter":
+			case " ":
+				if (isOpen && focusedIndex >= 0 && focusedIndex < filteredOptions.length) {
+					e.preventDefault();
+					handleSelect(filteredOptions[focusedIndex].value);
+				} else if (!isOpen) {
+					e.preventDefault();
+					setIsOpen(true);
+				}
+				break;
+			case "Escape":
+				if (isOpen) {
+					e.preventDefault();
+					setIsOpen(false);
+					setFocusedIndex(-1);
+					triggerRef.current?.focus();
+				}
+				break;
+			case "Tab":
+				if (isOpen) {
+					setIsOpen(false);
+					setFocusedIndex(-1);
+				}
+				break;
+			default: break;
+		}
+	};
+	const activeDescendantId = isOpen && focusedIndex >= 0 && focusedIndex < filteredOptions.length ? `${listboxId}-opt-${focusedIndex}` : void 0;
+	return /* @__PURE__ */ jsxs("div", {
+		ref: wrapperRef,
+		className: `relative w-full ${isOpen ? "z-[100]" : "z-10"} ${className}`,
+		onKeyDown: handleKeyDown,
+		children: [
+			/* @__PURE__ */ jsxs("select", {
+				id: id ? `${id}-native` : name ? `${name}-native` : void 0,
+				className: "absolute inset-0 w-full h-full opacity-0 pointer-events-none -z-10",
+				value: currentValue,
+				name,
+				disabled,
+				required,
+				onChange: () => {},
+				tabIndex: -1,
+				"aria-hidden": "true",
+				children: [/* @__PURE__ */ jsx("option", { value: "" }), options.map((o) => /* @__PURE__ */ jsx("option", {
+					value: o.value,
+					children: o.label
+				}, o.value))]
+			}),
+			/* @__PURE__ */ jsxs("button", {
+				id: id || name,
+				ref: triggerRef,
+				type: "button",
+				disabled,
+				onClick: () => setIsOpen(!isOpen),
+				"aria-haspopup": "listbox",
+				"aria-expanded": isOpen,
+				"aria-controls": listboxId,
+				"aria-activedescendant": activeDescendantId,
+				"aria-label": ariaLabel || (typeof selectedOption?.label === "string" ? selectedOption.label : "Select option"),
+				className: `w-full h-full min-h-[44px] px-4 py-2.5 text-sm transition-colors duration-200 outline-none flex items-center justify-between disabled:opacity-50 disabled:cursor-not-allowed shadow-sm ${variant === "ghost" ? "bg-transparent border border-transparent rounded-xl hover:bg-surface-hover " + (isOpen ? "bg-surface-hover text-primary-900" : "") : "bg-white border border-border rounded-xl focus:ring-4 focus:ring-primary-900/10 focus:border-primary-900 hover:bg-surface-hover/50 hover:border-secondary-300 " + (isOpen ? "bg-white border-primary-900 ring-4 ring-primary-900/10" : "")} ${className}`,
+				style: { textAlign: "start" },
+				children: [/* @__PURE__ */ jsx("span", {
+					className: `truncate text-[14px] ${!selectedOption?.value && selectedOption?.value !== 0 ? "text-secondary-500" : "text-secondary-900 font-medium"}`,
+					children: selectedOption ? selectedOption.label : trans("select") || "Select..."
+				}), /* @__PURE__ */ jsx("svg", {
+					className: `w-4 h-4 text-secondary-500 transition-transform duration-200 shrink-0 ms-3 ${isOpen ? "rotate-180 text-primary-900" : ""}`,
+					fill: "none",
+					viewBox: "0 0 24 24",
+					stroke: "currentColor",
+					strokeWidth: 2,
+					"aria-hidden": "true",
+					children: /* @__PURE__ */ jsx("path", {
+						strokeLinecap: "round",
+						strokeLinejoin: "round",
+						d: "M19 9l-7 7-7-7"
+					})
+				})]
+			}),
+			/* @__PURE__ */ jsxs("div", {
+				className: `absolute z-[100] top-full left-0 right-0 w-full mt-2 bg-white rounded-2xl shadow-xl border border-border flex flex-col origin-top transition-[opacity,transform] duration-200 ease-out min-w-[160px] ${isOpen ? "opacity-100 scale-100 translate-y-0 pointer-events-auto" : "opacity-0 scale-95 -translate-y-1 pointer-events-none"}`,
+				style: { maxHeight: "300px" },
+				children: [showSearch && /* @__PURE__ */ jsx("div", {
+					className: "p-3 border-b border-secondary-100 shrink-0 bg-white rounded-t-2xl",
+					children: /* @__PURE__ */ jsxs("div", {
+						className: "relative",
+						children: [/* @__PURE__ */ jsx("svg", {
+							className: "w-4 h-4 absolute start-3 top-1/2 -translate-y-1/2 text-secondary-400 pointer-events-none",
+							fill: "none",
+							viewBox: "0 0 24 24",
+							stroke: "currentColor",
+							"aria-hidden": "true",
+							children: /* @__PURE__ */ jsx("path", {
+								strokeLinecap: "round",
+								strokeLinejoin: "round",
+								strokeWidth: 2,
+								d: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+							})
+						}), /* @__PURE__ */ jsx("input", {
+							ref: searchInputRef,
+							type: "text",
+							value: search,
+							onChange: (e) => setSearch(e.target.value),
+							placeholder: trans("search") || "Search...",
+							"aria-label": trans("filter_options") || "Filter options",
+							className: "w-full ps-9 pe-3 py-2.5 bg-surface border border-border rounded-xl text-sm text-secondary-900 focus:ring-2 focus:ring-primary-900/10 focus:bg-white focus:border-primary-900 transition-colors outline-none",
+							onClick: (e) => e.stopPropagation()
+						})]
+					})
+				}), /* @__PURE__ */ jsx("div", {
+					id: listboxId,
+					role: "listbox",
+					tabIndex: -1,
+					"aria-label": ariaLabel || trans("options") || "Options",
+					className: "overflow-y-auto p-2 custom-scrollbar",
+					children: filteredOptions.length === 0 ? /* @__PURE__ */ jsx("div", {
+						className: "px-4 py-6 text-sm text-secondary-500 text-center font-medium",
+						role: "option",
+						"aria-selected": "false",
+						children: trans("no_results") || "No results found"
+					}) : filteredOptions.map((opt, idx) => {
+						const isSelected = String(opt.value) === String(currentValue);
+						const isKeyboardFocused = idx === focusedIndex;
+						return /* @__PURE__ */ jsxs("button", {
+							id: `${listboxId}-opt-${idx}`,
+							type: "button",
+							role: "option",
+							"aria-selected": isSelected,
+							onClick: (e) => {
+								e.preventDefault();
+								handleSelect(opt.value);
+							},
+							className: `w-full text-start px-4 py-3 rounded-xl text-[15px] transition-colors duration-150 flex items-center justify-between mb-1 last:mb-0 outline-none focus:ring-2 focus:ring-primary-900/20 ${isSelected ? "bg-primary-50 text-primary-900 font-semibold" : isKeyboardFocused ? "bg-surface text-secondary-950 font-medium" : "text-secondary-800 hover:bg-surface-hover hover:text-secondary-950"}`,
+							children: [/* @__PURE__ */ jsx("span", {
+								className: "truncate",
+								children: opt.label
+							}), isSelected && /* @__PURE__ */ jsx("svg", {
+								className: "w-5 h-5 text-primary-900 shrink-0 ms-3",
+								fill: "none",
+								viewBox: "0 0 24 24",
+								stroke: "currentColor",
+								strokeWidth: 2.5,
+								"aria-hidden": "true",
+								children: /* @__PURE__ */ jsx("path", {
+									strokeLinecap: "round",
+									strokeLinejoin: "round",
+									d: "M5 13l4 4L19 7"
+								})
+							})]
+						}, opt.value);
+					})
+				})]
+			})
+		]
+	});
+}
+//#endregion
+//#region resources/js/Components/UI/LazyMapEmbed.jsx
+function LazyMapEmbed({ latitude, longitude, locale = "ar", title = "Google Map Location", className = "" }) {
+	const [shouldLoad, setShouldLoad] = useState(false);
+	const containerRef = useRef(null);
+	useEffect(() => {
+		if (!containerRef.current || typeof IntersectionObserver === "undefined") {
+			setShouldLoad(true);
+			return;
+		}
+		const observer = new IntersectionObserver(([entry]) => {
+			if (entry.isIntersecting && entry.intersectionRatio > 0) {
+				setShouldLoad(true);
+				observer.disconnect();
+			}
+		}, { rootMargin: "250px 0px" });
+		observer.observe(containerRef.current);
+		return () => observer.disconnect();
+	}, []);
+	if (!latitude || !longitude || latitude === "0" || longitude === "0") return null;
+	const mapSrc = `https://maps.google.com/maps?q=${latitude},${longitude}&hl=${locale}&z=14&output=embed`;
+	return /* @__PURE__ */ jsx("div", {
+		ref: containerRef,
+		className: `relative w-full aspect-[16/9] rounded-xl overflow-hidden bg-secondary-100 border border-secondary-200 ${className}`,
+		children: shouldLoad ? /* @__PURE__ */ jsx("iframe", {
+			src: mapSrc,
+			className: "w-full h-full border-0 animate-fade-in",
+			allowFullScreen: true,
+			loading: "lazy",
+			referrerPolicy: "no-referrer-when-downgrade",
+			title
+		}) : /* @__PURE__ */ jsxs("div", {
+			className: "absolute inset-0 flex flex-col items-center justify-center gap-2 text-secondary-400 bg-secondary-50",
+			children: [/* @__PURE__ */ jsxs("svg", {
+				className: "w-8 h-8 text-secondary-300 animate-pulse",
+				fill: "none",
+				viewBox: "0 0 24 24",
+				stroke: "currentColor",
+				children: [/* @__PURE__ */ jsx("path", {
+					strokeLinecap: "round",
+					strokeLinejoin: "round",
+					strokeWidth: 1.5,
+					d: "M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"
+				}), /* @__PURE__ */ jsx("path", {
+					strokeLinecap: "round",
+					strokeLinejoin: "round",
+					strokeWidth: 1.5,
+					d: "M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
+				})]
+			}), /* @__PURE__ */ jsx("span", {
+				className: "text-xs font-semibold text-secondary-400",
+				children: locale === "ar" ? "جارٍ تحميل الخريطة..." : "Loading map..."
+			})]
+		})
+	});
+}
+//#endregion
+//#region resources/js/Components/UI/WhatsAppIcon.jsx
+function WhatsAppIcon({ className = "w-5 h-5", "aria-hidden": ariaHidden = true, ...props }) {
+	return /* @__PURE__ */ jsx("svg", {
+		className,
+		fill: "currentColor",
+		viewBox: "0 0 24 24",
+		"aria-hidden": ariaHidden,
+		...props,
+		children: /* @__PURE__ */ jsx("path", { d: "M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0012.04 2zm.01 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 012.41 5.83c0 4.54-3.7 8.24-8.24 8.24-1.42 0-2.82-.37-4.06-1.07l-.29-.17-3.12.82.83-3.04-.19-.3a8.216 8.216 0 01-1.26-4.48c0-4.54 3.7-8.24 8.24-8.24zm4.52 11.66c-.25-.13-1.47-.72-1.7-.81-.23-.08-.39-.13-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.13-1.06-.39-2.03-1.25-.75-.67-1.26-1.5-1.41-1.75-.14-.25-.02-.39.11-.51.11-.11.25-.29.37-.44.13-.14.17-.25.25-.42.08-.17.04-.31-.02-.44s-.56-1.35-.77-1.85c-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1 0 1.24.9 2.44 1.03 2.61.13.17 1.77 2.7 4.29 3.79.6.26 1.07.41 1.44.53.6.19 1.15.16 1.59.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.14-1.18-.06-.1-.22-.16-.47-.29z" })
+	});
+}
+//#endregion
+//#region resources/js/Components/UI/ConfirmationModal.jsx
+function ConfirmationModal({ isOpen, title, message, confirmLabel, cancelLabel, variant = "danger", onConfirm, onCancel, isLoading = false }) {
+	useEffect(() => {
+		if (!isOpen) return;
+		function handleKeyDown(e) {
+			if (e.key === "Escape") onCancel?.();
+		}
+		window.addEventListener("keydown", handleKeyDown);
+		document.body.style.overflow = "hidden";
+		return () => {
+			window.removeEventListener("keydown", handleKeyDown);
+			document.body.style.overflow = "unset";
+		};
+	}, [isOpen, onCancel]);
+	if (!isOpen) return null;
+	const isDanger = variant === "danger";
+	return /* @__PURE__ */ jsxs("div", {
+		className: "fixed inset-0 z-[60] overflow-y-auto",
+		role: "dialog",
+		"aria-modal": "true",
+		"aria-labelledby": "modal-title",
+		"aria-describedby": "modal-description",
+		children: [/* @__PURE__ */ jsx("div", {
+			className: "fixed inset-0 bg-secondary-950/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200",
+			onClick: onCancel
+		}), /* @__PURE__ */ jsx("div", {
+			className: "flex min-h-full items-center justify-center p-4 text-center sm:p-0",
+			children: /* @__PURE__ */ jsxs("div", {
+				className: "relative transform overflow-hidden rounded-2xl bg-white text-start shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-secondary-100 animate-in zoom-in-95 duration-200",
+				onClick: (e) => e.stopPropagation(),
+				children: [/* @__PURE__ */ jsx("div", {
+					className: "p-6",
+					children: /* @__PURE__ */ jsxs("div", {
+						className: "flex items-start gap-4",
+						children: [/* @__PURE__ */ jsx("div", {
+							className: `flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${isDanger ? "bg-red-50 text-red-600 border border-red-100" : "bg-primary-50 text-primary-900 border border-primary-100"}`,
+							children: isDanger ? /* @__PURE__ */ jsx("svg", {
+								className: "h-6 w-6",
+								fill: "none",
+								viewBox: "0 0 24 24",
+								stroke: "currentColor",
+								strokeWidth: 2,
+								children: /* @__PURE__ */ jsx("path", {
+									strokeLinecap: "round",
+									strokeLinejoin: "round",
+									d: "M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
+								})
+							}) : /* @__PURE__ */ jsx("svg", {
+								className: "h-6 w-6",
+								fill: "none",
+								viewBox: "0 0 24 24",
+								stroke: "currentColor",
+								strokeWidth: 2,
+								children: /* @__PURE__ */ jsx("path", {
+									strokeLinecap: "round",
+									strokeLinejoin: "round",
+									d: "M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"
+								})
+							})
+						}), /* @__PURE__ */ jsxs("div", {
+							className: "flex-1 mt-0.5",
+							children: [/* @__PURE__ */ jsx("h3", {
+								id: "modal-title",
+								className: "text-base sm:text-lg font-bold text-secondary-950",
+								children: title
+							}), /* @__PURE__ */ jsx("p", {
+								id: "modal-description",
+								className: "mt-2 text-sm text-secondary-500 leading-relaxed",
+								children: message
+							})]
+						})]
+					})
+				}), /* @__PURE__ */ jsxs("div", {
+					className: "bg-secondary-50/50 px-6 py-4 flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5 border-t border-secondary-100",
+					children: [/* @__PURE__ */ jsx("button", {
+						type: "button",
+						onClick: onCancel,
+						disabled: isLoading,
+						className: "w-full sm:w-auto px-4 py-2.5 rounded-xl border border-secondary-200 bg-white text-sm font-semibold text-secondary-700 hover:bg-secondary-50 focus:outline-none focus:ring-2 focus:ring-secondary-300 transition-colors disabled:opacity-50",
+						children: cancelLabel || "إلغاء"
+					}), /* @__PURE__ */ jsxs("button", {
+						type: "button",
+						onClick: onConfirm,
+						disabled: isLoading,
+						className: `w-full sm:w-auto px-5 py-2.5 rounded-xl text-sm font-bold text-white shadow-xs focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all flex items-center justify-center gap-2 disabled:opacity-50 ${isDanger ? "bg-red-600 hover:bg-red-700 focus:ring-red-600" : "bg-primary-900 hover:bg-primary-950 focus:ring-primary-900"}`,
+						children: [isLoading && /* @__PURE__ */ jsxs("svg", {
+							className: "animate-spin h-4 w-4 text-white",
+							fill: "none",
+							viewBox: "0 0 24 24",
+							children: [/* @__PURE__ */ jsx("circle", {
+								className: "opacity-25",
+								cx: "12",
+								cy: "12",
+								r: "10",
+								stroke: "currentColor",
+								strokeWidth: "4"
+							}), /* @__PURE__ */ jsx("path", {
+								className: "opacity-75",
+								fill: "currentColor",
+								d: "M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+							})]
+						}), /* @__PURE__ */ jsx("span", { children: confirmLabel || "تأكيد" })]
+					})]
+				})]
+			})
+		})]
+	});
+}
+//#endregion
 //#region resources/js/Components/Layout/AdminSidebar.jsx
 var NAV_GROUPS = [
 	{
@@ -289,6 +769,8 @@ function AdminSidebar({ children }) {
 	const [notifOpen, setNotifOpen] = useState(false);
 	const [recentNotifs, setRecentNotifs] = useState([]);
 	const [loadingNotifs, setLoadingNotifs] = useState(false);
+	const [confirmClearNotifs, setConfirmClearNotifs] = useState(false);
+	const [isClearingNotifs, setIsClearingNotifs] = useState(false);
 	const notifRef = useRef(null);
 	const notifsFetchedRef = useRef(false);
 	const prevNotifRef = useRef(initialCount || 0);
@@ -389,9 +871,16 @@ function AdminSidebar({ children }) {
 		});
 	}
 	function clearAllNotifs() {
-		if (!window.confirm(isRtl ? "هل أنت متأكد من حذف جميع الإشعارات؟" : "Are you sure you want to delete all notifications?")) return;
+		setConfirmClearNotifs(true);
+	}
+	function handleConfirmClearNotifs() {
+		setIsClearingNotifs(true);
 		router.delete("/admin/notifications/all/clear", {
 			preserveScroll: true,
+			onFinish: () => {
+				setIsClearingNotifs(false);
+				setConfirmClearNotifs(false);
+			},
 			onSuccess: () => {
 				setRecentNotifs([]);
 				setLiveNotifCount(0);
@@ -918,6 +1407,17 @@ function AdminSidebar({ children }) {
 						children
 					})
 				]
+			}),
+			/* @__PURE__ */ jsx(ConfirmationModal, {
+				isOpen: confirmClearNotifs,
+				title: trans("clear_all_notifications_title") || (isRtl ? "مسح جميع الإشعارات" : "Clear All Notifications"),
+				message: trans("clear_all_notifications_desc") || (isRtl ? "هل أنت متأكد من رغبتك في حذف جميع الإشعارات؟ لا يمكن التراجع عن هذا الإجراء." : "Are you sure you want to delete all notifications? This action cannot be undone."),
+				confirmLabel: trans("delete") || (isRtl ? "حذف" : "Delete"),
+				cancelLabel: trans("cancel") || (isRtl ? "إلغاء" : "Cancel"),
+				variant: "danger",
+				isLoading: isClearingNotifs,
+				onConfirm: handleConfirmClearNotifs,
+				onCancel: () => setConfirmClearNotifs(false)
 			})
 		]
 	});
@@ -2963,6 +3463,8 @@ function AdminAreasIndex({ areas, filters }) {
 	const isRtl = locale === "ar";
 	const [search, setSearch] = useState(filters.search || "");
 	const [status, setStatus] = useState(filters.status || "");
+	const [deletingArea, setDeletingArea] = useState(null);
+	const [isDeleting, setIsDeleting] = useState(false);
 	const searchTimeout = useRef(null);
 	useEffect(() => {
 		if (searchTimeout.current) clearTimeout(searchTimeout.current);
@@ -2979,7 +3481,18 @@ function AdminAreasIndex({ areas, filters }) {
 		return () => clearTimeout(searchTimeout.current);
 	}, [search, status]);
 	function handleDelete(area) {
-		if (confirm(trans("confirm_delete"))) router.delete(`/admin/areas/${area.id}`, { preserveScroll: true });
+		setDeletingArea(area);
+	}
+	function handleConfirmDelete() {
+		if (!deletingArea) return;
+		setIsDeleting(true);
+		router.delete(`/admin/areas/${deletingArea.id}`, {
+			preserveScroll: true,
+			onFinish: () => {
+				setIsDeleting(false);
+				setDeletingArea(null);
+			}
+		});
 	}
 	return /* @__PURE__ */ jsxs(AdminSidebar, { children: [/* @__PURE__ */ jsx(Head, { title: trans("sidebar_areas") + " — " + trans("app_name") }), /* @__PURE__ */ jsxs("div", {
 		dir: isRtl ? "rtl" : "ltr",
@@ -3273,375 +3786,20 @@ function AdminAreasIndex({ areas, filters }) {
 					className: `px-4 py-2 rounded-xl text-sm font-bold transition-all ${link.active ? "bg-[#CC0000] text-white" : !link.url ? "bg-transparent text-secondary-300 cursor-not-allowed" : "bg-white text-secondary-700 hover:bg-secondary-50 border border-secondary-200"}`,
 					children: link.label.replace(/&laquo;|&lsaquo;/g, "«").replace(/&raquo;|&rsaquo;/g, "»")
 				}, i))
+			}),
+			/* @__PURE__ */ jsx(ConfirmationModal, {
+				isOpen: !!deletingArea,
+				title: trans("confirm_delete_title"),
+				message: trans("confirm_delete_desc"),
+				confirmLabel: trans("delete"),
+				cancelLabel: trans("cancel"),
+				variant: "danger",
+				isLoading: isDeleting,
+				onConfirm: handleConfirmDelete,
+				onCancel: () => setDeletingArea(null)
 			})
 		]
 	})] });
-}
-//#endregion
-//#region resources/js/Components/UI/InputField.jsx
-function InputField({ id, name, label, type = "text", value, onChange, placeholder, required = false, autoComplete, dir }) {
-	const { errors } = usePage().props;
-	const error = errors[name];
-	const inputDir = dir || (type === "email" || type === "password" ? "ltr" : void 0);
-	const inputId = id || name;
-	return /* @__PURE__ */ jsxs("div", {
-		className: "mb-4",
-		children: [
-			label && /* @__PURE__ */ jsxs("label", {
-				htmlFor: inputId,
-				className: "block text-sm font-medium text-secondary-950 mb-1",
-				children: [label, required && /* @__PURE__ */ jsx("span", {
-					className: "text-primary-900 me-1",
-					children: "*"
-				})]
-			}),
-			/* @__PURE__ */ jsx("input", {
-				id: inputId,
-				name,
-				type,
-				value,
-				onChange,
-				placeholder,
-				autoComplete,
-				dir: inputDir,
-				className: `w-full px-4 py-3 border rounded-xl text-sm transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-primary-900/10 focus:border-primary-900 shadow-sm ${error ? "border-error bg-error/5 text-error" : "border-border bg-white hover:border-secondary-300 hover:bg-surface-hover/50 text-secondary-950"}`
-			}),
-			error && /* @__PURE__ */ jsx("p", {
-				className: "mt-1 text-xs text-error rtl:text-right",
-				children: error
-			})
-		]
-	});
-}
-//#endregion
-//#region resources/js/Components/UI/Button.jsx
-function Button({ children, type = "submit", variant = "primary", disabled = false, className = "", onClick }) {
-	return /* @__PURE__ */ jsx("button", {
-		type,
-		disabled,
-		onClick,
-		className: `w-full inline-flex justify-center items-center px-5 py-3 rounded-xl text-sm font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none ${{
-			primary: "bg-primary-900 text-white hover:bg-primary-950 hover:shadow-lg hover:-translate-y-0.5 focus:ring-primary-900",
-			secondary: "bg-white text-secondary-950 border border-border hover:bg-surface-hover hover:shadow-sm focus:ring-secondary-300",
-			ghost: "bg-transparent text-secondary-700 hover:bg-surface-hover hover:text-secondary-950 focus:ring-secondary-200"
-		}[variant]} ${className}`,
-		children
-	});
-}
-//#endregion
-//#region resources/js/Components/UI/SkeletonRow.jsx
-function SkeletonRow({ cols }) {
-	return /* @__PURE__ */ jsx("tr", {
-		className: "border-t border-secondary-100",
-		children: Array.from({ length: cols }).map((_, i) => /* @__PURE__ */ jsx("td", {
-			className: "px-4 py-3",
-			children: /* @__PURE__ */ jsx("div", {
-				className: "h-4 bg-secondary-200 rounded animate-pulse",
-				style: { width: `${60 + Math.random() * 30}%` }
-			})
-		}, i))
-	});
-}
-//#endregion
-//#region resources/js/Components/UI/Select.jsx
-function Select({ value, onChange, children, className = "", disabled = false, required = false, id, name, defaultValue, "aria-label": ariaLabel, variant = "default" }) {
-	const { locale } = usePage().props || {};
-	const trans = useTrans(locale);
-	const [isOpen, setIsOpen] = useState(false);
-	const [search, setSearch] = useState("");
-	const [focusedIndex, setFocusedIndex] = useState(-1);
-	const wrapperRef = useRef(null);
-	const triggerRef = useRef(null);
-	const searchInputRef = useRef(null);
-	const generatedId = useId();
-	const listboxId = `select-listbox-${id || name || generatedId}`;
-	const currentValue = value !== void 0 ? value : defaultValue;
-	useEffect(() => {
-		function handleClickOutside(event) {
-			if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
-				setIsOpen(false);
-				setFocusedIndex(-1);
-			}
-		}
-		document.addEventListener("mousedown", handleClickOutside);
-		return () => document.removeEventListener("mousedown", handleClickOutside);
-	}, []);
-	useEffect(() => {
-		if (isOpen && searchInputRef.current) setTimeout(() => searchInputRef.current?.focus(), 50);
-	}, [isOpen]);
-	const options = [];
-	React.Children.forEach(children, (child) => {
-		if (!child) return;
-		if (Array.isArray(child)) child.forEach((c) => {
-			if (c && c.props) options.push({
-				value: c.props.value,
-				label: c.props.children
-			});
-		});
-		else if (child.type === "option" || child.props?.value !== void 0) options.push({
-			value: child.props.value,
-			label: child.props.children
-		});
-	});
-	const filteredOptions = options.filter((opt) => {
-		if (!search) return true;
-		return (typeof opt.label === "string" ? opt.label : String(opt.label || "")).toLowerCase().includes(search.toLowerCase());
-	});
-	const selectedOption = options.find((opt) => String(opt.value) === String(currentValue)) || options[0];
-	const showSearch = options.length > 10;
-	const handleSelect = (val) => {
-		if (onChange) onChange({
-			target: {
-				value: val,
-				name
-			},
-			preventDefault: () => {},
-			stopPropagation: () => {}
-		});
-		setIsOpen(false);
-		setSearch("");
-		setFocusedIndex(-1);
-		triggerRef.current?.focus();
-	};
-	const handleKeyDown = (e) => {
-		if (disabled) return;
-		switch (e.key) {
-			case "ArrowDown":
-				e.preventDefault();
-				if (!isOpen) {
-					setIsOpen(true);
-					setFocusedIndex(0);
-				} else setFocusedIndex((prev) => prev < filteredOptions.length - 1 ? prev + 1 : 0);
-				break;
-			case "ArrowUp":
-				e.preventDefault();
-				if (!isOpen) {
-					setIsOpen(true);
-					setFocusedIndex(filteredOptions.length - 1);
-				} else setFocusedIndex((prev) => prev > 0 ? prev - 1 : filteredOptions.length - 1);
-				break;
-			case "Enter":
-			case " ":
-				if (isOpen && focusedIndex >= 0 && focusedIndex < filteredOptions.length) {
-					e.preventDefault();
-					handleSelect(filteredOptions[focusedIndex].value);
-				} else if (!isOpen) {
-					e.preventDefault();
-					setIsOpen(true);
-				}
-				break;
-			case "Escape":
-				if (isOpen) {
-					e.preventDefault();
-					setIsOpen(false);
-					setFocusedIndex(-1);
-					triggerRef.current?.focus();
-				}
-				break;
-			case "Tab":
-				if (isOpen) {
-					setIsOpen(false);
-					setFocusedIndex(-1);
-				}
-				break;
-			default: break;
-		}
-	};
-	const activeDescendantId = isOpen && focusedIndex >= 0 && focusedIndex < filteredOptions.length ? `${listboxId}-opt-${focusedIndex}` : void 0;
-	return /* @__PURE__ */ jsxs("div", {
-		ref: wrapperRef,
-		className: `relative w-full ${isOpen ? "z-[100]" : "z-10"} ${className}`,
-		onKeyDown: handleKeyDown,
-		children: [
-			/* @__PURE__ */ jsxs("select", {
-				id: id ? `${id}-native` : name ? `${name}-native` : void 0,
-				className: "absolute inset-0 w-full h-full opacity-0 pointer-events-none -z-10",
-				value: currentValue,
-				name,
-				disabled,
-				required,
-				onChange: () => {},
-				tabIndex: -1,
-				"aria-hidden": "true",
-				children: [/* @__PURE__ */ jsx("option", { value: "" }), options.map((o) => /* @__PURE__ */ jsx("option", {
-					value: o.value,
-					children: o.label
-				}, o.value))]
-			}),
-			/* @__PURE__ */ jsxs("button", {
-				id: id || name,
-				ref: triggerRef,
-				type: "button",
-				disabled,
-				onClick: () => setIsOpen(!isOpen),
-				"aria-haspopup": "listbox",
-				"aria-expanded": isOpen,
-				"aria-controls": listboxId,
-				"aria-activedescendant": activeDescendantId,
-				"aria-label": ariaLabel || (typeof selectedOption?.label === "string" ? selectedOption.label : "Select option"),
-				className: `w-full h-full min-h-[44px] px-4 py-2.5 text-sm transition-colors duration-200 outline-none flex items-center justify-between disabled:opacity-50 disabled:cursor-not-allowed shadow-sm ${variant === "ghost" ? "bg-transparent border border-transparent rounded-xl hover:bg-surface-hover " + (isOpen ? "bg-surface-hover text-primary-900" : "") : "bg-white border border-border rounded-xl focus:ring-4 focus:ring-primary-900/10 focus:border-primary-900 hover:bg-surface-hover/50 hover:border-secondary-300 " + (isOpen ? "bg-white border-primary-900 ring-4 ring-primary-900/10" : "")} ${className}`,
-				style: { textAlign: "start" },
-				children: [/* @__PURE__ */ jsx("span", {
-					className: `truncate text-[14px] ${!selectedOption?.value && selectedOption?.value !== 0 ? "text-secondary-500" : "text-secondary-900 font-medium"}`,
-					children: selectedOption ? selectedOption.label : trans("select") || "Select..."
-				}), /* @__PURE__ */ jsx("svg", {
-					className: `w-4 h-4 text-secondary-500 transition-transform duration-200 shrink-0 ms-3 ${isOpen ? "rotate-180 text-primary-900" : ""}`,
-					fill: "none",
-					viewBox: "0 0 24 24",
-					stroke: "currentColor",
-					strokeWidth: 2,
-					"aria-hidden": "true",
-					children: /* @__PURE__ */ jsx("path", {
-						strokeLinecap: "round",
-						strokeLinejoin: "round",
-						d: "M19 9l-7 7-7-7"
-					})
-				})]
-			}),
-			/* @__PURE__ */ jsxs("div", {
-				className: `absolute z-[100] top-full left-0 right-0 w-full mt-2 bg-white rounded-2xl shadow-xl border border-border flex flex-col origin-top transition-[opacity,transform] duration-200 ease-out min-w-[160px] ${isOpen ? "opacity-100 scale-100 translate-y-0 pointer-events-auto" : "opacity-0 scale-95 -translate-y-1 pointer-events-none"}`,
-				style: { maxHeight: "300px" },
-				children: [showSearch && /* @__PURE__ */ jsx("div", {
-					className: "p-3 border-b border-secondary-100 shrink-0 bg-white rounded-t-2xl",
-					children: /* @__PURE__ */ jsxs("div", {
-						className: "relative",
-						children: [/* @__PURE__ */ jsx("svg", {
-							className: "w-4 h-4 absolute start-3 top-1/2 -translate-y-1/2 text-secondary-400 pointer-events-none",
-							fill: "none",
-							viewBox: "0 0 24 24",
-							stroke: "currentColor",
-							"aria-hidden": "true",
-							children: /* @__PURE__ */ jsx("path", {
-								strokeLinecap: "round",
-								strokeLinejoin: "round",
-								strokeWidth: 2,
-								d: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-							})
-						}), /* @__PURE__ */ jsx("input", {
-							ref: searchInputRef,
-							type: "text",
-							value: search,
-							onChange: (e) => setSearch(e.target.value),
-							placeholder: trans("search") || "Search...",
-							"aria-label": trans("filter_options") || "Filter options",
-							className: "w-full ps-9 pe-3 py-2.5 bg-surface border border-border rounded-xl text-sm text-secondary-900 focus:ring-2 focus:ring-primary-900/10 focus:bg-white focus:border-primary-900 transition-colors outline-none",
-							onClick: (e) => e.stopPropagation()
-						})]
-					})
-				}), /* @__PURE__ */ jsx("div", {
-					id: listboxId,
-					role: "listbox",
-					tabIndex: -1,
-					"aria-label": ariaLabel || trans("options") || "Options",
-					className: "overflow-y-auto p-2 custom-scrollbar",
-					children: filteredOptions.length === 0 ? /* @__PURE__ */ jsx("div", {
-						className: "px-4 py-6 text-sm text-secondary-500 text-center font-medium",
-						role: "option",
-						"aria-selected": "false",
-						children: trans("no_results") || "No results found"
-					}) : filteredOptions.map((opt, idx) => {
-						const isSelected = String(opt.value) === String(currentValue);
-						const isKeyboardFocused = idx === focusedIndex;
-						return /* @__PURE__ */ jsxs("button", {
-							id: `${listboxId}-opt-${idx}`,
-							type: "button",
-							role: "option",
-							"aria-selected": isSelected,
-							onClick: (e) => {
-								e.preventDefault();
-								handleSelect(opt.value);
-							},
-							className: `w-full text-start px-4 py-3 rounded-xl text-[15px] transition-colors duration-150 flex items-center justify-between mb-1 last:mb-0 outline-none focus:ring-2 focus:ring-primary-900/20 ${isSelected ? "bg-primary-50 text-primary-900 font-semibold" : isKeyboardFocused ? "bg-surface text-secondary-950 font-medium" : "text-secondary-800 hover:bg-surface-hover hover:text-secondary-950"}`,
-							children: [/* @__PURE__ */ jsx("span", {
-								className: "truncate",
-								children: opt.label
-							}), isSelected && /* @__PURE__ */ jsx("svg", {
-								className: "w-5 h-5 text-primary-900 shrink-0 ms-3",
-								fill: "none",
-								viewBox: "0 0 24 24",
-								stroke: "currentColor",
-								strokeWidth: 2.5,
-								"aria-hidden": "true",
-								children: /* @__PURE__ */ jsx("path", {
-									strokeLinecap: "round",
-									strokeLinejoin: "round",
-									d: "M5 13l4 4L19 7"
-								})
-							})]
-						}, opt.value);
-					})
-				})]
-			})
-		]
-	});
-}
-//#endregion
-//#region resources/js/Components/UI/LazyMapEmbed.jsx
-function LazyMapEmbed({ latitude, longitude, locale = "ar", title = "Google Map Location", className = "" }) {
-	const [shouldLoad, setShouldLoad] = useState(false);
-	const containerRef = useRef(null);
-	useEffect(() => {
-		if (!containerRef.current || typeof IntersectionObserver === "undefined") {
-			setShouldLoad(true);
-			return;
-		}
-		const observer = new IntersectionObserver(([entry]) => {
-			if (entry.isIntersecting && entry.intersectionRatio > 0) {
-				setShouldLoad(true);
-				observer.disconnect();
-			}
-		}, { rootMargin: "250px 0px" });
-		observer.observe(containerRef.current);
-		return () => observer.disconnect();
-	}, []);
-	if (!latitude || !longitude || latitude === "0" || longitude === "0") return null;
-	const mapSrc = `https://maps.google.com/maps?q=${latitude},${longitude}&hl=${locale}&z=14&output=embed`;
-	return /* @__PURE__ */ jsx("div", {
-		ref: containerRef,
-		className: `relative w-full aspect-[16/9] rounded-xl overflow-hidden bg-secondary-100 border border-secondary-200 ${className}`,
-		children: shouldLoad ? /* @__PURE__ */ jsx("iframe", {
-			src: mapSrc,
-			className: "w-full h-full border-0 animate-fade-in",
-			allowFullScreen: true,
-			loading: "lazy",
-			referrerPolicy: "no-referrer-when-downgrade",
-			title
-		}) : /* @__PURE__ */ jsxs("div", {
-			className: "absolute inset-0 flex flex-col items-center justify-center gap-2 text-secondary-400 bg-secondary-50",
-			children: [/* @__PURE__ */ jsxs("svg", {
-				className: "w-8 h-8 text-secondary-300 animate-pulse",
-				fill: "none",
-				viewBox: "0 0 24 24",
-				stroke: "currentColor",
-				children: [/* @__PURE__ */ jsx("path", {
-					strokeLinecap: "round",
-					strokeLinejoin: "round",
-					strokeWidth: 1.5,
-					d: "M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"
-				}), /* @__PURE__ */ jsx("path", {
-					strokeLinecap: "round",
-					strokeLinejoin: "round",
-					strokeWidth: 1.5,
-					d: "M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
-				})]
-			}), /* @__PURE__ */ jsx("span", {
-				className: "text-xs font-semibold text-secondary-400",
-				children: locale === "ar" ? "جارٍ تحميل الخريطة..." : "Loading map..."
-			})]
-		})
-	});
-}
-//#endregion
-//#region resources/js/Components/UI/WhatsAppIcon.jsx
-function WhatsAppIcon({ className = "w-5 h-5", "aria-hidden": ariaHidden = true, ...props }) {
-	return /* @__PURE__ */ jsx("svg", {
-		className,
-		fill: "currentColor",
-		viewBox: "0 0 24 24",
-		"aria-hidden": ariaHidden,
-		...props,
-		children: /* @__PURE__ */ jsx("path", { d: "M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0012.04 2zm.01 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 012.41 5.83c0 4.54-3.7 8.24-8.24 8.24-1.42 0-2.82-.37-4.06-1.07l-.29-.17-3.12.82.83-3.04-.19-.3a8.216 8.216 0 01-1.26-4.48c0-4.54 3.7-8.24 8.24-8.24zm4.52 11.66c-.25-.13-1.47-.72-1.7-.81-.23-.08-.39-.13-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.13-1.06-.39-2.03-1.25-.75-.67-1.26-1.5-1.41-1.75-.14-.25-.02-.39.11-.51.11-.11.25-.29.37-.44.13-.14.17-.25.25-.42.08-.17.04-.31-.02-.44s-.56-1.35-.77-1.85c-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1 0 1.24.9 2.44 1.03 2.61.13.17 1.77 2.7 4.29 3.79.6.26 1.07.41 1.44.53.6.19 1.15.16 1.59.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.14-1.18-.06-.1-.22-.16-.47-.29z" })
-	});
 }
 //#endregion
 //#region resources/js/Utils/tiptapFontSize.js
@@ -4821,6 +4979,8 @@ function AdminArticlesIndex({ articles, categories, filters }) {
 	const isRtl = locale === "ar";
 	const [search, setSearch] = useState(filters?.search || "");
 	const [categoryFilter, setCategoryFilter] = useState(filters?.category_id || "");
+	const [deletingArticle, setDeletingArticle] = useState(null);
+	const [isDeleting, setIsDeleting] = useState(false);
 	function applyFilters() {
 		router.get("/admin/articles", {
 			search,
@@ -4833,8 +4993,19 @@ function AdminArticlesIndex({ articles, categories, filters }) {
 	function togglePublish(articleId) {
 		router.post(`/admin/articles/${articleId}/publish`, {}, { preserveScroll: true });
 	}
-	function confirmDelete(articleId) {
-		if (window.confirm(trans("confirm_delete"))) router.delete(`/admin/articles/${articleId}`, { preserveScroll: true });
+	function confirmDelete(article) {
+		setDeletingArticle(article);
+	}
+	function handleConfirmDelete() {
+		if (!deletingArticle) return;
+		setIsDeleting(true);
+		router.delete(`/admin/articles/${deletingArticle.id}`, {
+			preserveScroll: true,
+			onFinish: () => {
+				setIsDeleting(false);
+				setDeletingArticle(null);
+			}
+		});
 	}
 	const data = articles?.data || articles || [];
 	return /* @__PURE__ */ jsxs(AdminSidebar, { children: [/* @__PURE__ */ jsx(Head, { title: trans("blog") + " — " + trans("app_name") }), /* @__PURE__ */ jsxs("div", {
@@ -4984,7 +5155,7 @@ function AdminArticlesIndex({ articles, categories, filters }) {
 											children: a.is_published ? trans("unpublish") : trans("publish")
 										}),
 										/* @__PURE__ */ jsx("button", {
-											onClick: () => confirmDelete(a.id),
+											onClick: () => confirmDelete(a),
 											className: "text-xs px-2.5 py-1.5 rounded-lg bg-error/10 text-error hover:bg-error/20 font-medium transition-colors",
 											children: trans("delete")
 										})
@@ -4998,6 +5169,17 @@ function AdminArticlesIndex({ articles, categories, filters }) {
 						children: trans("no_data")
 					}) }) })]
 				})
+			}),
+			/* @__PURE__ */ jsx(ConfirmationModal, {
+				isOpen: !!deletingArticle,
+				title: trans("confirm_delete_title"),
+				message: trans("confirm_delete_desc"),
+				confirmLabel: trans("delete"),
+				cancelLabel: trans("cancel"),
+				variant: "danger",
+				isLoading: isDeleting,
+				onConfirm: handleConfirmDelete,
+				onCancel: () => setDeletingArticle(null)
 			})
 		]
 	})] });
@@ -5007,11 +5189,13 @@ function AdminArticlesIndex({ articles, categories, filters }) {
 var Knowledge_exports = /* @__PURE__ */ __exportAll({ default: () => AssistantKnowledgeIndex });
 function AssistantKnowledgeIndex({ items = [], stats = {}, filters = {} }) {
 	const { locale } = usePage().props;
-	useTrans(locale);
+	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
 	const [search, setSearch] = useState(filters.search || "");
 	const [selectedLocale, setSelectedLocale] = useState(filters.locale || "");
 	const [selectedType, setSelectedType] = useState(filters.type || "all");
+	const [deletingId, setDeletingId] = useState(null);
+	const [isDeleting, setIsDeleting] = useState(false);
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [editingItem, setEditingItem] = useState(null);
 	const [formData, setFormData] = useState({
@@ -5083,8 +5267,18 @@ function AssistantKnowledgeIndex({ items = [], stats = {}, filters = {} }) {
 		router.post(`/admin/assistant-knowledge/${id}/toggle`, {}, { preserveScroll: true });
 	}
 	function deleteItem(id) {
-		if (!confirm(isRtl ? "هل أنت متأكد من حذف هذا الرد من بنك المعرفة؟" : "Are you sure you want to delete this response?")) return;
-		router.delete(`/admin/assistant-knowledge/${id}`, { preserveScroll: true });
+		setDeletingId(id);
+	}
+	function handleConfirmDelete() {
+		if (!deletingId) return;
+		setIsDeleting(true);
+		router.delete(`/admin/assistant-knowledge/${deletingId}`, {
+			preserveScroll: true,
+			onFinish: () => {
+				setIsDeleting(false);
+				setDeletingId(null);
+			}
+		});
 	}
 	function clearCache() {
 		router.post("/admin/assistant-knowledge/clear-cache", {}, { preserveScroll: true });
@@ -5501,6 +5695,17 @@ function AssistantKnowledgeIndex({ items = [], stats = {}, filters = {} }) {
 						]
 					})]
 				})
+			}),
+			/* @__PURE__ */ jsx(ConfirmationModal, {
+				isOpen: !!deletingId,
+				title: trans("confirm_delete_title"),
+				message: trans("confirm_delete_desc"),
+				confirmLabel: trans("delete"),
+				cancelLabel: trans("cancel"),
+				variant: "danger",
+				isLoading: isDeleting,
+				onConfirm: handleConfirmDelete,
+				onCancel: () => setDeletingId(null)
 			})
 		]
 	})] });
@@ -5514,18 +5719,28 @@ function AssistantLeadsIndex({ leads }) {
 	const isRtl = locale === "ar";
 	auth?.user?.role;
 	const [selectedLead, setSelectedLead] = useState(null);
+	const [deletingLead, setDeletingLead] = useState(null);
+	const [isDeleting, setIsDeleting] = useState(false);
 	function markContacted(leadId) {
 		router.post(`/admin/assistant-leads/${leadId}/contacted`, {}, {
 			preserveScroll: true,
 			only: ["leads"]
 		});
 	}
-	function deleteLead(leadId) {
-		if (!confirm(trans("common.confirm_delete"))) return;
+	function handleDeleteClick(leadId) {
+		setDeletingLead(leadId);
+	}
+	function handleConfirmDelete() {
+		if (!deletingLead) return;
+		setIsDeleting(true);
 		setSelectedLead(null);
-		router.delete(`/admin/assistant-leads/${leadId}`, {
+		router.delete(`/admin/assistant-leads/${deletingLead}`, {
 			preserveScroll: true,
-			only: ["leads"]
+			only: ["leads"],
+			onFinish: () => {
+				setIsDeleting(false);
+				setDeletingLead(null);
+			}
 		});
 	}
 	const data = leads?.data || leads || [];
@@ -5534,9 +5749,28 @@ function AssistantLeadsIndex({ leads }) {
 		/* @__PURE__ */ jsxs("div", {
 			dir: isRtl ? "rtl" : "ltr",
 			className: "p-6",
-			children: [/* @__PURE__ */ jsx("h1", {
-				className: "text-2xl font-bold text-secondary-950 mb-6",
-				children: trans("sidebar_assistant_leads")
+			children: [/* @__PURE__ */ jsxs("div", {
+				className: "flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6",
+				children: [/* @__PURE__ */ jsx("h1", {
+					className: "text-2xl font-bold text-secondary-950",
+					children: trans("sidebar_assistant_leads")
+				}), /* @__PURE__ */ jsxs("a", {
+					href: "/admin/assistant-leads/export",
+					download: true,
+					className: "inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-secondary-900 hover:bg-secondary-950 text-white rounded-xl text-xs sm:text-sm font-semibold transition-all shadow-xs",
+					children: [/* @__PURE__ */ jsx("svg", {
+						className: "w-4 h-4",
+						fill: "none",
+						viewBox: "0 0 24 24",
+						stroke: "currentColor",
+						strokeWidth: 2,
+						children: /* @__PURE__ */ jsx("path", {
+							strokeLinecap: "round",
+							strokeLinejoin: "round",
+							d: "M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
+						})
+					}), /* @__PURE__ */ jsx("span", { children: trans("export_csv") })]
+				})]
 			}), /* @__PURE__ */ jsx("div", {
 				className: "bg-white rounded-xl shadow-card overflow-x-auto",
 				children: /* @__PURE__ */ jsxs("table", {
@@ -5748,7 +5982,7 @@ function AssistantLeadsIndex({ leads }) {
 					/* @__PURE__ */ jsxs("div", {
 						className: "p-6 border-t border-secondary-100 flex justify-between shrink-0",
 						children: [/* @__PURE__ */ jsx("button", {
-							onClick: () => deleteLead(selectedLead.id),
+							onClick: () => handleDeleteClick(selectedLead.id),
 							className: "px-4 py-2 text-rose-600 hover:bg-rose-50 rounded-lg text-sm font-medium transition-colors",
 							children: "حذف العميل"
 						}), /* @__PURE__ */ jsx("button", {
@@ -5759,6 +5993,17 @@ function AssistantLeadsIndex({ leads }) {
 					})
 				]
 			})
+		}),
+		/* @__PURE__ */ jsx(ConfirmationModal, {
+			isOpen: !!deletingLead,
+			title: trans("confirm_delete_title"),
+			message: trans("confirm_delete_desc"),
+			confirmLabel: trans("delete"),
+			cancelLabel: trans("cancel"),
+			variant: "danger",
+			isLoading: isDeleting,
+			onConfirm: handleConfirmDelete,
+			onCancel: () => setDeletingLead(null)
 		})
 	] });
 }
@@ -5770,6 +6015,8 @@ function AdminCategoriesIndex({ categories }) {
 	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
 	const [editingId, setEditingId] = useState(null);
+	const [deletingCategory, setDeletingCategory] = useState(null);
+	const [isDeleting, setIsDeleting] = useState(false);
 	const { data, setData, post, put, processing, errors, reset } = useForm({
 		name_ar: "",
 		name_en: ""
@@ -5796,150 +6043,175 @@ function AdminCategoriesIndex({ categories }) {
 			onSuccess: () => reset()
 		});
 	}
-	function confirmDelete(categoryId) {
-		if (window.confirm(trans("confirm_delete"))) router.delete(`/admin/categories/${categoryId}`, { preserveScroll: true });
+	function confirmDelete(category) {
+		setDeletingCategory(category);
+	}
+	function handleConfirmDelete() {
+		if (!deletingCategory) return;
+		setIsDeleting(true);
+		router.delete(`/admin/categories/${deletingCategory.id}`, {
+			preserveScroll: true,
+			onFinish: () => {
+				setIsDeleting(false);
+				setDeletingCategory(null);
+			}
+		});
 	}
 	return /* @__PURE__ */ jsxs(AdminSidebar, { children: [/* @__PURE__ */ jsx(Head, { title: trans("sidebar_categories") + " — " + trans("app_name") }), /* @__PURE__ */ jsxs("div", {
 		dir: isRtl ? "rtl" : "ltr",
 		className: "p-6",
-		children: [/* @__PURE__ */ jsx("div", {
-			className: "flex items-center justify-between mb-6",
-			children: /* @__PURE__ */ jsx("h1", {
-				className: "text-2xl font-bold text-secondary-950",
-				children: trans("sidebar_categories")
-			})
-		}), /* @__PURE__ */ jsxs("div", {
-			className: "grid grid-cols-1 lg:grid-cols-3 gap-6",
-			children: [/* @__PURE__ */ jsxs("div", {
-				className: "bg-white rounded-xl shadow-card p-6 h-fit",
-				children: [/* @__PURE__ */ jsx("h2", {
-					className: "text-lg font-semibold text-secondary-950 mb-4",
-					children: editingId ? trans("edit") : trans("create")
-				}), /* @__PURE__ */ jsxs("form", {
-					onSubmit: handleSubmit,
-					className: "space-y-4",
-					children: [
-						/* @__PURE__ */ jsxs("div", { children: [
-							/* @__PURE__ */ jsxs("label", {
-								className: "block text-sm font-medium text-secondary-950 mb-1",
-								children: [trans("name_ar"), " *"]
-							}),
-							/* @__PURE__ */ jsx("input", {
-								type: "text",
-								value: data.name_ar,
-								onChange: (e) => setData("name_ar", e.target.value),
-								required: true,
-								className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
-							}),
-							errors.name_ar && /* @__PURE__ */ jsx("p", {
-								className: "text-xs text-error mt-1",
-								children: errors.name_ar
-							})
-						] }),
-						/* @__PURE__ */ jsxs("div", { children: [
-							/* @__PURE__ */ jsxs("label", {
-								className: "block text-sm font-medium text-secondary-950 mb-1",
-								children: [trans("name_en"), " *"]
-							}),
-							/* @__PURE__ */ jsx("input", {
-								type: "text",
-								value: data.name_en,
-								onChange: (e) => setData("name_en", e.target.value),
-								required: true,
-								className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
-							}),
-							errors.name_en && /* @__PURE__ */ jsx("p", {
-								className: "text-xs text-error mt-1",
-								children: errors.name_en
-							})
-						] }),
-						/* @__PURE__ */ jsxs("div", {
-							className: "flex gap-3",
-							children: [/* @__PURE__ */ jsx("button", {
-								type: "submit",
-								disabled: processing,
-								className: "px-4 py-2 bg-primary-900 text-white rounded-lg text-sm font-medium hover:bg-primary-950 transition-colors disabled:opacity-50",
-								children: processing ? trans("loading") : editingId ? trans("update") : trans("save")
-							}), editingId && /* @__PURE__ */ jsx("button", {
-								type: "button",
-								onClick: cancelEdit,
-								className: "px-4 py-2 bg-surface text-secondary-700 rounded-lg text-sm font-medium hover:bg-secondary-200 transition-colors",
-								children: trans("cancel")
-							})]
-						})
-					]
-				})]
-			}), /* @__PURE__ */ jsx("div", {
-				className: "lg:col-span-2 bg-white rounded-xl shadow-card overflow-x-auto",
-				children: /* @__PURE__ */ jsxs("table", {
-					className: "w-full text-sm",
-					children: [/* @__PURE__ */ jsx("thead", { children: /* @__PURE__ */ jsxs("tr", {
-						className: "bg-surface text-secondary-700 text-start rtl:text-right",
-						children: [
-							/* @__PURE__ */ jsx("th", {
-								className: "px-4 py-3 font-medium",
-								children: "#"
-							}),
-							/* @__PURE__ */ jsx("th", {
-								className: "px-4 py-3 font-medium",
-								children: trans("name_ar")
-							}),
-							/* @__PURE__ */ jsx("th", {
-								className: "px-4 py-3 font-medium",
-								children: trans("name_en")
-							}),
-							/* @__PURE__ */ jsx("th", {
-								className: "px-4 py-3 font-medium",
-								children: trans("slug")
-							}),
-							/* @__PURE__ */ jsx("th", {
-								className: "px-4 py-3 font-medium",
-								children: trans("actions")
-							})
-						]
-					}) }), /* @__PURE__ */ jsx("tbody", { children: categories.length > 0 ? categories.map((c) => /* @__PURE__ */ jsxs("tr", {
-						className: "border-t border-secondary-100 hover:bg-surface/50 transition-colors",
-						children: [
-							/* @__PURE__ */ jsx("td", {
-								className: "px-4 py-3 text-muted text-xs",
-								children: c.id
-							}),
-							/* @__PURE__ */ jsx("td", {
-								className: "px-4 py-3 font-medium text-secondary-950",
-								children: c.name_ar
-							}),
-							/* @__PURE__ */ jsx("td", {
-								className: "px-4 py-3 text-secondary-700",
-								children: c.name_en
-							}),
-							/* @__PURE__ */ jsx("td", {
-								className: "px-4 py-3 text-xs text-muted",
-								children: c.slug
-							}),
-							/* @__PURE__ */ jsx("td", {
-								className: "px-4 py-3",
-								children: /* @__PURE__ */ jsxs("div", {
-									className: "flex gap-2 items-center",
-									children: [/* @__PURE__ */ jsx("button", {
-										onClick: () => startEdit(c),
-										className: "text-xs px-2 py-1 rounded bg-surface text-secondary-700 hover:bg-secondary-200 transition-colors",
-										children: trans("edit")
-									}), /* @__PURE__ */ jsx("button", {
-										onClick: () => confirmDelete(c.id),
-										className: "text-xs px-2 py-1 rounded bg-error/10 text-error hover:bg-error/20 transition-colors",
-										children: trans("delete")
-									})]
-								})
-							})
-						]
-					}, c.id)) : /* @__PURE__ */ jsx("tr", { children: /* @__PURE__ */ jsx("td", {
-						colSpan: 5,
-						className: "px-4 py-12 text-center text-muted",
-						children: trans("no_data")
-					}) }) })]
+		children: [
+			/* @__PURE__ */ jsx("div", {
+				className: "flex items-center justify-between mb-6",
+				children: /* @__PURE__ */ jsx("h1", {
+					className: "text-2xl font-bold text-secondary-950",
+					children: trans("sidebar_categories")
 				})
-			})]
-		})]
+			}),
+			/* @__PURE__ */ jsxs("div", {
+				className: "grid grid-cols-1 lg:grid-cols-3 gap-6",
+				children: [/* @__PURE__ */ jsxs("div", {
+					className: "bg-white rounded-xl shadow-card p-6 h-fit",
+					children: [/* @__PURE__ */ jsx("h2", {
+						className: "text-lg font-semibold text-secondary-950 mb-4",
+						children: editingId ? trans("edit") : trans("create")
+					}), /* @__PURE__ */ jsxs("form", {
+						onSubmit: handleSubmit,
+						className: "space-y-4",
+						children: [
+							/* @__PURE__ */ jsxs("div", { children: [
+								/* @__PURE__ */ jsxs("label", {
+									className: "block text-sm font-medium text-secondary-950 mb-1",
+									children: [trans("name_ar"), " *"]
+								}),
+								/* @__PURE__ */ jsx("input", {
+									type: "text",
+									value: data.name_ar,
+									onChange: (e) => setData("name_ar", e.target.value),
+									required: true,
+									className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
+								}),
+								errors.name_ar && /* @__PURE__ */ jsx("p", {
+									className: "text-xs text-error mt-1",
+									children: errors.name_ar
+								})
+							] }),
+							/* @__PURE__ */ jsxs("div", { children: [
+								/* @__PURE__ */ jsxs("label", {
+									className: "block text-sm font-medium text-secondary-950 mb-1",
+									children: [trans("name_en"), " *"]
+								}),
+								/* @__PURE__ */ jsx("input", {
+									type: "text",
+									value: data.name_en,
+									onChange: (e) => setData("name_en", e.target.value),
+									required: true,
+									className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900"
+								}),
+								errors.name_en && /* @__PURE__ */ jsx("p", {
+									className: "text-xs text-error mt-1",
+									children: errors.name_en
+								})
+							] }),
+							/* @__PURE__ */ jsxs("div", {
+								className: "flex gap-3",
+								children: [/* @__PURE__ */ jsx("button", {
+									type: "submit",
+									disabled: processing,
+									className: "px-4 py-2 bg-primary-900 text-white rounded-lg text-sm font-medium hover:bg-primary-950 transition-colors disabled:opacity-50",
+									children: processing ? trans("loading") : editingId ? trans("update") : trans("save")
+								}), editingId && /* @__PURE__ */ jsx("button", {
+									type: "button",
+									onClick: cancelEdit,
+									className: "px-4 py-2 bg-surface text-secondary-700 rounded-lg text-sm font-medium hover:bg-secondary-200 transition-colors",
+									children: trans("cancel")
+								})]
+							})
+						]
+					})]
+				}), /* @__PURE__ */ jsx("div", {
+					className: "lg:col-span-2 bg-white rounded-xl shadow-card overflow-x-auto",
+					children: /* @__PURE__ */ jsxs("table", {
+						className: "w-full text-sm",
+						children: [/* @__PURE__ */ jsx("thead", { children: /* @__PURE__ */ jsxs("tr", {
+							className: "bg-surface text-secondary-700 text-start rtl:text-right",
+							children: [
+								/* @__PURE__ */ jsx("th", {
+									className: "px-4 py-3 font-medium",
+									children: "#"
+								}),
+								/* @__PURE__ */ jsx("th", {
+									className: "px-4 py-3 font-medium",
+									children: trans("name_ar")
+								}),
+								/* @__PURE__ */ jsx("th", {
+									className: "px-4 py-3 font-medium",
+									children: trans("name_en")
+								}),
+								/* @__PURE__ */ jsx("th", {
+									className: "px-4 py-3 font-medium",
+									children: trans("slug")
+								}),
+								/* @__PURE__ */ jsx("th", {
+									className: "px-4 py-3 font-medium",
+									children: trans("actions")
+								})
+							]
+						}) }), /* @__PURE__ */ jsx("tbody", { children: categories.length > 0 ? categories.map((c) => /* @__PURE__ */ jsxs("tr", {
+							className: "border-t border-secondary-100 hover:bg-surface/50 transition-colors",
+							children: [
+								/* @__PURE__ */ jsx("td", {
+									className: "px-4 py-3 text-muted text-xs",
+									children: c.id
+								}),
+								/* @__PURE__ */ jsx("td", {
+									className: "px-4 py-3 font-medium text-secondary-950",
+									children: c.name_ar
+								}),
+								/* @__PURE__ */ jsx("td", {
+									className: "px-4 py-3 text-secondary-700",
+									children: c.name_en
+								}),
+								/* @__PURE__ */ jsx("td", {
+									className: "px-4 py-3 text-xs text-muted",
+									children: c.slug
+								}),
+								/* @__PURE__ */ jsx("td", {
+									className: "px-4 py-3",
+									children: /* @__PURE__ */ jsxs("div", {
+										className: "flex gap-2 items-center",
+										children: [/* @__PURE__ */ jsx("button", {
+											onClick: () => startEdit(c),
+											className: "text-xs px-2 py-1 rounded bg-surface text-secondary-700 hover:bg-secondary-200 transition-colors",
+											children: trans("edit")
+										}), /* @__PURE__ */ jsx("button", {
+											onClick: () => confirmDelete(c),
+											className: "text-xs px-2 py-1 rounded bg-error/10 text-error hover:bg-error/20 transition-colors",
+											children: trans("delete")
+										})]
+									})
+								})
+							]
+						}, c.id)) : /* @__PURE__ */ jsx("tr", { children: /* @__PURE__ */ jsx("td", {
+							colSpan: 5,
+							className: "px-4 py-12 text-center text-muted",
+							children: trans("no_data")
+						}) }) })]
+					})
+				})]
+			}),
+			/* @__PURE__ */ jsx(ConfirmationModal, {
+				isOpen: !!deletingCategory,
+				title: trans("confirm_delete_title"),
+				message: trans("confirm_delete_desc"),
+				confirmLabel: trans("delete"),
+				cancelLabel: trans("cancel"),
+				variant: "danger",
+				isLoading: isDeleting,
+				onConfirm: handleConfirmDelete,
+				onCancel: () => setDeletingCategory(null)
+			})
+		]
 	})] });
 }
 //#endregion
@@ -6515,6 +6787,8 @@ function AdminFeaturesIndex({ features }) {
 	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
 	const [editing, setEditing] = useState(null);
+	const [deletingFeature, setDeletingFeature] = useState(null);
+	const [isDeleting, setIsDeleting] = useState(false);
 	const { data, setData, post, put, delete: destroy, processing, reset } = useForm({
 		name_ar: "",
 		name_en: "",
@@ -6554,7 +6828,18 @@ function AdminFeaturesIndex({ features }) {
 		});
 	}
 	function handleDelete(feature) {
-		if (confirm(trans("confirm_delete") || "Are you sure you want to delete this item?")) destroy(`/admin/features/${feature.id}`, { preserveScroll: true });
+		setDeletingFeature(feature);
+	}
+	function handleConfirmDelete() {
+		if (!deletingFeature) return;
+		setIsDeleting(true);
+		destroy(`/admin/features/${deletingFeature.id}`, {
+			preserveScroll: true,
+			onFinish: () => {
+				setIsDeleting(false);
+				setDeletingFeature(null);
+			}
+		});
 	}
 	return /* @__PURE__ */ jsxs(AdminSidebar, { children: [/* @__PURE__ */ jsx(Head, { title: trans("sidebar_features") + " — " + trans("app_name") }), /* @__PURE__ */ jsxs("div", {
 		dir: isRtl ? "rtl" : "ltr",
@@ -6674,6 +6959,17 @@ function AdminFeaturesIndex({ features }) {
 						}, feature.id))]
 					})]
 				})
+			}),
+			/* @__PURE__ */ jsx(ConfirmationModal, {
+				isOpen: !!deletingFeature,
+				title: trans("confirm_delete_title"),
+				message: trans("confirm_delete_desc"),
+				confirmLabel: trans("delete"),
+				cancelLabel: trans("cancel"),
+				variant: "danger",
+				isLoading: isDeleting,
+				onConfirm: handleConfirmDelete,
+				onCancel: () => setDeletingFeature(null)
 			})
 		]
 	})] });
@@ -6686,6 +6982,8 @@ function AdminFinishingTypesIndex({ finishingTypes }) {
 	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
 	const [editing, setEditing] = useState(null);
+	const [deletingType, setDeletingType] = useState(null);
+	const [isDeleting, setIsDeleting] = useState(false);
 	const { data, setData, post, put, delete: destroy, processing, reset } = useForm({
 		name_ar: "",
 		name_en: ""
@@ -6723,7 +7021,18 @@ function AdminFinishingTypesIndex({ finishingTypes }) {
 		});
 	}
 	function handleDelete(finishingType) {
-		if (confirm(trans("confirm_delete") || "Are you sure you want to delete this item?")) destroy(`/admin/finishing-types/${finishingType.id}`, { preserveScroll: true });
+		setDeletingType(finishingType);
+	}
+	function handleConfirmDelete() {
+		if (!deletingType) return;
+		setIsDeleting(true);
+		destroy(`/admin/finishing-types/${deletingType.id}`, {
+			preserveScroll: true,
+			onFinish: () => {
+				setIsDeleting(false);
+				setDeletingType(null);
+			}
+		});
 	}
 	return /* @__PURE__ */ jsxs(AdminSidebar, { children: [/* @__PURE__ */ jsx(Head, { title: trans("sidebar_finishing_types") + " — " + trans("app_name") }), /* @__PURE__ */ jsxs("div", {
 		dir: isRtl ? "rtl" : "ltr",
@@ -6843,6 +7152,17 @@ function AdminFinishingTypesIndex({ finishingTypes }) {
 						}, type.id))]
 					})]
 				})
+			}),
+			/* @__PURE__ */ jsx(ConfirmationModal, {
+				isOpen: !!deletingType,
+				title: trans("confirm_delete_title"),
+				message: trans("confirm_delete_desc"),
+				confirmLabel: trans("delete"),
+				cancelLabel: trans("cancel"),
+				variant: "danger",
+				isLoading: isDeleting,
+				onConfirm: handleConfirmDelete,
+				onCancel: () => setDeletingType(null)
 			})
 		]
 	})] });
@@ -6858,7 +7178,8 @@ function AdminMessagesIndex({ messages, agents, filters }) {
 	const [statusFilter, setStatusFilter] = useState(filters?.status || "");
 	const [agentFilter, setAgentFilter] = useState(filters?.agent_id || "");
 	const [selectedMessage, setSelectedMessage] = useState(null);
-	const [deleting, setDeleting] = useState(false);
+	const [deletingMessage, setDeletingMessage] = useState(null);
+	const [isDeleting, setIsDeleting] = useState(false);
 	useEffect(() => {
 		const interval = setInterval(() => {
 			router.reload({
@@ -6883,12 +7204,20 @@ function AdminMessagesIndex({ messages, agents, filters }) {
 			only: ["messages"]
 		});
 	}
-	function deleteMessage(messageId) {
-		if (!confirm(trans("messages.confirm_delete"))) return;
+	function handleDeleteClick(messageId) {
+		setDeletingMessage(messageId);
+	}
+	function handleConfirmDelete() {
+		if (!deletingMessage) return;
+		setIsDeleting(true);
 		setSelectedMessage(null);
-		router.delete(`/admin/messages/${messageId}`, {
+		router.delete(`/admin/messages/${deletingMessage}`, {
 			preserveScroll: true,
-			only: ["messages"]
+			only: ["messages"],
+			onFinish: () => {
+				setIsDeleting(false);
+				setDeletingMessage(null);
+			}
 		});
 	}
 	const data = messages?.data || messages || [];
@@ -6898,9 +7227,28 @@ function AdminMessagesIndex({ messages, agents, filters }) {
 			dir: isRtl ? "rtl" : "ltr",
 			className: "p-6",
 			children: [
-				/* @__PURE__ */ jsx("h1", {
-					className: "text-2xl font-bold text-secondary-950 mb-6",
-					children: trans("sidebar_messages")
+				/* @__PURE__ */ jsxs("div", {
+					className: "flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6",
+					children: [/* @__PURE__ */ jsx("h1", {
+						className: "text-2xl font-bold text-secondary-950",
+						children: trans("sidebar_messages")
+					}), /* @__PURE__ */ jsxs("a", {
+						href: `/admin/messages/export?status=${encodeURIComponent(statusFilter)}&agent_id=${encodeURIComponent(agentFilter)}`,
+						download: true,
+						className: "inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-secondary-900 hover:bg-secondary-950 text-white rounded-xl text-xs sm:text-sm font-semibold transition-all shadow-xs",
+						children: [/* @__PURE__ */ jsx("svg", {
+							className: "w-4 h-4",
+							fill: "none",
+							viewBox: "0 0 24 24",
+							stroke: "currentColor",
+							strokeWidth: 2,
+							children: /* @__PURE__ */ jsx("path", {
+								strokeLinecap: "round",
+								strokeLinejoin: "round",
+								d: "M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
+							})
+						}), /* @__PURE__ */ jsx("span", { children: trans("export_csv") })]
+					})]
 				}),
 				/* @__PURE__ */ jsxs("div", {
 					className: "bg-white rounded-xl shadow-card p-4 mb-6 flex flex-wrap gap-3 items-end",
@@ -7151,10 +7499,9 @@ function AdminMessagesIndex({ messages, agents, filters }) {
 								children: trans("messages.mark_as_replied")
 							}),
 							isAdmin && /* @__PURE__ */ jsx("button", {
-								onClick: () => deleteMessage(selectedMessage.id),
-								disabled: deleting,
-								className: "px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50",
-								children: deleting ? trans("deleting") : trans("delete")
+								onClick: () => handleDeleteClick(selectedMessage.id),
+								className: "px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors",
+								children: trans("delete")
 							}),
 							/* @__PURE__ */ jsx("button", {
 								onClick: () => setSelectedMessage(null),
@@ -7165,6 +7512,17 @@ function AdminMessagesIndex({ messages, agents, filters }) {
 					})
 				]
 			})
+		}),
+		/* @__PURE__ */ jsx(ConfirmationModal, {
+			isOpen: !!deletingMessage,
+			title: trans("confirm_delete_title"),
+			message: trans("confirm_delete_desc"),
+			confirmLabel: trans("delete"),
+			cancelLabel: trans("cancel"),
+			variant: "danger",
+			isLoading: isDeleting,
+			onConfirm: handleConfirmDelete,
+			onCancel: () => setDeletingMessage(null)
 		})
 	] });
 }
@@ -10485,6 +10843,8 @@ function AdminProjectsIndex({ projects, stats, areas, filters }) {
 	const [projectList, setProjectList] = useState(projects?.data || []);
 	const [currentStats, setCurrentStats] = useState(stats || {});
 	const [togglingId, setTogglingId] = useState(null);
+	const [deletingProject, setDeletingProject] = useState(null);
+	const [isDeleting, setIsDeleting] = useState(false);
 	useEffect(() => {
 		setProjectList(projects?.data || []);
 	}, [projects?.data]);
@@ -10516,7 +10876,18 @@ function AdminProjectsIndex({ projects, stats, areas, filters }) {
 		router.get("/admin/projects", {}, { preserveState: true });
 	}
 	function deleteProject(project) {
-		if (confirm(trans("confirm_delete"))) router.delete(`/admin/projects/${project.id}`, { preserveScroll: true });
+		setDeletingProject(project);
+	}
+	function handleConfirmDelete() {
+		if (!deletingProject) return;
+		setIsDeleting(true);
+		router.delete(`/admin/projects/${deletingProject.id}`, {
+			preserveScroll: true,
+			onFinish: () => {
+				setIsDeleting(false);
+				setDeletingProject(null);
+			}
+		});
 	}
 	async function toggleActive(project) {
 		if (togglingId === project.id) return;
@@ -11203,6 +11574,17 @@ function AdminProjectsIndex({ projects, stats, areas, filters }) {
 						links: projects.links
 					})
 				})]
+			}),
+			/* @__PURE__ */ jsx(ConfirmationModal, {
+				isOpen: !!deletingProject,
+				title: trans("confirm_delete_title"),
+				message: trans("confirm_delete_desc"),
+				confirmLabel: trans("delete"),
+				cancelLabel: trans("cancel"),
+				variant: "danger",
+				isLoading: isDeleting,
+				onConfirm: handleConfirmDelete,
+				onCancel: () => setDeletingProject(null)
 			})
 		]
 	})] });
@@ -12119,6 +12501,8 @@ function AdminUnitTypesIndex({ unitTypes }) {
 	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
 	const [editing, setEditing] = useState(null);
+	const [deletingType, setDeletingType] = useState(null);
+	const [isDeleting, setIsDeleting] = useState(false);
 	const { data, setData, post, put, delete: destroy, processing, reset } = useForm({
 		name_ar: "",
 		name_en: "",
@@ -12160,7 +12544,18 @@ function AdminUnitTypesIndex({ unitTypes }) {
 		});
 	}
 	function handleDelete(type) {
-		if (confirm(trans("confirm_delete"))) destroy(`/admin/unit-types/${type.id}`, { preserveScroll: true });
+		setDeletingType(type);
+	}
+	function handleConfirmDelete() {
+		if (!deletingType) return;
+		setIsDeleting(true);
+		destroy(`/admin/unit-types/${deletingType.id}`, {
+			preserveScroll: true,
+			onFinish: () => {
+				setIsDeleting(false);
+				setDeletingType(null);
+			}
+		});
 	}
 	return /* @__PURE__ */ jsxs(AdminSidebar, { children: [/* @__PURE__ */ jsx(Head, { title: trans("sidebar_unit_types") + " — " + trans("app_name") }), /* @__PURE__ */ jsxs("div", {
 		dir: isRtl ? "rtl" : "ltr",
@@ -12326,6 +12721,17 @@ function AdminUnitTypesIndex({ unitTypes }) {
 						}, type.id))]
 					})]
 				})
+			}),
+			/* @__PURE__ */ jsx(ConfirmationModal, {
+				isOpen: !!deletingType,
+				title: trans("confirm_delete_title"),
+				message: trans("confirm_delete_desc"),
+				confirmLabel: trans("delete"),
+				cancelLabel: trans("cancel"),
+				variant: "danger",
+				isLoading: isDeleting,
+				onConfirm: handleConfirmDelete,
+				onCancel: () => setDeletingType(null)
 			})
 		]
 	})] });
@@ -12565,10 +12971,22 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 		setNewFiles((prev) => prev.filter((_, i) => i !== idx));
 		setNewPreviews((prev) => prev.filter((_, i) => i !== idx));
 	}
+	const [deletingImage, setDeletingImage] = useState(null);
+	const [isDeletingImage, setIsDeletingImage] = useState(false);
 	function deleteExistingImage(img) {
 		if (!unit?.id) return;
-		if (!confirm(locale === "ar" ? "هل تريد حذف هذه الصورة؟" : "Delete this image?")) return;
-		router.delete(`/admin/units/${unit.id}/images/${img.id}`, { preserveScroll: true });
+		setDeletingImage(img);
+	}
+	function handleConfirmDeleteImage() {
+		if (!deletingImage || !unit?.id) return;
+		setIsDeletingImage(true);
+		router.delete(`/admin/units/${unit.id}/images/${deletingImage.id}`, {
+			preserveScroll: true,
+			onFinish: () => {
+				setIsDeletingImage(false);
+				setDeletingImage(null);
+			}
+		});
 	}
 	function setExistingAsPrimary(img) {
 		if (!unit?.id) return;
@@ -13596,6 +14014,17 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 						]
 					})
 				]
+			}),
+			/* @__PURE__ */ jsx(ConfirmationModal, {
+				isOpen: !!deletingImage,
+				title: locale === "ar" ? "حذف الصورة" : "Delete Image",
+				message: locale === "ar" ? "هل تريد حذف هذه الصورة نهائياً؟ لا يمكن التراجع عن هذا الإجراء." : "Are you sure you want to delete this image? This action cannot be undone.",
+				confirmLabel: trans("delete"),
+				cancelLabel: trans("cancel"),
+				variant: "danger",
+				isLoading: isDeletingImage,
+				onConfirm: handleConfirmDeleteImage,
+				onCancel: () => setDeletingImage(null)
 			})
 		]
 	})] });
@@ -13611,6 +14040,8 @@ function AdminUnitsIndex({ units, stats, areas, unitTypes, filters, autoDeleteDa
 	const [unitList, setUnitList] = useState(units?.data || []);
 	const [currentStats, setCurrentStats] = useState(stats || {});
 	const [togglingMap, setTogglingMap] = useState({});
+	const [deletingUnit, setDeletingUnit] = useState(null);
+	const [isDeleting, setIsDeleting] = useState(false);
 	useEffect(() => {
 		setUnitList(units?.data || []);
 	}, [units?.data]);
@@ -13810,7 +14241,18 @@ function AdminUnitsIndex({ units, stats, areas, unitTypes, filters, autoDeleteDa
 		}
 	}
 	function deleteUnit(unit) {
-		if (confirm(trans("confirm_delete"))) router.delete(`/admin/units/${unit.id}`, { preserveScroll: true });
+		setDeletingUnit(unit);
+	}
+	function handleConfirmDelete() {
+		if (!deletingUnit) return;
+		setIsDeleting(true);
+		router.delete(`/admin/units/${deletingUnit.id}`, {
+			preserveScroll: true,
+			onFinish: () => {
+				setIsDeleting(false);
+				setDeletingUnit(null);
+			}
+		});
 	}
 	const loading = !units;
 	const hasUnits = unitList.length > 0;
@@ -14920,6 +15362,17 @@ function AdminUnitsIndex({ units, stats, areas, unitTypes, filters, autoDeleteDa
 						})
 					]
 				})
+			}),
+			/* @__PURE__ */ jsx(ConfirmationModal, {
+				isOpen: !!deletingUnit,
+				title: trans("confirm_delete_title"),
+				message: trans("confirm_delete_desc"),
+				confirmLabel: trans("delete"),
+				cancelLabel: trans("cancel"),
+				variant: "danger",
+				isLoading: isDeleting,
+				onConfirm: handleConfirmDelete,
+				onCancel: () => setDeletingUnit(null)
 			})
 		]
 	})] });
@@ -19969,6 +20422,7 @@ function Contact() {
 	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
 	const [sentSuccess, setSentSuccess] = useState(false);
+	const [clientErrors, setClientErrors] = useState({});
 	const { data, setData, post, processing, errors } = useForm({
 		client_name: "",
 		client_phone: "",
@@ -19976,9 +20430,30 @@ function Contact() {
 		content: ""
 	});
 	const [isSubmitting, setIsSubmitting] = useState(false);
+	function validateClient() {
+		const errs = {};
+		const name = (data.client_name || "").trim();
+		const phone = (data.client_phone || "").trim().replace(/[\s-]/g, "");
+		const email = (data.client_email || "").trim();
+		const content = (data.content || "").trim();
+		if (!name || name.length < 2) errs.client_name = isRtl ? "يرجى إدخال الاسم بالكامل" : "Please enter your full name";
+		if (!phone && !email) errs.client_phone = isRtl ? "يرجى كتابة رقم الهاتف أو البريد الإلكتروني للتواصل" : "Please provide either a phone number or email address";
+		else {
+			if (phone && !/^\+?[0-9]{7,16}$/.test(phone)) errs.client_phone = isRtl ? "رقم الهاتف غير صحيح" : "Invalid phone number format";
+			if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errs.client_email = isRtl ? "البريد الإلكتروني غير صحيح" : "Invalid email format";
+		}
+		if (!content || content.length < 5) errs.content = isRtl ? "يرجى كتابة تفاصيل رسالتك أو استفسارك (5 أحرف على الأقل)" : "Please enter your message (at least 5 characters)";
+		return errs;
+	}
 	function handleSubmit(e) {
 		e.preventDefault();
 		if (processing || isSubmitting) return;
+		const validation = validateClient();
+		if (Object.keys(validation).length > 0) {
+			setClientErrors(validation);
+			return;
+		}
+		setClientErrors({});
 		setIsSubmitting(true);
 		const submitUrl = window.location.pathname.startsWith("/en") ? "/en/contact" : window.location.pathname.startsWith("/ar") ? "/ar/contact" : "/contact";
 		post(submitUrl, {
@@ -19991,6 +20466,7 @@ function Contact() {
 					content: ""
 				});
 				setSentSuccess(true);
+				setClientErrors({});
 				setTimeout(() => setSentSuccess(false), 5e3);
 			},
 			onFinish: () => setIsSubmitting(false),
@@ -20059,39 +20535,85 @@ function Contact() {
 											id: "client_name",
 											type: "text",
 											value: data.client_name,
-											onChange: (e) => setData("client_name", e.target.value),
+											onChange: (e) => {
+												setData("client_name", e.target.value);
+												if (clientErrors.client_name) setClientErrors((prev) => ({
+													...prev,
+													client_name: null
+												}));
+											},
 											required: true,
-											className: "w-full px-4 py-3 border border-secondary-200 rounded-2xl text-sm bg-surface focus:bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 transition-colors"
+											"aria-invalid": clientErrors.client_name || errors.client_name ? "true" : "false",
+											"aria-describedby": clientErrors.client_name || errors.client_name ? "client_name_err" : void 0,
+											className: `w-full px-4 py-3 border rounded-2xl text-sm transition-colors ${clientErrors.client_name || errors.client_name ? "border-red-500 bg-red-50/50 focus:ring-red-500/20" : "border-secondary-200 bg-surface focus:bg-white focus:ring-primary-900/20 focus:border-primary-900"}`
 										}),
-										errors.client_name && /* @__PURE__ */ jsx("p", {
+										(clientErrors.client_name || errors.client_name) && /* @__PURE__ */ jsx("p", {
+											id: "client_name_err",
+											role: "alert",
 											className: "text-xs text-red-600 font-medium mt-1.5",
-											children: errors.client_name
+											children: clientErrors.client_name || errors.client_name
 										})
 									]
 								}),
 								/* @__PURE__ */ jsxs("div", {
 									className: "grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5",
-									children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
-										htmlFor: "client_phone",
-										className: "block text-sm font-bold text-secondary-950 mb-2",
-										children: trans("your_phone", {}, "messages")
-									}), /* @__PURE__ */ jsx("input", {
-										id: "client_phone",
-										type: "tel",
-										value: data.client_phone,
-										onChange: (e) => setData("client_phone", e.target.value),
-										className: "w-full px-4 py-3 border border-secondary-200 rounded-2xl text-sm bg-surface focus:bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 transition-colors"
-									})] }), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
-										htmlFor: "client_email",
-										className: "block text-sm font-bold text-secondary-950 mb-2",
-										children: trans("your_email", {}, "messages")
-									}), /* @__PURE__ */ jsx("input", {
-										id: "client_email",
-										type: "email",
-										value: data.client_email,
-										onChange: (e) => setData("client_email", e.target.value),
-										className: "w-full px-4 py-3 border border-secondary-200 rounded-2xl text-sm bg-surface focus:bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 transition-colors"
-									})] })]
+									children: [/* @__PURE__ */ jsxs("div", { children: [
+										/* @__PURE__ */ jsx("label", {
+											htmlFor: "client_phone",
+											className: "block text-sm font-bold text-secondary-950 mb-2",
+											children: trans("your_phone", {}, "messages")
+										}),
+										/* @__PURE__ */ jsx("input", {
+											id: "client_phone",
+											type: "tel",
+											value: data.client_phone,
+											onChange: (e) => {
+												setData("client_phone", e.target.value);
+												if (clientErrors.client_phone) setClientErrors((prev) => ({
+													...prev,
+													client_phone: null
+												}));
+											},
+											dir: "ltr",
+											"aria-invalid": clientErrors.client_phone || errors.client_phone ? "true" : "false",
+											"aria-describedby": clientErrors.client_phone || errors.client_phone ? "client_phone_err" : void 0,
+											className: `w-full px-4 py-3 border rounded-2xl text-sm transition-colors ${clientErrors.client_phone || errors.client_phone ? "border-red-500 bg-red-50/50 focus:ring-red-500/20" : "border-secondary-200 bg-surface focus:bg-white focus:ring-primary-900/20 focus:border-primary-900"}`
+										}),
+										(clientErrors.client_phone || errors.client_phone) && /* @__PURE__ */ jsx("p", {
+											id: "client_phone_err",
+											role: "alert",
+											className: "text-xs text-red-600 font-medium mt-1.5",
+											children: clientErrors.client_phone || errors.client_phone
+										})
+									] }), /* @__PURE__ */ jsxs("div", { children: [
+										/* @__PURE__ */ jsx("label", {
+											htmlFor: "client_email",
+											className: "block text-sm font-bold text-secondary-950 mb-2",
+											children: trans("your_email", {}, "messages")
+										}),
+										/* @__PURE__ */ jsx("input", {
+											id: "client_email",
+											type: "email",
+											value: data.client_email,
+											onChange: (e) => {
+												setData("client_email", e.target.value);
+												if (clientErrors.client_email) setClientErrors((prev) => ({
+													...prev,
+													client_email: null
+												}));
+											},
+											dir: "ltr",
+											"aria-invalid": clientErrors.client_email || errors.client_email ? "true" : "false",
+											"aria-describedby": clientErrors.client_email || errors.client_email ? "client_email_err" : void 0,
+											className: `w-full px-4 py-3 border rounded-2xl text-sm transition-colors ${clientErrors.client_email || errors.client_email ? "border-red-500 bg-red-50/50 focus:ring-red-500/20" : "border-secondary-200 bg-surface focus:bg-white focus:ring-primary-900/20 focus:border-primary-900"}`
+										}),
+										(clientErrors.client_email || errors.client_email) && /* @__PURE__ */ jsx("p", {
+											id: "client_email_err",
+											role: "alert",
+											className: "text-xs text-red-600 font-medium mt-1.5",
+											children: clientErrors.client_email || errors.client_email
+										})
+									] })]
 								}),
 								/* @__PURE__ */ jsxs("div", {
 									className: "mb-8",
@@ -20104,14 +20626,24 @@ function Contact() {
 										/* @__PURE__ */ jsx("textarea", {
 											id: "content",
 											value: data.content,
-											onChange: (e) => setData("content", e.target.value),
+											onChange: (e) => {
+												setData("content", e.target.value);
+												if (clientErrors.content) setClientErrors((prev) => ({
+													...prev,
+													content: null
+												}));
+											},
 											required: true,
 											rows: 5,
-											className: "w-full px-4 py-3 border border-secondary-200 rounded-2xl text-sm bg-surface focus:bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 transition-colors resize-y"
+											"aria-invalid": clientErrors.content || errors.content ? "true" : "false",
+											"aria-describedby": clientErrors.content || errors.content ? "content_err" : void 0,
+											className: `w-full px-4 py-3 border rounded-2xl text-sm transition-colors resize-y ${clientErrors.content || errors.content ? "border-red-500 bg-red-50/50 focus:ring-red-500/20" : "border-secondary-200 bg-surface focus:bg-white focus:ring-primary-900/20 focus:border-primary-900"}`
 										}),
-										errors.content && /* @__PURE__ */ jsx("p", {
+										(clientErrors.content || errors.content) && /* @__PURE__ */ jsx("p", {
+											id: "content_err",
+											role: "alert",
 											className: "text-xs text-red-600 font-medium mt-1.5",
-											children: errors.content
+											children: clientErrors.content || errors.content
 										})
 									]
 								}),

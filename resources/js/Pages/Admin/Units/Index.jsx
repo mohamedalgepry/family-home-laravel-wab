@@ -3,7 +3,7 @@ import { useTrans } from '../../../Utils/trans'
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import AdminSidebar from '../../../Components/Layout/AdminSidebar'
-import { SkeletonRow, Select } from '../../../Components/UI'
+import { SkeletonRow, Select, ConfirmationModal } from '../../../Components/UI'
 import Pagination from '../../../Components/UI/Pagination'
 
 export default function AdminUnitsIndex({ units, stats, areas, unitTypes, filters, autoDeleteDays = 30 }) {
@@ -15,6 +15,8 @@ export default function AdminUnitsIndex({ units, stats, areas, unitTypes, filter
     const [unitList, setUnitList] = useState(units?.data || [])
     const [currentStats, setCurrentStats] = useState(stats || {})
     const [togglingMap, setTogglingMap] = useState({})
+    const [deletingUnit, setDeletingUnit] = useState(null)
+    const [isDeleting, setIsDeleting] = useState(false)
 
     useEffect(() => {
         setUnitList(units?.data || [])
@@ -224,9 +226,19 @@ export default function AdminUnitsIndex({ units, stats, areas, unitTypes, filter
     }
 
     function deleteUnit(unit) {
-        if (confirm(trans('confirm_delete'))) {
-            router.delete(`/admin/units/${unit.id}`, { preserveScroll: true })
-        }
+        setDeletingUnit(unit)
+    }
+
+    function handleConfirmDelete() {
+        if (!deletingUnit) return
+        setIsDeleting(true)
+        router.delete(`/admin/units/${deletingUnit.id}`, {
+            preserveScroll: true,
+            onFinish: () => {
+                setIsDeleting(false)
+                setDeletingUnit(null)
+            },
+        })
     }
 
     const loading = !units
@@ -1020,6 +1032,17 @@ export default function AdminUnitsIndex({ units, stats, areas, unitTypes, filter
                     </div>
                 )}
 
+                <ConfirmationModal
+                    isOpen={!!deletingUnit}
+                    title={trans('confirm_delete_title')}
+                    message={trans('confirm_delete_desc')}
+                    confirmLabel={trans('delete')}
+                    cancelLabel={trans('cancel')}
+                    variant="danger"
+                    isLoading={isDeleting}
+                    onConfirm={handleConfirmDelete}
+                    onCancel={() => setDeletingUnit(null)}
+                />
             </div>
         </AdminSidebar>
     )

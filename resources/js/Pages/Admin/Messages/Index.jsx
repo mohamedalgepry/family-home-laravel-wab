@@ -1,4 +1,4 @@
-import { Select } from '../../../Components/UI'
+import { Select, ConfirmationModal } from '../../../Components/UI'
 import { usePage, router, Head } from '@inertiajs/react'
 import { useTrans } from '../../../Utils/trans'
 import { useState, useEffect } from 'react'
@@ -13,7 +13,8 @@ export default function AdminMessagesIndex({ messages, agents, filters }) {
     const [statusFilter, setStatusFilter] = useState(filters?.status || '')
     const [agentFilter, setAgentFilter] = useState(filters?.agent_id || '')
     const [selectedMessage, setSelectedMessage] = useState(null)
-    const [deleting, setDeleting] = useState(false)
+    const [deletingMessage, setDeletingMessage] = useState(null)
+    const [isDeleting, setIsDeleting] = useState(false)
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -30,12 +31,21 @@ export default function AdminMessagesIndex({ messages, agents, filters }) {
         router.post(`/admin/messages/${messageId}/replied`, {}, { preserveScroll: true, only: ['messages'] })
     }
 
-    function deleteMessage(messageId) {
-        if (!confirm(trans('messages.confirm_delete'))) return
+    function handleDeleteClick(messageId) {
+        setDeletingMessage(messageId)
+    }
+
+    function handleConfirmDelete() {
+        if (!deletingMessage) return
+        setIsDeleting(true)
         setSelectedMessage(null)
-        router.delete(`/admin/messages/${messageId}`, {
+        router.delete(`/admin/messages/${deletingMessage}`, {
             preserveScroll: true,
             only: ['messages'],
+            onFinish: () => {
+                setIsDeleting(false)
+                setDeletingMessage(null)
+            },
         })
     }
 
@@ -45,7 +55,19 @@ export default function AdminMessagesIndex({ messages, agents, filters }) {
         <AdminSidebar>
             <Head title={trans('sidebar_messages') + ' — ' + trans('app_name')} />
             <div dir={isRtl ? 'rtl' : 'ltr'} className="p-6">
-                <h1 className="text-2xl font-bold text-secondary-950 mb-6">{trans('sidebar_messages')}</h1>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                    <h1 className="text-2xl font-bold text-secondary-950">{trans('sidebar_messages')}</h1>
+                    <a
+                        href={`/admin/messages/export?status=${encodeURIComponent(statusFilter)}&agent_id=${encodeURIComponent(agentFilter)}`}
+                        download
+                        className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-secondary-900 hover:bg-secondary-950 text-white rounded-xl text-xs sm:text-sm font-semibold transition-all shadow-xs"
+                    >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                        </svg>
+                        <span>{trans('export_csv')}</span>
+                    </a>
+                </div>
 
                 <div className="bg-white rounded-xl shadow-card p-4 mb-6 flex flex-wrap gap-3 items-end">
                     <div>
@@ -202,11 +224,10 @@ export default function AdminMessagesIndex({ messages, agents, filters }) {
                             )}
                             {isAdmin && (
                                 <button
-                                    onClick={() => deleteMessage(selectedMessage.id)}
-                                    disabled={deleting}
-                                    className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
+                                    onClick={() => handleDeleteClick(selectedMessage.id)}
+                                    className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
                                 >
-                                    {deleting ? trans('deleting') : trans('delete')}
+                                    {trans('delete')}
                                 </button>
                             )}
                             <button
@@ -219,6 +240,18 @@ export default function AdminMessagesIndex({ messages, agents, filters }) {
                     </div>
                 </div>
             )}
+
+            <ConfirmationModal
+                isOpen={!!deletingMessage}
+                title={trans('confirm_delete_title')}
+                message={trans('confirm_delete_desc')}
+                confirmLabel={trans('delete')}
+                cancelLabel={trans('cancel')}
+                variant="danger"
+                isLoading={isDeleting}
+                onConfirm={handleConfirmDelete}
+                onCancel={() => setDeletingMessage(null)}
+            />
         </AdminSidebar>
     )
 }

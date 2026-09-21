@@ -2,6 +2,7 @@ import { usePage, router, Head } from '@inertiajs/react'
 import { useTrans } from '../../../Utils/trans'
 import { useState } from 'react'
 import AdminSidebar from '../../../Components/Layout/AdminSidebar'
+import { ConfirmationModal } from '../../../Components/UI'
 
 export default function AssistantKnowledgeIndex({ items = [], stats = {}, filters = {} }) {
     const { locale } = usePage().props
@@ -11,6 +12,8 @@ export default function AssistantKnowledgeIndex({ items = [], stats = {}, filter
     const [search, setSearch] = useState(filters.search || '')
     const [selectedLocale, setSelectedLocale] = useState(filters.locale || '')
     const [selectedType, setSelectedType] = useState(filters.type || 'all')
+    const [deletingId, setDeletingId] = useState(null)
+    const [isDeleting, setIsDeleting] = useState(false)
 
     // Modal states
     const [isModalOpen, setIsModalOpen] = useState(false)
@@ -91,8 +94,19 @@ export default function AssistantKnowledgeIndex({ items = [], stats = {}, filter
     }
 
     function deleteItem(id) {
-        if (!confirm(isRtl ? 'هل أنت متأكد من حذف هذا الرد من بنك المعرفة؟' : 'Are you sure you want to delete this response?')) return
-        router.delete(`/admin/assistant-knowledge/${id}`, { preserveScroll: true })
+        setDeletingId(id)
+    }
+
+    function handleConfirmDelete() {
+        if (!deletingId) return
+        setIsDeleting(true)
+        router.delete(`/admin/assistant-knowledge/${deletingId}`, {
+            preserveScroll: true,
+            onFinish: () => {
+                setIsDeleting(false)
+                setDeletingId(null)
+            },
+        })
     }
 
     function clearCache() {
@@ -432,6 +446,18 @@ export default function AssistantKnowledgeIndex({ items = [], stats = {}, filter
                         </div>
                     </div>
                 )}
+
+                <ConfirmationModal
+                    isOpen={!!deletingId}
+                    title={trans('confirm_delete_title')}
+                    message={trans('confirm_delete_desc')}
+                    confirmLabel={trans('delete')}
+                    cancelLabel={trans('cancel')}
+                    variant="danger"
+                    isLoading={isDeleting}
+                    onConfirm={handleConfirmDelete}
+                    onCancel={() => setDeletingId(null)}
+                />
             </div>
         </AdminSidebar>
     )

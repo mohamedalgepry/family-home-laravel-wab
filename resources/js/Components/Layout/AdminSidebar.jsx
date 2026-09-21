@@ -3,6 +3,7 @@ import { useTrans } from '../../Utils/trans'
 import { localizedPath } from '../../Utils/route'
 import { useState, useEffect, useRef } from 'react'
 import { safeStorage } from '../../Utils/storage'
+import { ConfirmationModal } from '../UI'
 
 const NAV_GROUPS = [
     {
@@ -130,6 +131,8 @@ export default function AdminSidebar({ children }) {
     const [notifOpen, setNotifOpen] = useState(false)
     const [recentNotifs, setRecentNotifs] = useState([])
     const [loadingNotifs, setLoadingNotifs] = useState(false)
+    const [confirmClearNotifs, setConfirmClearNotifs] = useState(false)
+    const [isClearingNotifs, setIsClearingNotifs] = useState(false)
     const notifRef = useRef(null)
     const notifsFetchedRef = useRef(false)
     const prevNotifRef = useRef(initialCount || 0)
@@ -253,9 +256,17 @@ export default function AdminSidebar({ children }) {
     }
 
     function clearAllNotifs() {
-        if (!window.confirm(isRtl ? 'هل أنت متأكد من حذف جميع الإشعارات؟' : 'Are you sure you want to delete all notifications?')) return
+        setConfirmClearNotifs(true)
+    }
+
+    function handleConfirmClearNotifs() {
+        setIsClearingNotifs(true)
         router.delete('/admin/notifications/all/clear', {
             preserveScroll: true,
+            onFinish: () => {
+                setIsClearingNotifs(false)
+                setConfirmClearNotifs(false)
+            },
             onSuccess: () => {
                 setRecentNotifs([])
                 setLiveNotifCount(0)
@@ -707,6 +718,18 @@ export default function AdminSidebar({ children }) {
                     {children}
                 </main>
             </div>
+
+            <ConfirmationModal
+                isOpen={confirmClearNotifs}
+                title={trans('clear_all_notifications_title') || (isRtl ? 'مسح جميع الإشعارات' : 'Clear All Notifications')}
+                message={trans('clear_all_notifications_desc') || (isRtl ? 'هل أنت متأكد من رغبتك في حذف جميع الإشعارات؟ لا يمكن التراجع عن هذا الإجراء.' : 'Are you sure you want to delete all notifications? This action cannot be undone.')}
+                confirmLabel={trans('delete') || (isRtl ? 'حذف' : 'Delete')}
+                cancelLabel={trans('cancel') || (isRtl ? 'إلغاء' : 'Cancel')}
+                variant="danger"
+                isLoading={isClearingNotifs}
+                onConfirm={handleConfirmClearNotifs}
+                onCancel={() => setConfirmClearNotifs(false)}
+            />
         </div>
     )
 }

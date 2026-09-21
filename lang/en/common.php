@@ -137,4 +137,10 @@ return [
     'invalid_map_url' => 'Invalid Google Maps location URL or coordinates not found',
     'invalid_icon_name' => 'Invalid icon: only safe, allowlisted icon names are permitted',
     'coordinates_not_zero' => 'Latitude and longitude cannot both be zero',
+    'assistant_fallback_reply' => 'Hello! I am Hossam from Family Home. Would you like to explore our active projects or check available units?',
+    'assistant_quick_reply_projects' => 'Show available projects',
+    'assistant_quick_reply_units' => 'Apartments for sale',
+    'assistant_quick_reply_contact' => 'Contact our team',
+    'assistant_context_unit' => 'Interested in unit: :name',
+    'assistant_context_project' => 'Interested in project: :name',
 ];

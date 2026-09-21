@@ -1,4 +1,4 @@
-import { Select } from '../../../Components/UI'
+import { Select, ConfirmationModal } from '../../../Components/UI'
 import { usePage, router, Head } from '@inertiajs/react'
 import { useTrans } from '../../../Utils/trans'
 import { useState } from 'react'
@@ -11,6 +11,8 @@ export default function AdminArticlesIndex({ articles, categories, filters }) {
 
     const [search, setSearch] = useState(filters?.search || '')
     const [categoryFilter, setCategoryFilter] = useState(filters?.category_id || '')
+    const [deletingArticle, setDeletingArticle] = useState(null)
+    const [isDeleting, setIsDeleting] = useState(false)
 
     function applyFilters() {
         router.get('/admin/articles', { search, category_id: categoryFilter }, { preserveState: true, preserveScroll: true })
@@ -20,10 +22,20 @@ export default function AdminArticlesIndex({ articles, categories, filters }) {
         router.post(`/admin/articles/${articleId}/publish`, {}, { preserveScroll: true })
     }
 
-    function confirmDelete(articleId) {
-        if (window.confirm(trans('confirm_delete'))) {
-            router.delete(`/admin/articles/${articleId}`, { preserveScroll: true })
-        }
+    function confirmDelete(article) {
+        setDeletingArticle(article)
+    }
+
+    function handleConfirmDelete() {
+        if (!deletingArticle) return
+        setIsDeleting(true)
+        router.delete(`/admin/articles/${deletingArticle.id}`, {
+            preserveScroll: true,
+            onFinish: () => {
+                setIsDeleting(false)
+                setDeletingArticle(null)
+            },
+        })
     }
 
     const data = articles?.data || articles || []
@@ -101,7 +113,7 @@ export default function AdminArticlesIndex({ articles, categories, filters }) {
                                             <button onClick={() => togglePublish(a.id)} className={`text-xs px-2.5 py-1.5 rounded-lg font-medium transition-colors ${a.is_published ? 'bg-amber-50 text-amber-700 hover:bg-amber-100' : 'bg-green-50 text-green-700 hover:bg-green-100'}`}>
                                                 {a.is_published ? (trans('unpublish') ) : (trans('publish') )}
                                             </button>
-                                            <button onClick={() => confirmDelete(a.id)} className="text-xs px-2.5 py-1.5 rounded-lg bg-error/10 text-error hover:bg-error/20 font-medium transition-colors">
+                                            <button onClick={() => confirmDelete(a)} className="text-xs px-2.5 py-1.5 rounded-lg bg-error/10 text-error hover:bg-error/20 font-medium transition-colors">
                                                 {trans('delete')}
                                             </button>
                                         </div>
@@ -117,6 +129,18 @@ export default function AdminArticlesIndex({ articles, categories, filters }) {
                         </tbody>
                     </table>
                 </div>
+
+                <ConfirmationModal
+                    isOpen={!!deletingArticle}
+                    title={trans('confirm_delete_title')}
+                    message={trans('confirm_delete_desc')}
+                    confirmLabel={trans('delete')}
+                    cancelLabel={trans('cancel')}
+                    variant="danger"
+                    isLoading={isDeleting}
+                    onConfirm={handleConfirmDelete}
+                    onCancel={() => setDeletingArticle(null)}
+                />
             </div>
         </AdminSidebar>
     )

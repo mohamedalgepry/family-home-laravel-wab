@@ -9,12 +9,13 @@ use App\Domain\Points\DTOs\AllocatePointsData;
 use App\Domain\Points\Models\PointsTransaction;
 use App\Domain\Points\Services\PointsService;
 use App\Domain\Users\Models\User;
+use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AllocatePointsRequest;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 
-class PointsController
+class PointsController extends Controller
 {
     public function __construct(
         private readonly PointsService $pointsService,
@@ -91,6 +92,11 @@ class PointsController
             'unit_id' => $request->input('unit_id') ? (int) $request->input('unit_id') : null,
             'notes' => $request->input('notes'),
         ]);
+
+        if ($data->unit_id) {
+            $unit = Unit::findOrFail($data->unit_id);
+            $this->authorize('allocate-points', $unit);
+        }
 
         $this->pointsService->allocate($data);
 

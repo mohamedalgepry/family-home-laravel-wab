@@ -2,6 +2,7 @@ import { usePage, useForm, router, Head } from '@inertiajs/react'
 import { useTrans } from '../../../Utils/trans'
 import { useState } from 'react'
 import AdminSidebar from '../../../Components/Layout/AdminSidebar'
+import { ConfirmationModal } from '../../../Components/UI'
 
 export default function AdminCategoriesIndex({ categories }) {
     const { locale } = usePage().props
@@ -9,6 +10,8 @@ export default function AdminCategoriesIndex({ categories }) {
     const isRtl = locale === 'ar'
 
     const [editingId, setEditingId] = useState(null)
+    const [deletingCategory, setDeletingCategory] = useState(null)
+    const [isDeleting, setIsDeleting] = useState(false)
 
     const { data, setData, post, put, processing, errors, reset } = useForm({
         name_ar: '',
@@ -49,10 +52,20 @@ export default function AdminCategoriesIndex({ categories }) {
         }
     }
 
-    function confirmDelete(categoryId) {
-        if (window.confirm(trans('confirm_delete'))) {
-            router.delete(`/admin/categories/${categoryId}`, { preserveScroll: true })
-        }
+    function confirmDelete(category) {
+        setDeletingCategory(category)
+    }
+
+    function handleConfirmDelete() {
+        if (!deletingCategory) return
+        setIsDeleting(true)
+        router.delete(`/admin/categories/${deletingCategory.id}`, {
+            preserveScroll: true,
+            onFinish: () => {
+                setIsDeleting(false)
+                setDeletingCategory(null)
+            },
+        })
     }
 
     const nameKey = isRtl ? 'name_ar' : 'name_en'
@@ -119,7 +132,7 @@ export default function AdminCategoriesIndex({ categories }) {
                                                 <button onClick={() => startEdit(c)} className="text-xs px-2 py-1 rounded bg-surface text-secondary-700 hover:bg-secondary-200 transition-colors">
                                                     {trans('edit')}
                                                 </button>
-                                                <button onClick={() => confirmDelete(c.id)} className="text-xs px-2 py-1 rounded bg-error/10 text-error hover:bg-error/20 transition-colors">
+                                                <button onClick={() => confirmDelete(c)} className="text-xs px-2 py-1 rounded bg-error/10 text-error hover:bg-error/20 transition-colors">
                                                     {trans('delete')}
                                                 </button>
                                             </div>
@@ -136,6 +149,18 @@ export default function AdminCategoriesIndex({ categories }) {
                         </table>
                     </div>
                 </div>
+
+                <ConfirmationModal
+                    isOpen={!!deletingCategory}
+                    title={trans('confirm_delete_title')}
+                    message={trans('confirm_delete_desc')}
+                    confirmLabel={trans('delete')}
+                    cancelLabel={trans('cancel')}
+                    variant="danger"
+                    isLoading={isDeleting}
+                    onConfirm={handleConfirmDelete}
+                    onCancel={() => setDeletingCategory(null)}
+                />
             </div>
         </AdminSidebar>
     )
