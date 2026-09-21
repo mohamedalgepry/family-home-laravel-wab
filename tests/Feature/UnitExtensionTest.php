@@ -320,3 +320,22 @@ test('16. extension confirmation notification contains correct unit name, days, 
             && str_contains($data['message'], '45 يوماً');
     });
 });
+
+test('inertia extend request redirects to notifications index instead of returning json', function () {
+    $admin = createUser('Admin User '.uniqid(), 'admin', null);
+    $unit = createTestUnit([
+        'is_active' => true,
+        'auto_delete_at' => now()->addDays(5),
+    ]);
+
+    $response = $this->actingAs($admin)
+        ->withHeaders([
+            'X-Inertia' => 'true',
+            'X-Requested-With' => 'XMLHttpRequest',
+        ])
+        ->post("/admin/units/{$unit->id}/extend-expiry", [
+            'duration_type' => '7_days',
+        ]);
+
+    $response->assertRedirect(route('admin.notifications.index'));
+});

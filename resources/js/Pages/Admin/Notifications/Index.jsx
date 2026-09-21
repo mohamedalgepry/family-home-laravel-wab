@@ -98,24 +98,20 @@ export default function NotificationsIndex({ notifications, unreadCount, autoDel
 
     const grouped = useMemo(() => groupByDate(filteredItems, isRtl, trans), [filteredItems, isRtl, trans])
 
-    // FIX: إضافة preserveState: true لجميع العمليات في صفحة الإشعارات
-    // هذا يمنع Inertia من فقدان حالة الصفحة بعد كل طلب POST/DELETE
-    // مما كان يسبب إعادة توجيه غير مقصود للصفحة الرئيسية
-
     function handleMarkAllRead() {
-        router.post('/admin/notifications/read-all', {}, { preserveScroll: true, preserveState: true })
+        router.post('/admin/notifications/read-all', {}, { preserveScroll: true })
     }
 
     function handleMarkRead(id) {
-        router.post(`/admin/notifications/${id}/read`, {}, { preserveScroll: true, preserveState: true })
+        router.post(`/admin/notifications/${id}/read`, {}, { preserveScroll: true })
     }
 
     function handleDismiss(id) {
-        router.post(`/admin/notifications/${id}/dismiss`, {}, { preserveScroll: true, preserveState: true })
+        router.post(`/admin/notifications/${id}/dismiss`, {}, { preserveScroll: true })
     }
 
     function handleDeleteOne(id) {
-        router.delete(`/admin/notifications/${id}`, {}, { preserveScroll: true, preserveState: true })
+        router.delete(`/admin/notifications/${id}`, {}, { preserveScroll: true })
     }
 
     function handleDeleteAll() {
@@ -125,7 +121,7 @@ export default function NotificationsIndex({ notifications, unreadCount, autoDel
     }
 
     function handleExtendProject(projectId) {
-        router.post(`/admin/projects/${projectId}/extend`, {}, { preserveScroll: true, preserveState: true })
+        router.post(`/admin/projects/${projectId}/extend`, {}, { preserveScroll: true })
     }
 
     function openExtendModal(unitId, unitName) {
@@ -143,12 +139,8 @@ export default function NotificationsIndex({ notifications, unreadCount, autoDel
         if (selectedDuration === 'custom') {
             payload.days = parseInt(customDays, 10) || autoDeleteDays || 30
         }
-        // FIX: إضافة preserveState: true لمنع إعادة التوجيه للصفحة الرئيسية
-        // عند استخدام router.post بدون preserveState، يفقد Inertia حالة الصفحة الحالية
-        // مما يسبب إعادة redirect غير مقصود بعد redirect()->back() من السيرفر
         router.post(`/admin/units/${extendModalUnit.id}/extend-expiry`, payload, {
             preserveScroll: true,
-            preserveState: true,
             onSuccess: () => {
                 // أغلق الـ modal عند نجاح العملية
                 setExtendModalUnit(null)
@@ -166,15 +158,15 @@ export default function NotificationsIndex({ notifications, unreadCount, autoDel
     }
 
     function handleApproveProject(projectId) {
-        router.post(`/admin/projects/${projectId}/approve`, {}, { preserveScroll: true, preserveState: true })
+        router.post(`/admin/projects/${projectId}/approve`, {}, { preserveScroll: true })
     }
 
     function handleApproveUnit(unitId) {
-        router.post(`/admin/units/${unitId}/approve`, {}, { preserveScroll: true, preserveState: true })
+        router.post(`/admin/units/${unitId}/approve`, {}, { preserveScroll: true })
     }
 
     function handleDeleteUnit(unitId) {
-        router.delete(`/admin/units/${unitId}/force`, {}, { preserveScroll: true, preserveState: true })
+        router.delete(`/admin/units/${unitId}/force`, {}, { preserveScroll: true })
         setConfirmDeleteId(null)
     }
 

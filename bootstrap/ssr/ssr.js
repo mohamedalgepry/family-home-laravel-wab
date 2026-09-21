@@ -7393,32 +7393,20 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 		trans
 	]);
 	function handleMarkAllRead() {
-		router.post("/admin/notifications/read-all", {}, {
-			preserveScroll: true,
-			preserveState: true
-		});
+		router.post("/admin/notifications/read-all", {}, { preserveScroll: true });
 	}
 	function handleMarkRead(id) {
-		router.post(`/admin/notifications/${id}/read`, {}, {
-			preserveScroll: true,
-			preserveState: true
-		});
+		router.post(`/admin/notifications/${id}/read`, {}, { preserveScroll: true });
 	}
 	function handleDeleteOne(id) {
-		router.delete(`/admin/notifications/${id}`, {}, {
-			preserveScroll: true,
-			preserveState: true
-		});
+		router.delete(`/admin/notifications/${id}`, {}, { preserveScroll: true });
 	}
 	function handleDeleteAll() {
 		router.delete("/admin/notifications/all/clear", {}, { preserveScroll: true });
 		setConfirmClearAll(false);
 	}
 	function handleExtendProject(projectId) {
-		router.post(`/admin/projects/${projectId}/extend`, {}, {
-			preserveScroll: true,
-			preserveState: true
-		});
+		router.post(`/admin/projects/${projectId}/extend`, {}, { preserveScroll: true });
 	}
 	function openExtendModal(unitId, unitName) {
 		setExtendModalUnit({
@@ -7435,7 +7423,6 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 		if (selectedDuration === "custom") payload.days = parseInt(customDays, 10) || autoDeleteDays || 30;
 		router.post(`/admin/units/${extendModalUnit.id}/extend-expiry`, payload, {
 			preserveScroll: true,
-			preserveState: true,
 			onSuccess: () => {
 				setExtendModalUnit(null);
 				setSelectedDuration("auto_delete_setting");
@@ -7450,22 +7437,13 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 		});
 	}
 	function handleApproveProject(projectId) {
-		router.post(`/admin/projects/${projectId}/approve`, {}, {
-			preserveScroll: true,
-			preserveState: true
-		});
+		router.post(`/admin/projects/${projectId}/approve`, {}, { preserveScroll: true });
 	}
 	function handleApproveUnit(unitId) {
-		router.post(`/admin/units/${unitId}/approve`, {}, {
-			preserveScroll: true,
-			preserveState: true
-		});
+		router.post(`/admin/units/${unitId}/approve`, {}, { preserveScroll: true });
 	}
 	function handleDeleteUnit(unitId) {
-		router.delete(`/admin/units/${unitId}/force`, {}, {
-			preserveScroll: true,
-			preserveState: true
-		});
+		router.delete(`/admin/units/${unitId}/force`, {}, { preserveScroll: true });
 		setConfirmDeleteId(null);
 	}
 	function getMeta(type) {

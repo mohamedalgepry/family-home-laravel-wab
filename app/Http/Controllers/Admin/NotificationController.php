@@ -65,7 +65,10 @@ class NotificationController extends Controller
             'new_project_created',
         );
 
-        return redirect()->back()->with('success', __('admin.project_approved', ['name' => $project->name]));
+        return $this->redirectAfterNotificationAction(
+            $request,
+            __('admin.project_approved', ['name' => $project->name]),
+        );
     }
 
     public function approveUnit(Request $request, Unit $unit): RedirectResponse
@@ -73,7 +76,10 @@ class NotificationController extends Controller
         $this->authorize('toggleActive', $unit);
 
         if ($unit->is_active) {
-            return redirect()->back()->with('success', __('common.updated_successfully'));
+            return $this->redirectAfterNotificationAction(
+                $request,
+                __('common.updated_successfully'),
+            );
         }
 
         $this->unitService->toggleActive($unit->id, $request->user());
@@ -85,7 +91,10 @@ class NotificationController extends Controller
             'unit_pending_approval',
         );
 
-        return redirect()->back()->with('success', __('admin.activation_success'));
+        return $this->redirectAfterNotificationAction(
+            $request,
+            __('admin.activation_success'),
+        );
     }
 
     public function extendProject(Request $request, Project $project): RedirectResponse
@@ -94,13 +103,16 @@ class NotificationController extends Controller
 
         $this->extendListing($request->user(), $project, 'project_id');
 
-        return redirect()->back()->with('success', __('admin.project_extended', [
-            'name' => $project->name,
-            'days' => $this->extensionDays(),
-        ]));
+        return $this->redirectAfterNotificationAction(
+            $request,
+            __('admin.project_extended', [
+                'name' => $project->name,
+                'days' => $this->extensionDays(),
+            ]),
+        );
     }
 
-    public function extendUnit(\App\Http\Requests\Admin\ExtendUnitRequest $request, Unit $unit): RedirectResponse
+    public function extendUnit(\App\Http\Requests\Admin\ExtendUnitRequest $request, Unit $unit): RedirectResponse|JsonResponse
     {
         $days = $request->getResolvedDays();
         $oldAutoDeleteAt = $unit->auto_delete_at;
@@ -154,21 +166,24 @@ class NotificationController extends Controller
 
         $unitName = $unit->name_ar ?: $unit->name;
 
-        if ($request->wantsJson() || $request->ajax()) {
+        $message = __('admin.unit_extended', [
+            'name' => $unitName,
+            'days' => $days,
+        ]);
+
+        if ($request->header('X-Inertia')) {
+            return redirect()->route('admin.notifications.index')->with('success', $message);
+        }
+
+        if ($request->expectsJson() || $request->ajax()) {
             return response()->json([
                 'success' => true,
                 'days' => $days,
-                'message' => __('admin.unit_extended', [
-                    'name' => $unitName,
-                    'days' => $days,
-                ]),
+                'message' => $message,
             ]);
         }
 
-        return redirect()->back()->with('success', __('admin.unit_extended', [
-            'name' => $unitName,
-            'days' => $days,
-        ]));
+        return redirect()->back()->with('success', $message);
     }
 
     public function deleteUnit(Request $request, Unit $unit): RedirectResponse
@@ -181,7 +196,10 @@ class NotificationController extends Controller
 
         $this->notificationService->markEntityNotificationsAsRead($request->user(), 'unit_id', $unit->id);
 
-        return redirect()->back()->with('success', __('admin.unit_deleted', ['name' => $unitName]));
+        return $this->redirectAfterNotificationAction(
+            $request,
+            __('admin.unit_deleted', ['name' => $unitName]),
+        );
     }
 
     public function dismissNotification(Request $request, string $id): RedirectResponse
@@ -268,5 +286,14 @@ class NotificationController extends Controller
         } catch (\Throwable $e) {
             \Log::warning('NotificationController: cache clear failed', ['error' => $e->getMessage()]);
         }
+    }
+
+    private function redirectAfterNotificationAction(Request $request, string $message): RedirectResponse
+    {
+        if ($request->header('X-Inertia')) {
+            return redirect()->route('admin.notifications.index')->with('success', $message);
+        }
+
+        return redirect()->back()->with('success', $message);
     }
 }
