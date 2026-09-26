@@ -127,6 +127,10 @@ function ComparisonSection({ type, title, items, maxItems, isRtl, locale, trans 
                                     width={400}
                                     height={300}
                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                    onError={(e) => {
+                                        e.currentTarget.onerror = null;
+                                        e.currentTarget.src = PLACEHOLDER;
+                                    }}
                                 />
                                 {score && (
                                     <div className="absolute top-3 end-3">

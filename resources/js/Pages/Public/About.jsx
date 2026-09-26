@@ -3,6 +3,7 @@ import { useTrans } from '../../Utils/trans'
 import Header from '../../Components/Layout/Header'
 import Footer from '../../Components/Layout/Footer'
 import SeoHead from '../../Components/UI/SeoHead'
+import { getStorageUrl, PLACEHOLDER } from '../../Utils/image'
 
 export default function About({ page }) {
     const { locale } = usePage().props
@@ -31,7 +32,18 @@ export default function About({ page }) {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-12">
                         {images.map((img, i) => (
                             <div key={i} className="rounded-3xl overflow-hidden border border-secondary-100 shadow-sm relative group">
-                                <img src={`/storage/${img}`} alt={trans('about_image')} width={800} height={400} className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                                <img
+                                    src={getStorageUrl(img, PLACEHOLDER)}
+                                    alt={trans('about_image')}
+                                    width={800}
+                                    height={400}
+                                    className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-500"
+                                    loading="lazy"
+                                    onError={(e) => {
+                                        e.currentTarget.onerror = null;
+                                        e.currentTarget.src = PLACEHOLDER;
+                                    }}
+                                />
                             </div>
                         ))}
                     </div>

@@ -146,6 +146,7 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                                             key={idx} 
                                             src={getStorageUrl(img)} 
                                             alt={`${areaName} gallery ${idx}`} 
+                                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
                                             className="w-full h-32 md:h-40 object-cover rounded-2xl shadow-sm hover:scale-105 transition-transform duration-300 cursor-pointer" 
                                         />
                                     ))}

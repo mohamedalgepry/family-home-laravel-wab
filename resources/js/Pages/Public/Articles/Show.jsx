@@ -14,6 +14,7 @@ import Footer from '../../../Components/Layout/Footer'
 import SeoHead from '../../../Components/UI/SeoHead'
 import ArticleCard from '../../../Components/UI/ArticleCard'
 import { WhatsAppIcon } from '../../../Components/UI'
+import { getStorageUrl, PLACEHOLDER } from '../../../Utils/image'
 import { useState, useMemo } from 'react'
 
 export default function ArticleShow({ article, relatedArticles, suggestedUnits }) {
@@ -287,6 +288,11 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                                 onClick={() => setLightboxUrl(headerImgUrl)}
                                 fetchPriority="high"
                                 loading="eager"
+                                onError={(e) => {
+                                    e.currentTarget.onerror = null;
+                                    e.currentTarget.srcset = '';
+                                    e.currentTarget.src = PLACEHOLDER;
+                                }}
                             />
                             <button
                                 type="button"
@@ -306,7 +312,7 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                     {topImages.length > 0 && (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
                             {topImages.map(img => {
-                                const imgSrc = img.url || (img.path.startsWith('http') || img.path.startsWith('/') ? img.path : `/storage/${img.path}`);
+                                const imgSrc = getStorageUrl(img.url || img.path, PLACEHOLDER);
                                 return (
                                     <div key={img.id} className="rounded-3xl overflow-hidden border border-secondary-100 shadow-sm">
                                         <img
@@ -317,6 +323,11 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                                             className="w-full h-56 object-cover cursor-pointer hover:scale-105 transition-transform duration-300"
                                             onClick={() => setLightboxUrl(imgSrc)}
                                             loading="lazy"
+                                            onError={(e) => {
+                                                e.currentTarget.onerror = null;
+                                                e.currentTarget.srcset = '';
+                                                e.currentTarget.src = PLACEHOLDER;
+                                            }}
                                         />
                                     </div>
                                 )
@@ -339,7 +350,7 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                     {unusedMiddleImages.length > 0 && (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-10">
                             {unusedMiddleImages.map(img => {
-                                const imgSrc = img.url || (img.path.startsWith('http') || img.path.startsWith('/') ? img.path : `/storage/${img.path}`);
+                                const imgSrc = getStorageUrl(img.url || img.path, PLACEHOLDER);
                                 return (
                                     <div key={img.id} className="rounded-3xl overflow-hidden border border-secondary-100 shadow-sm">
                                         <img
@@ -350,6 +361,11 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                                             className="w-full h-56 object-cover cursor-pointer hover:scale-105 transition-transform duration-300"
                                             onClick={() => setLightboxUrl(imgSrc)}
                                             loading="lazy"
+                                            onError={(e) => {
+                                                e.currentTarget.onerror = null;
+                                                e.currentTarget.srcset = '';
+                                                e.currentTarget.src = PLACEHOLDER;
+                                            }}
                                         />
                                     </div>
                                 )
@@ -361,7 +377,7 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                     {bottomImages.length > 0 && (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-10">
                             {bottomImages.map(img => {
-                                const imgSrc = img.url || (img.path.startsWith('http') || img.path.startsWith('/') ? img.path : `/storage/${img.path}`);
+                                const imgSrc = getStorageUrl(img.url || img.path, PLACEHOLDER);
                                 return (
                                     <div key={img.id} className="rounded-3xl overflow-hidden border border-secondary-100 shadow-sm">
                                         <img
@@ -372,6 +388,11 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                                             className="w-full h-56 object-cover cursor-pointer hover:scale-105 transition-transform duration-300"
                                             onClick={() => setLightboxUrl(imgSrc)}
                                             loading="lazy"
+                                            onError={(e) => {
+                                                e.currentTarget.onerror = null;
+                                                e.currentTarget.srcset = '';
+                                                e.currentTarget.src = PLACEHOLDER;
+                                            }}
                                         />
                                     </div>
                                 )
@@ -548,6 +569,10 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                         src={lightboxUrl}
                         alt=""
                         className="max-w-full max-h-[90vh] object-contain rounded-2xl shadow-2xl"
+                        onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = PLACEHOLDER;
+                        }}
                     />
                 </div>
             )}

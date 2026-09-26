@@ -57,7 +57,8 @@
     RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
 
     # Prevent direct access to .env, hidden files, and sensitive directories
-    RewriteRule ^(\.env|\.git|\.agents|storage|vendor|app|bootstrap|config|database) - [F,L,NC]
+    RewriteRule ^(\.env|\.git|\.agents|vendor|app|bootstrap|config|database) - [F,L,NC]
+    RewriteRule ^storage/(framework|logs|app/(?!public)) - [F,L,NC]
 
     # Redirect requests to public directory if not already there
     RewriteCond %{REQUEST_URI} !^/public/

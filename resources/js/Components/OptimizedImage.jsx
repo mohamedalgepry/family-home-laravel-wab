@@ -14,17 +14,25 @@ export default function OptimizedImage({
     ...props
 }) {
     const [imgSrc, setImgSrc] = useState(src);
+    const [imgSrcSet, setImgSrcSet] = useState(srcSet);
     const [hasError, setHasError] = useState(false);
 
     useEffect(() => {
         setImgSrc(src);
+        setImgSrcSet(srcSet);
         setHasError(false);
-    }, [src]);
+    }, [src, srcSet]);
 
-    const handleError = () => {
+    const handleError = (e) => {
         if (!hasError) {
             setHasError(true);
             setImgSrc(fallbackSrc);
+            setImgSrcSet(undefined);
+            if (e?.currentTarget) {
+                e.currentTarget.onerror = null;
+                e.currentTarget.srcset = '';
+                e.currentTarget.src = fallbackSrc;
+            }
         }
     };
 
@@ -33,8 +41,8 @@ export default function OptimizedImage({
     return (
         <img
             src={imgSrc}
-            srcSet={srcSet || undefined}
-            sizes={srcSet ? sizes : undefined}
+            srcSet={!hasError ? (imgSrcSet || undefined) : undefined}
+            sizes={!hasError && imgSrcSet ? sizes : undefined}
             alt={finalAlt}
             width={width}
             height={height}

@@ -200,6 +200,11 @@ export default function ProjectShow({ project, projectUnits, similarProjects, re
                                     fetchPriority="high"
                                     loading="eager"
                                     decoding="async"
+                                    onError={(e) => {
+                                        e.currentTarget.onerror = null;
+                                        e.currentTarget.srcset = '';
+                                        e.currentTarget.src = PLACEHOLDER;
+                                    }}
                                 />
 
                                 {/* Status Tag */}
@@ -304,6 +309,11 @@ export default function ProjectShow({ project, projectUnits, similarProjects, re
                                                     alt={img.alt_text || ''}
                                                     className={`w-full h-full object-cover transition-transform ${i === selectedImageIndex ? 'ring-2 ring-[#CC0000]' : 'opacity-80 hover:opacity-100'}`}
                                                     loading="lazy"
+                                                    onError={(e) => {
+                                                        e.currentTarget.onerror = null;
+                                                        e.currentTarget.srcset = '';
+                                                        e.currentTarget.src = PLACEHOLDER;
+                                                    }}
                                                 />
                                                 {isLastAndMore && (
                                                     <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white font-bold text-sm">
@@ -398,6 +408,10 @@ export default function ProjectShow({ project, projectUnits, similarProjects, re
                                                 src={getStorageUrl(project.user.avatar, null)}
                                                 alt={project.user.name}
                                                 className="w-10 h-10 rounded-full object-cover border border-secondary-200 shrink-0 group-hover:border-primary-500 transition-colors"
+                                                onError={(e) => {
+                                                    e.currentTarget.onerror = null;
+                                                    e.currentTarget.src = PLACEHOLDER;
+                                                }}
                                             />
                                         ) : (
                                             <div className="w-10 h-10 rounded-full bg-primary-100 border border-primary-200 flex items-center justify-center text-primary-900 font-bold text-xs shrink-0 group-hover:bg-primary-200 transition-colors">
@@ -721,6 +735,11 @@ export default function ProjectShow({ project, projectUnits, similarProjects, re
                         alt={images[lightboxIndex]?.alt_text || project.name}
                         className="max-w-[90vw] max-h-[85vh] object-contain rounded-xl"
                         onClick={e => e.stopPropagation()}
+                        onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.srcset = '';
+                            e.currentTarget.src = PLACEHOLDER;
+                        }}
                     />
 
                     {images.length > 1 && (

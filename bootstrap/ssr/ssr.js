@@ -16278,21 +16278,29 @@ function AdminUsersIndex({ users, managers, filters }) {
 //#region resources/js/Components/OptimizedImage.jsx
 function OptimizedImage({ src, alt = "", width, height, className = "", lazy = true, fallbackSrc = "/images/fallback.webp", role, srcSet, sizes = "(max-width: 640px) calc(100vw - 32px), (max-width: 1024px) 50vw, (max-width: 1536px) 33vw, 480px", ...props }) {
 	const [imgSrc, setImgSrc] = useState(src);
+	const [imgSrcSet, setImgSrcSet] = useState(srcSet);
 	const [hasError, setHasError] = useState(false);
 	useEffect(() => {
 		setImgSrc(src);
+		setImgSrcSet(srcSet);
 		setHasError(false);
-	}, [src]);
-	const handleError = () => {
+	}, [src, srcSet]);
+	const handleError = (e) => {
 		if (!hasError) {
 			setHasError(true);
 			setImgSrc(fallbackSrc);
+			setImgSrcSet(void 0);
+			if (e?.currentTarget) {
+				e.currentTarget.onerror = null;
+				e.currentTarget.srcset = "";
+				e.currentTarget.src = fallbackSrc;
+			}
 		}
 	};
 	return /* @__PURE__ */ jsx("img", {
 		src: imgSrc,
-		srcSet: srcSet || void 0,
-		sizes: srcSet ? sizes : void 0,
+		srcSet: !hasError ? imgSrcSet || void 0 : void 0,
+		sizes: !hasError && imgSrcSet ? sizes : void 0,
 		alt: alt !== void 0 ? alt : "",
 		width,
 		height,
@@ -17143,12 +17151,16 @@ function About({ page }) {
 						children: images.map((img, i) => /* @__PURE__ */ jsx("div", {
 							className: "rounded-3xl overflow-hidden border border-secondary-100 shadow-sm relative group",
 							children: /* @__PURE__ */ jsx("img", {
-								src: `/storage/${img}`,
+								src: getStorageUrl(img, "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 600\"%3E%3Crect fill=\"%23F0F0F0\" width=\"800\" height=\"600\"/%3E%3C/svg%3E"),
 								alt: trans("about_image"),
 								width: 800,
 								height: 400,
 								className: "w-full h-64 object-cover group-hover:scale-105 transition-transform duration-500",
-								loading: "lazy"
+								loading: "lazy",
+								onError: (e) => {
+									e.currentTarget.onerror = null;
+									e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 600\"%3E%3Crect fill=\"%23F0F0F0\" width=\"800\" height=\"600\"/%3E%3C/svg%3E";
+								}
 							})
 						}, i))
 					}),
@@ -17449,7 +17461,11 @@ function Show({ agent, units, locale }) {
 									alt: agent.name,
 									width: 160,
 									height: 160,
-									className: "w-32 h-32 sm:w-40 sm:h-40 rounded-full object-cover shadow-sm border-4 border-white"
+									className: "w-32 h-32 sm:w-40 sm:h-40 rounded-full object-cover shadow-sm border-4 border-white",
+									onError: (e) => {
+										e.currentTarget.onerror = null;
+										e.currentTarget.src = PLACEHOLDER$2;
+									}
 								}) : /* @__PURE__ */ jsx("div", {
 									className: "w-32 h-32 sm:w-40 sm:h-40 rounded-full bg-primary-50 flex items-center justify-center text-primary-900 font-black text-4xl sm:text-5xl border-4 border-white shadow-sm",
 									children: agent.name?.charAt(0)?.toUpperCase() || "?"
@@ -18731,6 +18747,9 @@ function AreaShow({ area, relatedAreas, units, projects, seo, areas, unitTypes, 
 										children: area.gallery.map((img, idx) => /* @__PURE__ */ jsx("img", {
 											src: getStorageUrl(img),
 											alt: `${areaName} gallery ${idx}`,
+											onError: (e) => {
+												e.currentTarget.style.display = "none";
+											},
 											className: "w-full h-32 md:h-40 object-cover rounded-2xl shadow-sm hover:scale-105 transition-transform duration-300 cursor-pointer"
 										}, idx))
 									})
@@ -19533,7 +19552,12 @@ function ArticleShow({ article, relatedArticles, suggestedUnits }) {
 										className: "w-full h-full object-cover max-h-[520px] cursor-pointer group-hover:scale-102 transition-transform duration-500",
 										onClick: () => setLightboxUrl(headerImgUrl),
 										fetchPriority: "high",
-										loading: "eager"
+										loading: "eager",
+										onError: (e) => {
+											e.currentTarget.onerror = null;
+											e.currentTarget.srcset = "";
+											e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 600\"%3E%3Crect fill=\"%23F0F0F0\" width=\"800\" height=\"600\"/%3E%3C/svg%3E";
+										}
 									}), /* @__PURE__ */ jsxs("button", {
 										type: "button",
 										onClick: () => setLightboxUrl(headerImgUrl),
@@ -19557,7 +19581,7 @@ function ArticleShow({ article, relatedArticles, suggestedUnits }) {
 								topImages.length > 0 && /* @__PURE__ */ jsx("div", {
 									className: "grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10",
 									children: topImages.map((img) => {
-										const imgSrc = img.url || (img.path.startsWith("http") || img.path.startsWith("/") ? img.path : `/storage/${img.path}`);
+										const imgSrc = getStorageUrl(img.url || img.path, "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 600\"%3E%3Crect fill=\"%23F0F0F0\" width=\"800\" height=\"600\"/%3E%3C/svg%3E");
 										return /* @__PURE__ */ jsx("div", {
 											className: "rounded-3xl overflow-hidden border border-secondary-100 shadow-sm",
 											children: /* @__PURE__ */ jsx("img", {
@@ -19567,7 +19591,12 @@ function ArticleShow({ article, relatedArticles, suggestedUnits }) {
 												height: 450,
 												className: "w-full h-56 object-cover cursor-pointer hover:scale-105 transition-transform duration-300",
 												onClick: () => setLightboxUrl(imgSrc),
-												loading: "lazy"
+												loading: "lazy",
+												onError: (e) => {
+													e.currentTarget.onerror = null;
+													e.currentTarget.srcset = "";
+													e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 600\"%3E%3Crect fill=\"%23F0F0F0\" width=\"800\" height=\"600\"/%3E%3C/svg%3E";
+												}
 											})
 										}, img.id);
 									})
@@ -19579,7 +19608,7 @@ function ArticleShow({ article, relatedArticles, suggestedUnits }) {
 								unusedMiddleImages.length > 0 && /* @__PURE__ */ jsx("div", {
 									className: "grid grid-cols-1 sm:grid-cols-2 gap-4 mt-10",
 									children: unusedMiddleImages.map((img) => {
-										const imgSrc = img.url || (img.path.startsWith("http") || img.path.startsWith("/") ? img.path : `/storage/${img.path}`);
+										const imgSrc = getStorageUrl(img.url || img.path, "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 600\"%3E%3Crect fill=\"%23F0F0F0\" width=\"800\" height=\"600\"/%3E%3C/svg%3E");
 										return /* @__PURE__ */ jsx("div", {
 											className: "rounded-3xl overflow-hidden border border-secondary-100 shadow-sm",
 											children: /* @__PURE__ */ jsx("img", {
@@ -19589,7 +19618,12 @@ function ArticleShow({ article, relatedArticles, suggestedUnits }) {
 												height: 450,
 												className: "w-full h-56 object-cover cursor-pointer hover:scale-105 transition-transform duration-300",
 												onClick: () => setLightboxUrl(imgSrc),
-												loading: "lazy"
+												loading: "lazy",
+												onError: (e) => {
+													e.currentTarget.onerror = null;
+													e.currentTarget.srcset = "";
+													e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 600\"%3E%3Crect fill=\"%23F0F0F0\" width=\"800\" height=\"600\"/%3E%3C/svg%3E";
+												}
 											})
 										}, img.id);
 									})
@@ -19597,7 +19631,7 @@ function ArticleShow({ article, relatedArticles, suggestedUnits }) {
 								bottomImages.length > 0 && /* @__PURE__ */ jsx("div", {
 									className: "grid grid-cols-1 sm:grid-cols-2 gap-4 mt-10",
 									children: bottomImages.map((img) => {
-										const imgSrc = img.url || (img.path.startsWith("http") || img.path.startsWith("/") ? img.path : `/storage/${img.path}`);
+										const imgSrc = getStorageUrl(img.url || img.path, "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 600\"%3E%3Crect fill=\"%23F0F0F0\" width=\"800\" height=\"600\"/%3E%3C/svg%3E");
 										return /* @__PURE__ */ jsx("div", {
 											className: "rounded-3xl overflow-hidden border border-secondary-100 shadow-sm",
 											children: /* @__PURE__ */ jsx("img", {
@@ -19607,7 +19641,12 @@ function ArticleShow({ article, relatedArticles, suggestedUnits }) {
 												height: 450,
 												className: "w-full h-56 object-cover cursor-pointer hover:scale-105 transition-transform duration-300",
 												onClick: () => setLightboxUrl(imgSrc),
-												loading: "lazy"
+												loading: "lazy",
+												onError: (e) => {
+													e.currentTarget.onerror = null;
+													e.currentTarget.srcset = "";
+													e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 600\"%3E%3Crect fill=\"%23F0F0F0\" width=\"800\" height=\"600\"/%3E%3C/svg%3E";
+												}
 											})
 										}, img.id);
 									})
@@ -19816,7 +19855,11 @@ function ArticleShow({ article, relatedArticles, suggestedUnits }) {
 				}), /* @__PURE__ */ jsx("img", {
 					src: lightboxUrl,
 					alt: "",
-					className: "max-w-full max-h-[90vh] object-contain rounded-2xl shadow-2xl"
+					className: "max-w-full max-h-[90vh] object-contain rounded-2xl shadow-2xl",
+					onError: (e) => {
+						e.currentTarget.onerror = null;
+						e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 600\"%3E%3Crect fill=\"%23F0F0F0\" width=\"800\" height=\"600\"/%3E%3C/svg%3E";
+					}
 				})]
 			}),
 			/* @__PURE__ */ jsx(Footer, {})
@@ -20077,7 +20120,11 @@ function ComparisonSection({ type, title, items, maxItems, isRtl, locale, trans 
 									alt: item.name,
 									width: 400,
 									height: 300,
-									className: "w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+									className: "w-full h-full object-cover group-hover:scale-105 transition-transform duration-500",
+									onError: (e) => {
+										e.currentTarget.onerror = null;
+										e.currentTarget.src = PLACEHOLDER;
+									}
 								}),
 								score && /* @__PURE__ */ jsx("div", {
 									className: "absolute top-3 end-3",
@@ -21687,7 +21734,12 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles, 
 											className: "w-full h-full object-cover",
 											fetchPriority: "high",
 											loading: "eager",
-											decoding: "async"
+											decoding: "async",
+											onError: (e) => {
+												e.currentTarget.onerror = null;
+												e.currentTarget.srcset = "";
+												e.currentTarget.src = PLACEHOLDER$2;
+											}
 										}),
 										/* @__PURE__ */ jsx("div", {
 											className: "absolute top-4 start-4 z-10",
@@ -21810,7 +21862,12 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles, 
 												src: getStorageUrl(img.thumb_url || img.url || img.path, "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 600\"%3E%3Crect fill=\"%23F0F0F0\" width=\"800\" height=\"600\"/%3E%3C/svg%3E"),
 												alt: img.alt_text || "",
 												className: `w-full h-full object-cover transition-transform ${i === selectedImageIndex ? "ring-2 ring-[#CC0000]" : "opacity-80 hover:opacity-100"}`,
-												loading: "lazy"
+												loading: "lazy",
+												onError: (e) => {
+													e.currentTarget.onerror = null;
+													e.currentTarget.srcset = "";
+													e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 600\"%3E%3Crect fill=\"%23F0F0F0\" width=\"800\" height=\"600\"/%3E%3C/svg%3E";
+												}
 											}), isLastAndMore && /* @__PURE__ */ jsxs("div", {
 												className: "absolute inset-0 bg-black/60 flex items-center justify-center text-white font-bold text-sm",
 												children: ["+", remainingCount]
@@ -21934,7 +21991,11 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles, 
 											children: [project.user.avatar ? /* @__PURE__ */ jsx("img", {
 												src: getStorageUrl(project.user.avatar, null),
 												alt: project.user.name,
-												className: "w-10 h-10 rounded-full object-cover border border-secondary-200 shrink-0 group-hover:border-primary-500 transition-colors"
+												className: "w-10 h-10 rounded-full object-cover border border-secondary-200 shrink-0 group-hover:border-primary-500 transition-colors",
+												onError: (e) => {
+													e.currentTarget.onerror = null;
+													e.currentTarget.src = PLACEHOLDER$2;
+												}
 											}) : /* @__PURE__ */ jsx("div", {
 												className: "w-10 h-10 rounded-full bg-primary-100 border border-primary-200 flex items-center justify-center text-primary-900 font-bold text-xs shrink-0 group-hover:bg-primary-200 transition-colors",
 												children: project.user.name ? project.user.name.charAt(0).toUpperCase() : isRtl ? "أ" : "A"
@@ -22389,7 +22450,12 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles, 
 						src: getStorageUrl(images[lightboxIndex]?.url || images[lightboxIndex]?.path, "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 600\"%3E%3Crect fill=\"%23F0F0F0\" width=\"800\" height=\"600\"/%3E%3C/svg%3E"),
 						alt: images[lightboxIndex]?.alt_text || project.name,
 						className: "max-w-[90vw] max-h-[85vh] object-contain rounded-xl",
-						onClick: (e) => e.stopPropagation()
+						onClick: (e) => e.stopPropagation(),
+						onError: (e) => {
+							e.currentTarget.onerror = null;
+							e.currentTarget.srcset = "";
+							e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 600\"%3E%3Crect fill=\"%23F0F0F0\" width=\"800\" height=\"600\"/%3E%3C/svg%3E";
+						}
 					}),
 					images.length > 1 && /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("button", {
 						onClick: (e) => {
@@ -22881,7 +22947,12 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles, seo_me
 												className: "w-full h-full object-cover",
 												fetchPriority: "high",
 												loading: "eager",
-												decoding: "async"
+												decoding: "async",
+												onError: (e) => {
+													e.currentTarget.onerror = null;
+													e.currentTarget.srcset = "";
+													e.currentTarget.src = PLACEHOLDER$2;
+												}
 											}),
 											/* @__PURE__ */ jsx("div", {
 												className: "absolute top-4 start-4 z-10 flex items-center gap-2",
@@ -23019,10 +23090,15 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles, seo_me
 												},
 												className: "relative rounded-xl overflow-hidden cursor-pointer aspect-[4/3] border border-secondary-200",
 												children: [/* @__PURE__ */ jsx("img", {
-													src: img.thumb_url || img.url || (img.path?.startsWith("http") || img.path?.startsWith("/") ? img.path : `/storage/${img.path}`),
+													src: getStorageUrl(img.thumb_url || img.url || img.path, "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 600\"%3E%3Crect fill=\"%23F0F0F0\" width=\"800\" height=\"600\"/%3E%3C/svg%3E"),
 													alt: img.alt_text || "",
 													className: `w-full h-full object-cover transition-transform ${i === activeImageIndex ? "ring-2 ring-[#CC0000]" : "opacity-80 hover:opacity-100"}`,
-													loading: "lazy"
+													loading: "lazy",
+													onError: (e) => {
+														e.currentTarget.onerror = null;
+														e.currentTarget.srcset = "";
+														e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 600\"%3E%3Crect fill=\"%23F0F0F0\" width=\"800\" height=\"600\"/%3E%3C/svg%3E";
+													}
 												}), isLastAndMore && /* @__PURE__ */ jsxs("div", {
 													className: "absolute inset-0 bg-black/60 flex items-center justify-center text-white font-bold text-sm",
 													children: ["+", remainingCount]
@@ -23271,7 +23347,11 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles, seo_me
 													children: [agentUser.avatar ? /* @__PURE__ */ jsx("img", {
 														src: getStorageUrl(agentUser.avatar, null),
 														alt: agentUser.name,
-														className: "w-10 h-10 rounded-full object-cover border border-secondary-200 shrink-0 group-hover:border-primary-500 transition-colors"
+														className: "w-10 h-10 rounded-full object-cover border border-secondary-200 shrink-0 group-hover:border-primary-500 transition-colors",
+														onError: (e) => {
+															e.currentTarget.onerror = null;
+															e.currentTarget.src = PLACEHOLDER$2;
+														}
 													}) : /* @__PURE__ */ jsx("div", {
 														className: "w-10 h-10 rounded-full bg-primary-100 border border-primary-200 flex items-center justify-center text-primary-900 font-bold text-xs shrink-0 group-hover:bg-primary-200 transition-colors",
 														children: agentUser.name ? agentUser.name.charAt(0).toUpperCase() : isRtl ? "أ" : "A"
@@ -23886,7 +23966,12 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles, seo_me
 						src: getStorageUrl(images[lightboxIndex]?.url || images[lightboxIndex]?.path, "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 600\"%3E%3Crect fill=\"%23F0F0F0\" width=\"800\" height=\"600\"/%3E%3C/svg%3E"),
 						alt: images[lightboxIndex]?.alt_text || unit.name,
 						className: "max-w-[90vw] max-h-[85vh] object-contain rounded-xl",
-						onClick: (e) => e.stopPropagation()
+						onClick: (e) => e.stopPropagation(),
+						onError: (e) => {
+							e.currentTarget.onerror = null;
+							e.currentTarget.srcset = "";
+							e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 600\"%3E%3Crect fill=\"%23F0F0F0\" width=\"800\" height=\"600\"/%3E%3C/svg%3E";
+						}
 					}),
 					images.length > 1 && /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("button", {
 						type: "button",
