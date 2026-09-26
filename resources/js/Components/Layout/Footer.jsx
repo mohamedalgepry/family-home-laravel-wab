@@ -5,7 +5,7 @@ import { localizedPath } from '../../Utils/route'
 import CompareBar from '../Features/CompareBar'
 import { WhatsAppIcon } from '../UI'
 
-const HossamChatWidget = lazy(() => import('../UI/HossamChatWidget'))
+const HossamChatWidget = lazy(() => import('../HossamChat/HossamChatWidget'))
 
 const QUICK_LINKS = [
     { key: 'home', href: '/' },

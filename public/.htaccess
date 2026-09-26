@@ -36,7 +36,7 @@
 </IfModule>
 
 <IfModule mod_headers.c>
-    <FilesMatch "\.(js|mjs|css|xml|gz|html|woff2?|ttf|eot|svg|webp|png|jpg|jpeg|json)$">
+    <FilesMatch "\.(js|css|woff2?|ttf|eot|svg|webp|png|jpg|jpeg)$">
         Header set Access-Control-Allow-Origin "*"
         Header set Access-Control-Allow-Methods "GET, OPTIONS"
         Header set Access-Control-Allow-Headers "*"
@@ -45,8 +45,11 @@
         Header append Vary: Accept-Encoding
     </FilesMatch>
     Header append Vary: X-Inertia
-    <FilesMatch "\.(ico|jpe?g|png|gif|webp|swf|woff2?|ttf|eot|svg|js|mjs|css|json)$">
+    <FilesMatch "\.(ico|jpe?g|png|gif|webp|swf|woff2?|ttf|eot|svg|js|mjs|css)$">
         Header set Cache-Control "max-age=31536000, public, immutable"
+    </FilesMatch>
+    <FilesMatch "\.(json)$">
+        Header set Cache-Control "max-age=3600, public"
     </FilesMatch>
 </IfModule>
 

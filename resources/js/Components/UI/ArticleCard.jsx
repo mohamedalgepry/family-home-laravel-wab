@@ -50,7 +50,7 @@ function ArticleCard({ article, loading = false }) {
     return (
         <Link
             href={localizedPath(`/articles/${articleSlug}`, locale)}
-            className="group bg-white rounded-2xl border border-secondary-200/80 shadow-card hover:shadow-2xl hover:-translate-y-1.5 transition-[transform,box-shadow] duration-300 flex flex-col h-full overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="group bg-white rounded-2xl border border-secondary-200/80 shadow-card hover:shadow-lg hover:-translate-y-1 transition-[transform,box-shadow] duration-300 flex flex-col h-full overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary-500"
         >
             <div className="relative aspect-[16/10] w-full overflow-hidden bg-secondary-100">
                 <OptimizedImage
@@ -61,7 +61,7 @@ function ArticleCard({ article, loading = false }) {
                     height={300}
                     lazy={true}
                     fallbackSrc={PLACEHOLDER}
-                    className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-500 ease-out"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
                 />
                 {categoryName && (
                     <span className="absolute top-3 start-3 px-3 py-1 text-xs font-bold text-secondary-900 bg-white/95 backdrop-blur-md rounded-full shadow-sm border border-white/40">

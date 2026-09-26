@@ -11,6 +11,7 @@ use App\Domain\Listings\Services\PageViewService;
 use App\Http\Resources\Public\ArticlePublicResource;
 use App\Http\Resources\Public\UnitPublicResource;
 use App\Services\SeoService;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -100,11 +101,21 @@ class ArticleController
             $relatedArticles = $relatedArticles->concat($moreArticles);
         }
 
-        $suggestedUnits = Unit::where('is_active', true)
-            ->with(['images', 'area'])
-            ->inRandomOrder()
-            ->limit(3)
-            ->get();
+        $cachedUnitIds = Cache::remember('article_suggested_unit_ids', 3600, function () {
+            return Unit::where('is_active', true)
+                ->latest('id')
+                ->limit(20)
+                ->pluck('id')
+                ->all();
+        });
+
+        $randomUnitIds = !empty($cachedUnitIds)
+            ? collect($cachedUnitIds)->random(min(3, count($cachedUnitIds)))->all()
+            : [];
+
+        $suggestedUnits = !empty($randomUnitIds)
+            ? Unit::whereIn('id', $randomUnitIds)->with(['images', 'area'])->get()
+            : collect();
 
         // نمرّر لغة واحدة فقط (لغة العرض الحالية) بدلاً من إرسال content_ar + content_en + content معاً
         $rawContent = app()->getLocale() === 'ar'

@@ -29,17 +29,23 @@ class FreshDummySeeder extends Seeder
         User::truncate();
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
+        $adminPassword = env('ADMIN_SEED_PASSWORD', Str::random(16));
+
         $admin = User::create([
             'name' => 'مدير النظام',
             'email' => 'admin@admin.com',
-            'password' => Hash::make('12345678'),
+            'password' => Hash::make($adminPassword),
             'role' => 'admin',
             'is_active' => true,
             'points_balance' => 0,
             'initial_monthly_balance' => 0,
         ]);
 
-        $this->command->info('تم تنظيف قاعدة البيانات من المستخدمين وإنشاء مستخدم أدمن (admin@admin.com / 12345678).');
+        $this->command->info('تم تنظيف قاعدة البيانات من المستخدمين وإنشاء مستخدم أدمن (admin@admin.com).');
+        if (empty(env('ADMIN_SEED_PASSWORD'))) {
+            $this->command->warn("⚠️  ADMIN_SEED_PASSWORD غير معرف في .env — تم إنشاء باسورد عشوائي: {$adminPassword}");
+            $this->command->warn('⚠️  سجّل الدخول فوراً وغيّر الباسورد!');
+        }
 
         // Ensure we have some prerequisites
         $this->call([

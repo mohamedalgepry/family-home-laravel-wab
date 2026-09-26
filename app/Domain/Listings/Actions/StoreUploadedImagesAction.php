@@ -23,6 +23,33 @@ class StoreUploadedImagesAction
                 continue;
             }
 
+            $dangerousExtensions = [
+                'php', 'php3', 'php4', 'php5', 'phtml', 'phar', 'cgi', 'pl', 'sh', 'bash', 'exe', 'bat', 'cmd', 'vbs', 'svg',
+            ];
+            $clientExt = strtolower($image->getClientOriginalExtension());
+            $guessExt = strtolower($image->guessExtension() ?: '');
+
+            if (in_array($clientExt, $dangerousExtensions, true) || in_array($guessExt, $dangerousExtensions, true)) {
+                \Log::warning('StoreUploadedImagesAction: blocked dangerous file upload attempt', [
+                    'original_name' => $image->getClientOriginalName(),
+                    'client_extension' => $clientExt,
+                    'guessed_extension' => $guessExt,
+                    'mime' => $image->getMimeType(),
+                ]);
+
+                continue;
+            }
+
+            $mime = strtolower($image->getMimeType() ?: '');
+            if (! str_starts_with($mime, 'image/')) {
+                \Log::warning('StoreUploadedImagesAction: blocked non-image MIME upload attempt', [
+                    'original_name' => $image->getClientOriginalName(),
+                    'mime' => $mime,
+                ]);
+
+                continue;
+            }
+
             $originalPath = $image->store("{$folder}/{$year}/{$month}", 'public');
 
             if ($originalPath === false) {

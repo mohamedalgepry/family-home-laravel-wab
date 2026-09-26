@@ -42,12 +42,22 @@ function makeUnit(array $overrides = []): Unit
 function schemaOf(array|string $metaSchema): array
 {
     if (is_array($metaSchema)) {
-        return $metaSchema;
+        $data = $metaSchema;
+    } else {
+        preg_match('/<script type="application\/ld\+json">(.*?)<\/script>/s', $metaSchema, $matches);
+        $data = json_decode($matches[1] ?? '{}', true);
     }
 
-    preg_match('/<script type="application\/ld\+json">(.*?)<\/script>/s', $metaSchema, $matches);
+    if (isset($data['@graph']) && is_array($data['@graph'])) {
+        foreach ($data['@graph'] as $item) {
+            if (($item['@type'] ?? '') === 'RealEstateListing') {
+                return $item;
+            }
+        }
+        return $data['@graph'][0] ?? $data;
+    }
 
-    return json_decode($matches[1] ?? '{}', true);
+    return $data;
 }
 
 it('builds a localized unit meta with canonical, hreflang and schema', function () {

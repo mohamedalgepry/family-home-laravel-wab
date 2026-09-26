@@ -2,6 +2,30 @@
   "\u0000rolldown/runtime.js": [],
   "resources/js/Components/Features/CompareBar.jsx": [],
   "resources/js/Components/Features/CompareSearch.jsx": [],
+  "resources/js/Components/HossamChat/ChatComposer.jsx": [
+    "/build/assets/HossamChatWidget-DqZeScUR.js"
+  ],
+  "resources/js/Components/HossamChat/ChatHeader.jsx": [
+    "/build/assets/HossamChatWidget-DqZeScUR.js"
+  ],
+  "resources/js/Components/HossamChat/HossamChatWidget.jsx": [
+    "/build/assets/HossamChatWidget-DqZeScUR.js"
+  ],
+  "resources/js/Components/HossamChat/MessageBubble.jsx": [
+    "/build/assets/HossamChatWidget-DqZeScUR.js"
+  ],
+  "resources/js/Components/HossamChat/MessageList.jsx": [
+    "/build/assets/HossamChatWidget-DqZeScUR.js"
+  ],
+  "resources/js/Components/HossamChat/QuickReplies.jsx": [
+    "/build/assets/HossamChatWidget-DqZeScUR.js"
+  ],
+  "resources/js/Components/HossamChat/hooks/useChatApi.js": [
+    "/build/assets/HossamChatWidget-DqZeScUR.js"
+  ],
+  "resources/js/Components/HossamChat/hooks/useChatSession.js": [
+    "/build/assets/HossamChatWidget-DqZeScUR.js"
+  ],
   "resources/js/Components/Layout/AdminSidebar.jsx": [],
   "resources/js/Components/Layout/AuthLayout.jsx": [],
   "resources/js/Components/Layout/Footer.jsx": [],
@@ -10,9 +34,6 @@
   "resources/js/Components/UI/ArticleCard.jsx": [],
   "resources/js/Components/UI/Button.jsx": [],
   "resources/js/Components/UI/ConfirmationModal.jsx": [],
-  "resources/js/Components/UI/HossamChatWidget.jsx": [
-    "/build/assets/HossamChatWidget-Bz7orney.js"
-  ],
   "resources/js/Components/UI/IconByName.jsx": [],
   "resources/js/Components/UI/InputField.jsx": [],
   "resources/js/Components/UI/LazyMapEmbed.jsx": [],

@@ -122,6 +122,10 @@ class AiAssistantController
             $clientName = null;
             if (preg_match('/(?:اسمي|معك|معاك|أنا|انا|name is)\s+([^\s,،\.\n]+(?:\s+[^\s,،\.\n]+)?)/iu', $message, $nameMatches)) {
                 $candidate = trim($nameMatches[1]);
+                $words = preg_split('/\s+/u', $candidate);
+                if (count($words) === 2 && preg_match('/^و?(?:رقمي|تليفوني|هاتفي|رقم|عايز|مهتم|من|في|phone)$/iu', $words[1])) {
+                    $candidate = $words[0];
+                }
                 if (!in_array(mb_strtolower($candidate), ['مهتم', 'عايز', 'بخصوص', 'رقمي', 'تليفوني', 'phone', 'interested', 'في', 'من'])) {
                     $clientName = $candidate;
                 }

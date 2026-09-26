@@ -31,6 +31,11 @@ export default function SeoHead({
     const cleanMetaDescription = (text) => {
         if (!text) return '';
         let clean = String(text)
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"')
+            .replace(/&#039;/g, "'")
             .replace(/<\/?[^>]+(>|$)/g, '')
             .replace(/\*{1,3}([^*]*)\*{1,3}/g, '$1')
             .replace(/#{1,6}\s*/g, '')
@@ -46,7 +51,10 @@ export default function SeoHead({
 
     const finalTitle = pageSeo ? (isRtl ? (pageSeo.meta_title_ar || title) : (pageSeo.meta_title_en || title)) : (seo_meta?.title || title);
     const rawDescription = pageSeo ? (isRtl ? (pageSeo.meta_description_ar || description) : (pageSeo.meta_description_en || description)) : (seo_meta?.description || description);
-    const finalDescription = cleanMetaDescription(rawDescription);
+    const defaultFallbackDesc = isRtl
+        ? (finalTitle ? `${finalTitle} - فاميلي هوم للتطوير العقاري في مصر` : 'فاميلي هوم للتطوير العقاري - استكشف أفضل العقارات والوحدات في مصر.')
+        : (finalTitle ? `${finalTitle} - Family Home Real Estate Egypt` : 'Family Home Real Estate - Premier properties in Egypt.');
+    const finalDescription = cleanMetaDescription(rawDescription) || defaultFallbackDesc;
 
     const rawKeywords = keywords || seo_meta?.keywords || (pageSeo ? (isRtl ? pageSeo.meta_keywords_ar : pageSeo.meta_keywords_en) : null);
     const keywordsString = Array.isArray(rawKeywords) ? rawKeywords.filter(Boolean).join(', ') : (typeof rawKeywords === 'string' ? rawKeywords : null);
@@ -135,17 +143,26 @@ export default function SeoHead({
             <link head-key="hreflang-x-default" rel="alternate" hrefLang="x-default" href={urlAr} />
 
             {/* Structured Data (Schema.org / JSON-LD) */}
-            {Array.isArray(jsonLdData) ? (
-                jsonLdData.map((item, idx) => (
-                    <script key={idx} head-key={`jsonld-${idx}`} type="application/ld+json">
-                        {JSON.stringify(item)}
-                    </script>
-                ))
-            ) : jsonLdData ? (
+            {jsonLdData && (
                 <script head-key="jsonld" type="application/ld+json">
-                    {JSON.stringify(jsonLdData)}
+                    {JSON.stringify(
+                        Array.isArray(jsonLdData)
+                            ? (jsonLdData.length === 1
+                                ? jsonLdData[0]
+                                : {
+                                    '@context': 'https://schema.org',
+                                    '@graph': jsonLdData.map(item => {
+                                        if (typeof item === 'object' && item !== null) {
+                                            const { '@context': _, ...rest } = item
+                                            return rest
+                                        }
+                                        return item
+                                    }),
+                                })
+                            : jsonLdData
+                    )}
                 </script>
-            ) : null}
+            )}
         </Head>
     )
 }

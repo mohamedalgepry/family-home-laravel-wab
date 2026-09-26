@@ -60,7 +60,7 @@ export default function Home({ featuredUnits, latestUnits, latestProjects, popul
                             className="w-full h-full object-cover object-center scale-105 animate-subtle-zoom" 
                             fetchPriority="high"
                             loading="eager"
-                            decoding="sync"
+                            decoding="async"
                         />
                     </picture>
 

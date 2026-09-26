@@ -43,13 +43,15 @@ function isHashLike(seg) {
 function stableName(basename) {
     const ext   = path.extname(basename)
     const stem  = path.basename(basename, ext)
-    const parts = stem.split('-')
+    const cleanStem = stem.replace(/[-_]+$/, '')
+    const parts = cleanStem.split('-')
 
     // Strip trailing hash-like segments from the right
     let last = parts.length - 1
-    while (last >= 0 && isHashLike(parts[last])) last--
+    while (last >= 0 && (parts[last] === '' || isHashLike(parts[last]))) last--
 
-    return parts.slice(0, last + 1).join('-') + ext
+    const result = parts.slice(0, last + 1).join('-')
+    return (result || parts[0]) + ext
 }
 
 // ─── Build stable-name → current filename map ────────────────────────────────
@@ -76,9 +78,8 @@ for (const [stable, files] of stableMap) {
     const ext = path.extname(stable)
     const stemPrefix = escapeRx(stable.slice(0, -ext.length)) // prefix without ext
     const escapedExt = escapeRx(ext)
-    // Match: PREFIX followed by one or more -SEGMENT groups, then .EXT
-    // Segments may contain underscores (e.g. Rolldown: ar-C0Bl8Z_1.js)
-    const rx = new RegExp(`\\b${stemPrefix}(?:-[A-Za-z0-9_]+)+${escapedExt}\\b`, 'g')
+    // Match: PREFIX followed by hyphen and hash segments (may contain underscores/hyphens), then .EXT
+    const rx = new RegExp(`(?<![A-Za-z0-9_-])${stemPrefix}-[A-Za-z0-9_\\-]+${escapedExt}(?![A-Za-z0-9_])`, 'g')
     replaceTable.set(stable, { rx, newFile })
 }
 

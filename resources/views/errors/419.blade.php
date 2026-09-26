@@ -1,10 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>انتهت جلسة الطلب - فاميلي هوم</title>
-    <link rel="icon" type="image/webp" href="/icon.webp">
+    <link rel="icon" type="image/webp" href="/icon-64.webp">
     <style>
         body { font-family: system-ui, -apple-system, sans-serif; background: #F8FAFC; color: #0F172A; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; text-align: center; padding: 1rem; }
         .card { background: #FFFFFF; padding: 2.5rem 2rem; border-radius: 1.5rem; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05); max-width: 480px; width: 100%; border: 1px solid #E2E8F0; }
@@ -16,7 +16,7 @@
 </head>
 <body>
     <div class="card">
-        <img src="/icon.webp" alt="Logo" width="48" height="48" style="margin-bottom: 1.25rem;">
+        <img src="/icon-64.webp" alt="Logo" width="48" height="48" style="margin-bottom: 1.25rem;">
         <h1>انتهت صلاحية الجلسة (419)</h1>
         <p>انتهت صلاحية جلستك. يرجى العودة والمحاولة مرة أخرى.</p>
         <a href="javascript:history.back()" class="btn">العودة للصفحة السابقة</a>

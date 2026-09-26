@@ -23,6 +23,8 @@ class SecurityHeadersMiddleware
         }
 
         $csp = "default-src 'self'; "
+            ."base-uri 'self'; "
+            ."object-src 'none'; "
             ."script-src 'self' 'unsafe-inline' https://*.google-analytics.com https://*.googletagmanager.com https://*.googleapis.com https://maps.googleapis.com; "
             ."style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
             ."img-src 'self' data: blob: https: https://*.googleapis.com https://maps.gstatic.com; "

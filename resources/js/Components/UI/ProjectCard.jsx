@@ -54,7 +54,7 @@ function ProjectCard({ project, loading = false, priority = false }) {
     return (
         <article 
             dir={isRtl ? 'rtl' : 'ltr'} 
-            className="bg-white rounded-2xl shadow-card hover:shadow-2xl md:hover:-translate-y-1.5 md:hover:scale-[1.02] transition-all duration-300 transform-gpu overflow-hidden group border border-secondary-100/80 flex flex-col h-full"
+            className="bg-white rounded-2xl shadow-card hover:shadow-lg md:hover:-translate-y-1 transition-all duration-300 transform-gpu overflow-hidden group border border-secondary-100/80 flex flex-col h-full"
         >
             {/* Image Container */}
             <div className="relative overflow-hidden aspect-[4/3] bg-secondary-100">
@@ -71,7 +71,7 @@ function ProjectCard({ project, loading = false, priority = false }) {
                         height={360}
                         lazy={!priority}
                         fallbackSrc={PLACEHOLDER}
-                        className="w-full h-full object-cover md:group-hover:scale-108 transition-transform duration-500 ease-out"
+                        className="w-full h-full object-cover md:group-hover:scale-105 transition-transform duration-500 ease-out"
                     />
                 </Link>
 

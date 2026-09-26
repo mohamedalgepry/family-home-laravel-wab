@@ -587,14 +587,3 @@ INSERT INTO `roles` (`id`, `name`, `guard_name`, `created_at`, `updated_at`) VAL
 (3, 'agent', 'web', NOW(), NOW())
 ON DUPLICATE KEY UPDATE `name` = VALUES(`name`);
 
-INSERT INTO `users` (`id`, `name`, `email`, `password`, `role`, `manager_id`, `points_balance`, `initial_monthly_balance`, `is_active`, `created_at`, `updated_at`) VALUES
-(1, 'مدير النظام (Admin)', 'admin@admin.com', '$2y$12$z9Wq7vrF1sEJ7HJ3mzj2B.Y973JWw0tahpOr.U29sw.l6fTJAC3oO', 'admin', NULL, 0, 0, 1, NOW(), NOW()),
-(2, 'أحمد المدير (Manager)', 'manager@manager.com', '$2y$12$z9Wq7vrF1sEJ7HJ3mzj2B.Y973JWw0tahpOr.U29sw.l6fTJAC3oO', 'manager', NULL, 5000, 5000, 1, NOW(), NOW()),
-(3, 'علي الوكيل (Agent)', 'agent@agent.com', '$2y$12$z9Wq7vrF1sEJ7HJ3mzj2B.Y973JWw0tahpOr.U29sw.l6fTJAC3oO', 'agent', 2, 300, 0, 1, NOW(), NOW())
-ON DUPLICATE KEY UPDATE `name` = VALUES(`name`);
-
-INSERT INTO `model_has_roles` (`role_id`, `model_type`, `model_id`) VALUES
-(1, 'App\\Domain\\Users\\Models\\User', 1),
-(2, 'App\\Domain\\Users\\Models\\User', 2),
-(3, 'App\\Domain\\Users\\Models\\User', 3)
-ON DUPLICATE KEY UPDATE `role_id` = VALUES(`role_id`);

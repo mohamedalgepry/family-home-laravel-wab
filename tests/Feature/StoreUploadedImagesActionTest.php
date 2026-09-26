@@ -53,7 +53,7 @@ it('skips a file and logs an error when the filesystem write fails', function ()
 
     // Instead, we verify the guard with a partially-mocked UploadedFile that
     // returns false from store().
-    $fakefile = Mockery::mock(UploadedFile::class);
+    $fakefile = Mockery::mock(UploadedFile::fake()->create('bad.jpg', 1024, 'image/jpeg'));
     $fakefile->shouldReceive('store')->andReturn(false);
     $fakefile->shouldReceive('getClientOriginalName')->andReturn('bad.jpg');
     $fakefile->shouldReceive('getSize')->andReturn(1024);

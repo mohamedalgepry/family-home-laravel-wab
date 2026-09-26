@@ -70,14 +70,15 @@
 
     @php
         $siteLogo = app(\App\Domain\Listings\Services\SettingsService::class)->get('site_logo');
-        $faviconUrl = $siteLogo ? asset('storage/' . $siteLogo) : asset('icon.png');
+        $faviconUrl = $siteLogo ? asset('storage/' . $siteLogo) : asset('icon-64.webp');
+        $appleTouchIcon = $siteLogo ? asset('storage/' . $siteLogo) : asset('icon.png');
         $seoService = app(\App\Services\SeoService::class);
         $currentMeta = $meta ?? $seoService->forPage(request()->route()?->getName() ?? 'home');
     @endphp
 
     <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="any">
     <link rel="icon" href="{{ $faviconUrl }}">
-    <link rel="apple-touch-icon" href="{{ $faviconUrl }}">
+    <link rel="apple-touch-icon" href="{{ $appleTouchIcon }}">
     <link rel="manifest" href="/site.webmanifest">
 
     {{-- Canonical SEO source for the initial HTML (bots, link unfurlers, no-JS crawlers).

@@ -163,8 +163,8 @@ class SeoService
             'og_type' => 'website',
             'robots' => $customMeta['robots'] ?? null,
             'schema' => $schemas,
-            'geo_region' => $customMeta['geo_region'] ?? 'EG-C',
-            'geo_placename' => $customMeta['geo_placename'] ?? ($locale === 'ar' ? 'القاهرة الجديدة، مصر' : 'New Cairo, Egypt'),
+            'geo_region' => $customMeta['geo_region'] ?? null,
+            'geo_placename' => $customMeta['geo_placename'] ?? null,
             'geo_position' => $customMeta['geo_position'] ?? null,
             'icbm' => $customMeta['icbm'] ?? null,
         ]);
@@ -248,8 +248,8 @@ class SeoService
             'og_type' => $params['og_type'] ?? 'website',
             'robots' => $params['robots'] ?? (! empty($params['noindex']) ? 'noindex, follow' : null),
             'schema' => $params['schema'] ?? [],
-            'geo_region' => $params['geo_region'] ?? 'EG-C',
-            'geo_placename' => $params['geo_placename'] ?? (app()->getLocale() === 'ar' ? 'القاهرة الجديدة، مصر' : 'New Cairo, Egypt'),
+            'geo_region' => $params['geo_region'] ?? null,
+            'geo_placename' => $params['geo_placename'] ?? null,
             'geo_position' => $params['geo_position'] ?? null,
             'icbm' => $params['icbm'] ?? null,
         ];

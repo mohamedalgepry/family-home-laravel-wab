@@ -158,23 +158,73 @@ class DetectBot
     private function resolvePrerenderPath(string $path): ?string
     {
         $baseDir = storage_path('app/prerendered');
+        $realBase = realpath($baseDir);
 
-        if (empty($path) || $path === 'ar' || $path === 'en') {
-            $locale = empty($path) ? 'ar' : $path;
-
-            return "{$baseDir}/{$locale}/index.html";
+        if (! $realBase || ! is_dir($realBase)) {
+            return null;
         }
 
-        $target = "{$baseDir}/{$path}";
-
-        if (file_exists("{$target}.html")) {
-            return "{$target}.html";
+        // Loop URL decode to defeat double-encoding attacks
+        $decoded = $path;
+        for ($i = 0; $i < 3; $i++) {
+            $next = rawurldecode($decoded);
+            if ($next === $decoded) {
+                break;
+            }
+            $decoded = $next;
         }
 
-        if (file_exists("{$target}/index.html")) {
-            return "{$target}/index.html";
+        // Reject null bytes, backslashes, or directory traversal sequences
+        if (str_contains($decoded, "\0") || str_contains($decoded, '..') || str_contains($decoded, '\\')) {
+            Log::warning('Prerender path traversal blocked', [
+                'raw_path' => $path,
+                'decoded_path' => $decoded,
+            ]);
+
+            return null;
         }
 
-        return null;
+        $cleanPath = trim($decoded, '/');
+
+        if (empty($cleanPath) || $cleanPath === 'ar' || $cleanPath === 'en') {
+            $locale = empty($cleanPath) ? 'ar' : $cleanPath;
+            $target = $realBase.DIRECTORY_SEPARATOR.$locale.DIRECTORY_SEPARATOR.'index.html';
+
+            return file_exists($target) ? $target : null;
+        }
+
+        $candidate = null;
+        $fileCandidate = $realBase.DIRECTORY_SEPARATOR.str_replace('/', DIRECTORY_SEPARATOR, $cleanPath).'.html';
+        $dirCandidate = $realBase.DIRECTORY_SEPARATOR.str_replace('/', DIRECTORY_SEPARATOR, $cleanPath).DIRECTORY_SEPARATOR.'index.html';
+
+        if (file_exists($fileCandidate)) {
+            $candidate = $fileCandidate;
+        } elseif (file_exists($dirCandidate)) {
+            $candidate = $dirCandidate;
+        }
+
+        if (! $candidate) {
+            return null;
+        }
+
+        $realTarget = realpath($candidate);
+        if (! $realTarget) {
+            return null;
+        }
+
+        $normalizedBase = rtrim(str_replace('\\', '/', $realBase), '/').'/';
+        $normalizedTarget = str_replace('\\', '/', $realTarget);
+
+        if (! str_starts_with($normalizedTarget, $normalizedBase)) {
+            Log::warning('Prerender path traversal containment violation', [
+                'raw_path' => $path,
+                'target' => $candidate,
+                'real_target' => $realTarget,
+            ]);
+
+            return null;
+        }
+
+        return $realTarget;
     }
 }

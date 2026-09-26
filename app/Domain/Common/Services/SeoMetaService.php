@@ -131,14 +131,16 @@ class SeoMetaService
             ], fn ($v) => $v !== null);
         }
 
+        $primaryImageUrl = $this->resolveImage($listing->images, assetUrl: true);
+
         // 2. RealEstateListing Entity with itemOffered
         $listingEntity = array_filter([
             '@type' => 'RealEstateListing',
-            '@id' => $url.'#listing',
+            '@id' => $url.($isUnit ? '#listing' : '#project'),
             'name' => $listing->name,
             'description' => $this->description($listing->meta_description ?? $listing->description),
             'url' => $url,
-            'image' => ! empty($images) ? $images : null,
+            'image' => $primaryImageUrl ?: (! empty($images) ? $images[0] : null),
             'datePosted' => $listing->created_at?->toIso8601String(),
             'dateModified' => $listing->updated_at?->toIso8601String(),
             'contentLocation' => $placeSchema,
@@ -148,10 +150,9 @@ class SeoMetaService
             if ($listing->price !== null) {
                 $listingEntity['offers'] = [
                     '@type' => 'Offer',
-                    'price' => (float) $listing->price,
+                    'price' => number_format((float) $listing->price, 2, '.', ''),
                     'priceCurrency' => config('app.currency', 'EGP'),
                     'availability' => 'https://schema.org/InStock',
-                    'businessFunction' => $listing->transaction === 'rent' ? 'http://purl.org/goodrelations/v1#LeaseOut' : 'http://purl.org/goodrelations/v1#Sell',
                     'url' => $url,
                 ];
             }
@@ -354,8 +355,8 @@ class SeoMetaService
     {
         if ($model instanceof Article) {
             return [
-                'region' => 'EG-C',
-                'placename' => app()->getLocale() === 'ar' ? 'القاهرة الجديدة، مصر' : 'New Cairo, Egypt',
+                'region' => null,
+                'placename' => null,
                 'position' => null,
                 'icbm' => null,
             ];
@@ -487,6 +488,11 @@ class SeoMetaService
         $clean = preg_replace('/_{1,2}([^_]*)_{1,2}/', '$1', $clean);     // __bold__ / _italic_
 
         // 3. Collapse whitespace and trim, then limit to 160 chars for SEO
-        return (string) str($clean)->squish()->limit(160);
+        $res = (string) str($clean)->squish()->limit(160);
+        if (empty($res)) {
+            $isAr = app()->getLocale() === 'ar';
+            return $isAr ? 'فاميلي هوم للتطوير العقاري - استكشف أفضل العقارات والوحدات في مصر.' : 'Family Home Real Estate - Premier properties in Egypt.';
+        }
+        return $res;
     }
 }

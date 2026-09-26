@@ -45,9 +45,9 @@ class AssistantOrchestratorService
             $this->provider = '';
         }
 
-        // Generous thinking time / timeouts (can be customized via .env)
-        $this->totalBudget = (float) config('assistant.total_budget_seconds', 40.0);
-        $this->perRequestTimeout = (float) config('assistant.per_request_timeout_seconds', 30.0);
+        // Configured thinking time / timeouts (can be customized via .env)
+        $this->totalBudget = (float) config('assistant.total_budget_seconds', 15.0);
+        $this->perRequestTimeout = (float) config('assistant.per_request_timeout_seconds', 10.0);
         $this->maxIterations = (int) config('assistant.max_tool_iterations', 2);
     }
 
@@ -65,6 +65,21 @@ class AssistantOrchestratorService
     public function sanitizePhoneNumbers(string $text): string
     {
         return preg_replace('/\b(?:\+?20|0)?1[0125]\d{8}\b/', '[رقم هاتف]', $text);
+    }
+
+    /**
+     * Sanitize log message or context to prevent leaking user messages, phone numbers, or API keys.
+     */
+    public function sanitizeForLog(string $message): string
+    {
+        $sanitized = $this->sanitizePhoneNumbers($message);
+        if (!empty($this->geminiApiKey)) {
+            $sanitized = str_replace($this->geminiApiKey, '[REDACTED_KEY]', $sanitized);
+        }
+        if (!empty($this->openrouterApiKey)) {
+            $sanitized = str_replace($this->openrouterApiKey, '[REDACTED_KEY]', $sanitized);
+        }
+        return $sanitized;
     }
 
     /**
@@ -175,7 +190,7 @@ class AssistantOrchestratorService
                     ];
                 }
             } catch (\Throwable $e) {
-                Log::warning('HossamKnowledgeService instant check error: ' . $e->getMessage());
+                Log::warning('HossamKnowledgeService instant check error: ' . $this->sanitizeForLog($e->getMessage()));
             }
         }
 
@@ -191,7 +206,7 @@ class AssistantOrchestratorService
             Log::warning('AssistantOrchestrator failure, activating fail-closed fallback', [
                 'error_class' => get_class($e),
                 'error_code' => $e->getCode(),
-                'error_message' => $e->getMessage(),
+                'error_message' => $this->sanitizeForLog($e->getMessage()),
                 'locale' => $locale,
             ]);
 
@@ -430,11 +445,11 @@ class AssistantOrchestratorService
             } else {
                 Log::warning('Gemini API error response', [
                     'status' => $response->status(),
-                    'body' => mb_substr($response->body(), 0, 500),
+                    'body' => $this->sanitizeForLog(mb_substr($response->body(), 0, 500)),
                 ]);
             }
         } catch (\Throwable $e) {
-            Log::warning('Gemini API call exception (model: ' . $model . '): ' . $e->getMessage());
+            Log::warning('Gemini API call exception (model: ' . $model . '): ' . $this->sanitizeForLog($e->getMessage()));
         }
 
         // Fallback to secondary Gemini model if primary failed
@@ -493,7 +508,7 @@ class AssistantOrchestratorService
                 }
             }
         } catch (\Throwable $e) {
-            Log::info('OpenRouter LLM call failure: ' . $e->getMessage());
+            Log::info('OpenRouter LLM call failure: ' . $this->sanitizeForLog($e->getMessage()));
         }
 
         return null;

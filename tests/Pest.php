@@ -32,10 +32,17 @@ function createTestUnit(array $attributes = []): Unit
         'slug_en' => 'default-unit-en-'.uniqid(),
         'price' => 1000,
         'transaction' => 'sale',
-        'type_id' => UnitType::firstOrCreate(['name_en' => 'Test Type', 'name_ar' => 'نوع اختياري'])->id,
-        'area_id' => Area::firstOrCreate(['name_en' => 'Test Area', 'name_ar' => 'منطقة اختيارية'])->id,
-        'user_id' => User::firstOrCreate(['email' => 'test_user_id@test.com'], ['name' => 'Test User', 'password' => 'x', 'role' => 'admin'])->id,
     ];
+
+    if (! isset($attributes['type_id'])) {
+        $defaults['type_id'] = UnitType::firstOrCreate(['slug' => 'default-test-type'], ['name_en' => 'Test Type', 'name_ar' => 'نوع اختياري'])->id;
+    }
+    if (! isset($attributes['area_id'])) {
+        $defaults['area_id'] = Area::firstOrCreate(['slug' => 'default-test-area'], ['name_en' => 'Test Area', 'name_ar' => 'منطقة اختيارية'])->id;
+    }
+    if (! isset($attributes['user_id'])) {
+        $defaults['user_id'] = User::firstOrCreate(['email' => 'test_user_id@test.com'], ['name' => 'Test User', 'password' => 'x', 'role' => 'admin'])->id;
+    }
 
     $unit = new Unit;
     $unit->forceFill(array_merge($defaults, $attributes));

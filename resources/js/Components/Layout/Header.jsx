@@ -1,7 +1,7 @@
 import { localizedPath } from '../../Utils/route'
 import { usePage, Link, router } from '@inertiajs/react'
 import { useTrans } from '../../Utils/trans'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import OptimizedImage from '../OptimizedImage'
 
 const NAV_ITEMS = [
@@ -21,13 +21,54 @@ export default function Header({ compareCount = 0 }) {
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
     const [menuOpen, setMenuOpen] = useState(false)
+    const menuButtonRef = useRef(null)
+    const mobileNavRef = useRef(null)
+    const wasMenuOpenRef = useRef(false)
 
-    // Handle Escape key to close mobile menu
+    // Handle Escape key, Focus Trap, and Focus Restoration for mobile menu
     useEffect(() => {
-        if (!menuOpen) return
+        if (!menuOpen) {
+            if (wasMenuOpenRef.current && menuButtonRef.current) {
+                menuButtonRef.current.focus()
+            }
+            wasMenuOpenRef.current = false
+            return
+        }
+
+        wasMenuOpenRef.current = true
+
+        // Focus first link in mobile nav on open
+        const navEl = mobileNavRef.current
+        const focusableElements = navEl ? navEl.querySelectorAll('a, button, [tabindex]:not([tabindex="-1"])') : []
+        if (focusableElements.length > 0) {
+            focusableElements[0].focus()
+        }
+
         function handleKeyDown(e) {
             if (e.key === 'Escape') {
+                e.preventDefault()
                 setMenuOpen(false)
+            } else if (e.key === 'Tab' && navEl) {
+                const focusables = Array.from(navEl.querySelectorAll('a, button, [tabindex]:not([tabindex="-1"])'))
+                if (menuButtonRef.current) {
+                    focusables.unshift(menuButtonRef.current)
+                }
+                if (focusables.length === 0) return
+
+                const firstEl = focusables[0]
+                const lastEl = focusables[focusables.length - 1]
+
+                if (e.shiftKey) {
+                    if (document.activeElement === firstEl) {
+                        e.preventDefault()
+                        lastEl.focus()
+                    }
+                } else {
+                    if (document.activeElement === lastEl) {
+                        e.preventDefault()
+                        firstEl.focus()
+                    }
+                }
             }
         }
         window.addEventListener('keydown', handleKeyDown)
@@ -36,7 +77,7 @@ export default function Header({ compareCount = 0 }) {
 
     const logoSrc = settings?.site_logo
         ? (settings.site_logo.startsWith('http') || settings.site_logo.startsWith('/storage') ? settings.site_logo : `/storage/${settings.site_logo}`)
-        : '/icon.webp';
+        : '/icon-64.webp';
 
     const logoAlt = `${trans('app_name')} - ${isRtl ? 'موقع عقارات عائلية' : 'Family Real Estate'}`;
 
@@ -66,7 +107,7 @@ export default function Header({ compareCount = 0 }) {
     return (
         <header
             dir={isRtl ? 'rtl' : 'ltr'}
-            className="sticky top-0 z-50 bg-white/95 backdrop-blur-md md:backdrop-blur-xl shadow-sm transition-colors duration-300 border-b border-border"
+            className="sticky top-0 z-50 bg-white/95 backdrop-blur-md shadow-sm transition-colors duration-300 border-b border-border"
             role="banner"
         >
             <div className="max-w-container mx-auto px-4 flex items-center justify-between h-16">
@@ -82,7 +123,7 @@ export default function Header({ compareCount = 0 }) {
                         width={32}
                         height={32}
                         lazy={false}
-                        fallbackSrc="/icon.webp"
+                        fallbackSrc="/icon-64.webp"
                         className="h-8 w-auto object-contain"
                     />
                     <span className="text-xl font-bold text-primary-900 tracking-tight group-hover:text-primary-700 transition-colors">{trans('app_name')}</span>
@@ -126,6 +167,7 @@ export default function Header({ compareCount = 0 }) {
 
                     {/* Mobile Menu Toggle */}
                     <button
+                        ref={menuButtonRef}
                         onClick={() => setMenuOpen(prev => !prev)}
                         className="md:hidden text-secondary-800 hover:text-primary-900 bg-surface hover:bg-surface-hover p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-900/10 transition-colors"
                         aria-label={trans('toggle_menu')}
@@ -145,7 +187,7 @@ export default function Header({ compareCount = 0 }) {
 
             {/* Mobile Nav Overlay */}
             {menuOpen && (
-                <nav id="mobile-navigation" className="md:hidden absolute top-full left-0 right-0 bg-white shadow-xl border-t border-border rounded-b-3xl px-4 py-4 flex flex-col gap-2 origin-top animate-fade-in" aria-label={isRtl ? 'تنقل الهاتف' : 'Mobile Navigation'}>
+                <nav ref={mobileNavRef} id="mobile-navigation" className="md:hidden absolute top-full left-0 right-0 bg-white shadow-xl border-t border-border rounded-b-3xl px-4 py-4 flex flex-col gap-2 origin-top animate-fade-in" aria-label={isRtl ? 'تنقل الهاتف' : 'Mobile Navigation'}>
                     {NAV_ITEMS.map(item => {
                         const active = isActive(item.href)
                         return (

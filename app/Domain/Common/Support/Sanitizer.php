@@ -6,7 +6,19 @@ class Sanitizer
 {
     public static function text(string $value): string
     {
-        return trim(htmlspecialchars(strip_tags($value), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'));
+        $stripped = strip_tags($value);
+
+        // Iteratively decode any multi-level encoded entities so stored text is clean UTF-8
+        $decoded = $stripped;
+        for ($i = 0; $i < 5; $i++) {
+            $next = html_entity_decode($decoded, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            if ($next === $decoded) {
+                break;
+            }
+            $decoded = $next;
+        }
+
+        return trim($decoded);
     }
 
     public static function rich(string $value): string

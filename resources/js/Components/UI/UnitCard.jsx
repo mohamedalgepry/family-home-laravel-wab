@@ -56,7 +56,7 @@ function UnitCard({ unit, loading = false, priority = false }) {
     const unitSlug = isRtl && unit.slug_ar ? unit.slug_ar : (unit.slug_en || unit.slug || unit.id)
 
     return (
-        <article dir={isRtl ? 'rtl' : 'ltr'} className="bg-white rounded-2xl shadow-card overflow-hidden hover:shadow-2xl transition-all duration-300 transform-gpu group border border-secondary-100/70 md:hover:-translate-y-1.5 md:hover:scale-[1.02] flex flex-col justify-between">
+        <article dir={isRtl ? 'rtl' : 'ltr'} className="bg-white rounded-2xl shadow-card overflow-hidden hover:shadow-lg transition-all duration-300 transform-gpu group border border-secondary-100/70 md:hover:-translate-y-1 flex flex-col justify-between">
             <div>
                 {/* Image */}
                 <Link href={localizedPath(`/units/${unitSlug}`, locale)} className="block relative overflow-hidden aspect-[4/3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
@@ -69,7 +69,7 @@ function UnitCard({ unit, loading = false, priority = false }) {
                         height={360}
                         lazy={!priority}
                         fallbackSrc={PLACEHOLDER}
-                        className="w-full h-full object-cover md:group-hover:scale-108 transition-transform duration-500 ease-out"
+                        className="w-full h-full object-cover md:group-hover:scale-105 transition-transform duration-500 ease-out"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-secondary-950/60 via-transparent to-black/20 opacity-80 group-hover:opacity-60 transition-opacity"></div>
 

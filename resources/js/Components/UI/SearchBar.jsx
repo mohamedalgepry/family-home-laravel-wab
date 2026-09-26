@@ -40,6 +40,7 @@ export default function SearchBar({
 
     const [isSearching, setIsSearching] = useState(false)
     const [showAdvanced, setShowAdvanced] = useState(false)
+    const [mobileShowAdvanced, setMobileShowAdvanced] = useState(false)
 
     useEffect(() => {
         function handleKeyDown(e) {
@@ -106,23 +107,8 @@ export default function SearchBar({
             {/* ---------------- Desktop Search Bar (Hidden on Mobile) ---------------- */}
             <form onSubmit={handleSubmit} dir={isRtl ? 'rtl' : 'ltr'} className="hidden md:block bg-white/95 backdrop-blur-xl rounded-[2rem] shadow-2xl border border-white/60 transition-all duration-300 w-full hover:shadow-[0_20px_50px_rgba(0,0,0,0.25)] relative z-20">
                 <div className="flex flex-row items-center divide-x rtl:divide-x-reverse divide-secondary-100 p-2.5">
-                    {/* Keyword */}
-                    <div className="flex-1 w-full px-5 py-3 hover:bg-surface/60 transition-colors cursor-text group rounded-s-3xl">
-                        <label htmlFor="d-search-input" className="block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors">
-                            {trans('search')}
-                        </label>
-                        <input
-                            id="d-search-input"
-                            type="text"
-                            value={local.search}
-                            onChange={e => update('search', e.target.value)}
-                            placeholder={locale === 'ar' ? 'ابحث بالاسم...' : 'Search by name...'}
-                            className="w-full bg-transparent border-none text-sm focus:ring-0 text-secondary-800 placeholder-secondary-400 outline-none p-0"
-                        />
-                    </div>
-
-                    {/* Transaction Type */}
-                    <div className="flex-1 w-full px-5 py-3 hover:bg-surface/60 transition-colors cursor-pointer group">
+                    {/* 1. Transaction Type (Sale / Rent) */}
+                    <div className="flex-1 w-full px-5 py-3 hover:bg-surface/60 transition-colors cursor-pointer group rounded-s-3xl">
                         <label htmlFor="d-transaction-filter" className="block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors">
                             {trans('transaction')}
                         </label>
@@ -141,7 +127,7 @@ export default function SearchBar({
                         </Select>
                     </div>
 
-                    {/* Area */}
+                    {/* 2. Area */}
                     <div className="flex-1 w-full px-5 py-3 hover:bg-surface/60 transition-colors cursor-pointer group">
                         <label htmlFor="d-area-filter" className="block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors">
                             {trans('area')}
@@ -161,7 +147,7 @@ export default function SearchBar({
                         </Select>
                     </div>
 
-                    {/* Unit Type */}
+                    {/* 3. Unit Type */}
                     <div className="flex-1 w-full px-5 py-3 hover:bg-surface/60 transition-colors cursor-pointer group">
                         <label htmlFor="d-type-filter" className="block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors">
                             {trans('type')}
@@ -181,7 +167,23 @@ export default function SearchBar({
                         </Select>
                     </div>
 
-                    {/* Action Buttons */}
+                    {/* 4. Budget (Max Price) */}
+                    <div className="flex-1 w-full px-5 py-3 hover:bg-surface/60 transition-colors cursor-text group">
+                        <label htmlFor="d-budget-input" className="block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-1 group-hover:text-primary-900 transition-colors">
+                            {locale === 'ar' ? 'الميزانية (الحد الأقصى)' : 'Budget (Max)'}
+                        </label>
+                        <input
+                            id="d-budget-input"
+                            type="number"
+                            min="0"
+                            value={local.price_max}
+                            onChange={e => update('price_max', e.target.value)}
+                            placeholder={locale === 'ar' ? 'مثال: 5,000,000' : 'e.g. 5,000,000'}
+                            className="w-full bg-transparent border-none text-sm focus:ring-0 text-secondary-800 placeholder-secondary-400 outline-none p-0"
+                        />
+                    </div>
+
+                    {/* 5. Action Buttons */}
                     <div className="w-auto p-2 flex items-center justify-center gap-2 shrink-0 ps-4">
                         <button
                             type="button"
@@ -222,6 +224,21 @@ export default function SearchBar({
                     }}
                 >
                     <div className="px-6 py-6 border-t border-secondary-100 flex flex-col gap-5">
+                        {/* Keyword Search in Advanced Filters */}
+                        <div>
+                            <label htmlFor="d-adv-search" className="block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-1.5">
+                                {trans('search') || (locale === 'ar' ? 'بحث بالاسم أو الكلمة الدلالية' : 'Search by keyword')}
+                            </label>
+                            <input
+                                id="d-adv-search"
+                                type="text"
+                                value={local.search}
+                                onChange={e => update('search', e.target.value)}
+                                placeholder={locale === 'ar' ? 'ابحث بالاسم، المشروع، أو الوصف...' : 'Search by name, project, or keyword...'}
+                                className="w-full px-4 h-11 border border-secondary-200 bg-surface rounded-xl text-sm focus:ring-2 focus:ring-primary-900 transition-all outline-none"
+                            />
+                        </div>
+
                         {/* Price & Size row */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                             <div>
@@ -301,14 +318,17 @@ export default function SearchBar({
                         </svg>
                         <div className="flex-1 overflow-hidden whitespace-nowrap">
                             <p className="text-sm font-bold text-secondary-900 truncate">
-                                {local.search || (locale === 'ar' ? 'بحث...' : 'Search...')}
+                                {local.area_id 
+                                    ? (areas?.find(a => a.id == local.area_id)?.[locale === 'ar' ? 'name_ar' : 'name_en'] || (locale === 'ar' ? 'المنطقة المحددة' : 'Selected Area'))
+                                    : (local.search || (locale === 'ar' ? 'ابحث عن عقارك...' : 'Search properties...'))}
                             </p>
                             <p className="text-xs text-secondary-500 font-medium truncate">
                                 {[
-                                    local.transaction && (local.transaction === 'sale' ? trans('sale') : local.transaction === 'rent' ? trans('rent') : trans(local.transaction)),
                                     local.area_id && areas?.find(a => a.id == local.area_id)?.[locale === 'ar' ? 'name_ar' : 'name_en'],
                                     local.type_id && unitTypes?.find(u => u.id == local.type_id)?.[locale === 'ar' ? 'name_ar' : 'name_en'],
-                                ].filter(Boolean).join(' • ') || (locale === 'ar' ? 'جميع الفلاتر' : 'All Filters')}
+                                    local.price_max && (locale === 'ar' ? `حتى ${Number(local.price_max).toLocaleString('ar-EG')} ج.م` : `Up to ${Number(local.price_max).toLocaleString()} EGP`),
+                                    local.transaction && (local.transaction === 'sale' ? trans('sale') : local.transaction === 'rent' ? trans('rent') : trans(local.transaction)),
+                                ].filter(Boolean).join(' • ') || (locale === 'ar' ? 'المنطقة • نوع العقار • الميزانية' : 'Area • Property Type • Budget')}
                             </p>
                         </div>
                     </button>
@@ -332,7 +352,7 @@ export default function SearchBar({
 
                             {/* Drag Handle & Header */}
                             <div className="flex-none p-5 pb-3 border-b border-secondary-100 flex items-center justify-between sticky top-0 bg-white rounded-t-[2rem] z-10">
-                                <h3 className="text-lg font-black text-secondary-950 tracking-tight">{locale === 'ar' ? 'الفلاتر' : 'Filters'}</h3>
+                                <h3 className="text-lg font-black text-secondary-950 tracking-tight">{locale === 'ar' ? 'البحث والتصفية' : 'Search & Filters'}</h3>
                                 <button 
                                     type="button" 
                                     onClick={() => setShowAdvanced(false)} 
@@ -346,15 +366,25 @@ export default function SearchBar({
                             </div>
 
                             {/* Scrollable Content */}
-                            <div className="flex-1 overflow-y-auto p-5 pb-24 flex flex-col gap-6 hide-scrollbar">
-                                {/* Keyword */}
+                            <div className="flex-1 overflow-y-auto p-5 pb-24 flex flex-col gap-5 hide-scrollbar">
+                                {/* 1. Area */}
                                 <div>
-                                    <label htmlFor="m-search" className="block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-2">{trans('search')}</label>
-                                    <input id="m-search" type="text" value={local.search} onChange={e => update('search', e.target.value)} placeholder={locale === 'ar' ? 'ابحث بالاسم...' : 'Search...'} className="w-full px-4 h-12 border border-secondary-200 bg-surface rounded-xl text-sm focus:ring-2 focus:ring-primary-900 transition-all outline-none" />
+                                    <label htmlFor="m-area" className="block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-2">{trans('area')}</label>
+                                    <Select id="m-area" value={local.area_id} onChange={e => update('area_id', e.target.value)} className="w-full bg-surface border border-secondary-200 rounded-xl h-12">
+                                        <option value="">{locale === 'ar' ? 'كل المناطق' : 'All Areas'}</option>
+                                        {areas?.map(area => <option key={`m-a-${area.id}`} value={area.id}>{locale === 'ar' ? area.name_ar : area.name_en}</option>)}
+                                    </Select>
                                 </div>
 
-                                {/* Transaction & Type */}
+                                {/* 2. Property Type & Transaction */}
                                 <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label htmlFor="m-type" className="block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-2">{trans('type')}</label>
+                                        <Select id="m-type" value={local.type_id} onChange={e => update('type_id', e.target.value)} className="w-full bg-surface border border-secondary-200 rounded-xl h-12">
+                                            <option value="">{locale === 'ar' ? 'كل الأنواع' : 'All Types'}</option>
+                                            {unitTypes?.map(ut => <option key={`m-ut-${ut.id}`} value={ut.id}>{locale === 'ar' ? ut.name_ar : ut.name_en}</option>)}
+                                        </Select>
+                                    </div>
                                     <div>
                                         <label htmlFor="m-transaction" className="block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-2">{trans('transaction')}</label>
                                         <Select id="m-transaction" value={local.transaction} onChange={e => update('transaction', e.target.value)} className="w-full bg-surface border border-secondary-200 rounded-xl h-12">
@@ -364,88 +394,111 @@ export default function SearchBar({
                                             <option value="new_project">{locale === 'ar' ? 'مشروع جديد' : 'New Project'}</option>
                                         </Select>
                                     </div>
-                                    <div>
-                                        <label htmlFor="m-type" className="block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-2">{trans('type')}</label>
-                                        <Select id="m-type" value={local.type_id} onChange={e => update('type_id', e.target.value)} className="w-full bg-surface border border-secondary-200 rounded-xl h-12">
-                                            <option value="">{locale === 'ar' ? 'الكل' : 'All'}</option>
-                                            {unitTypes?.map(ut => <option key={`m-ut-${ut.id}`} value={ut.id}>{locale === 'ar' ? ut.name_ar : ut.name_en}</option>)}
-                                        </Select>
-                                    </div>
                                 </div>
 
-                                {/* Area */}
+                                {/* 3. Budget (Max Price) */}
                                 <div>
-                                    <label htmlFor="m-area" className="block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-2">{trans('area')}</label>
-                                    <Select id="m-area" value={local.area_id} onChange={e => update('area_id', e.target.value)} className="w-full bg-surface border border-secondary-200 rounded-xl h-12">
-                                        <option value="">{locale === 'ar' ? 'كل المناطق' : 'All Areas'}</option>
-                                        {areas?.map(area => <option key={`m-a-${area.id}`} value={area.id}>{locale === 'ar' ? area.name_ar : area.name_en}</option>)}
-                                    </Select>
+                                    <label htmlFor="m-budget" className="block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-2">{locale === 'ar' ? 'الميزانية (الحد الأقصى)' : 'Budget (Max Price)'}</label>
+                                    <input
+                                        id="m-budget"
+                                        type="number"
+                                        min="0"
+                                        value={local.price_max}
+                                        onChange={e => update('price_max', e.target.value)}
+                                        placeholder={locale === 'ar' ? 'مثال: 5,000,000 ج.م' : 'e.g. 5,000,000 EGP'}
+                                        className="w-full px-4 h-12 border border-secondary-200 bg-surface rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary-900"
+                                    />
                                 </div>
 
-                                {/* Price */}
-                                <div>
-                                    <label className="block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-2">{trans('price') || 'Price'}</label>
-                                    <div className="flex items-center gap-3">
-                                        <input type="number" min="0" value={local.price_min} onChange={e => update('price_min', e.target.value)} placeholder={locale === 'ar' ? 'من' : 'Min'} className="w-full px-4 h-12 border border-secondary-200 bg-surface rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary-900" />
-                                        <span className="text-secondary-400 font-medium">-</span>
-                                        <input type="number" min="0" value={local.price_max} onChange={e => update('price_max', e.target.value)} placeholder={locale === 'ar' ? 'إلى' : 'Max'} className="w-full px-4 h-12 border border-secondary-200 bg-surface rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary-900" />
-                                    </div>
-                                </div>
+                                {/* 4. Advanced Filters Expandable Accordion */}
+                                <div className="border border-secondary-200 rounded-2xl overflow-hidden">
+                                    <button
+                                        type="button"
+                                        onClick={() => setMobileShowAdvanced(prev => !prev)}
+                                        className="w-full py-3.5 px-4 bg-surface text-xs font-bold text-secondary-900 flex items-center justify-between hover:bg-secondary-100 transition-colors"
+                                    >
+                                        <span className="flex items-center gap-2">
+                                            <svg className="w-4 h-4 text-primary-900 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
+                                            </svg>
+                                            {locale === 'ar' ? 'فلاتر متقدمة إضافية (الاسم، المساحة، التشطيب)' : 'Advanced Filters (Keyword, Size, Finishing)'}
+                                        </span>
+                                        <svg className={`w-4 h-4 text-secondary-500 transition-transform duration-200 ${mobileShowAdvanced ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                                        </svg>
+                                    </button>
 
-                                {/* Size */}
-                                <div>
-                                    <label className="block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-2">{locale === 'ar' ? 'المساحة' : 'Size'}</label>
-                                    <div className="flex items-center gap-3">
-                                        <input type="number" min="0" value={local.size_min} onChange={e => update('size_min', e.target.value)} placeholder={locale === 'ar' ? 'من' : 'Min'} className="w-full px-4 h-12 border border-secondary-200 bg-surface rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary-900" />
-                                        <span className="text-secondary-400 font-medium">-</span>
-                                        <input type="number" min="0" value={local.size_max} onChange={e => update('size_max', e.target.value)} placeholder={locale === 'ar' ? 'إلى' : 'Max'} className="w-full px-4 h-12 border border-secondary-200 bg-surface rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary-900" />
-                                    </div>
-                                </div>
+                                    {mobileShowAdvanced && (
+                                        <div className="p-4 bg-white border-t border-secondary-200 flex flex-col gap-4">
+                                            {/* Keyword */}
+                                            <div>
+                                                <label htmlFor="m-search" className="block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-2">{trans('search')}</label>
+                                                <input id="m-search" type="text" value={local.search} onChange={e => update('search', e.target.value)} placeholder={locale === 'ar' ? 'ابحث بالاسم أو الوصف...' : 'Search...'} className="w-full px-4 h-12 border border-secondary-200 bg-surface rounded-xl text-sm focus:ring-2 focus:ring-primary-900 transition-all outline-none" />
+                                            </div>
 
-                                {/* Payment & Finishing */}
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label htmlFor="m-payment" className="block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-2">{trans('payment_method') || 'Payment Method'}</label>
-                                        <Select id="m-payment" value={local.payment_method} onChange={e => update('payment_method', e.target.value)} className="w-full bg-surface border border-secondary-200 rounded-xl h-12">
-                                            <option value="">{trans('all') || 'All'}</option>
-                                            <option value="cash">{trans('cash')}</option>
-                                            <option value="installment">{trans('installment')}</option>
-                                            <option value="both">{trans('both')}</option>
-                                        </Select>
-                                    </div>
-                                    <div>
-                                        <label htmlFor="m-finish" className="block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-2">{trans('finishing_type') || 'Finishing Type'}</label>
-                                        <Select id="m-finish" value={local.finishing_type_id} onChange={e => update('finishing_type_id', e.target.value)} className="w-full bg-surface border border-secondary-200 rounded-xl h-12">
-                                            <option value="">{trans('all') || 'All'}</option>
-                                            {finishingTypes?.map(f => <option key={`m-f-${f.id}`} value={f.id}>{locale === 'ar' ? f.name_ar : f.name_en}</option>)}
-                                        </Select>
-                                    </div>
-                                </div>
+                                            {/* Price Min */}
+                                            <div>
+                                                <label htmlFor="m-price-min" className="block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-2">{locale === 'ar' ? 'الحد الأدنى للسعر' : 'Min Price'}</label>
+                                                <input id="m-price-min" type="number" min="0" value={local.price_min} onChange={e => update('price_min', e.target.value)} placeholder={locale === 'ar' ? 'من' : 'Min'} className="w-full px-4 h-12 border border-secondary-200 bg-surface rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary-900" />
+                                            </div>
 
-                                {/* Features */}
-                                {features?.length > 0 && (
-                                    <div className="pt-2">
-                                        <label className="block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-3">{trans('features') || 'Features'}</label>
-                                        <div className="flex flex-wrap gap-2">
-                                            {features.map(feature => {
-                                                const isChecked = Array.isArray(local.features) && (local.features.includes(String(feature.id)) || local.features.includes(feature.id));
-                                                return (
-                                                    <button
-                                                        key={`m-feat-${feature.id}`}
-                                                        type="button"
-                                                        onClick={() => toggleFeature(feature.id)}
-                                                        className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors ${isChecked
-                                                                ? 'bg-primary-900 border-primary-900 text-white'
-                                                                : 'bg-white border-secondary-200 text-secondary-700 hover:border-primary-900 hover:text-primary-900'
-                                                            }`}
-                                                    >
-                                                        {locale === 'ar' ? feature.name_ar : feature.name_en}
-                                                    </button>
-                                                )
-                                            })}
+                                            {/* Size */}
+                                            <div>
+                                                <label className="block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-2">{locale === 'ar' ? 'المساحة (م²)' : 'Size (sqm)'}</label>
+                                                <div className="flex items-center gap-3">
+                                                    <input type="number" min="0" value={local.size_min} onChange={e => update('size_min', e.target.value)} placeholder={locale === 'ar' ? 'من' : 'Min'} className="w-full px-4 h-12 border border-secondary-200 bg-surface rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary-900" />
+                                                    <span className="text-secondary-400 font-medium">-</span>
+                                                    <input type="number" min="0" value={local.size_max} onChange={e => update('size_max', e.target.value)} placeholder={locale === 'ar' ? 'إلى' : 'Max'} className="w-full px-4 h-12 border border-secondary-200 bg-surface rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary-900" />
+                                                </div>
+                                            </div>
+
+                                            {/* Payment & Finishing */}
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div>
+                                                    <label htmlFor="m-payment" className="block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-2">{trans('payment_method') || 'Payment Method'}</label>
+                                                    <Select id="m-payment" value={local.payment_method} onChange={e => update('payment_method', e.target.value)} className="w-full bg-surface border border-secondary-200 rounded-xl h-12">
+                                                        <option value="">{trans('all') || 'All'}</option>
+                                                        <option value="cash">{trans('cash')}</option>
+                                                        <option value="installment">{trans('installment')}</option>
+                                                        <option value="both">{trans('both')}</option>
+                                                    </Select>
+                                                </div>
+                                                <div>
+                                                    <label htmlFor="m-finish" className="block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-2">{trans('finishing_type') || 'Finishing Type'}</label>
+                                                    <Select id="m-finish" value={local.finishing_type_id} onChange={e => update('finishing_type_id', e.target.value)} className="w-full bg-surface border border-secondary-200 rounded-xl h-12">
+                                                        <option value="">{trans('all') || 'All'}</option>
+                                                        {finishingTypes?.map(f => <option key={`m-f-${f.id}`} value={f.id}>{locale === 'ar' ? f.name_ar : f.name_en}</option>)}
+                                                    </Select>
+                                                </div>
+                                            </div>
+
+                                            {/* Features */}
+                                            {features?.length > 0 && (
+                                                <div className="pt-2">
+                                                    <label className="block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-3">{trans('features') || 'Features'}</label>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {features.map(feature => {
+                                                            const isChecked = Array.isArray(local.features) && (local.features.includes(String(feature.id)) || local.features.includes(feature.id));
+                                                            return (
+                                                                <button
+                                                                    key={`m-feat-${feature.id}`}
+                                                                    type="button"
+                                                                    onClick={() => toggleFeature(feature.id)}
+                                                                    className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors ${isChecked
+                                                                            ? 'bg-primary-900 border-primary-900 text-white'
+                                                                            : 'bg-white border-secondary-200 text-secondary-700 hover:border-primary-900 hover:text-primary-900'
+                                                                        }`}
+                                                                >
+                                                                    {locale === 'ar' ? feature.name_ar : feature.name_en}
+                                                                </button>
+                                                            )
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
-                                    </div>
-                                )}
+                                    )}
+                                </div>
                             </div>
 
                             {/* Mobile Actions Footer */}

@@ -15,7 +15,7 @@ import { getStorageUrl, PLACEHOLDER } from '../../../Utils/image'
 import { getAgentContacts } from '../../../Utils/contact'
 import { hasValidCoords } from '../../../Utils/location'
 import { WhatsAppIcon, LazyMapEmbed } from '../../../Components/UI'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 
 export default function ProjectShow({ project, projectUnits, similarProjects, relatedArticles, seo_meta }) {
     const page = usePage()
@@ -28,8 +28,54 @@ export default function ProjectShow({ project, projectUnits, similarProjects, re
     const embedUrl = getYouTubeEmbedUrl(project?.video_url)
     const agentContacts = getAgentContacts(project?.user, page.props.settings)
 
+    const lightboxCloseRef = useRef(null)
+    const lastActiveElementRef = useRef(null)
 
-    const images = project?.images ?? []
+    const images = useMemo(() => {
+        return project?.images ?? []
+    }, [project?.images])
+
+    useEffect(() => {
+        if (lightboxIndex === null) {
+            document.body.style.overflow = ''
+            if (lastActiveElementRef.current && typeof lastActiveElementRef.current.focus === 'function') {
+                lastActiveElementRef.current.focus()
+            }
+            return
+        }
+
+        lastActiveElementRef.current = document.activeElement
+        document.body.style.overflow = 'hidden'
+
+        setTimeout(() => {
+            lightboxCloseRef.current?.focus()
+        }, 50)
+
+        function handleKeyDown(e) {
+            if (e.key === 'Escape') {
+                e.preventDefault()
+                setLightboxIndex(null)
+            } else if (e.key === 'ArrowRight') {
+                e.preventDefault()
+                setLightboxIndex(prev => isRtl 
+                    ? (prev === 0 ? images.length - 1 : prev - 1)
+                    : (prev === images.length - 1 ? 0 : prev + 1)
+                )
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault()
+                setLightboxIndex(prev => isRtl 
+                    ? (prev === images.length - 1 ? 0 : prev + 1)
+                    : (prev === 0 ? images.length - 1 : prev - 1)
+                )
+            }
+        }
+
+        window.addEventListener('keydown', handleKeyDown)
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown)
+            document.body.style.overflow = ''
+        }
+    }, [lightboxIndex, images.length, isRtl])
     const projectUnitsList = Array.isArray(projectUnits)
         ? projectUnits
         : (Array.isArray(projectUnits?.data) ? projectUnits.data : (Array.isArray(project?.units) ? project.units : (Array.isArray(project?.units?.data) ? project.units.data : [])))
@@ -153,7 +199,7 @@ export default function ProjectShow({ project, projectUnits, similarProjects, re
                                     className="w-full h-full object-cover"
                                     fetchPriority="high"
                                     loading="eager"
-                                    decoding="sync"
+                                    decoding="async"
                                 />
 
                                 {/* Status Tag */}
@@ -440,10 +486,10 @@ export default function ProjectShow({ project, projectUnits, similarProjects, re
                     {hasLocationOrCoords && <a href="#location" className="py-3 hover:text-[#CC0000] transition-colors">{isRtl ? 'الموقع' : 'Location'}</a>}
                 </div>
 
-                {/* DESKTOP 2-COLUMN SIDEBAR LAYOUT (lg:grid) */}
-                <div className="hidden lg:grid grid-cols-12 gap-8 items-start">
+                {/* 2-COLUMN SIDEBAR LAYOUT */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                     {/* Left Content Column (7 cols desktop) */}
-                    <div className="col-span-7 space-y-8">
+                    <div className="col-span-1 lg:col-span-7 space-y-8">
                         {/* Section 1: عن المشروع */}
                         <section id="overview" className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6">
                             <h2 className="text-lg font-black text-secondary-950 mb-3">{isRtl ? 'عن المشروع' : 'About Project'}</h2>
@@ -455,7 +501,7 @@ export default function ProjectShow({ project, projectUnits, similarProjects, re
                             <PaymentTerms item={project} />
                         </section>
 
-                        {/* Section: الفيديو التعريفي (Desktop) */}
+                        {/* Section: الفيديو التعريفي (Desktop & Mobile) */}
                         {embedUrl && (
                             <section id="video" className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6">
                                 <h2 className="text-lg font-black text-secondary-950 mb-4 flex items-center gap-2">
@@ -489,7 +535,7 @@ export default function ProjectShow({ project, projectUnits, similarProjects, re
                     </div>
 
                     {/* Right Sidebar Column (5 cols desktop, continuous & sticky) */}
-                    <div className="col-span-5 space-y-6 sticky top-24">
+                    <div className="col-span-1 lg:col-span-5 space-y-6 lg:sticky lg:top-24">
                         {/* Card 1: معلومات المشروع */}
                         <div className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4">
                             <h2 className="text-sm font-black text-secondary-950 border-b border-secondary-100 pb-3">{isRtl ? 'معلومات المشروع' : 'Project Information'}</h2>
@@ -570,129 +616,6 @@ export default function ProjectShow({ project, projectUnits, similarProjects, re
                             </div>
                         )}
                     </div>
-                </div>
-
-                {/* MOBILE RE-ORDERED LAYOUT (lg:hidden) */}
-                <div className="lg:hidden flex flex-col gap-6">
-                    {/* 1. Overview */}
-                    <section className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6">
-                        <h2 className="text-lg font-black text-secondary-950 mb-3">{isRtl ? 'عن المشروع' : 'About Project'}</h2>
-                        <p className="text-sm text-secondary-700 leading-relaxed whitespace-pre-line font-normal">
-                            {project.description || (isRtl ? 'مشروع عقاري متميز يضم وحدات سكنية وتجارية مصممة بأعلى معايير الجودة والتصميم العصري مع توفير كافة الخدمات والمرافق الأساسية والترفيهية.' : 'A premier real estate development with luxury residential and commercial units.')}
-                        </p>
-
-                        {/* Payment details on Mobile if any */}
-                        <PaymentTerms item={project} />
-                    </section>
-
-                    {/* Section: الفيديو التعريفي (Mobile) */}
-                    {embedUrl && (
-                        <section id="video-mob" className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6">
-                            <h2 className="text-lg font-black text-secondary-950 mb-4 flex items-center gap-2">
-                                <svg className="w-5 h-5 text-[#CC0000]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.91 11.672a.375.375 0 010 .656l-5.603 3.113a.375.375 0 01-.557-.328V8.887c0-.286.307-.466.557-.327l5.603 3.112z" />
-                                </svg>
-                                <span>{isRtl ? 'الفيديو التعريفي للمشروع' : 'Project Video Tour'}</span>
-                            </h2>
-                            <VideoPlayer embedUrl={embedUrl} title={project.name} />
-                        </section>
-                    )}
-
-                    {/* 2. Features */}
-                    {project.features?.length > 0 && (
-                        <section className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6">
-                            <h2 className="text-lg font-black text-secondary-950 mb-4">{isRtl ? 'المميزات والمرافق' : 'Features & Facilities'}</h2>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                {project.features.map(feature => (
-                                    <div key={feature.id} className="flex flex-col items-center justify-center p-3.5 rounded-xl bg-surface border border-secondary-100 text-center gap-2">
-                                        <div className="w-9 h-9 rounded-full bg-white shadow-xs border border-secondary-100 flex items-center justify-center text-secondary-700">
-                                            <IconByName iconName={feature.icon_name || feature.icon} className="w-5 h-5 text-[#FF6B6B]" />
-                                        </div>
-                                        <span className="text-xs font-semibold text-secondary-800">{locale === 'ar' ? (feature.name_ar || feature.name) : (feature.name_en || feature.name)}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </section>
-                    )}
-
-                    {/* 3. Project Info Card */}
-                    <div className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4">
-                        <h2 className="text-sm font-black text-secondary-950 border-b border-secondary-100 pb-3">{isRtl ? 'معلومات المشروع' : 'Project Information'}</h2>
-                        <div className="space-y-2.5 text-xs">
-                            <div className="flex items-center justify-between py-1.5 border-b border-secondary-100/60">
-                                <span className="text-secondary-500 font-semibold">{isRtl ? 'اسم المشروع' : 'Project Name'}</span>
-                                <span className="font-bold text-secondary-950">{project.name}</span>
-                            </div>
-                            {project.area?.name && (
-                                <div className="flex items-center justify-between py-1.5 border-b border-secondary-100/60">
-                                    <span className="text-secondary-500 font-semibold">{isRtl ? 'المنطقة' : 'Area'}</span>
-                                    <Link href={localizedPath(`/areas/${project.area.slug || project.area.id}`, locale)} className="font-bold text-primary-900 hover:underline">
-                                        {project.area.name}
-                                    </Link>
-                                </div>
-                            )}
-                            {locationAddress && (
-                                <div className="flex items-start justify-between py-1.5 border-b border-secondary-100/60 gap-2">
-                                    <span className="text-secondary-500 font-semibold shrink-0">{trans('location_address') || (isRtl ? 'العنوان' : 'Address')}</span>
-                                    <span className="font-bold text-secondary-950 text-end break-words">{locationAddress}</span>
-                                </div>
-                            )}
-                            <div className="flex items-center justify-between py-1.5">
-                                <span className="text-secondary-500 font-semibold">{isRtl ? 'عدد الوحدات' : 'Total Units'}</span>
-                                <span className="font-bold text-secondary-950">{project.units_count ?? units.length} {isRtl ? 'وحدة' : 'Units'}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* 4. Location Map */}
-                    {hasLocationOrCoords && (
-                        <div className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4">
-                            <div className="flex items-center justify-between border-b border-secondary-100 pb-3">
-                                <h2 className="text-sm font-black text-secondary-950">{isRtl ? 'الموقع والعنوان' : 'Location Map'}</h2>
-                            </div>
-
-                            {locationAddress && (
-                                <div className="flex items-start gap-3 p-3.5 rounded-xl bg-surface border border-secondary-100">
-                                    <div className="w-8 h-8 rounded-lg bg-red-50 text-[#CC0000] flex items-center justify-center shrink-0">
-                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                                        </svg>
-                                    </div>
-                                    <div className="min-w-0 flex-1">
-                                        <span className="text-[11px] font-semibold text-secondary-500 block mb-0.5">{isRtl ? 'العنوان بالتفصيل' : 'Detailed Address'}</span>
-                                        <p className="text-xs font-bold text-secondary-950 leading-relaxed break-words">{locationAddress}</p>
-                                    </div>
-                                </div>
-                            )}
-
-                            {hasValidCoords(project) && (
-                                <>
-                                    <LazyMapEmbed
-                                        latitude={project.latitude}
-                                        longitude={project.longitude}
-                                        locale={locale}
-                                        title="Google Map Location Mobile Project"
-                                    />
-                                    <div className="text-center pt-1">
-                                        <a
-                                            href={`https://www.google.com/maps/search/?api=1&query=${project.latitude},${project.longitude}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-secondary-800 hover:text-[#CC0000] transition-colors"
-                                        >
-                                            <svg className="w-4 h-4 text-[#CC0000]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                                            </svg>
-                                            <span>{isRtl ? 'فتح في خرائط Google' : 'Open in Google Maps'}</span>
-                                        </a>
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                    )}
                 </div>
 
                 {/* 1. Units inside project grid */}
@@ -779,11 +702,15 @@ export default function ProjectShow({ project, projectUnits, similarProjects, re
                 <div
                     className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
                     onClick={() => setLightboxIndex(null)}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label={trans('gallery') || (isRtl ? 'معرض الصور' : 'Photo Gallery')}
                 >
                     <button
+                        ref={lightboxCloseRef}
                         type="button"
                         onClick={() => setLightboxIndex(null)}
-                        className="absolute top-4 end-4 text-white text-2xl bg-black/50 w-10 h-10 rounded-full flex items-center justify-center hover:bg-black"
+                        className="absolute top-4 end-4 text-white text-2xl bg-black/50 w-10 h-10 rounded-full flex items-center justify-center hover:bg-black focus:outline-none focus:ring-2 focus:ring-white"
                         aria-label={trans('close')}
                     >
                         ✕

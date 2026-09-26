@@ -26,7 +26,7 @@
 </IfModule>
 
 <IfModule mod_headers.c>
-    <FilesMatch "\.(js|css|xml|gz|html|woff2?|ttf|eot|svg|webp|png|jpg|jpeg|json)$">
+    <FilesMatch "\.(js|css|woff2?|ttf|eot|svg|webp|png|jpg|jpeg)$">
         Header set Access-Control-Allow-Origin "*"
         Header set Access-Control-Allow-Methods "GET, OPTIONS"
         Header set Access-Control-Allow-Headers "*"
@@ -56,8 +56,8 @@
     RewriteCond %{HTTP:x-xsrf-token} .
     RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
 
-    # Prevent direct access to .env and hidden files
-    RewriteRule ^(\.env|\.git|\.agents) - [F,L,NC]
+    # Prevent direct access to .env, hidden files, and sensitive directories
+    RewriteRule ^(\.env|\.git|\.agents|storage|vendor|app|bootstrap|config|database) - [F,L,NC]
 
     # Redirect requests to public directory if not already there
     RewriteCond %{REQUEST_URI} !^/public/

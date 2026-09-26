@@ -15,7 +15,7 @@ import { getStorageUrl, PLACEHOLDER } from '../../../Utils/image'
 import { getAgentContacts } from '../../../Utils/contact'
 import { hasValidCoords } from '../../../Utils/location'
 import { WhatsAppIcon, LazyMapEmbed } from '../../../Components/UI'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 
 export default function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles, seo_meta }) {
     const page = usePage()
@@ -27,6 +27,55 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
     const [activeImageIndex, setActiveImageIndex] = useState(0)
     const [sentSuccess, setSentSuccess] = useState(false)
     const agentContacts = getAgentContacts(unit?.user || unit?.project?.user, page.props.settings)
+
+    const lightboxCloseRef = useRef(null)
+    const lastActiveElementRef = useRef(null)
+
+    const images = useMemo(() => {
+        return unit?.images && unit.images.length > 0 ? unit.images : []
+    }, [unit?.images])
+
+    useEffect(() => {
+        if (lightboxIndex === null) {
+            document.body.style.overflow = ''
+            if (lastActiveElementRef.current && typeof lastActiveElementRef.current.focus === 'function') {
+                lastActiveElementRef.current.focus()
+            }
+            return
+        }
+
+        lastActiveElementRef.current = document.activeElement
+        document.body.style.overflow = 'hidden'
+
+        setTimeout(() => {
+            lightboxCloseRef.current?.focus()
+        }, 50)
+
+        function handleKeyDown(e) {
+            if (e.key === 'Escape') {
+                e.preventDefault()
+                setLightboxIndex(null)
+            } else if (e.key === 'ArrowRight') {
+                e.preventDefault()
+                setLightboxIndex(prev => isRtl 
+                    ? (prev === 0 ? images.length - 1 : prev - 1)
+                    : (prev === images.length - 1 ? 0 : prev + 1)
+                )
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault()
+                setLightboxIndex(prev => isRtl 
+                    ? (prev === images.length - 1 ? 0 : prev + 1)
+                    : (prev === 0 ? images.length - 1 : prev - 1)
+                )
+            }
+        }
+
+        window.addEventListener('keydown', handleKeyDown)
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown)
+            document.body.style.overflow = ''
+        }
+    }, [lightboxIndex, images.length, isRtl])
 
     const similarUnitsList = Array.isArray(similarUnits) ? similarUnits : (similarUnits?.data ?? [])
     const relatedProjectsList = Array.isArray(relatedProjects) ? relatedProjects : (relatedProjects?.data ?? [])
@@ -107,7 +156,6 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
         }
     }, [sentSuccess, flash?.success])
 
-    const images = unit?.images ?? []
     const selectedImage = images[activeImageIndex] || images[0]
     const mainImageUrl = getStorageUrl(selectedImage?.large_url || selectedImage?.url || selectedImage?.path, PLACEHOLDER)
     const mainImageSrcSet = selectedImage?.srcset || undefined
@@ -188,7 +236,7 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                                             className="w-full h-full object-cover"
                                             fetchPriority="high"
                                             loading="eager"
-                                            decoding="sync"
+                                            decoding="async"
                                         />
 
                                         {/* Status Badge */}
@@ -240,10 +288,7 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                                                 <button
                                                     type="button"
                                                     onClick={() => {
-                                                        const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
-                                                        const el = isMobile
-                                                            ? (document.getElementById('video-mob') || document.getElementById('video'))
-                                                            : (document.getElementById('video') || document.getElementById('video-mob'));
+                                                        const el = document.getElementById('video');
                                                         el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                                                     }}
                                                     className="bg-[#CC0000] hover:bg-[#b30000] text-white px-3.5 py-1.5 rounded-xl shadow-md transition active:scale-[0.97] duration-150 ease-out flex items-center gap-1.5 text-xs font-bold border border-red-700"
@@ -360,10 +405,7 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                                     <button
                                         type="button"
                                         onClick={() => {
-                                            const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
-                                            const el = isMobile
-                                                ? (document.getElementById('contact-form-mob') || document.getElementById('contact-form'))
-                                                : (document.getElementById('contact-form') || document.getElementById('contact-form-mob'));
+                                            const el = document.getElementById('contact-form');
                                             el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                                         }}
                                         className="w-full py-3 px-4 bg-[#CC0000] hover:bg-[#b30000] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-md transition active:scale-[0.97] duration-150 ease-out"
@@ -579,10 +621,10 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                             <a href="#contact-form" className="py-3 hover:text-[#CC0000] transition-colors">{isRtl ? 'تواصل معنا' : 'Contact Us'}</a>
                         </div>
 
-                        {/* DESKTOP 2-COLUMN SIDEBAR LAYOUT (lg:grid) */}
-                        <div className="hidden lg:grid grid-cols-12 gap-8 items-start">
+                        {/* UNIFIED 2-COLUMN RESPONSIVE LAYOUT */}
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                             {/* Left Content Column (7 cols desktop) */}
-                            <div className="col-span-7 space-y-8">
+                            <div className="lg:col-span-7 space-y-6 md:space-y-8">
                                 {/* Section 1: نبذة عن الوحدة */}
                                 <section id="overview" className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6">
                                     <h2 className="text-lg font-black text-secondary-950 mb-3">{isRtl ? 'نبذة عن الوحدة' : 'Unit Overview'}</h2>
@@ -597,7 +639,7 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                                     <PaymentTerms item={unit} />
                                 </section>
 
-                                {/* Section: الفيديو التعريفي (Desktop) */}
+                                {/* Section: الفيديو التعريفي */}
                                 {embedUrl && (
                                     <section id="video" className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6">
                                         <h2 className="text-lg font-black text-secondary-950 mb-4 flex items-center gap-2">
@@ -628,24 +670,10 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                                         </div>
                                     </section>
                                 )}
-
-                                {/* Section 3: تواصل معنا Form */}
-                                <UnitContactForm
-                                    idPrefix="dt"
-                                    isRtl={isRtl}
-                                    sentSuccess={sentSuccess}
-                                    flash={flash}
-                                    trans={trans}
-                                    data={data}
-                                    setData={setData}
-                                    errors={errors}
-                                    processing={processing}
-                                    handleSubmit={handleSubmit}
-                                />
                             </div>
 
                             {/* Right Sidebar Column (5 cols desktop, continuous & sticky) */}
-                            <div className="col-span-5 space-y-6 sticky top-24">
+                            <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-24">
                                 {/* Card 1: معلومات المشروع أو المنطقة */}
                                 {unit.project ? (
                                     <div className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4">
@@ -786,207 +814,21 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                                         )}
                                     </div>
                                 )}
+
+                                {/* Section 3: تواصل معنا Form */}
+                                <UnitContactForm
+                                    idPrefix="main"
+                                    isRtl={isRtl}
+                                    sentSuccess={sentSuccess}
+                                    flash={flash}
+                                    trans={trans}
+                                    data={data}
+                                    setData={setData}
+                                    errors={errors}
+                                    processing={processing}
+                                    handleSubmit={handleSubmit}
+                                />
                             </div>
-                        </div>
-
-                        {/* MOBILE RE-ORDERED LAYOUT (lg:hidden) */}
-                        <div className="lg:hidden flex flex-col gap-6">
-                            {/* 1. Overview */}
-                            <section className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6">
-                                <h2 className="text-lg font-black text-secondary-950 mb-3">{isRtl ? 'نبذة عن الوحدة' : 'Unit Overview'}</h2>
-                                <p className="text-sm text-secondary-700 leading-relaxed whitespace-pre-line font-normal">
-                                    {(locale === 'ar' ? unit.description_ar || unit.description : unit.description_en || unit.description) ||
-                                        (isRtl
-                                            ? 'شقة فاخرة بمساحة واسعة في موقع متميز تتميز بتصميم عصري وتقسيم ممتاز ومساحات تتيح أقصى درجات الراحة والتطشيبات عالية الجودة في واحدة من أفضل المناطق السكنية.'
-                                            : 'Luxury spacious unit in a prime location with modern architecture, premium finishings, and optimal layout.')}
-                                </p>
-
-                                {/* Payment Details on Mobile if any */}
-                                <PaymentTerms item={unit} />
-                            </section>
-
-                            {/* Section: الفيديو التعريفي (Mobile) */}
-                            {embedUrl && (
-                                <section id="video-mob" className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6">
-                                    <h2 className="text-lg font-black text-secondary-950 mb-4 flex items-center gap-2">
-                                        <svg className="w-5 h-5 text-[#CC0000]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.91 11.672a.375.375 0 010 .656l-5.603 3.113a.375.375 0 01-.557-.328V8.887c0-.286.307-.466.557-.327l5.603 3.112z" />
-                                        </svg>
-                                        <span>{isRtl ? 'الفيديو التعريفي' : 'Property Video Tour'}</span>
-                                    </h2>
-                                    <VideoPlayer embedUrl={embedUrl} title={unit.name} />
-                                </section>
-                            )}
-
-                            {/* 2. Features */}
-                            {unit.features?.length > 0 && (
-                                <section className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6">
-                                    <h2 className="text-lg font-black text-secondary-950 mb-4">{isRtl ? 'المميزات' : 'Features & Amenities'}</h2>
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                        {unit.features.map(feature => (
-                                            <div key={feature.id} className="flex flex-col items-center justify-center p-3.5 rounded-xl bg-surface border border-secondary-100 text-center gap-2">
-                                                <div className="w-9 h-9 rounded-full bg-white shadow-xs border border-secondary-100 flex items-center justify-center text-secondary-700">
-                                                    <IconByName iconName={feature.icon_name || feature.icon} className="w-5 h-5 text-[#FF6B6B]" />
-                                                </div>
-                                                <span className="text-xs font-semibold text-secondary-800">{locale === 'ar' ? (feature.name_ar || feature.name) : (feature.name_en || feature.name)}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </section>
-                            )}
-
-                            {/* 3. Project / Area Info Card (Mobile) */}
-                            {unit.project ? (
-                                <div className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4">
-                                    <div className="flex items-center justify-between border-b border-secondary-100 pb-3">
-                                        <h2 className="text-sm font-black text-secondary-950">{isRtl ? 'مشروع الوحدة' : 'Project Info'}</h2>
-                                        <span className="text-[11px] font-bold text-primary-900 bg-primary-50 px-2 py-0.5 rounded-full">{isRtl ? 'مشروع عقاري' : 'Project'}</span>
-                                    </div>
-                                    <div className="space-y-2.5 text-xs">
-                                        <div className="flex items-center justify-between py-1.5 border-b border-secondary-100/60">
-                                            <span className="text-secondary-500 font-semibold">{isRtl ? 'اسم المشروع' : 'Project Name'}</span>
-                                            <span className="font-bold text-secondary-950">{unit.project.name}</span>
-                                        </div>
-                                        {unit.project.area?.name && (
-                                            <div className="flex items-center justify-between py-1.5 border-b border-secondary-100/60">
-                                                <span className="text-secondary-500 font-semibold">{isRtl ? 'المنطقة' : 'Area'}</span>
-                                                <span className="font-bold text-secondary-950">{unit.project.area.name}</span>
-                                            </div>
-                                        )}
-                                        {locationAddress && (
-                                            <div className="flex items-start justify-between py-1.5 border-b border-secondary-100/60 gap-2">
-                                                <span className="text-secondary-500 font-semibold shrink-0">{trans('location_address') || (isRtl ? 'العنوان' : 'Address')}</span>
-                                                <span className="font-bold text-secondary-950 text-end break-words">{locationAddress}</span>
-                                            </div>
-                                        )}
-                                        {unit.project.installment_years > 0 && (
-                                            <div className="flex items-center justify-between py-1.5 border-b border-secondary-100/60">
-                                                <span className="text-secondary-500 font-semibold">{isRtl ? 'سنوات التقسيط' : 'Installment Years'}</span>
-                                                <span className="font-bold text-secondary-950">{unit.project.installment_years} {isRtl ? 'سنوات' : 'Years'}</span>
-                                            </div>
-                                        )}
-                                        <div className="flex items-center justify-between py-1.5">
-                                            <span className="text-secondary-500 font-semibold">{isRtl ? 'حالة المشروع' : 'Status'}</span>
-                                            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
-                                                {isRtl ? 'متاح للبيع' : 'Available'}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <Link
-                                        href={localizedPath(`/projects/${unit.project.slug_ar || unit.project.slug_en || unit.project.slug || unit.project.id}`, locale)}
-                                        className="w-full py-2.5 px-4 bg-[#CC0000] hover:bg-[#b30000] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-sm transition active:scale-[0.97] duration-150 ease-out"
-                                    >
-                                        <span>{isRtl ? 'عرض المشروع وجميع وحداته' : 'View Project & All Units'}</span>
-                                        <svg className="w-3.5 h-3.5 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                                        </svg>
-                                    </Link>
-                                </div>
-                            ) : unit.area ? (
-                                <div className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4">
-                                    <div className="flex items-center justify-between border-b border-secondary-100 pb-3">
-                                        <h2 className="text-sm font-black text-secondary-950">{isRtl ? 'معلومات المنطقة' : 'Area Info'}</h2>
-                                    </div>
-                                    <div className="space-y-2.5 text-xs">
-                                        <div className="flex items-center justify-between py-1.5 border-b border-secondary-100/60">
-                                            <span className="text-secondary-500 font-semibold">{isRtl ? 'المنطقة' : 'Area'}</span>
-                                            <span className="font-bold text-secondary-950">{unit.area.name}</span>
-                                        </div>
-                                        {locationAddress && (
-                                            <div className="flex items-start justify-between py-1.5 gap-2">
-                                                <span className="text-secondary-500 font-semibold shrink-0">{trans('location_address') || (isRtl ? 'العنوان' : 'Address')}</span>
-                                                <span className="font-bold text-secondary-950 text-end break-words">{locationAddress}</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                    <Link
-                                        href={localizedPath(`/areas/${unit.area.slug || unit.area.id}`, locale)}
-                                        className="w-full py-2.5 px-4 bg-surface hover:bg-secondary-100 text-secondary-800 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition active:scale-[0.97] duration-150 ease-out border border-secondary-200"
-                                    >
-                                        <span>{isRtl ? 'استكشف عقارات هذه المنطقة' : 'Explore Properties in this Area'}</span>
-                                        <svg className="w-3.5 h-3.5 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                                        </svg>
-                                    </Link>
-                                </div>
-                            ) : locationAddress ? (
-                                <div className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4">
-                                    <div className="flex items-center justify-between border-b border-secondary-100 pb-3">
-                                        <h2 className="text-sm font-black text-secondary-950">{isRtl ? 'معلومات الموقع' : 'Location Info'}</h2>
-                                    </div>
-                                    <div className="space-y-2.5 text-xs">
-                                        <div className="flex items-start justify-between py-1.5 gap-2">
-                                            <span className="text-secondary-500 font-semibold shrink-0">{trans('location_address') || (isRtl ? 'العنوان' : 'Address')}</span>
-                                            <span className="font-bold text-secondary-950 text-end break-words">{locationAddress}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            ) : null}
-
-                            {/* 4. Location Map */}
-                            {hasLocationOrCoords && (
-                                <div className="bg-white rounded-2xl shadow-sm border border-secondary-100 p-6 space-y-4">
-                                    <div className="flex items-center justify-between border-b border-secondary-100 pb-3">
-                                        <h2 className="text-sm font-black text-secondary-950">{isRtl ? 'الموقع والعنوان' : 'Location & Address'}</h2>
-                                    </div>
-
-                                    {locationAddress && (
-                                        <div className="flex items-start gap-3 p-3.5 rounded-xl bg-surface border border-secondary-100">
-                                            <div className="w-8 h-8 rounded-lg bg-red-50 text-[#CC0000] flex items-center justify-center shrink-0">
-                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                                                </svg>
-                                            </div>
-                                            <div className="min-w-0 flex-1">
-                                                <span className="text-[11px] font-semibold text-secondary-500 block mb-0.5">{isRtl ? 'العنوان بالتفصيل' : 'Detailed Address'}</span>
-                                                <p className="text-xs font-bold text-secondary-950 leading-relaxed break-words">{locationAddress}</p>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {hasValidCoords(unit) && (
-                                        <>
-                                            <LazyMapEmbed
-                                                latitude={unit.latitude}
-                                                longitude={unit.longitude}
-                                                locale={locale}
-                                                title="Google Map Location Mobile"
-                                            />
-                                            <div className="text-center pt-1">
-                                                <a
-                                                    href={`https://www.google.com/maps/search/?api=1&query=${unit.latitude},${unit.longitude}`}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-secondary-800 hover:text-[#CC0000] transition-colors"
-                                                >
-                                                    <svg className="w-4 h-4 text-[#CC0000]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                                                    </svg>
-                                                    <span>{isRtl ? 'فتح في خرائط Google' : 'Open in Google Maps'}</span>
-                                                </a>
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* 5. Contact Form (Mobile) */}
-                            <UnitContactForm
-                                idPrefix="mob"
-                                isRtl={isRtl}
-                                sentSuccess={sentSuccess}
-                                flash={flash}
-                                trans={trans}
-                                data={data}
-                                setData={setData}
-                                errors={errors}
-                                processing={processing}
-                                handleSubmit={handleSubmit}
-                            />
                         </div>
                     </>
                 )}
@@ -1098,14 +940,18 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
             {/* Lightbox Modal */}
             {lightboxIndex !== null && images.length > 0 && (
                 <div
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label={trans('gallery') || (isRtl ? 'معرض الصور' : 'Image Gallery')}
                     className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
                     onClick={() => setLightboxIndex(null)}
                 >
                     <button
+                        ref={lightboxCloseRef}
                         type="button"
                         onClick={() => setLightboxIndex(null)}
-                        className="absolute top-4 end-4 text-white text-2xl bg-black/50 w-10 h-10 rounded-full flex items-center justify-center hover:bg-black"
-                        aria-label={trans('close')}
+                        className="absolute top-4 end-4 text-white text-2xl bg-black/50 w-10 h-10 rounded-full flex items-center justify-center hover:bg-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white transition-colors"
+                        aria-label={trans('close') || (isRtl ? 'إغلاق' : 'Close')}
                     >
                         ✕
                     </button>
