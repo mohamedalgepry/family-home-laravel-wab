@@ -130,8 +130,10 @@ class SmartSearchTest extends TestCase
     {
         Cache::flush();
 
+        $type = UnitType::create(['name_ar' => 'شقة', 'name_en' => 'Apartment', 'slug' => 'apt-digits']);
         $service = new SmartSearchService(new SearchNormalizer(), new PriceParser());
         $parsed = $service->parse('شقة ٣ غرف من ١٠٠ متر الى ١٥٠ متر');
+        $this->assertSame($type->id, $parsed->filters['type_id']);
 
         $this->assertSame(3, $parsed->filters['rooms']);
         $this->assertSame(100.0, $parsed->filters['size_min']);
@@ -151,7 +153,7 @@ class SmartSearchTest extends TestCase
         $queries = [
             'شقة في التجمع الخامس للبيع',
             'شقة للبيع في التجمع الخامس',
-            '3 غرف شقة في التجمع الخامس ب 5 مليون',
+            '3 غرف شقة في التجمع الخامس للبيع ب 5 مليون',
         ];
 
         foreach ($queries as $query) {
