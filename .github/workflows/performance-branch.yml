@@ -1,0 +1,136 @@
+name: Performance Branch Verification
+
+on:
+  push:
+    branches:
+      - perf/mobile-pagespeed-optimization
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "app/**"
+      - "resources/**"
+      - "routes/**"
+      - "config/**"
+      - "database/**"
+      - "public/**"
+      - "scripts/**"
+      - "composer.json"
+      - "composer.lock"
+      - "package.json"
+      - "package-lock.json"
+      - "vite.config.*"
+      - ".github/workflows/performance-branch.yml"
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ""
+          MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+          MYSQL_DATABASE: family_testing
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, dom, fileinfo, intl, pdo_mysql, bcmath, curl, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Install JS dependencies
+        run: npm ci --force
+
+      - name: Prepare application
+        env:
+          APP_ENV: testing
+          APP_KEY: base64:rxysbiBsMikNkXUj7FOLKez08Z4OBuf0QEFmzH4T//k=
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: family_testing
+          DB_USERNAME: root
+          DB_PASSWORD: ""
+        run: |
+          php artisan config:clear
+          php artisan migrate:fresh --seed --force
+
+      - name: PHP tests
+        env:
+          APP_ENV: testing
+          APP_KEY: base64:rxysbiBsMikNkXUj7FOLKez08Z4OBuf0QEFmzH4T//k=
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: family_testing
+          DB_USERNAME: root
+          DB_PASSWORD: ""
+        run: php artisan test
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: Client build
+        env:
+          APP_ENV: testing
+          APP_KEY: base64:rxysbiBsMikNkXUj7FOLKez08Z4OBuf0QEFmzH4T//k=
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: family_testing
+          DB_USERNAME: root
+          DB_PASSWORD: ""
+        run: npm run build:client
+
+      - name: SSR build
+        env:
+          APP_ENV: testing
+          APP_KEY: base64:rxysbiBsMikNkXUj7FOLKez08Z4OBuf0QEFmzH4T//k=
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: family_testing
+          DB_USERNAME: root
+          DB_PASSWORD: ""
+        run: npm run build:ssr
+
+      - name: Full prerender build
+        env:
+          APP_ENV: testing
+          APP_KEY: base64:rxysbiBsMikNkXUj7FOLKez08Z4OBuf0QEFmzH4T//k=
+          APP_URL: https://familyhome-co.com
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: family_testing
+          DB_USERNAME: root
+          DB_PASSWORD: ""
+          INERTIA_SSR_ENABLED: "true"
+        run: |
+          node scripts/fix-prerender-hashes.mjs
+          node scripts/prerender.js

@@ -69,7 +69,7 @@ class ListingService
     {
         // لا نُحمّل user.profile هنا — UnitCard لا تعرض بيانات المستخدم في listing pages
         // project.user.profile تُحمَّل فقط في show() عبر getUnitBySlug()
-        return Unit::active()->with(['type', 'area', 'images']);
+        return Unit::active()->with(['type', 'area', 'images', 'finishingType']);
     }
 
     private function applyUnitFilters($query, array $filters): void

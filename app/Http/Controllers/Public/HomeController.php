@@ -6,8 +6,8 @@ use App\Domain\Listings\Services\ListingLookupService;
 use App\Domain\Listings\Services\ListingService;
 use App\Domain\Listings\Services\SearchService;
 use App\Http\Resources\Public\AreaPublicResource;
-use App\Http\Resources\Public\ProjectPublicResource;
-use App\Http\Resources\Public\UnitPublicResource;
+use App\Http\Resources\Public\HomeProjectCardResource;
+use App\Http\Resources\Public\HomeUnitCardResource;
 use App\Services\SeoService;
 use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
@@ -38,8 +38,8 @@ class HomeController
                 300,
                 function () {
                     return [
-                        'latestUnits' => $this->listingService->getLatestUnits(12, 'latest_units_page'),
-                        'latestProjects' => $this->listingService->getLatestProjects(8, 'latest_projects_page'),
+                        'latestUnits' => $this->listingService->getLatestUnits(4, 'latest_units_page'),
+                        'latestProjects' => $this->listingService->getLatestProjects(4, 'latest_projects_page'),
                         'popularSearches' => $this->searchService->getPopularSearches(),
                         'areas' => $this->lookupService->areas(),
                         'unitTypes' => $this->lookupService->unitTypes(),
@@ -50,8 +50,8 @@ class HomeController
             );
         } catch (\Throwable $e) {
             $homeData = [
-                'latestUnits' => new \Illuminate\Pagination\LengthAwarePaginator([], 0, 12),
-                'latestProjects' => new \Illuminate\Pagination\LengthAwarePaginator([], 0, 8),
+                'latestUnits' => new \Illuminate\Pagination\LengthAwarePaginator([], 0, 4),
+                'latestProjects' => new \Illuminate\Pagination\LengthAwarePaginator([], 0, 4),
                 'popularSearches' => [],
                 'areas' => [],
                 'unitTypes' => [],
@@ -60,8 +60,8 @@ class HomeController
             ];
         }
 
-        $homeData['latestUnits'] = UnitPublicResource::collection($homeData['latestUnits']);
-        $homeData['latestProjects'] = ProjectPublicResource::collection($homeData['latestProjects']);
+        $homeData['latestUnits'] = HomeUnitCardResource::collection($homeData['latestUnits']);
+        $homeData['latestProjects'] = HomeProjectCardResource::collection($homeData['latestProjects']);
         $homeData['areas'] = AreaPublicResource::collection($homeData['areas'])->resolve();
 
         $meta = $this->seoService->forPage('home');
