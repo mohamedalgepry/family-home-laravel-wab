@@ -11,14 +11,14 @@ use Illuminate\Support\Facades\Cache;
 class SmartSearchService
 {
     private const TRANSACTION_MAP = [
-        'sale' => ['بيع', 'للبيع', 'للبيع', 'sale', 'for sale'],
+        'sale' => ['للبيع', 'بيع', 'sale', 'for sale'],
         'rent' => ['ايجار', 'للايجار', 'اجار', 'للاجار', 'rent', 'for rent'],
     ];
 
     private const PAYMENT_MAP = [
-        'installment' => ['تقسيط', 'تقسيط', 'اقساط', 'قسط', 'installment', 'installments'],
-        'cash' => ['كاش', 'نقدي', 'نقدا', 'cash'],
         'both' => ['كاش وتقسيط', 'كاش او تقسيط', 'نقدي وتقسيط', 'cash and installment'],
+        'installment' => ['تقسيط', 'اقساط', 'قسط', 'installment', 'installments'],
+        'cash' => ['كاش', 'نقدي', 'نقدا', 'cash'],
     ];
 
     private const UNIT_TYPE_ALIASES = [
