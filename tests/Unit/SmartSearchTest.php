@@ -112,7 +112,7 @@ class SmartSearchTest extends TestCase
 
         $service = new SmartSearchService(new SearchNormalizer(), new PriceParser());
 
-        $parsed = $service->parse('شقتين 3 غرف مساحة 120 متر تقسيط تشطيب كامل في التجمع الخامس');
+        $parsed = $service->parse('شقة 3 غرف مساحة 120 متر تقسيط تشطيب كامل في التجمع الخامس');
 
         $this->assertSame(3, $parsed->filters['rooms']);
         $this->assertSame(120.0, $parsed->filters['size_min']);
