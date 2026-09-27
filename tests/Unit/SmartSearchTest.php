@@ -28,7 +28,8 @@ class SmartSearchTest extends TestCase
         $this->assertEquals('مدرسه', $normalizer->normalize('مدرسة'));
         $this->assertEquals('تطويل', $normalizer->normalize('تطويـــــل'));
         $this->assertEquals('شقه 5 مليون', $normalizer->normalize('شقة، 5 مليون!'));
-        $this->assertEquals('5.5', $normalizer->normalize('5.5'));\n        $this->assertEquals('2 غرف', $normalizer->normalize('٢ غرف'));
+        $this->assertEquals('5.5', $normalizer->normalize('5.5'));
+        $this->assertEquals('2 غرف', $normalizer->normalize('٢ غرف'));
     }
 
     public function test_price_parser_extracts_prices()
