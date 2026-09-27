@@ -10,6 +10,7 @@ use App\Domain\Listings\Services\PriceParser;
 use App\Domain\Listings\Services\SearchNormalizer;
 use App\Domain\Listings\Services\SmartSearchService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 class SmartSearchTest extends TestCase
@@ -36,7 +37,7 @@ class SmartSearchTest extends TestCase
         $result = $parser->parse('شقه ب 5 مليون جنيه');
         $this->assertEquals(5000000, $result['price_max']);
         $this->assertArrayNotHasKey('price_min', $result);
-        
+
         $result = $parser->parse('اقل من 500 الف');
         $this->assertEquals(500000, $result['price_max']);
 
@@ -49,14 +50,15 @@ class SmartSearchTest extends TestCase
 
         $result = $parser->parse('5.5 مليون');
         $this->assertEquals(5500000, $result['price_max']);
-        
-        // False positive check
+
         $result = $parser->parse('شقه للبيع في مدينه م نصر');
         $this->assertNull($result);
     }
 
     public function test_smart_search_service_extracts_filters()
     {
+        Cache::flush();
+
         UnitType::create(['name_ar' => 'شقة', 'name_en' => 'Apartment', 'slug' => 'apt']);
         UnitType::create(['name_ar' => 'توين هاوس', 'name_en' => 'Twin House', 'slug' => 'twin']);
         Area::create(['name_ar' => 'التجمع الخامس', 'name_en' => '5th Settlement', 'slug' => '5th']);
@@ -65,37 +67,57 @@ class SmartSearchTest extends TestCase
         $normalizer = new SearchNormalizer();
         $service = new SmartSearchService($normalizer, new PriceParser());
 
-        // Test extracting Area, Type, Transaction, and Price
         $parsed = $service->parse('شقة للبيع في التجمع الخامس بـ 5 مليون');
-        
+
         $this->assertEquals('sale', $parsed->filters['transaction']);
         $this->assertEquals(5000000, $parsed->filters['price_max']);
         $this->assertNotEmpty($parsed->filters['type_id']);
         $this->assertNotEmpty($parsed->filters['area_id']);
-        
-        // Ensure longest match won: Area should be 'التجمع الخامس' not 'التجمع'
+
         $area = Area::find($parsed->filters['area_id']);
         $this->assertEquals('التجمع الخامس', $area->name_ar);
+        $this->assertEquals('في', $parsed->cleanQuery);
+    }
 
-        // Ensure clean query contains the remaining words
-        $this->assertEquals('في', $parsed->cleanQuery); 
+    public function test_smart_search_understands_apartments_in_new_capital()
+    {
+        Cache::flush();
+
+        $type = UnitType::create(['name_ar' => 'شقة', 'name_en' => 'Apartment', 'slug' => 'apt-capital']);
+        $area = Area::create([
+            'name_ar' => 'العاصمة الإدارية الجديدة',
+            'name_en' => 'New Administrative Capital',
+            'slug' => 'new-administrative-capital',
+        ]);
+
+        $normalizer = new SearchNormalizer();
+        $service = new SmartSearchService($normalizer, new PriceParser());
+
+        $parsed = $service->parse('شقق بالعاصمة');
+
+        $this->assertSame($type->id, $parsed->filters['type_id']);
+        $this->assertSame($area->id, $parsed->filters['area_id']);
+        $this->assertSame('', $parsed->cleanQuery);
+        $this->assertSame('شقق', $parsed->matchedTerms['unit_type']);
+        $this->assertSame('بالعاصمه', $parsed->matchedTerms['area']);
     }
 
     public function test_filter_resolver_prioritizes_explicit_filters()
     {
+        Cache::flush();
+
         $normalizer = new SearchNormalizer();
         $service = new SmartSearchService($normalizer, new PriceParser());
         $resolver = new FilterResolver($service);
 
-        // User typed "للبيع" but explicitly selected "rent" in the dropdown
         $requestFilters = [
             'search' => 'شقة للبيع',
-            'transaction' => 'rent', // Explicit
+            'transaction' => 'rent',
         ];
 
         $finalFilters = $resolver->resolve($requestFilters);
 
-        $this->assertEquals('rent', $finalFilters['transaction'], 'Explicit filter should override smart filter');
+        $this->assertEquals('rent', $finalFilters['transaction']);
         $this->assertArrayHasKey('_parsed', $finalFilters);
     }
 }
