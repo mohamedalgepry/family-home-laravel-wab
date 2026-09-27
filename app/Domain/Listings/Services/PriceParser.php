@@ -6,9 +6,11 @@ class PriceParser
 {
     private const MULTIPLIERS = [
         'مليون' => 1000000,
+        'million' => 1000000,
         'm' => 1000000,
         'م' => 1000000,
         'الف' => 1000,
+        'thousand' => 1000,
         'k' => 1000,
     ];
 
@@ -20,7 +22,7 @@ class PriceParser
     public function parse(string $normalizedQuery): ?array
     {
         // 1. Try to match a range first: "من 3 الي 5 مليون"
-        $rangePattern = '/\b(?:من|بين)\s+(\d+(?:\.\d+)?)\s*(مليون|الف|m|k|م)?\s+(?:الي|ل|و|لحد)\s+(\d+(?:\.\d+)?)\s*(مليون|الف|m|k|م)\b/u';
+        $rangePattern = '/\b(?:من|بين)\s+(\d+(?:\.\d+)?)\s*(مليون|million|الف|thousand|m|k|م)?\s+(?:الي|ل|و|لحد)\s+(\d+(?:\.\d+)?)\s*(مليون|الف|m|k|م)\b/u';
         
         if (preg_match($rangePattern, $normalizedQuery, $matches)) {
             $minVal = (float) $matches[1];
