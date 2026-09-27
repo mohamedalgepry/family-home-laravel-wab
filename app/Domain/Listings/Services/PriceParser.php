@@ -22,7 +22,7 @@ class PriceParser
     public function parse(string $normalizedQuery): ?array
     {
         // 1. Try to match a range first: "من 3 الي 5 مليون"
-        $rangePattern = '/\b(?:من|بين)\s+(\d+(?:\.\d+)?)\s*(مليون|million|الف|thousand|m|k|م)?\s+(?:الي|ل|و|لحد)\s+(\d+(?:\.\d+)?)\s*(مليون|الف|m|k|م)\b/u';
+        $rangePattern = '/\b(?:من|بين)\s+(\d+(?:\.\d+)?)\s*(مليون|million|الف|thousand|m|k|م)?\s+(?:الي|ل|و|لحد)\s+(\d+(?:\.\d+)?)\s*(مليون|million|الف|thousand|m|k|م)\b/u';
         
         if (preg_match($rangePattern, $normalizedQuery, $matches)) {
             $minVal = (float) $matches[1];
@@ -42,7 +42,7 @@ class PriceParser
 
         // 2. Try to match single value with optional prefix
         // Prefixes: Arabic and English natural budget constraints
-        $singlePattern = '/\b(اقل من|تحت|حد اقصي|اكثر من|فوق|حد ادني|below|under|less than|max|above|over|more than|min|ب)?\s*(\d+(?:\.\d+)?)\s*(مليون|الف|m|k|م)\b/u';
+        $singlePattern = '/\b(اقل من|تحت|حد اقصي|اكثر من|فوق|حد ادني|below|under|less than|max|above|over|more than|min|ب)?\s*(\d+(?:\.\d+)?)\s*(مليون|million|الف|thousand|m|k|م)\b/u';
         
         if (preg_match($singlePattern, $normalizedQuery, $matches)) {
             $prefix = trim($matches[1]);
