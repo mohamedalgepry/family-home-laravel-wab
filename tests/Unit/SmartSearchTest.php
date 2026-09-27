@@ -131,7 +131,7 @@ class SmartSearchTest extends TestCase
         Cache::flush();
 
         $service = new SmartSearchService(new SearchNormalizer(), new PriceParser());
-        $parsed = $service->parse('شقق ٣ غرف من ١٠٠ متر الى ١٥٠ متر');
+        $parsed = $service->parse('شقة ٣ غرف من ١٠٠ متر الى ١٥٠ متر');
 
         $this->assertSame(3, $parsed->filters['rooms']);
         $this->assertSame(100.0, $parsed->filters['size_min']);
@@ -149,8 +149,8 @@ class SmartSearchTest extends TestCase
         $service = new SmartSearchService(new SearchNormalizer(), new PriceParser());
 
         $queries = [
-            'شقق في التجمع الخامس للبيع',
-            'شقق للبيع في التجمع الخامس',
+            'شقة في التجمع الخامس للبيع',
+            'شقة للبيع في التجمع الخامس',
             '3 غرف شقة في التجمع الخامس ب 5 مليون',
         ];
 
