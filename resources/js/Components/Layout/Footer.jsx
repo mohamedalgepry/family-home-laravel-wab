@@ -36,6 +36,7 @@ export default function Footer() {
     const { locale, settings } = usePage().props
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
+    const [chatMounted, setChatMounted] = useState(false)
 
     const socialLinks = [
         { key: 'social_facebook', url: settings?.social_facebook, label: trans('social_facebook') },
@@ -165,9 +166,23 @@ export default function Footer() {
                 </p>
             </div>
             <CompareBar />
-            <Suspense fallback={null}>
-                <HossamChatWidget />
-            </Suspense>
+            {chatMounted ? (
+                <Suspense fallback={null}>
+                    <HossamChatWidget autoOpen />
+                </Suspense>
+            ) : (
+                <button
+                    type="button"
+                    onClick={() => setChatMounted(true)}
+                    className="fixed z-50 end-4 bottom-6 sm:bottom-8 sm:end-8 w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#1A1A1A] text-white flex items-center justify-center shadow-[0_10px_30px_rgba(0,0,0,0.20)] focus:outline-none focus:ring-4 focus:ring-[#CC0000]/30 print:hidden"
+                    aria-label={trans('assistant_name')}
+                    title={trans('assistant_name')}
+                >
+                    <span className="font-black text-xl sm:text-2xl tracking-tight leading-none">
+                        H<span className="inline-block w-1.5 h-1.5 rounded-full bg-[#CC0000] align-top ms-0.5"></span>
+                    </span>
+                </button>
+            )}
         </footer>
     )
 }
