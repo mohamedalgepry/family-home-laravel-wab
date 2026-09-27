@@ -4,7 +4,8 @@ namespace Tests\Unit;
 
 use App\Domain\Listings\DTOs\ParsedSearch;
 use App\Domain\Listings\Models\Area;
-use App\Domain\Listings\Models\FinishingType;\nuse App\Domain\Listings\Models\UnitType;
+use App\Domain\Listings\Models\FinishingType;
+use App\Domain\Listings\Models\UnitType;
 use App\Domain\Listings\Services\FilterResolver;
 use App\Domain\Listings\Services\PriceParser;
 use App\Domain\Listings\Services\SearchNormalizer;
