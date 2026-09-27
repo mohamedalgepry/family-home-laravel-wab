@@ -12,7 +12,6 @@ use App\Domain\Listings\Services\PageViewService;
 use App\Domain\Listings\Services\SearchService;
 use App\Http\Resources\Public\ArticleCardResource;
 use App\Http\Resources\Public\ProjectPublicResource;
-use App\Http\Resources\Public\UnitPublicResource;
 use App\Services\SeoService;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -131,6 +130,10 @@ class ProjectController
             'similarProjects' => \App\Http\Resources\Public\HomeProjectCardResource::collection($similarProjects)->resolve(),
             'relatedArticles' => ArticleCardResource::collection($relatedArticles)->resolve(),
             'seo_meta' => $meta,
-        ])->withViewData(['meta' => $meta, 'lcpImage' => $lcpImage]);
+        ])->withViewData([
+            'meta' => $meta,
+            'lcpImage' => $lcpImage,
+            'lcpImageSrcSet' => $mainImage?->srcset,
+        ]);
     }
 }
