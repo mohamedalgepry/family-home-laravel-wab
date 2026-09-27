@@ -4,23 +4,26 @@ namespace App\Domain\Listings\Services;
 
 use App\Domain\Listings\DTOs\ParsedSearch;
 use App\Domain\Listings\Models\Area;
+use App\Domain\Listings\Models\FinishingType;
 use App\Domain\Listings\Models\UnitType;
 use Illuminate\Support\Facades\Cache;
 
 class SmartSearchService
 {
     private const TRANSACTION_MAP = [
-        'sale' => ['بيع', 'للبيع', 'sale', 'for sale'],
-        'rent' => ['ايجار', 'للايجار', 'rent', 'for rent', 'اجار', 'للاجار'],
+        'sale' => ['بيع', 'للبيع', 'للبيع', 'sale', 'for sale'],
+        'rent' => ['ايجار', 'للايجار', 'اجار', 'للاجار', 'rent', 'for rent'],
     ];
 
-    /**
-     * Common natural-language aliases. They are resolved against the existing
-     * lookup records, so no database IDs are hard-coded.
-     */
+    private const PAYMENT_MAP = [
+        'installment' => ['تقسيط', 'تقسيط', 'اقساط', 'قسط', 'installment', 'installments'],
+        'cash' => ['كاش', 'نقدي', 'نقدا', 'cash'],
+        'both' => ['كاش وتقسيط', 'كاش او تقسيط', 'نقدي وتقسيط', 'cash and installment'],
+    ];
+
     private const UNIT_TYPE_ALIASES = [
-        'شقق' => ['شقه', 'apartment'],
         'شقق سكنيه' => ['شقه', 'apartment'],
+        'شقق' => ['شقه', 'apartment'],
         'فلل' => ['فيلا', 'villa'],
         'فيلات' => ['فيلا', 'villa'],
         'تاون هاوس' => ['تاون هاوس', 'town house', 'townhouse'],
@@ -34,14 +37,22 @@ class SmartSearchService
     ];
 
     private const AREA_ALIASES = [
-        'العاصمه' => ['العاصمه'],
-        'بالعاصمه' => ['العاصمه'],
-        'العاصمه الاداريه' => ['العاصمه', 'اداريه'],
         'بالعاصمه الاداريه' => ['العاصمه', 'اداريه'],
-        'العاصمه الجديده' => ['العاصمه', 'جديده'],
+        'العاصمه الاداريه' => ['العاصمه', 'اداريه'],
         'بالعاصمه الجديده' => ['العاصمه', 'جديده'],
-        'new capital' => ['new capital'],
+        'العاصمه الجديده' => ['العاصمه', 'جديده'],
+        'بالعاصمه' => ['العاصمه'],
+        'العاصمه' => ['العاصمه'],
+        'new administrative capital' => ['new administrative capital'],
         'administrative capital' => ['administrative capital'],
+        'new capital' => ['new capital'],
+    ];
+
+    private const STOP_WORDS = [
+        'في', 'فى', 'من', 'الي', 'الى', 'و', 'او', 'ب', 'بـ', 'مع', 'داخل',
+        'قريب', 'قريبه', 'بالقرب', 'عند', 'على', 'عن', 'لل', 'ل', 'عايز',
+        'اريد', 'ابحث', 'محتاج', 'شوف', 'هات', 'وحده', 'وحدة', 'عقار',
+        'عقارات', 'unit', 'units', 'property', 'properties', 'for',
     ];
 
     public function __construct(
@@ -51,34 +62,32 @@ class SmartSearchService
 
     public function parse(string $originalQuery): ParsedSearch
     {
-        $normalized = $this->normalizer->normalize($originalQuery);
-        $cleanQuery = $normalized;
+        $cleanQuery = $this->normalizer->normalize($originalQuery);
         $filters = [];
         $matchedTerms = [];
 
-        if (empty($cleanQuery)) {
+        if ($cleanQuery === '') {
             return new ParsedSearch($originalQuery, '', [], []);
         }
 
+        // Extract structured intent before generic text search.
+        $this->extractRooms($cleanQuery, $filters, $matchedTerms);
+        $this->extractSize($cleanQuery, $filters, $matchedTerms);
+
         $priceResult = $this->priceParser->parse($cleanQuery);
         if ($priceResult) {
-            if (isset($priceResult['price_min'])) {
-                $filters['price_min'] = $priceResult['price_min'];
+            foreach (['price_min', 'price_max'] as $key) {
+                if (isset($priceResult[$key])) {
+                    $filters[$key] = $priceResult[$key];
+                }
             }
-            if (isset($priceResult['price_max'])) {
-                $filters['price_max'] = $priceResult['price_max'];
-            }
-
             $matchedTerms['price'] = $priceResult['matched_term'];
-            $cleanQuery = $this->normalizer->normalize(
-                str_replace($priceResult['matched_term'], ' ', $cleanQuery)
-            );
+            $cleanQuery = $this->removePhrase($cleanQuery, $priceResult['matched_term']);
         }
 
         foreach (self::TRANSACTION_MAP as $transaction => $keywords) {
             foreach ($keywords as $keyword) {
                 $keyword = $this->normalizer->normalize($keyword);
-
                 if ($this->containsPhrase($cleanQuery, $keyword)) {
                     $filters['transaction'] = $transaction;
                     $matchedTerms['transaction'] = $keyword;
@@ -88,7 +97,18 @@ class SmartSearchService
             }
         }
 
-        // First use exact database names; this preserves the existing behavior.
+        foreach (self::PAYMENT_MAP as $payment => $keywords) {
+            foreach ($keywords as $keyword) {
+                $keyword = $this->normalizer->normalize($keyword);
+                if ($this->containsPhrase($cleanQuery, $keyword)) {
+                    $filters['payment_method'] = $payment;
+                    $matchedTerms['payment_method'] = $keyword;
+                    $cleanQuery = $this->removePhrase($cleanQuery, $keyword);
+                    break 2;
+                }
+            }
+        }
+
         $unitTypes = $this->getUnitTypesSortedByLength();
         foreach ($unitTypes as $type) {
             foreach ($this->lookupNames($type->name_ar, $type->name_en) as $name) {
@@ -101,10 +121,8 @@ class SmartSearchService
             }
         }
 
-        // Then resolve common plural/natural-language forms such as "شقق" -> "شقة".
         foreach (self::UNIT_TYPE_ALIASES as $alias => $targets) {
             $alias = $this->normalizer->normalize($alias);
-
             if (! $this->containsPhrase($cleanQuery, $alias)) {
                 continue;
             }
@@ -118,7 +136,6 @@ class SmartSearchService
             }
         }
 
-        // Exact database area names remain the first choice.
         $areas = $this->getAreasSortedByLength();
         foreach ($areas as $area) {
             foreach ($this->lookupNames($area->name_ar, $area->name_en) as $name) {
@@ -131,10 +148,8 @@ class SmartSearchService
             }
         }
 
-        // Resolve natural phrases such as "بالعاصمة" against the existing Area records.
         foreach (self::AREA_ALIASES as $alias => $tokens) {
             $alias = $this->normalizer->normalize($alias);
-
             if (! $this->containsPhrase($cleanQuery, $alias)) {
                 continue;
             }
@@ -148,12 +163,99 @@ class SmartSearchService
             }
         }
 
+        $finishingTypes = $this->getFinishingTypesSortedByLength();
+        foreach ($finishingTypes as $finishing) {
+            foreach ($this->lookupNames($finishing->name_ar, $finishing->name_en) as $name) {
+                if ($this->containsPhrase($cleanQuery, $name)) {
+                    $filters['finishing_type_id'] = $finishing->id;
+                    $matchedTerms['finishing'] = $name;
+                    $cleanQuery = $this->removePhrase($cleanQuery, $name);
+                    break 2;
+                }
+            }
+        }
+
+        $cleanQuery = $this->removeStopWords($cleanQuery);
+
         return new ParsedSearch(
             originalQuery: $originalQuery,
             cleanQuery: $cleanQuery,
             filters: $filters,
             matchedTerms: $matchedTerms
         );
+    }
+
+    private function extractRooms(string &$text, array &$filters, array &$matchedTerms): void
+    {
+        $pattern = '/(?:من\\s+)?(\\d+)\\s*(?:غرف(?:ه|تين)?|غرف|غرفه|غرفة|rooms?|bedrooms?|beds?)(?:\\s*نوم)?/u';
+        if (preg_match($pattern, $text, $matches)) {
+            $filters['rooms'] = (int) $matches[1];
+            $matchedTerms['rooms'] = $matches[0];
+            $text = $this->removePhrase($text, $matches[0]);
+            return;
+        }
+
+        $wordMap = [
+            'غرفتين' => 2,
+            'غرفتان' => 2,
+            'ثلاث غرف' => 3,
+            'ثلاثه غرف' => 3,
+            'اربع غرف' => 4,
+            'اربعه غرف' => 4,
+            'خمس غرف' => 5,
+            'خمسه غرف' => 5,
+        ];
+
+        foreach ($wordMap as $phrase => $rooms) {
+            $phrase = $this->normalizer->normalize($phrase);
+            if ($this->containsPhrase($text, $phrase)) {
+                $filters['rooms'] = $rooms;
+                $matchedTerms['rooms'] = $phrase;
+                $text = $this->removePhrase($text, $phrase);
+                return;
+            }
+        }
+    }
+
+    private function extractSize(string &$text, array &$filters, array &$matchedTerms): void
+    {
+        $number = '\\d+(?:\\.\\d+)?';
+        $unit = '(?:متر|متر مربع|م2|m2|sqm|square meters?)';
+
+        $rangePattern = '/(?:من\\s+)?(' . $number . ')\\s*' . $unit . '\\s*(?:الي|الى|ل|لحد|و|-)+\\s*(' . $number . ')\\s*' . $unit . '/iu';
+        if (preg_match($rangePattern, $text, $matches)) {
+            $min = (float) $matches[1];
+            $max = (float) $matches[2];
+            $filters['size_min'] = min($min, $max);
+            $filters['size_max'] = max($min, $max);
+            $matchedTerms['size'] = $matches[0];
+            $text = $this->removePhrase($text, $matches[0]);
+            return;
+        }
+
+        $singlePattern = '/(?:مساحه|مساحة|area)?\\s*(' . $number . ')\\s*' . $unit . '/iu';
+        if (preg_match($singlePattern, $text, $matches)) {
+            $filters['size_min'] = (float) $matches[1];
+            $filters['size_max'] = (float) $matches[1];
+            $matchedTerms['size'] = $matches[0];
+            $text = $this->removePhrase($text, $matches[0]);
+        }
+    }
+
+    private function removeStopWords(string $text): string
+    {
+        foreach (self::STOP_WORDS as $word) {
+            $word = $this->normalizer->normalize($word);
+            if ($word !== '') {
+                $text = preg_replace(
+                    '/(?<![\\p{L}\\p{N}])' . preg_quote($word, '/') . '(?![\\p{L}\\p{N}])/u',
+                    ' ',
+                    $text
+                ) ?? $text;
+            }
+        }
+
+        return $this->normalizer->normalize($text);
     }
 
     private function lookupNames(?string $nameAr, ?string $nameEn): array
@@ -170,13 +272,13 @@ class SmartSearchService
             return false;
         }
 
-        return preg_match('/(?<![\p{L}\p{N}])' . preg_quote($needle, '/') . '(?![\p{L}\p{N}])/u', $haystack) === 1;
+        return preg_match('/(?<![\\p{L}\\p{N}])' . preg_quote($needle, '/') . '(?![\\p{L}\\p{N}])/u', $haystack) === 1;
     }
 
     private function removePhrase(string $text, string $phrase): string
     {
         $text = preg_replace(
-            '/(?<![\p{L}\p{N}])' . preg_quote($phrase, '/') . '(?![\p{L}\p{N}])/u',
+            '/(?<![\\p{L}\\p{N}])' . preg_quote($phrase, '/') . '(?![\\p{L}\\p{N}])/u',
             ' ',
             $text
         );
@@ -191,7 +293,6 @@ class SmartSearchService
             $targets
         )));
 
-        // Prefer exact canonical names over broad "contains" matches.
         foreach ($unitTypes as $type) {
             $names = $this->lookupNames($type->name_ar, $type->name_en);
             if (array_intersect($names, $targets)) {
@@ -263,6 +364,15 @@ class SmartSearchService
         return Cache::remember('smart_search_areas', 3600, function () {
             return Area::all()->sortByDesc(function ($area) {
                 return mb_strlen((string) $area->name_ar) + mb_strlen((string) $area->name_en);
+            })->values();
+        });
+    }
+
+    private function getFinishingTypesSortedByLength()
+    {
+        return Cache::remember('smart_search_finishing_types', 3600, function () {
+            return FinishingType::all()->sortByDesc(function ($type) {
+                return mb_strlen((string) $type->name_ar) + mb_strlen((string) $type->name_en);
             })->values();
         });
     }
