@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use App\Domain\Listings\DTOs\ParsedSearch;
 use App\Domain\Listings\Models\Area;
+use App\Domain\Listings\Models\Feature;
 use App\Domain\Listings\Models\FinishingType;
 use App\Domain\Listings\Models\UnitType;
 use App\Domain\Listings\Services\FilterResolver;
@@ -181,6 +182,42 @@ class SmartSearchTest extends TestCase
 
         $this->assertSame('sale', $parsed->filters['transaction']);
         $this->assertSame('both', $parsed->filters['payment_method']);
+        $this->assertSame('', $parsed->cleanQuery);
+    }
+
+    public function test_smart_search_extracts_bathrooms_features_and_currency_words()
+    {
+        Cache::flush();
+
+        $type = UnitType::create(['name_ar' => 'شقة', 'name_en' => 'Apartment', 'slug' => 'apt-bath-features']);
+        $feature = Feature::create(['name_ar' => 'جراج', 'name_en' => 'Garage']);
+        $service = new SmartSearchService(new SearchNormalizer(), new PriceParser());
+
+        $parsed = $service->parse('شقة 2 حمام جراج للبيع ب 5 مليون جنيه');
+
+        $this->assertSame($type->id, $parsed->filters['type_id']);
+        $this->assertSame(2, $parsed->filters['bathrooms']);
+        $this->assertSame([$feature->id], $parsed->filters['features']);
+        $this->assertSame('sale', $parsed->filters['transaction']);
+        $this->assertSame(5000000, $parsed->filters['price_max']);
+        $this->assertSame('', $parsed->cleanQuery);
+    }
+
+    public function test_smart_search_accepts_english_natural_intent()
+    {
+        Cache::flush();
+
+        $type = UnitType::create(['name_ar' => 'شقة', 'name_en' => 'Apartment', 'slug' => 'apt-en-smart']);
+        $area = Area::create(['name_ar' => 'التجمع الخامس', 'name_en' => '5th Settlement', 'slug' => '5th-en-smart']);
+        $service = new SmartSearchService(new SearchNormalizer(), new PriceParser());
+
+        $parsed = $service->parse('3 bedrooms apartment in 5th Settlement for sale under 5 million');
+
+        $this->assertSame($type->id, $parsed->filters['type_id']);
+        $this->assertSame($area->id, $parsed->filters['area_id']);
+        $this->assertSame(3, $parsed->filters['rooms']);
+        $this->assertSame('sale', $parsed->filters['transaction']);
+        $this->assertSame(5000000, $parsed->filters['price_max']);
         $this->assertSame('', $parsed->cleanQuery);
     }
 
