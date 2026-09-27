@@ -18,6 +18,7 @@ class HomeProjectCardResource extends JsonResource
             'slug_ar' => $this->slug_ar,
             'slug_en' => $this->slug_en,
             'alt_text' => $this->alt_text,
+            'description' => $this->description,
             'units_count' => $this->units_count,
             'installment_years' => $this->installment_years,
             'area' => $this->whenLoaded('area', fn () => [
