@@ -68,6 +68,10 @@ export default function HossamChatWidget({ autoOpen = false }) {
         resetChat,
     } = useChatSession(locale, trans, isRtl, pageProps)
 
+    useEffect(() => {
+        if (autoOpen) setIsOpen(true)
+    }, [autoOpen, setIsOpen])
+
     /* ---------- chat network api ---------- */
     const {
         isLoading,
