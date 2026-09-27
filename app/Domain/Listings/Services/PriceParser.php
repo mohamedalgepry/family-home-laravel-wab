@@ -40,7 +40,7 @@ class PriceParser
 
         // 2. Try to match single value with optional prefix
         // Prefixes: Arabic and English natural budget constraints
-        $singlePattern = '/\b(اقل من|تحت|حد اقصي|اكثر من|فوق|حد ادني|ب)?\s*(\d+(?:\.\d+)?)\s*(مليون|الف|m|k|م)\b/u';
+        $singlePattern = '/\b(اقل من|تحت|حد اقصي|اكثر من|فوق|حد ادني|below|under|less than|max|above|over|more than|min|ب)?\s*(\d+(?:\.\d+)?)\s*(مليون|الف|m|k|م)\b/u';
         
         if (preg_match($singlePattern, $normalizedQuery, $matches)) {
             $prefix = trim($matches[1]);
