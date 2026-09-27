@@ -4,6 +4,7 @@ namespace App\Domain\Listings\Services;
 
 use App\Domain\Listings\DTOs\ParsedSearch;
 use App\Domain\Listings\Models\Area;
+use App\Domain\Listings\Models\Feature;
 use App\Domain\Listings\Models\FinishingType;
 use App\Domain\Listings\Models\UnitType;
 use Illuminate\Support\Facades\Cache;
@@ -52,7 +53,7 @@ class SmartSearchService
         'في', 'فى', 'من', 'الي', 'الى', 'و', 'او', 'ب', 'بـ', 'مع', 'داخل',
         'قريب', 'قريبه', 'بالقرب', 'عند', 'على', 'عن', 'لل', 'ل', 'عايز',
         'اريد', 'ابحث', 'محتاج', 'شوف', 'هات', 'وحده', 'وحدة', 'عقار',
-        'عقارات', 'unit', 'units', 'property', 'properties', 'for',
+        'عقارات', 'جنيه', 'جنيه مصري', 'جنيهات', 'egp', 'le', 'unit', 'units', 'property', 'properties', 'for',
     ];
 
     public function __construct(
@@ -72,6 +73,7 @@ class SmartSearchService
 
         // Extract structured intent before generic text search.
         $this->extractRooms($cleanQuery, $filters, $matchedTerms);
+        $this->extractBathrooms($cleanQuery, $filters, $matchedTerms);
         $this->extractSize($cleanQuery, $filters, $matchedTerms);
 
         $priceResult = $this->priceParser->parse($cleanQuery);
@@ -163,6 +165,8 @@ class SmartSearchService
             }
         }
 
+        $this->extractFeatures($cleanQuery, $filters, $matchedTerms);
+
         $finishingTypes = $this->getFinishingTypesSortedByLength();
         foreach ($finishingTypes as $finishing) {
             foreach ($this->lookupNames($finishing->name_ar, $finishing->name_en) as $name) {
@@ -211,6 +215,41 @@ class SmartSearchService
             if ($this->containsPhrase($text, $phrase)) {
                 $filters['rooms'] = $rooms;
                 $matchedTerms['rooms'] = $phrase;
+                $text = $this->removePhrase($text, $phrase);
+                return;
+            }
+        }
+    }
+
+    private function extractBathrooms(string &$text, array &$filters, array &$matchedTerms): void
+    {
+        $pattern = '/(?:\\b(\\d+)\\s*(?:حمام|حمامات|bathrooms?|baths?)\\b|\\b(\\d+)\\s*(?:حمام|حمامات|bathrooms?|baths?)\\b)/iu';
+        if (preg_match($pattern, $text, $matches)) {
+            $value = (int) ($matches[1] !== '' ? $matches[1] : $matches[2]);
+            if ($value > 0) {
+                $filters['bathrooms'] = $value;
+                $matchedTerms['bathrooms'] = $matches[0];
+                $text = $this->removePhrase($text, $matches[0]);
+                return;
+            }
+        }
+
+        $wordMap = [
+            'حمامين' => 2,
+            'حمامان' => 2,
+            'ثلاث حمامات' => 3,
+            'ثلاثه حمامات' => 3,
+            'اربع حمامات' => 4,
+            'اربعه حمامات' => 4,
+            'خمس حمامات' => 5,
+            'خمسه حمامات' => 5,
+        ];
+
+        foreach ($wordMap as $phrase => $bathrooms) {
+            $phrase = $this->normalizer->normalize($phrase);
+            if ($this->containsPhrase($text, $phrase)) {
+                $filters['bathrooms'] = $bathrooms;
+                $matchedTerms['bathrooms'] = $phrase;
                 $text = $this->removePhrase($text, $phrase);
                 return;
             }
@@ -350,6 +389,30 @@ class SmartSearchService
         })->first();
     }
 
+    private function extractFeatures(string &$text, array &$filters, array &$matchedTerms): void
+    {
+        $matchedIds = [];
+        $matchedNames = [];
+
+        foreach ($this->getFeaturesSortedByLength() as $feature) {
+            foreach ($this->lookupNames($feature->name_ar, $feature->name_en) as $name) {
+                if (! $this->containsPhrase($text, $name)) {
+                    continue;
+                }
+
+                $matchedIds[] = (int) $feature->id;
+                $matchedNames[] = $name;
+                $text = $this->removePhrase($text, $name);
+                break;
+            }
+        }
+
+        if ($matchedIds !== []) {
+            $filters['features'] = array_values(array_unique($matchedIds));
+            $matchedTerms['features'] = array_values(array_unique($matchedNames));
+        }
+    }
+
     private function getUnitTypesSortedByLength()
     {
         return Cache::remember('smart_search_unit_types', 3600, function () {
@@ -364,6 +427,15 @@ class SmartSearchService
         return Cache::remember('smart_search_areas', 3600, function () {
             return Area::all()->sortByDesc(function ($area) {
                 return mb_strlen((string) $area->name_ar) + mb_strlen((string) $area->name_en);
+            })->values();
+        });
+    }
+
+    private function getFeaturesSortedByLength()
+    {
+        return Cache::remember('smart_search_features', 3600, function () {
+            return Feature::query()->orderBy('id')->get()->sortByDesc(function ($feature) {
+                return mb_strlen((string) $feature->name_ar) + mb_strlen((string) $feature->name_en);
             })->values();
         });
     }
