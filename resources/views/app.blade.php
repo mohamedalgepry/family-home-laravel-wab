@@ -15,8 +15,12 @@
     @endphp
 
     @if(isset($lcpImage))
-    <!-- Preload LCP Image (Dynamic from Controller) -->
-    <link rel="preload" as="image" href="{{ $lcpImage }}" fetchpriority="high">
+    <!-- Preload the exact responsive LCP candidate used by the project hero -->
+    <link rel="preload"
+          as="image"
+          href="{{ $lcpImage }}"
+          @if(!empty($lcpImageSrcSet)) imagesrcset="{{ $lcpImageSrcSet }}" imagesizes="(max-width: 1024px) 100vw, 850px" @endif
+          fetchpriority="high">
     @elseif(!empty($seo_meta['image']) && !str_contains($seo_meta['image'], 'icon.webp') && !str_contains($seo_meta['image'], 'site_logo'))
     <!-- Preload Entity Featured Cover Image for Instant LCP Discovery -->
     <link rel="preload" as="image" href="{{ str_starts_with($seo_meta['image'], 'http') ? $seo_meta['image'] : asset(ltrim($seo_meta['image'], '/')) }}" fetchpriority="high">
@@ -26,9 +30,12 @@
     <link rel="preload" as="image" href="{{ $heroDesktopUrl }}" type="image/webp" media="(min-width: 641px)" fetchpriority="high">
     @endif
 
-    <!-- Preload Primary Cairo Font to eliminate font discovery delay & improve FCP -->
-    <link rel="preload" href="/fonts/cairo/cairo-1.woff2" as="font" type="font/woff2" crossorigin>
-    <link rel="preload" href="/fonts/cairo/cairo-3.woff2" as="font" type="font/woff2" crossorigin>
+    <!-- Preload only the active locale's critical Cairo font -->
+    @if(app()->getLocale() === 'ar')
+        <link rel="preload" href="/fonts/cairo/cairo-1.woff2" as="font" type="font/woff2" crossorigin>
+    @else
+        <link rel="preload" href="/fonts/cairo/cairo-3.woff2" as="font" type="font/woff2" crossorigin>
+    @endif
 
     @if(request()->is('*units/*') || request()->is('*projects/*'))
     <!-- Preconnect to YouTube for embedded listing videos (only used on property detail pages) -->
