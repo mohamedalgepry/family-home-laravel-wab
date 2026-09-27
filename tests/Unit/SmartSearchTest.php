@@ -174,8 +174,10 @@ class SmartSearchTest extends TestCase
     {
         Cache::flush();
 
+        $type = UnitType::create(['name_ar' => 'شقة', 'name_en' => 'Apartment', 'slug' => 'apt-payment']);
         $service = new SmartSearchService(new SearchNormalizer(), new PriceParser());
         $parsed = $service->parse('شقة للبيع كاش وتقسيط');
+        $this->assertSame($type->id, $parsed->filters['type_id']);
 
         $this->assertSame('sale', $parsed->filters['transaction']);
         $this->assertSame('both', $parsed->filters['payment_method']);
