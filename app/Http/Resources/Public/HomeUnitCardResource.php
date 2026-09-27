@@ -35,7 +35,11 @@ class HomeUnitCardResource extends JsonResource
                 'name_ar' => $this->type->name_ar,
                 'name_en' => $this->type->name_en,
             ]),
-            'finishing_type' => null,
+            'finishing_type' => $this->whenLoaded('finishingType', fn () => [
+                'name' => $this->finishingType->name,
+                'name_ar' => $this->finishingType->name_ar,
+                'name_en' => $this->finishingType->name_en,
+            ]),
             'images' => $image ? [[
                 'id' => $image->id,
                 'path' => $image->path,
