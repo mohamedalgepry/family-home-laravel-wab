@@ -18,13 +18,20 @@ class SmartSearchService
 
     private const PAYMENT_MAP = [
         'both' => ['كاش وتقسيط', 'كاش او تقسيط', 'نقدي وتقسيط', 'cash and installment'],
-        'installment' => ['تقسيط', 'اقساط', 'قسط', 'installment', 'installments'],
+        'installment' => ['تقسيط', 'بالتقسيط', 'اقساط', 'قسط', 'installment', 'installments'],
         'cash' => ['كاش', 'نقدي', 'نقدا', 'cash'],
     ];
 
     private const UNIT_TYPE_ALIASES = [
         'شقق سكنيه' => ['شقه', 'apartment'],
         'شقق' => ['شقه', 'apartment'],
+        'apartments' => ['شقه', 'apartment'],
+        'villas' => ['فيلا', 'villa'],
+        'townhouses' => ['تاون هاوس', 'town house', 'townhouse'],
+        'townhomes' => ['تاون هاوس', 'town house', 'townhouse'],
+        'studios' => ['استوديو', 'studio'],
+        'offices' => ['مكتب', 'office'],
+        'shops' => ['محل', 'shop', 'retail'],
         'فلل' => ['فيلا', 'villa'],
         'فيلات' => ['فيلا', 'villa'],
         'تاون هاوس' => ['تاون هاوس', 'town house', 'townhouse'],
