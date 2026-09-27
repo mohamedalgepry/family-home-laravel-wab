@@ -6,6 +6,8 @@ use App\Domain\Listings\Services\ListingLookupService;
 use App\Domain\Listings\Services\ListingService;
 use App\Domain\Listings\Services\SearchService;
 use App\Http\Resources\Public\AreaPublicResource;
+use App\Http\Resources\Public\HomeProjectCardResource;
+use App\Http\Resources\Public\HomeUnitCardResource;
 use App\Http\Resources\Public\ProjectPublicResource;
 use App\Http\Resources\Public\UnitPublicResource;
 use App\Services\SeoService;
@@ -60,8 +62,8 @@ class HomeController
             ];
         }
 
-        $homeData['latestUnits'] = UnitPublicResource::collection($homeData['latestUnits']);
-        $homeData['latestProjects'] = ProjectPublicResource::collection($homeData['latestProjects']);
+        $homeData['latestUnits'] = HomeUnitCardResource::collection($homeData['latestUnits']);
+        $homeData['latestProjects'] = HomeProjectCardResource::collection($homeData['latestProjects']);
         $homeData['areas'] = AreaPublicResource::collection($homeData['areas'])->resolve();
 
         $meta = $this->seoService->forPage('home');
