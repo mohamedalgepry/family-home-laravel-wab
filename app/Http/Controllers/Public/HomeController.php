@@ -8,8 +8,6 @@ use App\Domain\Listings\Services\SearchService;
 use App\Http\Resources\Public\AreaPublicResource;
 use App\Http\Resources\Public\HomeProjectCardResource;
 use App\Http\Resources\Public\HomeUnitCardResource;
-use App\Http\Resources\Public\ProjectPublicResource;
-use App\Http\Resources\Public\UnitPublicResource;
 use App\Services\SeoService;
 use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
