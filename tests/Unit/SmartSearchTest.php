@@ -170,6 +170,18 @@ class SmartSearchTest extends TestCase
         $this->assertSame('', $parsed->cleanQuery);
     }
 
+    public function test_smart_search_extracts_combined_payment_intent()
+    {
+        Cache::flush();
+
+        $service = new SmartSearchService(new SearchNormalizer(), new PriceParser());
+        $parsed = $service->parse('شقة للبيع كاش وتقسيط');
+
+        $this->assertSame('sale', $parsed->filters['transaction']);
+        $this->assertSame('both', $parsed->filters['payment_method']);
+        $this->assertSame('', $parsed->cleanQuery);
+    }
+
     public function test_filter_resolver_prioritizes_explicit_filters()
     {
         Cache::flush();
