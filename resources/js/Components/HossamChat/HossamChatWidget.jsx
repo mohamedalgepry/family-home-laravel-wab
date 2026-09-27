@@ -9,7 +9,7 @@ import MessageList from './MessageList'
 import { QuickQuestionsChips } from './QuickReplies'
 import ChatComposer from './ChatComposer'
 
-export default function HossamChatWidget() {
+export default function HossamChatWidget({ autoOpen = false }) {
     const pageObj = usePage() || {}
     const pageProps = pageObj.props || {}
     const component = pageObj.component || ''
@@ -49,7 +49,7 @@ export default function HossamChatWidget() {
         }
     }, [component, url, isTargetPage])
 
-    /* ---------- session & persistence ---------- */
+    useEffect(() => {\n        if (autoOpen) setIsOpen(true)\n    }, [autoOpen, setIsOpen])\n\n    /* ---------- session & persistence ---------- */
     const {
         isOpen,
         setIsOpen,
