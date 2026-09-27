@@ -39,7 +39,7 @@ class PriceParser
         }
 
         // 2. Try to match single value with optional prefix
-        // Prefixes: اقل من, تحت, حد اقصي, اكثر من, فوق, حد ادني, ب
+        // Prefixes: Arabic and English natural budget constraints
         $singlePattern = '/\b(اقل من|تحت|حد اقصي|اكثر من|فوق|حد ادني|ب)?\s*(\d+(?:\.\d+)?)\s*(مليون|الف|m|k|م)\b/u';
         
         if (preg_match($singlePattern, $normalizedQuery, $matches)) {
@@ -51,9 +51,9 @@ class PriceParser
             
             $result = ['matched_term' => trim($matches[0])];
 
-            if (in_array($prefix, ['اقل من', 'تحت', 'حد اقصي'])) {
+            if (in_array($prefix, ['اقل من', 'تحت', 'حد اقصي', 'below', 'under', 'less than', 'max'])) {
                 $result['price_max'] = $price;
-            } elseif (in_array($prefix, ['اكثر من', 'فوق', 'حد ادني'])) {
+            } elseif (in_array($prefix, ['اكثر من', 'فوق', 'حد ادني', 'above', 'over', 'more than', 'min'])) {
                 $result['price_min'] = $price;
             } else {
                 // If no prefix or just "ب", it usually implies a max budget or exact price. 
