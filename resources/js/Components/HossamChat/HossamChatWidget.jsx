@@ -49,7 +49,7 @@ export default function HossamChatWidget({ autoOpen = false }) {
         }
     }, [component, url, isTargetPage])
 
-    useEffect(() => {\n        if (autoOpen) setIsOpen(true)\n    }, [autoOpen, setIsOpen])\n\n    /* ---------- session & persistence ---------- */
+    /* ---------- session & persistence ---------- */
     const {
         isOpen,
         setIsOpen,
