@@ -38,8 +38,8 @@ class HomeController
                 300,
                 function () {
                     return [
-                        'latestUnits' => $this->listingService->getLatestUnits(12, 'latest_units_page'),
-                        'latestProjects' => $this->listingService->getLatestProjects(8, 'latest_projects_page'),
+                        'latestUnits' => $this->listingService->getLatestUnits(4, 'latest_units_page'),
+                        'latestProjects' => $this->listingService->getLatestProjects(4, 'latest_projects_page'),
                         'popularSearches' => $this->searchService->getPopularSearches(),
                         'areas' => $this->lookupService->areas(),
                         'unitTypes' => $this->lookupService->unitTypes(),
@@ -50,8 +50,8 @@ class HomeController
             );
         } catch (\Throwable $e) {
             $homeData = [
-                'latestUnits' => new \Illuminate\Pagination\LengthAwarePaginator([], 0, 12),
-                'latestProjects' => new \Illuminate\Pagination\LengthAwarePaginator([], 0, 8),
+                'latestUnits' => new \Illuminate\Pagination\LengthAwarePaginator([], 0, 4),
+                'latestProjects' => new \Illuminate\Pagination\LengthAwarePaginator([], 0, 4),
                 'popularSearches' => [],
                 'areas' => [],
                 'unitTypes' => [],
