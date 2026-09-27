@@ -54,6 +54,9 @@ class SmartSearchTest extends TestCase
         $result = $parser->parse('5.5 مليون');
         $this->assertEquals(5500000, $result['price_max']);
 
+        $result = $parser->parse('under 5 million');
+        $this->assertEquals(5000000, $result['price_max']);
+
         $result = $parser->parse('شقه للبيع في مدينه م نصر');
         $this->assertNull($result);
     }
