@@ -10,7 +10,7 @@ use App\Domain\Listings\Services\ListingLookupService;
 use App\Domain\Listings\Services\ListingService;
 use App\Domain\Listings\Services\PageViewService;
 use App\Domain\Listings\Services\SearchService;
-use App\Http\Resources\Public\ArticlePublicResource;
+use App\Http\Resources\Public\ArticleCardResource;
 use App\Http\Resources\Public\ProjectPublicResource;
 use App\Http\Resources\Public\UnitPublicResource;
 use App\Services\SeoService;
@@ -84,9 +84,9 @@ class ProjectController
             300,
             fn () => Unit::where('project_id', $project->id)
                 ->where('is_active', true)
-                ->with(['type', 'area', 'images', 'user'])
+                ->with(['type', 'area', 'images', 'finishingType'])
                 ->orderByFeatured()
-                ->limit(24)
+                ->limit(12)
                 ->get()
         );
 
@@ -121,13 +121,15 @@ class ProjectController
         $mainImage = $project->images->firstWhere('is_primary', true)
             ?? $project->images->first();
 
-        $lcpImage = $mainImage ? $mainImage->url : null;
+        $lcpImage = $mainImage
+            ? ($mainImage->large_url ?: ($mainImage->medium_url ?: $mainImage->url))
+            : null;
 
         return Inertia::render('Public/Projects/Show', [
             'project' => ProjectPublicResource::make($project)->resolve(),
-            'projectUnits' => UnitPublicResource::collection($projectUnits)->resolve(),
-            'similarProjects' => ProjectPublicResource::collection($similarProjects)->resolve(),
-            'relatedArticles' => ArticlePublicResource::collection($relatedArticles)->resolve(),
+            'projectUnits' => \App\Http\Resources\Public\HomeUnitCardResource::collection($projectUnits)->resolve(),
+            'similarProjects' => \App\Http\Resources\Public\HomeProjectCardResource::collection($similarProjects)->resolve(),
+            'relatedArticles' => ArticleCardResource::collection($relatedArticles)->resolve(),
             'seo_meta' => $meta,
         ])->withViewData(['meta' => $meta, 'lcpImage' => $lcpImage]);
     }
