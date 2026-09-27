@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { usePage, Link } from '@inertiajs/react'
 import { useTrans } from '../../Utils/trans'
 import { localizedPath } from '../../Utils/route'
