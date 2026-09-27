@@ -196,7 +196,7 @@ export default function Home({ featuredUnits, latestUnits, latestProjects, popul
                             <>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                                     {latestProjects.data.map((project, i) => (
-                                        <ProjectCard key={project.id} project={project} priority={i < 4} />
+                                        <ProjectCard key={project.id} project={project} priority={false} />
                                     ))}
                                 </div>
                                 <Pagination meta={latestProjects} links={latestProjects?.links} pageParam="latest_projects_page" />
