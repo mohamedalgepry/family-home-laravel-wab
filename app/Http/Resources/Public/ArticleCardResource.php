@@ -1,9 +1,9 @@
 <?php
 
-namespace AppHttpResourcesPublic;
+namespace App\Http\Resources\Public;
 
-use IlluminateHttpRequest;
-use IlluminateHttpResourcesJsonJsonResource;
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
 
 class ArticleCardResource extends JsonResource
 {
