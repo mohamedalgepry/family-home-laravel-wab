@@ -480,7 +480,7 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                                                     <Link href={localizedPath(`/units/${unitSlug}`, locale)} className="group flex gap-3 items-center">
                                                         {unitImgUrl && (
                                                             <div className="shrink-0 w-16 h-16 rounded-xl overflow-hidden bg-secondary-100 border border-secondary-200/50 shadow-xs">
-                                                                <img src={unitImgUrl} alt={unit.title} width={64} height={64} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                                                                <img src={unitImgUrl} alt={unit.title} width={64} height={64} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
                                                             </div>
                                                         )}
                                                         <div className="flex-1">
@@ -523,7 +523,7 @@ export default function ArticleShow({ article, relatedArticles, suggestedUnits }
                                                     <Link href={localizedPath(`/articles/${relatedSlug}`, locale)} className="group flex gap-3 items-center">
                                                         {relatedImgUrl && (
                                                             <div className="shrink-0 w-16 h-16 rounded-xl overflow-hidden bg-secondary-100 border border-secondary-200/50 shadow-xs">
-                                                                <img src={relatedImgUrl} alt={related.title} width={64} height={64} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                                                                <img src={relatedImgUrl} alt={related.title} width={64} height={64} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
                                                             </div>
                                                         )}
                                                         <div className="flex-1">
