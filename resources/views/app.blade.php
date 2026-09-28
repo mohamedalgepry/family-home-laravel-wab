@@ -30,12 +30,8 @@
     <link rel="preload" as="image" href="{{ $heroDesktopUrl }}" type="image/webp" media="(min-width: 641px)" fetchpriority="high">
     @endif
 
-    <!-- Preload only the active locale's critical Cairo font -->
-    @if(app()->getLocale() === 'ar')
-        <link rel="preload" href="/fonts/cairo/cairo-1.woff2" as="font" type="font/woff2" crossorigin>
-    @else
-        <link rel="preload" href="/fonts/cairo/cairo-3.woff2" as="font" type="font/woff2" crossorigin>
-    @endif
+    <!-- Preload the self-hosted Cairo font used by the whole site -->
+    <link rel="preload" href="/fonts/cairo/cairo-variable.ttf" as="font" type="font/ttf" crossorigin>
 
     @if(request()->is('*units/*') || request()->is('*projects/*'))
     <!-- Preconnect to YouTube for embedded listing videos (only used on property detail pages) -->
