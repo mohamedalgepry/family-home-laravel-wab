@@ -74,7 +74,7 @@ class ListingService
 
     private function applyUnitFilters($query, array $filters): void
     {
-        ListingQueryBuilder::applyExactMatches($query, $filters, ['area_id', 'type_id', 'transaction', 'payment_method', 'finishing_type_id']);
+        ListingQueryBuilder::applyExactMatches($query, $filters, ['area_id', 'type_id', 'transaction', 'payment_method', 'finishing_type_id', 'rooms', 'bathrooms']);
         ListingQueryBuilder::applyRange($query, $filters, 'price', 'price_min', 'price_max');
         ListingQueryBuilder::applyRange($query, $filters, 'area_sqm', 'size_min', 'size_max');
 

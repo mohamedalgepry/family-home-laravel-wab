@@ -6,9 +6,11 @@ class PriceParser
 {
     private const MULTIPLIERS = [
         'مليون' => 1000000,
+        'million' => 1000000,
         'm' => 1000000,
         'م' => 1000000,
         'الف' => 1000,
+        'thousand' => 1000,
         'k' => 1000,
     ];
 
@@ -20,7 +22,7 @@ class PriceParser
     public function parse(string $normalizedQuery): ?array
     {
         // 1. Try to match a range first: "من 3 الي 5 مليون"
-        $rangePattern = '/\b(?:من|بين)\s+(\d+(?:\.\d+)?)\s*(مليون|الف|m|k|م)?\s+(?:الي|ل|و|لحد)\s+(\d+(?:\.\d+)?)\s*(مليون|الف|m|k|م)\b/u';
+        $rangePattern = '/\b(?:من|بين)\s+(\d+(?:\.\d+)?)\s*(مليون|million|الف|thousand|m|k|م)?\s+(?:الي|ل|و|لحد)\s+(\d+(?:\.\d+)?)\s*(مليون|million|الف|thousand|m|k|م)\b/u';
         
         if (preg_match($rangePattern, $normalizedQuery, $matches)) {
             $minVal = (float) $matches[1];
@@ -39,8 +41,8 @@ class PriceParser
         }
 
         // 2. Try to match single value with optional prefix
-        // Prefixes: اقل من, تحت, حد اقصي, اكثر من, فوق, حد ادني, ب
-        $singlePattern = '/\b(اقل من|تحت|حد اقصي|اكثر من|فوق|حد ادني|ب)?\s*(\d+(?:\.\d+)?)\s*(مليون|الف|m|k|م)\b/u';
+        // Prefixes: Arabic and English natural budget constraints
+        $singlePattern = '/\b(اقل من|تحت|حد اقصي|اكثر من|فوق|حد ادني|below|under|less than|max|above|over|more than|min|ب)?\s*(\d+(?:\.\d+)?)\s*(مليون|million|الف|thousand|m|k|م)\b/u';
         
         if (preg_match($singlePattern, $normalizedQuery, $matches)) {
             $prefix = trim($matches[1]);
@@ -51,9 +53,9 @@ class PriceParser
             
             $result = ['matched_term' => trim($matches[0])];
 
-            if (in_array($prefix, ['اقل من', 'تحت', 'حد اقصي'])) {
+            if (in_array($prefix, ['اقل من', 'تحت', 'حد اقصي', 'below', 'under', 'less than', 'max'])) {
                 $result['price_max'] = $price;
-            } elseif (in_array($prefix, ['اكثر من', 'فوق', 'حد ادني'])) {
+            } elseif (in_array($prefix, ['اكثر من', 'فوق', 'حد ادني', 'above', 'over', 'more than', 'min'])) {
                 $result['price_min'] = $price;
             } else {
                 // If no prefix or just "ب", it usually implies a max budget or exact price. 
