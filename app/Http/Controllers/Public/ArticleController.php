@@ -10,6 +10,8 @@ use App\Domain\Listings\Models\Unit;
 use App\Domain\Listings\Services\PageViewService;
 use App\Http\Resources\Public\ArticlePublicResource;
 use App\Http\Resources\Public\UnitPublicResource;
+use App\Http\Resources\Public\ArticleCardResource;
+use App\Http\Resources\Public\HomeUnitCardResource;
 use App\Services\SeoService;
 use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
@@ -52,7 +54,7 @@ class ArticleController
         $meta = app(SeoService::class)->forPage('articles_index', $customMeta);
 
         return Inertia::render('Public/Articles/Index', [
-            'articles' => ArticlePublicResource::collection($articles),
+            'articles' => ArticleCardResource::collection($articles),
             'categories' => $categories,
             'seo_meta' => $meta,
             'currentCategory' => $currentCategory ? [
@@ -128,8 +130,8 @@ class ArticleController
 
         return Inertia::render('Public/Articles/Show', [
             'article' => ArticlePublicResource::make($article)->resolve(),
-            'relatedArticles' => ArticlePublicResource::collection($relatedArticles),
-            'suggestedUnits' => UnitPublicResource::collection($suggestedUnits),
+            'relatedArticles' => ArticleCardResource::collection($relatedArticles),
+            'suggestedUnits' => HomeUnitCardResource::collection($suggestedUnits),
             'seo_meta' => $meta,
         ])->withViewData(['meta' => $meta]);
     }

@@ -167,7 +167,7 @@ class ListingService
                     $q->where('type_id', $unit->type_id)
                         ->orWhere('area_id', $unit->area_id);
                 })
-                ->with(['type', 'area', 'images', 'user.profile'])
+                ->with(['type', 'area', 'images', 'finishingType'])
                 ->orderByFeatured()
                 ->limit($limit)
                 ->get();

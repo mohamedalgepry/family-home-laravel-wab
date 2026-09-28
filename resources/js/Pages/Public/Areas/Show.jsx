@@ -144,8 +144,12 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                                     {area.gallery.map((img, idx) => (
                                         <img 
                                             key={idx} 
-                                            src={getStorageUrl(img)} 
-                                            alt={`${areaName} gallery ${idx}`} 
+                                            src={getStorageUrl(img)}
+                                            alt={`${areaName} gallery ${idx}`}
+                                            width={800}
+                                            height={450}
+                                            loading="lazy"
+                                            decoding="async"
                                             onError={(e) => { e.currentTarget.style.display = 'none'; }}
                                             className="w-full h-32 md:h-40 object-cover rounded-2xl shadow-sm hover:scale-105 transition-transform duration-300 cursor-pointer" 
                                         />
@@ -388,8 +392,12 @@ export default function AreaShow({ area, relatedAreas, units, projects, seo, are
                                     <Link key={rArea.id} href={localizedPath(`/areas/${rSlug}`, locale)} className="group relative h-64 rounded-3xl overflow-hidden block bg-gradient-to-br from-secondary-900 via-secondary-800 to-primary-950">
                                         {rImg ? (
                                             <img 
-                                                src={rImg} 
-                                                alt={rName} 
+                                                src={rImg}
+                                                alt={rName}
+                                                width={800}
+                                                height={500}
+                                                loading="lazy"
+                                                decoding="async"
                                                 onError={(e) => { e.currentTarget.style.display = 'none'; }}
                                                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
                                             />

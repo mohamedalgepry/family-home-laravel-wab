@@ -50,7 +50,7 @@ class UnitController
         $meta = $this->buildFilteredUnitsMeta($filters, false, $areas, $unitTypes);
 
         return Inertia::render('Public/Units/Index', [
-            'units' => UnitPublicResource::collection($units),
+            'units' => HomeUnitCardResource::collection($units),
             'filters' => $filters,
             'seo_meta' => $meta,
             'areas' => $areas,

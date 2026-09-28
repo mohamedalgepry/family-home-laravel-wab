@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Public;
 use App\Domain\Listings\Models\Unit;
 use App\Domain\Users\Models\User;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Public\HomeUnitCardResource;
 use App\Services\SeoService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -58,7 +59,7 @@ class AgentController extends Controller
                 'bio' => $agent->profile?->bio,
                 'role' => $agent->role,
             ],
-            'units' => $units,
+            'units' => HomeUnitCardResource::collection($units),
             'seo_meta' => $meta,
         ])->withViewData(['meta' => $meta]);
     }

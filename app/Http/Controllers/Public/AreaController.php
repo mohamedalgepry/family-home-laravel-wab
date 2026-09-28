@@ -8,6 +8,8 @@ use App\Domain\Listings\Models\Unit;
 use App\Domain\Listings\Services\ListingLookupService;
 use App\Http\Resources\Public\AreaPublicResource;
 use App\Http\Resources\Public\ProjectPublicResource;
+use App\Http\Resources\Public\HomeProjectCardResource;
+use App\Http\Resources\Public\HomeUnitCardResource;
 use App\Http\Resources\Public\UnitPublicResource;
 use App\Services\SeoService;
 use Illuminate\Support\Facades\Cache;
@@ -45,7 +47,7 @@ class AreaController
 
         $units = Unit::active()
             ->where('area_id', $area->id)
-            ->with(['type', 'area', 'images', 'user.profile', 'project.user.profile'])
+            ->with(['type', 'area', 'images', 'user'])
             ->orderByFeatured()
             ->paginate(12, ['*'], 'units_page', $unitsPage);
 
@@ -181,8 +183,8 @@ class AreaController
         return Inertia::render('Public/Areas/Show', [
             'area' => AreaPublicResource::make($area)->resolve(),
             'relatedAreas' => AreaPublicResource::collection($relatedAreas),
-            'units' => UnitPublicResource::collection($units),
-            'projects' => ProjectPublicResource::collection($projects),
+            'units' => HomeUnitCardResource::collection($units),
+            'projects' => HomeProjectCardResource::collection($projects),
             'seo_meta' => $meta,
             'seo' => [
                 'title' => $metaTitle,
