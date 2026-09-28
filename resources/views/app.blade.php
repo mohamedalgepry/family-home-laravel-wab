@@ -30,17 +30,6 @@
     <link rel="preload" as="image" href="{{ $heroDesktopUrl }}" type="image/webp" media="(min-width: 641px)" fetchpriority="high">
     @endif
 
-    <!-- Preload the self-hosted Cairo font used by the whole site -->
-    <link rel="preload" href="/fonts/cairo/cairo-variable.ttf" as="font" type="font/ttf" crossorigin>
-
-    @if(request()->is('*units/*') || request()->is('*projects/*'))
-    <!-- Preconnect to YouTube for embedded listing videos (only used on property detail pages) -->
-    <link rel="preconnect" href="https://www.youtube.com" crossorigin>
-    <link rel="preconnect" href="https://i.ytimg.com" crossorigin>
-    <link rel="dns-prefetch" href="https://www.youtube.com">
-    <link rel="dns-prefetch" href="https://i.ytimg.com">
-    @endif
-
     <!-- Google Analytics (Deferred to user interaction & idle to eliminate Unused JS & TBT in PageSpeed/Lighthouse) -->
     <script>
       (function() {
