@@ -346,12 +346,12 @@ export default function SearchBar({
 
                 {/* Mobile Bottom Sheet Modal */}
                 {showAdvanced && (
-                    <div dir={isRtl ? 'rtl' : 'ltr'} className="fixed inset-0 z-[100] flex flex-col justify-end pointer-events-auto">
+                    <div dir={isRtl ? 'rtl' : 'ltr'} className="fixed inset-0 z-[100] flex h-[100dvh] flex-col justify-end overflow-hidden overscroll-none pointer-events-auto">
                         <div className="absolute inset-0 bg-secondary-950/40 backdrop-blur-xs sm:backdrop-blur-sm transition-opacity" onClick={() => setShowAdvanced(false)}></div>
-                        <div className="relative bg-white rounded-t-[2rem] w-full max-h-[90vh] flex flex-col shadow-2xl animate-slideUp">
+                        <div className="relative bg-white rounded-t-[2rem] w-full h-[92dvh] max-h-[92dvh] min-h-0 flex flex-col shadow-2xl animate-slideUp">
 
                             {/* Drag Handle & Header */}
-                            <div className="flex-none p-5 pb-3 border-b border-secondary-100 flex items-center justify-between sticky top-0 bg-white rounded-t-[2rem] z-10">
+                            <div className="flex-none p-4 pb-3 border-b border-secondary-100 flex items-center justify-between bg-white rounded-t-[2rem] z-10">
                                 <h3 className="text-lg font-black text-secondary-950 tracking-tight">{locale === 'ar' ? 'البحث والتصفية' : 'Search & Filters'}</h3>
                                 <button 
                                     type="button" 
@@ -366,7 +366,7 @@ export default function SearchBar({
                             </div>
 
                             {/* Scrollable Content */}
-                            <div className="flex-1 overflow-y-auto p-5 pb-24 flex flex-col gap-5 hide-scrollbar">
+                            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-5 pb-6 flex flex-col gap-5 hide-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
                                 {/* 1. Area */}
                                 <div>
                                     <label htmlFor="m-area" className="block text-xs font-bold text-secondary-950 uppercase tracking-wider mb-2">{trans('area')}</label>
@@ -502,7 +502,7 @@ export default function SearchBar({
                             </div>
 
                             {/* Mobile Actions Footer */}
-                            <div className="flex-none p-4 bg-white border-t border-secondary-100 flex items-center gap-3 absolute bottom-0 left-0 right-0 z-20 shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
+                            <div className="flex-none p-4 bg-white border-t border-secondary-100 flex items-center gap-3 z-20 shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
                                 <button type="button" onClick={handleReset} className="w-1/3 h-12 rounded-xl border border-secondary-200 text-secondary-700 font-bold text-sm bg-surface hover:bg-secondary-200 active:scale-95 transition-all">
                                     {locale === 'ar' ? 'إعادة ضبط' : 'Reset'}
                                 </button>
