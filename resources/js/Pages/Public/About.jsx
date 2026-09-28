@@ -39,6 +39,7 @@ export default function About({ page }) {
                                     height={400}
                                     className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-500"
                                     loading="lazy"
+                                    decoding="async"
                                     onError={(e) => {
                                         e.currentTarget.onerror = null;
                                         e.currentTarget.src = PLACEHOLDER;
