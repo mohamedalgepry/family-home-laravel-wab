@@ -12,6 +12,7 @@ use App\Domain\Listings\Services\PageViewService;
 use App\Domain\Listings\Services\SearchService;
 use App\Http\Resources\Public\ArticleCardResource;
 use App\Http\Resources\Public\ProjectPublicResource;
+use App\Http\Resources\Public\HomeProjectCardResource;
 use App\Services\SeoService;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -53,7 +54,7 @@ class ProjectController
         $meta = app(SeoService::class)->forPage('projects_index', $customMeta);
 
         return Inertia::render('Public/Projects/Index', [
-            'projects' => ProjectPublicResource::collection($projects),
+            'projects' => HomeProjectCardResource::collection($projects),
             'filters' => $filters,
             'seo_meta' => $meta,
             'areas' => $areas,
