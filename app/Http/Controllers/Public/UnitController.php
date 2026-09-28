@@ -10,9 +10,11 @@ use App\Domain\Listings\Services\ListingLookupService;
 use App\Domain\Listings\Services\ListingService;
 use App\Domain\Listings\Services\PageViewService;
 use App\Domain\Listings\Services\SearchService;
-use App\Http\Resources\Public\ArticlePublicResource;
-use App\Http\Resources\Public\ProjectPublicResource;
+use App\Http\Resources\Public\ArticleCardResource;
+use App\Http\Resources\Public\HomeProjectCardResource;
+use App\Http\Resources\Public\HomeUnitCardResource;
 use App\Http\Resources\Public\UnitPublicResource;
+use App\Http\Resources\Public\UnitShowResource;
 use App\Services\SeoService;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -134,15 +136,22 @@ class UnitController
         $mainImage = $unit->images->firstWhere('is_primary', true)
             ?? $unit->images->first();
 
-        $lcpImage = $mainImage ? $mainImage->url : null;
+        $lcpImage = $mainImage
+            ? ($mainImage->large_url ?: ($mainImage->medium_url ?: $mainImage->url))
+            : null;
+        $lcpImageSrcSet = $mainImage?->srcset;
 
         return Inertia::render('Public/Units/Show', [
-            'unit' => UnitPublicResource::make($unit)->resolve(),
-            'similarUnits' => UnitPublicResource::collection($similarUnits)->resolve(),
-            'relatedProjects' => ProjectPublicResource::collection($relatedProjects)->resolve(),
-            'relatedArticles' => ArticlePublicResource::collection($relatedArticles)->resolve(),
+            'unit' => UnitShowResource::make($unit)->resolve(),
+            'similarUnits' => HomeUnitCardResource::collection($similarUnits)->resolve(),
+            'relatedProjects' => HomeProjectCardResource::collection($relatedProjects)->resolve(),
+            'relatedArticles' => ArticleCardResource::collection($relatedArticles)->resolve(),
             'seo_meta' => $meta,
-        ])->withViewData(['meta' => $meta, 'lcpImage' => $lcpImage]);
+        ])->withViewData([
+            'meta' => $meta,
+            'lcpImage' => $lcpImage,
+            'lcpImageSrcSet' => $lcpImageSrcSet,
+        ]);
     }
 
     /**

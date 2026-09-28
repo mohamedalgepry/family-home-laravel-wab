@@ -141,7 +141,7 @@ class ListingService
     {
         return Cache::remember(self::CACHE_PREFIX."unit_{$slug}_v{$this->version()}", self::CACHE_TTL, function () use ($slug) {
             return Unit::byAnySlug($slug)
-                ->with(['type', 'area', 'images', 'user.profile', 'project', 'features', 'finishingType'])
+                ->with(['type', 'area', 'images', 'user.profile', 'project.area', 'features', 'finishingType'])
                 ->first();
         });
     }
