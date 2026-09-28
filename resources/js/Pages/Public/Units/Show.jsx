@@ -971,7 +971,7 @@ export default function UnitShow({ unit, similarUnits, relatedProjects, relatedA
                     </button>
 
                     <img
-                        src={getStorageUrl(images[lightboxIndex]?.url || images[lightboxIndex]?.path, PLACEHOLDER)}
+                        src={getStorageUrl(images[lightboxIndex]?.large_url || images[lightboxIndex]?.medium_url || images[lightboxIndex]?.url || images[lightboxIndex]?.path, PLACEHOLDER)}
                         alt={images[lightboxIndex]?.alt_text || unit.name}
                         className="max-w-[90vw] max-h-[85vh] object-contain rounded-xl"
                         onClick={e => e.stopPropagation()}
