@@ -78,26 +78,24 @@ class ProjectController
             request()->userAgent(),
         );
 
-        // تخزين وحدات المشروع مؤقتاً لتفادي استعلام العلاقات الثقيل في كل زيارة
         $projectUnits = \Illuminate\Support\Facades\Cache::remember(
             "project_show_units_{$project->id}_v{$this->listingService->version()}",
             300,
             fn () => Unit::where('project_id', $project->id)
                 ->where('is_active', true)
-                ->with(['type', 'area', 'images', 'finishingType'])
+                ->with(['type', 'area', 'images', 'finishingType', 'user'])
                 ->orderByFeatured()
                 ->limit(12)
                 ->get()
         );
 
-        // BUG-005 FIX: query واحدة تُفضّل المنطقة المطابقة ثم الأحدث — بدلاً من query + fallback
         $similarProjects = \Illuminate\Support\Facades\Cache::remember(
             "project_show_similar_{$project->id}_v{$this->listingService->version()}",
             300,
             function () use ($project) {
                 return Project::where('is_active', true)
                     ->where('id', '!=', $project->id)
-                    ->with(['area', 'images'])
+                    ->with(['area', 'images', 'user'])
                     ->withCount(['units' => fn ($q) => $q->active()])
                     ->orderByRaw('CASE WHEN area_id = ? THEN 0 ELSE 1 END', [$project->area_id ?? 0])
                     ->orderByDesc('created_at')
