@@ -1,9 +1,6 @@
 <?php
 
 use App\Domain\Users\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-
-uses(RefreshDatabase::class);
 
 it('allows an admin to change a user role and assigns a manager to agents', function () {
     $admin = User::factory()->create([
