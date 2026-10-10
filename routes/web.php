@@ -227,6 +227,7 @@ Route::prefix('admin')->middleware(['auth', 'role:admin,manager,agent'])->group(
         Route::get('/create', [UserController::class, 'create'])->name('create');
         Route::post('/', [UserController::class, 'store'])->name('store');
         Route::post('/{user}/toggle-active', [UserController::class, 'toggleActive'])->name('toggle-active');
+        Route::post('/{user}/change-role', [UserController::class, 'changeRole'])->name('change-role');
         Route::post('/transfer-projects', [UserController::class, 'transferProjects'])->name('transfer-projects');
         Route::post('/assign-agents', [UserController::class, 'assignAgents'])->name('assign-agents');
         Route::post('/{user}/change-password', [UserController::class, 'changePassword'])->name('change-password');
@@ -338,9 +339,3 @@ Route::prefix('admin')->middleware(['auth', 'role:admin,manager,agent'])->group(
         Route::put('/{finishingType}', [FinishingTypeController::class, 'update'])->name('update');
         Route::delete('/{finishingType}', [FinishingTypeController::class, 'destroy'])->name('destroy');
     });
-
-    Route::prefix('seo-pages')->name('admin.seo-pages.')->middleware('role:admin')->group(function () {
-        Route::get('/', [PageSeoController::class, 'index'])->name('index');
-        Route::put('/{pageSeo}', [PageSeoController::class, 'update'])->name('update');
-    });
-});
