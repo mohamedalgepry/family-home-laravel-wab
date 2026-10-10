@@ -8,6 +8,7 @@ use App\Domain\Users\Services\UserService;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AssignAgentsRequest;
 use App\Http\Requests\Admin\ChangeUserPasswordRequest;
+use App\Http\Requests\Admin\ChangeUserRoleRequest;
 use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Requests\Admin\TransferProjectsRequest;
 use Illuminate\Http\RedirectResponse;
@@ -100,6 +101,41 @@ class UserController extends Controller
 
         return redirect()->route('admin.users.index')
             ->with('success', __('users.status_updated'));
+    }
+
+    public function changeRole(User $user, ChangeUserRoleRequest $request): RedirectResponse
+    {
+        $this->authorize('update', $user);
+
+        if ($request->user()->is($user)) {
+            return redirect()->route('admin.users.index')
+                ->with('error', __('users.cannot_change_own_role'));
+        }
+
+        $data = $request->validated();
+        $newRole = $data['role'];
+
+        if ($newRole === 'agent') {
+            $manager = User::query()
+                ->whereKey($data['manager_id'])
+                ->where('role', 'manager')
+                ->first();
+
+            if (! $manager) {
+                return redirect()->route('admin.users.index')
+                    ->with('error', __('users.invalid_manager'));
+            }
+
+            $user->manager_id = $manager->id;
+        } else {
+            $user->manager_id = null;
+        }
+
+        $user->role = $newRole;
+        $user->save();
+
+        return redirect()->route('admin.users.index')
+            ->with('success', __('users.role_updated'));
     }
 
     public function transferProjects(TransferProjectsRequest $request): RedirectResponse

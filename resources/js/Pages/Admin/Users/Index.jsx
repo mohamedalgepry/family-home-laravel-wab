@@ -5,7 +5,7 @@ import AdminSidebar from '../../../Components/Layout/AdminSidebar'
 import { SkeletonRow , Select} from '../../../Components/UI'
 
 export default function AdminUsersIndex({ users, managers, filters }) {
-    const { locale } = usePage().props
+    const { locale, auth } = usePage().props
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
 
@@ -15,13 +15,20 @@ export default function AdminUsersIndex({ users, managers, filters }) {
     const [showAssignModal, setShowAssignModal] = useState(false)
     const [showDeleteModal, setShowDeleteModal] = useState(false)
     const [showPasswordModal, setShowPasswordModal] = useState(false)
+    const [showRoleModal, setShowRoleModal] = useState(false)
     const [userToDelete, setUserToDelete] = useState(null)
     const [userToPassword, setUserToPassword] = useState(null)
+    const [userToRole, setUserToRole] = useState(null)
     const [userRelations, setUserRelations] = useState(null)
 
     const { data: passwordData, setData: setPasswordData, post: passwordPost, processing: passwordProcessing, errors: passwordErrors, reset: resetPassword } = useForm({
         password: '',
         password_confirmation: '',
+    })
+
+    const { data: roleData, setData: setRoleData, post: rolePost, processing: roleProcessing, errors: roleErrors, reset: resetRole } = useForm({
+        role: '',
+        manager_id: '',
     })
 
     function openChangePassword(user) {
@@ -38,6 +45,36 @@ export default function AdminUsersIndex({ users, managers, filters }) {
                 setShowPasswordModal(false)
                 setUserToPassword(null)
                 resetPassword()
+            },
+        })
+    }
+
+    function openChangeRole(user) {
+        setUserToRole(user)
+        setRoleData({
+            role: user.role,
+            manager_id: user.manager_id || '',
+        })
+        setShowRoleModal(true)
+    }
+
+    function handleChangeRole(e) {
+        e.preventDefault()
+        if (!userToRole || roleData.role === userToRole.role) {
+            setShowRoleModal(false)
+            return
+        }
+
+        if (!window.confirm(trans('confirm_role_change', { name: userToRole.name }))) {
+            return
+        }
+
+        rolePost(`/admin/users/${userToRole.id}/change-role`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setShowRoleModal(false)
+                setUserToRole(null)
+                resetRole()
             },
         })
     }
@@ -256,6 +293,9 @@ export default function AdminUsersIndex({ users, managers, filters }) {
                                                 <button onClick={() => toggleActive(u)} className={`text-xs px-2.5 py-1 rounded-md font-medium border transition-colors ${u.is_active ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100' : 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'}`}>
                                                     {u.is_active ? trans('deactivate') : trans('activate')}
                                                 </button>
+                                                <button onClick={() => openChangeRole(u)} disabled={u.id === auth?.user?.id} className="text-xs px-2.5 py-1 rounded-md font-medium bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                                    {trans('change_role')}
+                                                </button>
                                                 <button onClick={() => openChangePassword(u)} className="text-xs px-2.5 py-1 rounded-md font-medium bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors">
                                                     {trans('change_password')}
                                                 </button>
@@ -281,6 +321,58 @@ export default function AdminUsersIndex({ users, managers, filters }) {
                     </table>
                 </div>
             </div>
+
+                {/* Change Role Modal */}
+                {showRoleModal && userToRole && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowRoleModal(false)}>
+                        <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6" onClick={e => e.stopPropagation()}>
+                            <div className="flex items-center justify-between mb-4">
+                                <div>
+                                    <h3 className="text-lg font-semibold text-secondary-950">{trans('change_role')}</h3>
+                                    <p className="text-sm text-secondary-500 mt-1">{userToRole.name}</p>
+                                </div>
+                                <button onClick={() => setShowRoleModal(false)} className="text-muted hover:text-secondary-950 text-xl leading-none">&times;</button>
+                            </div>
+                            <form onSubmit={handleChangeRole} className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('new_role')}</label>
+                                    <Select value={roleData.role} onChange={e => setRoleData('role', e.target.value)} className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900">
+                                        <option value="admin">{trans('admin')}</option>
+                                        <option value="manager">{trans('manager')}</option>
+                                        <option value="agent">{trans('agent')}</option>
+                                    </Select>
+                                    {roleErrors.role && <p className="text-xs text-error mt-1">{roleErrors.role}</p>}
+                                </div>
+
+                                {roleData.role === 'agent' && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('select_manager')} *</label>
+                                        <Select value={roleData.manager_id} onChange={e => setRoleData('manager_id', e.target.value)} required className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900">
+                                            <option value="">—</option>
+                                            {managers?.map(manager => (
+                                                <option key={manager.id} value={manager.id}>{manager.name}</option>
+                                            ))}
+                                        </Select>
+                                        {roleErrors.manager_id && <p className="text-xs text-error mt-1">{roleErrors.manager_id}</p>}
+                                    </div>
+                                )}
+
+                                <div className="bg-amber-50 text-amber-800 p-3 rounded-lg text-sm">
+                                    {trans('role_change_warning')}
+                                </div>
+
+                                <div className="flex gap-3 justify-end pt-2">
+                                    <button type="button" onClick={() => setShowRoleModal(false)} className="px-4 py-2 bg-surface text-secondary-700 rounded-lg text-sm font-medium hover:bg-secondary-200 transition-colors">
+                                        {trans('cancel')}
+                                    </button>
+                                    <button type="submit" disabled={roleProcessing || roleData.role === userToRole.role || (roleData.role === 'agent' && !roleData.manager_id)} className="px-4 py-2 bg-primary-900 text-white rounded-lg text-sm font-medium hover:bg-primary-950 transition-colors disabled:opacity-50">
+                                        {roleProcessing ? trans('loading') : trans('change_role')}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
 
                 {/* Transfer Projects Modal */}
                 {showTransferModal && (
