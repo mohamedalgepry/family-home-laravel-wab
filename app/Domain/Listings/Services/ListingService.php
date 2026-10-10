@@ -67,8 +67,6 @@ class ListingService
 
     private function unitBaseQuery(): Builder
     {
-        // Unit cards need the assigned agent's contact data so WhatsApp/call
-        // can use the agent number and fall back to the site number when absent.
         return Unit::active()->with(['type', 'area', 'images', 'finishingType', 'user']);
     }
 
@@ -167,7 +165,7 @@ class ListingService
                     $q->where('type_id', $unit->type_id)
                         ->orWhere('area_id', $unit->area_id);
                 })
-                ->with(['type', 'area', 'images', 'finishingType'])
+                ->with(['type', 'area', 'images', 'finishingType', 'user'])
                 ->orderByFeatured()
                 ->limit($limit)
                 ->get();
