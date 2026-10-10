@@ -6,7 +6,9 @@ use App\Domain\Listings\Models\Project;
 use App\Domain\Listings\Models\Unit;
 use App\Domain\Points\Models\PointsTransaction;
 use App\Domain\Users\Notifications\ResetPasswordNotification;
+use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -20,6 +22,11 @@ class User extends Authenticatable
     protected $fillable = [
         'name', 'slug', 'email', 'password', 'manager_id', 'role', 'is_active', 'points_balance', 'initial_monthly_balance',
     ];
+
+    protected static function newFactory(): Factory
+    {
+        return UserFactory::new();
+    }
 
     protected static function booted()
     {
@@ -40,7 +47,7 @@ class User extends Authenticatable
     {
         $baseSlug = Str::slug($name);
         if (empty($baseSlug)) {
-            $baseSlug = 'user'; // fallback for fully arabic names if slug fails, although Str::slug supports arabic somewhat, it's better to be safe. But wait, Laravel's Str::slug supports Arabic natively in recent versions, but sometimes we need to pass a dictionary. Actually, Laravel 9+ supports Arabic well.
+            $baseSlug = 'user';
         }
         $slug = $baseSlug;
         $count = 1;
