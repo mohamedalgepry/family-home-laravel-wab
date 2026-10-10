@@ -182,9 +182,6 @@ Route::prefix('{locale}')->whereIn('locale', ['ar', 'en'])->middleware(SetLocale
         ->name('assistant.chat');
 });
 
-
-
-
 Route::prefix('admin')->middleware(['auth', 'role:admin,manager,agent'])->group(function () {
     Route::get('/', DashboardController::class)->name('admin.dashboard');
     Route::post('/media/upload', [MediaController::class, 'upload'])->name('admin.media.upload');
@@ -266,7 +263,7 @@ Route::prefix('admin')->middleware(['auth', 'role:admin,manager,agent'])->group(
         Route::post('/read-all', [NotificationController::class, 'markAllAsRead'])->name('read-all');
         Route::post('/{id}/read', [NotificationController::class, 'markAsRead'])->name('read');
         Route::delete('/{id}', [NotificationController::class, 'destroy'])->name('destroy');
-        Route::delete('/all/clear', [NotificationController::class, 'clear-all'])->name('clear-all');
+        Route::delete('/all/clear', [NotificationController::class, 'clearAll'])->name('clear-all');
     });
 
     Route::post('/projects/{project}/approve', [NotificationController::class, 'approveProject'])->middleware('role:admin')->name('admin.projects.approve');
