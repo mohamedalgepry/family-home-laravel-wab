@@ -266,7 +266,7 @@ Route::prefix('admin')->middleware(['auth', 'role:admin,manager,agent'])->group(
         Route::post('/read-all', [NotificationController::class, 'markAllAsRead'])->name('read-all');
         Route::post('/{id}/read', [NotificationController::class, 'markAsRead'])->name('read');
         Route::delete('/{id}', [NotificationController::class, 'destroy'])->name('destroy');
-        Route::delete('/all/clear', [NotificationController::class, 'clearAll'])->name('clear-all');
+        Route::delete('/all/clear', [NotificationController::class, 'clear-all'])->name('clear-all');
     });
 
     Route::post('/projects/{project}/approve', [NotificationController::class, 'approveProject'])->middleware('role:admin')->name('admin.projects.approve');
@@ -339,3 +339,9 @@ Route::prefix('admin')->middleware(['auth', 'role:admin,manager,agent'])->group(
         Route::put('/{finishingType}', [FinishingTypeController::class, 'update'])->name('update');
         Route::delete('/{finishingType}', [FinishingTypeController::class, 'destroy'])->name('destroy');
     });
+
+    Route::prefix('seo-pages')->name('admin.seo-pages.')->middleware('role:admin')->group(function () {
+        Route::get('/', [PageSeoController::class, 'index'])->name('index');
+        Route::put('/{pageSeo}', [PageSeoController::class, 'update'])->name('update');
+    });
+});
