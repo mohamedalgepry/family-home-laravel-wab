@@ -28,6 +28,12 @@ class HomeProjectCardResource extends JsonResource
                 'name_en' => $this->area->name_en,
                 'slug' => $this->area->slug,
             ]),
+            'user' => $this->whenLoaded('user', fn () => [
+                'id' => $this->user->id,
+                'name' => $this->user->name,
+                'phone' => $this->user->phone,
+                'whatsapp' => $this->user->whatsapp,
+            ]),
             'images' => $image ? [[
                 'id' => $image->id,
                 'path' => $image->path,
