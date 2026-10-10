@@ -5,6 +5,8 @@ import { useTrans } from '../../Utils/trans'
 import { useCompare } from '../../Hooks/useCompare'
 import OptimizedImage from '../OptimizedImage'
 import { getStorageUrl, getThumbUrl, PLACEHOLDER } from '../../Utils/image'
+import { getAgentContacts } from '../../Utils/contact'
+import WhatsAppIcon from './WhatsAppIcon'
 
 function SkeletonCard() {
     return (
@@ -23,7 +25,8 @@ function SkeletonCard() {
 }
 
 function ProjectCard({ project, loading = false, priority = false }) {
-    const { locale } = usePage().props
+    const page = usePage()
+    const { locale, settings } = page.props
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
     const { compareList, toggleCompare } = useCompare('project')
@@ -33,18 +36,21 @@ function ProjectCard({ project, loading = false, priority = false }) {
     }
 
     if (!project) {
-        return null;
+        return null
     }
 
     const mainImage = project?.images?.find(img => img.is_main || img.is_primary) || project?.images?.[0]
     const thumbnail = getThumbUrl(mainImage?.thumb_url || mainImage?.url || mainImage?.path, PLACEHOLDER)
     const originalUrl = getStorageUrl(mainImage?.url || mainImage?.path, null)
-    // Use lightweight thumbnail or medium variant for card grids; fallback to originalUrl
     const displaySrc = thumbnail || originalUrl || PLACEHOLDER
-    const srcSet = mainImage?.srcset || (originalUrl && thumbnail && originalUrl !== thumbnail 
-        ? `${thumbnail} 480w, ${originalUrl} 1600w` 
+    const srcSet = mainImage?.srcset || (originalUrl && thumbnail && originalUrl !== thumbnail
+        ? `${thumbnail} 480w, ${originalUrl} 1600w`
         : undefined)
     const isCompared = compareList.includes(project?.id)
+
+    const agentContacts = getAgentContacts(project?.user, settings)
+    const whatsappLink = `https://wa.me/${agentContacts.whatsapp}`
+    const phoneLink = `tel:${agentContacts.phone}`
 
     const areaName = project.area?.name || project.area_name || (isRtl ? 'مصر' : 'Egypt')
     const imageAlt = project.alt_text || `${project.name || (isRtl ? 'مشروع عقاري' : 'Project')} ${isRtl ? 'في' : 'in'} ${areaName} - ${trans('app_name')}`
@@ -52,14 +58,13 @@ function ProjectCard({ project, loading = false, priority = false }) {
     const projectSlug = isRtl && project.slug_ar ? project.slug_ar : (project.slug_en || project.slug || project.id)
 
     return (
-        <article 
-            dir={isRtl ? 'rtl' : 'ltr'} 
+        <article
+            dir={isRtl ? 'rtl' : 'ltr'}
             className="bg-white rounded-2xl shadow-card hover:shadow-lg md:hover:-translate-y-1 transition-all duration-300 transform-gpu overflow-hidden group border border-secondary-100/80 flex flex-col h-full"
         >
-            {/* Image Container */}
             <div className="relative overflow-hidden aspect-[4/3] bg-secondary-100">
-                <Link 
-                    href={localizedPath(`/projects/${projectSlug}`, locale)} 
+                <Link
+                    href={localizedPath(`/projects/${projectSlug}`, locale)}
                     className="block w-full h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                 >
                     <OptimizedImage
@@ -75,22 +80,20 @@ function ProjectCard({ project, loading = false, priority = false }) {
                     />
                 </Link>
 
-                {/* Top Badge Overlay */}
                 <div className="absolute top-3 inset-x-3 flex items-center justify-between pointer-events-none z-10">
                     <span className="bg-white/95 text-secondary-900 text-xs font-bold px-3 py-1 rounded-full shadow-sm backdrop-blur-md border border-white/40">
                         {trans('project')}
                     </span>
 
-                    {/* Compare Button */}
                     <button
                         onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            toggleCompare(project.id);
+                            e.preventDefault()
+                            e.stopPropagation()
+                            toggleCompare(project.id)
                         }}
                         className={`pointer-events-auto p-2 rounded-full backdrop-blur-md transition-colors shadow-sm ${
-                            isCompared 
-                                ? 'bg-primary-900 text-white' 
+                            isCompared
+                                ? 'bg-primary-900 text-white'
                                 : 'bg-white/90 text-secondary-700 hover:bg-white hover:text-primary-900'
                         }`}
                         title={isCompared ? (trans('remove_from_compare') || 'إزالة من المقارنة') : (trans('add_to_compare') || 'إضافة للمقارنة')}
@@ -101,7 +104,6 @@ function ProjectCard({ project, loading = false, priority = false }) {
                     </button>
                 </div>
 
-                {/* Area Tag */}
                 {project.area?.name && (
                     <span className="absolute bottom-3 start-3 text-white text-xs font-medium bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded-md flex items-center gap-1">
                         <svg className="w-3.5 h-3.5 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
@@ -113,11 +115,10 @@ function ProjectCard({ project, loading = false, priority = false }) {
                 )}
             </div>
 
-            {/* Details */}
             <div className="p-5 flex-1 flex flex-col justify-between">
                 <div>
-                    <Link 
-                        href={localizedPath(`/projects/${projectSlug}`, locale)} 
+                    <Link
+                        href={localizedPath(`/projects/${projectSlug}`, locale)}
                         className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded"
                     >
                         <h2 className="text-base font-bold text-secondary-950 group-hover:text-primary-900 transition-colors line-clamp-1 mb-1.5">
@@ -144,13 +145,12 @@ function ProjectCard({ project, loading = false, priority = false }) {
                     </div>
                 </div>
 
-                {/* Footer Actions */}
-                <div className="flex items-center justify-between pt-3 border-t border-secondary-100/70 mt-auto">
+                <div className="flex items-center justify-between gap-2 pt-3 border-t border-secondary-100/70 mt-auto">
                     <button
-                        onClick={e => { e.preventDefault(); toggleCompare(project.id); }}
+                        onClick={e => { e.preventDefault(); toggleCompare(project.id) }}
                         className={`text-xs px-3.5 py-1.5 rounded-xl border transition-colors duration-200 font-semibold ${
-                            isCompared 
-                                ? 'bg-primary-900 text-white border-primary-900 shadow-sm' 
+                            isCompared
+                                ? 'bg-primary-900 text-white border-primary-900 shadow-sm'
                                 : 'bg-secondary-50 text-secondary-700 border-secondary-200 hover:border-primary-900 hover:text-primary-900 hover:bg-white'
                         }`}
                         aria-label={`${trans('compare')} ${project.name}`}
@@ -159,15 +159,39 @@ function ProjectCard({ project, loading = false, priority = false }) {
                         {isCompared ? (isRtl ? 'تمت الإضافة' : 'Added') : trans('compare')}
                     </button>
 
-                    <Link
-                        href={localizedPath(`/projects/${projectSlug}`, locale)}
-                        className="text-xs font-bold text-primary-900 hover:text-primary-700 flex items-center gap-1 group/link transition-colors"
-                    >
-                        <span>{trans('show_more') || (isRtl ? 'التفاصيل' : 'Details')}</span>
-                        <svg className="w-3.5 h-3.5 rtl:rotate-180 group-hover/link:translate-x-0.5 rtl:group-hover/link:-translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                        </svg>
-                    </Link>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                        <a
+                            href={whatsappLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={e => e.stopPropagation()}
+                            aria-label={`${trans('contact_via_whatsapp')} ${project.name}`}
+                            className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center hover:bg-emerald-600 hover:text-white transition-colors shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                            title={trans('contact_via_whatsapp')}
+                        >
+                            <WhatsAppIcon className="w-4 h-4" />
+                        </a>
+                        <a
+                            href={phoneLink}
+                            onClick={e => e.stopPropagation()}
+                            aria-label={`${trans('contact')} ${project.name}`}
+                            className="w-9 h-9 rounded-xl bg-surface text-secondary-800 border border-secondary-200 flex items-center justify-center hover:bg-secondary-200 transition-colors shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary-500"
+                            title={isRtl ? 'اتصال' : 'Call'}
+                        >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
+                            </svg>
+                        </a>
+                        <Link
+                            href={localizedPath(`/projects/${projectSlug}`, locale)}
+                            className="text-xs font-bold text-primary-900 hover:text-primary-700 flex items-center gap-1 group/link transition-colors ms-1"
+                        >
+                            <span>{trans('show_more') || (isRtl ? 'التفاصيل' : 'Details')}</span>
+                            <svg className="w-3.5 h-3.5 rtl:rotate-180 group-hover/link:translate-x-0.5 rtl:group-hover/link:-translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                            </svg>
+                        </Link>
+                    </div>
                 </div>
             </div>
         </article>
