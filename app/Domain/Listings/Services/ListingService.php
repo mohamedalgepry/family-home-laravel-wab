@@ -16,11 +16,11 @@ class ListingService
 
     private const CACHE_PREFIX = 'listing_';
 
-    public const CACHE_VERSION_KEY = 'listing_cache_version';
+    public const CACHE_VERSION_KEY = 'listing_cache_version_v2';
 
     public function version(): int
     {
-        return Cache::rememberForever(self::CACHE_VERSION_KEY, fn () => 1);
+        return Cache::rememberForever(self::CACHE_VERSION_KEY, fn () => 2);
     }
 
     private function generateCacheKey(string $prefix, array $filters, int $perPage, int $page): string
