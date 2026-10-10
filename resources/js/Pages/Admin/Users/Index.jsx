@@ -5,7 +5,7 @@ import AdminSidebar from '../../../Components/Layout/AdminSidebar'
 import { SkeletonRow , Select} from '../../../Components/UI'
 
 export default function AdminUsersIndex({ users, managers, filters }) {
-    const { locale } = usePage().props
+    const { locale, auth } = usePage().props
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
 
@@ -293,7 +293,7 @@ export default function AdminUsersIndex({ users, managers, filters }) {
                                                 <button onClick={() => toggleActive(u)} className={`text-xs px-2.5 py-1 rounded-md font-medium border transition-colors ${u.is_active ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100' : 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'}`}>
                                                     {u.is_active ? trans('deactivate') : trans('activate')}
                                                 </button>
-                                                <button onClick={() => openChangeRole(u)} disabled={u.id === usePage().props.auth?.user?.id} className="text-xs px-2.5 py-1 rounded-md font-medium bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                                <button onClick={() => openChangeRole(u)} disabled={u.id === auth?.user?.id} className="text-xs px-2.5 py-1 rounded-md font-medium bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                                                     {trans('change_role')}
                                                 </button>
                                                 <button onClick={() => openChangePassword(u)} className="text-xs px-2.5 py-1 rounded-md font-medium bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors">
