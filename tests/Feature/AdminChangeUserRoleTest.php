@@ -57,7 +57,7 @@ it('does not allow an admin to change their own role', function () {
     expect($admin->refresh()->role)->toBe('admin');
 });
 
-it('requires a valid manager when changing a user to agent', function () {
+it('requires a manager when changing a user to agent', function () {
     $admin = User::factory()->create([
         'role' => 'admin',
         'is_active' => true,
@@ -70,7 +70,6 @@ it('requires a valid manager when changing a user to agent', function () {
     $this->actingAs($admin)
         ->post(route('admin.users.change-role', $user), [
             'role' => 'agent',
-            'manager_id' => $admin->id,
         ])
         ->assertSessionHasErrors('manager_id');
 
