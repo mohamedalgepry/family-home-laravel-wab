@@ -36,7 +36,7 @@ class ListingService
 
         return Cache::remember(self::CACHE_PREFIX."featured_{$limit}_{$pageName}_{$page}_v{$this->version()}", self::CACHE_TTL, function () use ($limit, $pageName) {
             return Unit::featured()
-                ->with(['type', 'area', 'images'])
+                ->with(['type', 'area', 'images', 'user'])
                 ->paginate($limit, ['*'], $pageName);
         });
     }
@@ -67,9 +67,9 @@ class ListingService
 
     private function unitBaseQuery(): Builder
     {
-        // لا نُحمّل user.profile هنا — UnitCard لا تعرض بيانات المستخدم في listing pages
-        // project.user.profile تُحمَّل فقط في show() عبر getUnitBySlug()
-        return Unit::active()->with(['type', 'area', 'images', 'finishingType']);
+        // Unit cards need the assigned agent's contact data so WhatsApp/call
+        // can use the agent number and fall back to the site number when absent.
+        return Unit::active()->with(['type', 'area', 'images', 'finishingType', 'user']);
     }
 
     private function applyUnitFilters($query, array $filters): void
@@ -93,7 +93,7 @@ class ListingService
 
         return Cache::remember($key, self::CACHE_TTL, function () use ($filters, $perPage) {
             $query = Project::where('is_active', true)
-                ->with(['area', 'images'])
+                ->with(['area', 'images', 'user'])
                 ->withCount(['units' => function ($q) {
                     $q->active();
                 }]);
@@ -110,7 +110,7 @@ class ListingService
 
         return Cache::remember(self::CACHE_PREFIX."latest_projects_{$limit}_{$pageName}_{$page}_v{$this->version()}", self::CACHE_TTL, function () use ($limit, $pageName) {
             return Project::where('is_active', true)
-                ->with(['area', 'images'])
+                ->with(['area', 'images', 'user'])
                 ->withCount(['units' => function ($q) {
                     $q->active();
                 }])
