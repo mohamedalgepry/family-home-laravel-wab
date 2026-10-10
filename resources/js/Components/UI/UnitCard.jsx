@@ -4,7 +4,7 @@ import { usePage, Link } from '@inertiajs/react'
 import { useTrans } from '../../Utils/trans'
 import { useCompare } from '../../Hooks/useCompare'
 import OptimizedImage from '../OptimizedImage'
-import { getStorageUrl, getThumbUrl, PLACEHOLDER } from '../../Utils/image'
+import { getStorageUrl, PLACEHOLDER } from '../../Utils/image'
 import { getAgentContacts } from '../../Utils/contact'
 import WhatsAppIcon from './WhatsAppIcon'
 
@@ -33,32 +33,29 @@ function UnitCard({ unit, loading = false, priority = false }) {
     }
 
     if (!unit) {
-        return null;
+        return null
     }
 
     const mainImage = unit?.images?.find(img => img.is_main || img.is_primary) || unit?.images?.[0]
     const rawThumb = mainImage?.thumb_url || mainImage?.url || (mainImage?.path ? `/storage/${mainImage.path.replace(/^\/+/, '')}` : null)
     const thumbnail = rawThumb ? getStorageUrl(rawThumb, PLACEHOLDER) : PLACEHOLDER
     const originalUrl = getStorageUrl(mainImage?.url || mainImage?.path, null)
-    // Use lightweight thumbnail or medium variant for card grids; fallback to originalUrl
     const displaySrc = thumbnail || originalUrl || PLACEHOLDER
     const srcSet = mainImage?.srcset || undefined
     const isCompared = compareList.includes(unit?.id)
 
     const agentContacts = getAgentContacts(unit?.user || unit?.project?.user, settings)
-    const whatsappPhone = agentContacts.whatsapp
     const whatsappMsg = encodeURIComponent(trans('unit_whatsapp_inquiry', { name: unit?.name || '' }))
-    const whatsappLink = `https://wa.me/${whatsappPhone}?text=${whatsappMsg}`
+    const whatsappLink = `https://wa.me/${agentContacts.whatsapp}?text=${whatsappMsg}`
+    const phoneLink = `tel:${agentContacts.phone}`
 
     const areaName = unit.area?.name || (isRtl ? 'مصر' : 'Egypt')
-    const imageAlt = unit.alt_text || `${unit.name || (isRtl ? 'عقار' : 'Property')} ${isRtl ? 'في' : 'in'} ${areaName} - ${trans('app_name')}`;
-
+    const imageAlt = unit.alt_text || `${unit.name || (isRtl ? 'عقار' : 'Property')} ${isRtl ? 'في' : 'in'} ${areaName} - ${trans('app_name')}`
     const unitSlug = isRtl && unit.slug_ar ? unit.slug_ar : (unit.slug_en || unit.slug || unit.id)
 
     return (
         <article dir={isRtl ? 'rtl' : 'ltr'} className="bg-white rounded-2xl shadow-card overflow-hidden hover:shadow-lg transition-all duration-300 transform-gpu group border border-secondary-100/70 md:hover:-translate-y-1 flex flex-col justify-between">
             <div>
-                {/* Image */}
                 <Link href={localizedPath(`/units/${unitSlug}`, locale)} className="block relative overflow-hidden aspect-[4/3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
                     <OptimizedImage
                         src={displaySrc}
@@ -73,14 +70,12 @@ function UnitCard({ unit, loading = false, priority = false }) {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-secondary-950/60 via-transparent to-black/20 opacity-80 group-hover:opacity-60 transition-opacity"></div>
 
-                    {/* Badges */}
                     <div className="absolute top-3 start-3 flex flex-wrap gap-1.5 z-10">
                         <span className="bg-secondary-900/80 backdrop-blur-md text-white text-xs font-semibold px-2.5 py-1 rounded-full shadow-sm">
                             {trans(unit.transaction === 'rent' ? 'rent' : 'sale')}
                         </span>
                     </div>
 
-                    {/* Area tag overlay */}
                     {unit.area?.name && (
                         <span className="absolute bottom-3 start-3 text-white text-xs font-medium bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded-md flex items-center gap-1">
                             <svg className="w-3.5 h-3.5 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
@@ -92,7 +87,6 @@ function UnitCard({ unit, loading = false, priority = false }) {
                     )}
                 </Link>
 
-                {/* Details */}
                 <div className="p-5">
                     <Link href={localizedPath(`/units/${unitSlug}`, locale)} className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded">
                         <h2 className="text-base font-bold text-secondary-950 truncate mb-1.5 group-hover:text-primary-900 transition-colors">
@@ -123,12 +117,11 @@ function UnitCard({ unit, loading = false, priority = false }) {
                         </span>
                     </div>
 
-                    {/* Meta Specs */}
                     <div className="grid grid-cols-2 gap-2 text-xs font-medium text-secondary-800 bg-surface/70 p-2.5 rounded-xl border border-secondary-100">
                         {unit.area_sqm && (
                             <div className="flex items-center gap-1.5">
                                 <svg className="w-4 h-4 text-primary-700 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} aria-hidden="true">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m4.5 0L15 15" />
                                 </svg>
                                 <span>{unit.area_sqm} {trans('unit_sqm')}</span>
                             </div>
@@ -145,16 +138,15 @@ function UnitCard({ unit, loading = false, priority = false }) {
                 </div>
             </div>
 
-            {/* Card Actions Footer */}
             <div className="px-5 pb-5 pt-2 flex items-center justify-between gap-2 border-t border-secondary-100/60 mt-2">
                 <button
                     onClick={e => {
-                        e.preventDefault();
+                        e.preventDefault()
                         if (!isCompared && compareList.length >= maxItems) {
-                            alert(locale === 'ar' ? `لا يمكنك مقارنة أكثر من ${maxItems} وحدات` : `You cannot compare more than ${maxItems} units`);
-                            return;
+                            alert(locale === 'ar' ? `لا يمكنك مقارنة أكثر من ${maxItems} وحدات` : `You cannot compare more than ${maxItems} units`)
+                            return
                         }
-                        toggleCompare(unit.id);
+                        toggleCompare(unit.id)
                     }}
                     aria-label={`${trans('compare')} ${unit.name}`}
                     aria-pressed={isCompared}
@@ -166,18 +158,30 @@ function UnitCard({ unit, loading = false, priority = false }) {
                     {isCompared ? trans('compared') : trans('compare')}
                 </button>
 
-                <a
-                    href={whatsappLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={e => e.stopPropagation()}
-                    aria-label={`${trans('inquire')} ${unit.name} ${trans('contact_via_whatsapp')}`}
-                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-600 hover:text-white rounded-xl transition-colors duration-200 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
-                    title={trans('contact_via_whatsapp')}
-                >
-                    <WhatsAppIcon className="w-4 h-4" />
-                    {trans('inquire')}
-                </a>
+                <div className="flex items-center gap-1.5 shrink-0">
+                    <a
+                        href={whatsappLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={e => e.stopPropagation()}
+                        aria-label={`${trans('inquire')} ${unit.name} ${trans('contact_via_whatsapp')}`}
+                        className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center hover:bg-emerald-600 hover:text-white transition-colors shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                        title={trans('contact_via_whatsapp')}
+                    >
+                        <WhatsAppIcon className="w-4 h-4" />
+                    </a>
+                    <a
+                        href={phoneLink}
+                        onClick={e => e.stopPropagation()}
+                        aria-label={`${trans('contact')} ${unit.name}`}
+                        className="w-9 h-9 rounded-xl bg-surface text-secondary-800 border border-secondary-200 flex items-center justify-center hover:bg-secondary-200 transition-colors shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary-500"
+                        title={locale === 'ar' ? 'اتصال' : 'Call'}
+                    >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
+                        </svg>
+                    </a>
+                </div>
             </div>
         </article>
     )
