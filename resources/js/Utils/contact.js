@@ -13,8 +13,8 @@ export function getAgentContacts(agent, settings = {}) {
     const siteWhatsapp = settings?.company_whatsapp || settings?.whatsapp_number || settings?.phone || null
     const sitePhone = settings?.phone || settings?.company_phone || settings?.company_whatsapp || null
 
-    const finalWhatsapp = (agentWhatsapp || siteWhatsapp || '201000000000').toString()
-    const finalPhone = (agentPhone || sitePhone || finalWhatsapp || '201000000000').toString()
+    const finalWhatsapp = (agentWhatsapp || siteWhatsapp || '').toString()
+    const finalPhone = (agentPhone || sitePhone || finalWhatsapp || '').toString()
 
     return {
         whatsapp: finalWhatsapp.replace(/[^0-9]/g, ''),
