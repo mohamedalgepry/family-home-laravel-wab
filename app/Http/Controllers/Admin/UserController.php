@@ -29,7 +29,7 @@ class UserController extends Controller
 
         $filters = request()->only(['search', 'role']);
 
-        $users = User::with('manager:id,name')
+        $users = User::with(['manager:id,name', 'profile:id,user_id,phone,whatsapp,avatar'])
             ->orderBy('name')
             ->when(! empty($filters['search']), fn ($q) => $q->where(function ($q) use ($filters) {
                 $q->where('name', 'like', "%{$filters['search']}%")
@@ -92,6 +92,11 @@ class UserController extends Controller
     public function toggleActive(User $user): RedirectResponse
     {
         $this->authorize('update', $user);
+
+        if ($user->is_active && request()->user()->is($user)) {
+            return redirect()->route('admin.users.index')
+                ->with('error', __('users.cannot_deactivate_own_account'));
+        }
 
         if ($user->is_active) {
             $this->userService->deactivateUser($user->id);

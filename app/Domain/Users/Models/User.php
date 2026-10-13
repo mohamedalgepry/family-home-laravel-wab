@@ -23,6 +23,8 @@ class User extends Authenticatable
         'name', 'slug', 'email', 'password', 'manager_id', 'role', 'is_active', 'points_balance', 'initial_monthly_balance',
     ];
 
+    protected $appends = ['phone', 'avatar', 'whatsapp'];
+
     protected static function newFactory(): Factory
     {
         return UserFactory::new();
@@ -136,5 +138,20 @@ class User extends Authenticatable
     public function scopeAgents(Builder $query): Builder
     {
         return $query->where('role', 'agent');
+    }
+
+    public function getPhoneAttribute(): ?string
+    {
+        return $this->relationLoaded('profile') ? $this->profile?->phone : null;
+    }
+
+    public function getAvatarAttribute(): ?string
+    {
+        return $this->relationLoaded('profile') ? $this->profile?->avatar : null;
+    }
+
+    public function getWhatsappAttribute(): ?string
+    {
+        return $this->relationLoaded('profile') ? $this->profile?->whatsapp : null;
     }
 }

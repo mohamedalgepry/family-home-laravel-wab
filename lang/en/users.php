@@ -8,6 +8,7 @@ return [
     'status_updated' => 'User status updated successfully',
     'role_updated' => 'User role updated successfully',
     'cannot_change_own_role' => 'You cannot change your own role',
+    'cannot_deactivate_own_account' => 'You cannot deactivate your own account',
     'invalid_manager' => 'The selected manager is invalid',
     'projects_transferred' => 'Projects transferred successfully',
     'agents_assigned' => 'Agents assigned successfully',

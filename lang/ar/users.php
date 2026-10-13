@@ -8,6 +8,7 @@ return [
     'status_updated' => 'تم تحديث حالة المستخدم بنجاح',
     'role_updated' => 'تم تحديث دور المستخدم بنجاح',
     'cannot_change_own_role' => 'لا يمكنك تغيير دور حسابك الحالي',
+    'cannot_deactivate_own_account' => 'لا يمكنك تعطيل حسابك الحالي',
     'invalid_manager' => 'المدير المحدد غير صالح',
     'projects_transferred' => 'تم نقل المشاريع بنجاح',
     'agents_assigned' => 'تم تعيين الوكلاء بنجاح',
