@@ -43,8 +43,12 @@ class HomeUnitCardResource extends JsonResource
             'user' => $this->whenLoaded('user', fn () => $this->user ? [
                 'id' => $this->user->id,
                 'name' => $this->user->name,
-                'phone' => $this->user->phone,
-                'whatsapp' => $this->user->whatsapp,
+                'phone' => $this->user->profile?->phone,
+                'whatsapp' => $this->user->profile?->whatsapp,
+                'profile' => $this->user->relationLoaded('profile') && $this->user->profile ? [
+                    'phone' => $this->user->profile->phone,
+                    'whatsapp' => $this->user->profile->whatsapp,
+                ] : null,
             ] : null),
             'images' => $image ? [[
                 'id' => $image->id,

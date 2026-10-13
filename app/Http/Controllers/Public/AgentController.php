@@ -29,7 +29,7 @@ class AgentController extends Controller
 
         $units = Unit::active()
             ->where('user_id', $agent->id)
-            ->with(['type', 'area', 'images', 'user'])
+            ->with(['type', 'area', 'images', 'user.profile'])
             ->orderByDesc('created_at')
             ->paginate(12)
             ->withQueryString();

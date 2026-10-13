@@ -83,7 +83,7 @@ class ProjectController
             300,
             fn () => Unit::where('project_id', $project->id)
                 ->where('is_active', true)
-                ->with(['type', 'area', 'images', 'finishingType', 'user'])
+                ->with(['type', 'area', 'images', 'finishingType', 'user.profile'])
                 ->orderByFeatured()
                 ->limit(12)
                 ->get()
@@ -95,7 +95,7 @@ class ProjectController
             function () use ($project) {
                 return Project::where('is_active', true)
                     ->where('id', '!=', $project->id)
-                    ->with(['area', 'images', 'user'])
+                    ->with(['area', 'images', 'user.profile'])
                     ->withCount(['units' => fn ($q) => $q->active()])
                     ->orderByRaw('CASE WHEN area_id = ? THEN 0 ELSE 1 END', [$project->area_id ?? 0])
                     ->orderByDesc('created_at')

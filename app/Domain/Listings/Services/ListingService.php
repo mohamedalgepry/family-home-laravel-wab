@@ -67,7 +67,7 @@ class ListingService
 
     private function unitBaseQuery(): Builder
     {
-        return Unit::active()->with(['type', 'area', 'images', 'finishingType', 'user']);
+        return Unit::active()->with(['type', 'area', 'images', 'finishingType', 'user.profile']);
     }
 
     private function applyUnitFilters($query, array $filters): void
@@ -91,7 +91,7 @@ class ListingService
 
         return Cache::remember($key, self::CACHE_TTL, function () use ($filters, $perPage) {
             $query = Project::where('is_active', true)
-                ->with(['area', 'images', 'user'])
+                ->with(['area', 'images', 'user.profile'])
                 ->withCount(['units' => function ($q) {
                     $q->active();
                 }]);
@@ -108,7 +108,7 @@ class ListingService
 
         return Cache::remember(self::CACHE_PREFIX."latest_projects_{$limit}_{$pageName}_{$page}_v{$this->version()}", self::CACHE_TTL, function () use ($limit, $pageName) {
             return Project::where('is_active', true)
-                ->with(['area', 'images', 'user'])
+                ->with(['area', 'images', 'user.profile'])
                 ->withCount(['units' => function ($q) {
                     $q->active();
                 }])
@@ -165,7 +165,7 @@ class ListingService
                     $q->where('type_id', $unit->type_id)
                         ->orWhere('area_id', $unit->area_id);
                 })
-                ->with(['type', 'area', 'images', 'finishingType', 'user'])
+                ->with(['type', 'area', 'images', 'finishingType', 'user.profile'])
                 ->orderByFeatured()
                 ->limit($limit)
                 ->get();
