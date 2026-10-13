@@ -15592,7 +15592,7 @@ function AdminUsersCreate({ managers }) {
 //#region resources/js/Pages/Admin/Users/Index.jsx
 var Index_exports$3 = /* @__PURE__ */ __exportAll({ default: () => AdminUsersIndex });
 function AdminUsersIndex({ users, managers, filters }) {
-	const { locale } = usePage().props;
+	const { locale, auth } = usePage().props;
 	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
 	const [search, setSearch] = useState(filters?.search || "");
@@ -15601,12 +15601,18 @@ function AdminUsersIndex({ users, managers, filters }) {
 	const [showAssignModal, setShowAssignModal] = useState(false);
 	const [showDeleteModal, setShowDeleteModal] = useState(false);
 	const [showPasswordModal, setShowPasswordModal] = useState(false);
+	const [showRoleModal, setShowRoleModal] = useState(false);
 	const [userToDelete, setUserToDelete] = useState(null);
 	const [userToPassword, setUserToPassword] = useState(null);
+	const [userToRole, setUserToRole] = useState(null);
 	const [userRelations, setUserRelations] = useState(null);
 	const { data: passwordData, setData: setPasswordData, post: passwordPost, processing: passwordProcessing, errors: passwordErrors, reset: resetPassword } = useForm({
 		password: "",
 		password_confirmation: ""
+	});
+	const { data: roleData, setData: setRoleData, post: rolePost, processing: roleProcessing, errors: roleErrors, reset: resetRole } = useForm({
+		role: "",
+		manager_id: ""
 	});
 	function openChangePassword(user) {
 		setUserToPassword(user);
@@ -15621,6 +15627,30 @@ function AdminUsersIndex({ users, managers, filters }) {
 				setShowPasswordModal(false);
 				setUserToPassword(null);
 				resetPassword();
+			}
+		});
+	}
+	function openChangeRole(user) {
+		setUserToRole(user);
+		setRoleData({
+			role: user.role,
+			manager_id: user.manager_id || ""
+		});
+		setShowRoleModal(true);
+	}
+	function handleChangeRole(e) {
+		e.preventDefault();
+		if (!userToRole || roleData.role === userToRole.role) {
+			setShowRoleModal(false);
+			return;
+		}
+		if (!window.confirm(trans("confirm_role_change", { name: userToRole.name }))) return;
+		rolePost(`/admin/users/${userToRole.id}/change-role`, {
+			preserveScroll: true,
+			onSuccess: () => {
+				setShowRoleModal(false);
+				setUserToRole(null);
+				resetRole();
 			}
 		});
 	}
@@ -15901,6 +15931,12 @@ function AdminUsersIndex({ users, managers, filters }) {
 													children: u.is_active ? trans("deactivate") : trans("activate")
 												}),
 												/* @__PURE__ */ jsx("button", {
+													onClick: () => openChangeRole(u),
+													disabled: u.id === auth?.user?.id,
+													className: "text-xs px-2.5 py-1 rounded-md font-medium bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
+													children: trans("change_role")
+												}),
+												/* @__PURE__ */ jsx("button", {
 													onClick: () => openChangePassword(u),
 													className: "text-xs px-2.5 py-1 rounded-md font-medium bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors",
 													children: trans("change_password")
@@ -15926,6 +15962,103 @@ function AdminUsersIndex({ users, managers, filters }) {
 							}) })
 						})]
 					})
+				})
+			}),
+			showRoleModal && userToRole && /* @__PURE__ */ jsx("div", {
+				className: "fixed inset-0 z-50 flex items-center justify-center bg-black/40",
+				onClick: () => setShowRoleModal(false),
+				children: /* @__PURE__ */ jsxs("div", {
+					className: "bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6",
+					onClick: (e) => e.stopPropagation(),
+					children: [/* @__PURE__ */ jsxs("div", {
+						className: "flex items-center justify-between mb-4",
+						children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("h3", {
+							className: "text-lg font-semibold text-secondary-950",
+							children: trans("change_role")
+						}), /* @__PURE__ */ jsx("p", {
+							className: "text-sm text-secondary-500 mt-1",
+							children: userToRole.name
+						})] }), /* @__PURE__ */ jsx("button", {
+							onClick: () => setShowRoleModal(false),
+							className: "text-muted hover:text-secondary-950 text-xl leading-none",
+							children: "×"
+						})]
+					}), /* @__PURE__ */ jsxs("form", {
+						onSubmit: handleChangeRole,
+						className: "space-y-4",
+						children: [
+							/* @__PURE__ */ jsxs("div", { children: [
+								/* @__PURE__ */ jsx("label", {
+									className: "block text-sm font-medium text-secondary-950 mb-1",
+									children: trans("new_role")
+								}),
+								/* @__PURE__ */ jsxs(Select, {
+									value: roleData.role,
+									onChange: (e) => setRoleData("role", e.target.value),
+									className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900",
+									children: [
+										/* @__PURE__ */ jsx("option", {
+											value: "admin",
+											children: trans("admin")
+										}),
+										/* @__PURE__ */ jsx("option", {
+											value: "manager",
+											children: trans("manager")
+										}),
+										/* @__PURE__ */ jsx("option", {
+											value: "agent",
+											children: trans("agent")
+										})
+									]
+								}),
+								roleErrors.role && /* @__PURE__ */ jsx("p", {
+									className: "text-xs text-error mt-1",
+									children: roleErrors.role
+								})
+							] }),
+							roleData.role === "agent" && /* @__PURE__ */ jsxs("div", { children: [
+								/* @__PURE__ */ jsxs("label", {
+									className: "block text-sm font-medium text-secondary-950 mb-1",
+									children: [trans("select_manager"), " *"]
+								}),
+								/* @__PURE__ */ jsxs(Select, {
+									value: roleData.manager_id,
+									onChange: (e) => setRoleData("manager_id", e.target.value),
+									required: true,
+									className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900",
+									children: [/* @__PURE__ */ jsx("option", {
+										value: "",
+										children: "—"
+									}), managers?.map((manager) => /* @__PURE__ */ jsx("option", {
+										value: manager.id,
+										children: manager.name
+									}, manager.id))]
+								}),
+								roleErrors.manager_id && /* @__PURE__ */ jsx("p", {
+									className: "text-xs text-error mt-1",
+									children: roleErrors.manager_id
+								})
+							] }),
+							/* @__PURE__ */ jsx("div", {
+								className: "bg-amber-50 text-amber-800 p-3 rounded-lg text-sm",
+								children: trans("role_change_warning")
+							}),
+							/* @__PURE__ */ jsxs("div", {
+								className: "flex gap-3 justify-end pt-2",
+								children: [/* @__PURE__ */ jsx("button", {
+									type: "button",
+									onClick: () => setShowRoleModal(false),
+									className: "px-4 py-2 bg-surface text-secondary-700 rounded-lg text-sm font-medium hover:bg-secondary-200 transition-colors",
+									children: trans("cancel")
+								}), /* @__PURE__ */ jsx("button", {
+									type: "submit",
+									disabled: roleProcessing || roleData.role === userToRole.role || roleData.role === "agent" && !roleData.manager_id,
+									className: "px-4 py-2 bg-primary-900 text-white rounded-lg text-sm font-medium hover:bg-primary-950 transition-colors disabled:opacity-50",
+									children: roleProcessing ? trans("loading") : trans("change_role")
+								})]
+							})
+						]
+					})]
 				})
 			}),
 			showTransferModal && /* @__PURE__ */ jsx("div", {
@@ -16689,7 +16822,7 @@ function CompareBar() {
 }
 //#endregion
 //#region resources/js/Components/Layout/Footer.jsx
-var HossamChatWidget = lazy(() => import("./assets/HossamChatWidget-DqZeScUR.js"));
+var HossamChatWidget = lazy(() => import("./assets/HossamChatWidget-CdAr8Fgo.js"));
 var QUICK_LINKS = [
 	{
 		key: "home",
@@ -16730,6 +16863,7 @@ function Footer() {
 	const { locale, settings } = usePage().props;
 	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
+	const [chatMounted, setChatMounted] = useState(false);
 	const socialLinks = [
 		{
 			key: "social_facebook",
@@ -16900,9 +17034,19 @@ function Footer() {
 				})
 			}),
 			/* @__PURE__ */ jsx(CompareBar, {}),
-			/* @__PURE__ */ jsx(Suspense, {
+			chatMounted ? /* @__PURE__ */ jsx(Suspense, {
 				fallback: null,
-				children: /* @__PURE__ */ jsx(HossamChatWidget, {})
+				children: /* @__PURE__ */ jsx(HossamChatWidget, { autoOpen: true })
+			}) : /* @__PURE__ */ jsx("button", {
+				type: "button",
+				onClick: () => setChatMounted(true),
+				className: "fixed z-50 end-4 bottom-6 sm:bottom-8 sm:end-8 w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#1A1A1A] text-white flex items-center justify-center shadow-[0_10px_30px_rgba(0,0,0,0.20)] focus:outline-none focus:ring-4 focus:ring-[#CC0000]/30 print:hidden",
+				"aria-label": trans("assistant_name"),
+				title: trans("assistant_name"),
+				children: /* @__PURE__ */ jsxs("span", {
+					className: "font-black text-xl sm:text-2xl tracking-tight leading-none",
+					children: ["H", /* @__PURE__ */ jsx("span", { className: "inline-block w-1.5 h-1.5 rounded-full bg-[#CC0000] align-top ms-0.5" })]
+				})
 			})
 		]
 	});
@@ -17157,6 +17301,7 @@ function About({ page }) {
 								height: 400,
 								className: "w-full h-64 object-cover group-hover:scale-105 transition-transform duration-500",
 								loading: "lazy",
+								decoding: "async",
 								onError: (e) => {
 									e.currentTarget.onerror = null;
 									e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 600\"%3E%3Crect fill=\"%23F0F0F0\" width=\"800\" height=\"600\"/%3E%3C/svg%3E";
@@ -17186,6 +17331,22 @@ function About({ page }) {
 //#endregion
 //#region resources/js/Utils/contact.js
 /**
+* Normalize a phone number for WhatsApp's international wa.me format.
+* Egyptian local mobile numbers such as 01012345678 become 201012345678.
+*
+* @param {string|null|undefined} value
+* @returns {string}
+*/
+function normalizeWhatsAppNumber(value) {
+	if (!value) return "";
+	let digits = String(value).trim().replace(/\D/g, "");
+	if (!digits) return "";
+	if (digits.startsWith("20") && digits.length === 12) return digits;
+	if (digits.length === 11 && digits.startsWith("01")) return `20${digits}`;
+	if (digits.length === 10 && digits.startsWith("1")) return `20${digits}`;
+	return digits;
+}
+/**
 * Resolves contact information (WhatsApp and Phone) for an agent/user,
 * falling back to site settings if the agent did not provide contact numbers.
 *
@@ -17194,14 +17355,14 @@ function About({ page }) {
 * @returns {{ whatsapp: string, phone: string, rawWhatsapp: string, rawPhone: string }}
 */
 function getAgentContacts(agent, settings = {}) {
-	const agentWhatsapp = agent?.whatsapp || agent?.profile?.whatsapp || null;
 	const agentPhone = agent?.phone || agent?.profile?.phone || null;
+	const agentWhatsapp = agent?.whatsapp || agent?.profile?.whatsapp || agentPhone;
 	const siteWhatsapp = settings?.company_whatsapp || settings?.whatsapp_number || settings?.phone || null;
 	const sitePhone = settings?.phone || settings?.company_phone || settings?.company_whatsapp || null;
-	const finalWhatsapp = (agentWhatsapp || siteWhatsapp || "201000000000").toString();
-	const finalPhone = (agentPhone || sitePhone || finalWhatsapp || "201000000000").toString();
+	const finalWhatsapp = (agentWhatsapp || siteWhatsapp || "").toString();
+	const finalPhone = (agentPhone || sitePhone || finalWhatsapp || "").toString();
 	return {
-		whatsapp: finalWhatsapp.replace(/[^0-9]/g, ""),
+		whatsapp: normalizeWhatsAppNumber(finalWhatsapp),
 		rawWhatsapp: finalWhatsapp,
 		phone: finalPhone.replace(/[^0-9+]/g, ""),
 		rawPhone: finalPhone
@@ -17236,7 +17397,10 @@ function UnitCard({ unit, loading = false, priority = false }) {
 	const displaySrc = thumbnail || originalUrl || "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 600\"%3E%3Crect fill=\"%23F0F0F0\" width=\"800\" height=\"600\"/%3E%3C/svg%3E";
 	const srcSet = mainImage?.srcset || void 0;
 	const isCompared = compareList.includes(unit?.id);
-	const whatsappLink = `https://wa.me/${getAgentContacts(unit?.user || unit?.project?.user, settings).whatsapp}?text=${encodeURIComponent(trans("unit_whatsapp_inquiry", { name: unit?.name || "" }))}`;
+	const agentContacts = getAgentContacts(unit?.user || unit?.project?.user, settings);
+	const whatsappMsg = encodeURIComponent(trans("unit_whatsapp_inquiry", { name: unit?.name || "" }));
+	const whatsappLink = `https://wa.me/${agentContacts.whatsapp}?text=${whatsappMsg}`;
+	const phoneLink = `tel:${agentContacts.phone}`;
 	const areaName = unit.area?.name || (isRtl ? "مصر" : "Egypt");
 	const imageAlt = unit.alt_text || `${unit.name || (isRtl ? "عقار" : "Property")} ${isRtl ? "في" : "in"} ${areaName} - ${trans("app_name")}`;
 	const unitSlug = isRtl && unit.slug_ar ? unit.slug_ar : unit.slug_en || unit.slug || unit.id;
@@ -17333,7 +17497,7 @@ function UnitCard({ unit, loading = false, priority = false }) {
 							children: /* @__PURE__ */ jsx("path", {
 								strokeLinecap: "round",
 								strokeLinejoin: "round",
-								d: "M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15"
+								d: "M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m4.5 0L15 15"
 							})
 						}), /* @__PURE__ */ jsxs("span", { children: [
 							unit.area_sqm,
@@ -17389,15 +17553,37 @@ function UnitCard({ unit, loading = false, priority = false }) {
 						d: "M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"
 					})
 				}), isCompared ? trans("compared") : trans("compare")]
-			}), /* @__PURE__ */ jsxs("a", {
-				href: whatsappLink,
-				target: "_blank",
-				rel: "noopener noreferrer",
-				onClick: (e) => e.stopPropagation(),
-				"aria-label": `${trans("inquire")} ${unit.name} ${trans("contact_via_whatsapp")}`,
-				className: "flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-600 hover:text-white rounded-xl transition-colors duration-200 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500",
-				title: trans("contact_via_whatsapp"),
-				children: [/* @__PURE__ */ jsx(WhatsAppIcon, { className: "w-4 h-4" }), trans("inquire")]
+			}), /* @__PURE__ */ jsxs("div", {
+				className: "flex items-center gap-1.5 shrink-0",
+				children: [/* @__PURE__ */ jsx("a", {
+					href: whatsappLink,
+					target: "_blank",
+					rel: "noopener noreferrer",
+					onClick: (e) => e.stopPropagation(),
+					"aria-label": `${trans("inquire")} ${unit.name} ${trans("contact_via_whatsapp")}`,
+					className: "w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center hover:bg-emerald-600 hover:text-white transition-colors shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500",
+					title: trans("contact_via_whatsapp"),
+					children: /* @__PURE__ */ jsx(WhatsAppIcon, { className: "w-4 h-4" })
+				}), /* @__PURE__ */ jsx("a", {
+					href: phoneLink,
+					onClick: (e) => e.stopPropagation(),
+					"aria-label": `${trans("contact")} ${unit.name}`,
+					className: "w-9 h-9 rounded-xl bg-surface text-secondary-800 border border-secondary-200 flex items-center justify-center hover:bg-secondary-200 transition-colors shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary-500",
+					title: locale === "ar" ? "اتصال" : "Call",
+					children: /* @__PURE__ */ jsx("svg", {
+						className: "w-4 h-4",
+						fill: "none",
+						viewBox: "0 0 24 24",
+						stroke: "currentColor",
+						strokeWidth: 2,
+						"aria-hidden": "true",
+						children: /* @__PURE__ */ jsx("path", {
+							strokeLinecap: "round",
+							strokeLinejoin: "round",
+							d: "M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"
+						})
+					})
+				})]
 			})]
 		})]
 	});
@@ -18060,15 +18246,15 @@ function SearchBar({ areas: rawAreas = [], unitTypes: rawUnitTypes = [], feature
 				})]
 			}), showAdvanced && /* @__PURE__ */ jsxs("div", {
 				dir: isRtl ? "rtl" : "ltr",
-				className: "fixed inset-0 z-[100] flex flex-col justify-end pointer-events-auto",
+				className: "fixed inset-0 z-[100] flex h-[100dvh] flex-col justify-end overflow-hidden overscroll-none pointer-events-auto",
 				children: [/* @__PURE__ */ jsx("div", {
 					className: "absolute inset-0 bg-secondary-950/40 backdrop-blur-xs sm:backdrop-blur-sm transition-opacity",
 					onClick: () => setShowAdvanced(false)
 				}), /* @__PURE__ */ jsxs("div", {
-					className: "relative bg-white rounded-t-[2rem] w-full max-h-[90vh] flex flex-col shadow-2xl animate-slideUp",
+					className: "relative bg-white rounded-t-[2rem] w-full h-[92dvh] max-h-[92dvh] min-h-0 flex flex-col shadow-2xl animate-slideUp",
 					children: [
 						/* @__PURE__ */ jsxs("div", {
-							className: "flex-none p-5 pb-3 border-b border-secondary-100 flex items-center justify-between sticky top-0 bg-white rounded-t-[2rem] z-10",
+							className: "flex-none p-4 pb-3 border-b border-secondary-100 flex items-center justify-between bg-white rounded-t-[2rem] z-10",
 							children: [
 								/* @__PURE__ */ jsx("h3", {
 									className: "text-lg font-black text-secondary-950 tracking-tight",
@@ -18096,7 +18282,8 @@ function SearchBar({ areas: rawAreas = [], unitTypes: rawUnitTypes = [], feature
 							]
 						}),
 						/* @__PURE__ */ jsxs("div", {
-							className: "flex-1 overflow-y-auto p-5 pb-24 flex flex-col gap-5 hide-scrollbar",
+							className: "min-h-0 flex-1 overflow-y-auto overscroll-contain p-5 pb-6 flex flex-col gap-5 hide-scrollbar",
+							style: { WebkitOverflowScrolling: "touch" },
 							children: [
 								/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
 									htmlFor: "m-area",
@@ -18333,7 +18520,7 @@ function SearchBar({ areas: rawAreas = [], unitTypes: rawUnitTypes = [], feature
 							]
 						}),
 						/* @__PURE__ */ jsxs("div", {
-							className: "flex-none p-4 bg-white border-t border-secondary-100 flex items-center gap-3 absolute bottom-0 left-0 right-0 z-20 shadow-[0_-10px_20px_rgba(0,0,0,0.05)]",
+							className: "flex-none p-4 bg-white border-t border-secondary-100 flex items-center gap-3 z-20 shadow-[0_-10px_20px_rgba(0,0,0,0.05)]",
 							children: [/* @__PURE__ */ jsx("button", {
 								type: "button",
 								onClick: handleReset,
@@ -18385,7 +18572,7 @@ function SkeletonCard$1() {
 	});
 }
 function ProjectCard({ project, loading = false, priority = false }) {
-	const { locale } = usePage().props;
+	const { locale, settings } = usePage().props;
 	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
 	const { compareList, toggleCompare } = useCompare("project");
@@ -18397,6 +18584,9 @@ function ProjectCard({ project, loading = false, priority = false }) {
 	const displaySrc = thumbnail || originalUrl || "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 600\"%3E%3Crect fill=\"%23F0F0F0\" width=\"800\" height=\"600\"/%3E%3C/svg%3E";
 	const srcSet = mainImage?.srcset || (originalUrl && thumbnail && originalUrl !== thumbnail ? `${thumbnail} 480w, ${originalUrl} 1600w` : void 0);
 	const isCompared = compareList.includes(project?.id);
+	const agentContacts = getAgentContacts(project?.user, settings);
+	const whatsappLink = `https://wa.me/${agentContacts.whatsapp}`;
+	const phoneLink = `tel:${agentContacts.phone}`;
 	const areaName = project.area?.name || project.area_name || (isRtl ? "مصر" : "Egypt");
 	const imageAlt = project.alt_text || `${project.name || (isRtl ? "مشروع عقاري" : "Project")} ${isRtl ? "في" : "in"} ${areaName} - ${trans("app_name")}`;
 	const unitsCount = project.units_count ?? project.units?.length ?? 0;
@@ -18500,7 +18690,7 @@ function ProjectCard({ project, loading = false, priority = false }) {
 					})]
 				})
 			] }), /* @__PURE__ */ jsxs("div", {
-				className: "flex items-center justify-between pt-3 border-t border-secondary-100/70 mt-auto",
+				className: "flex items-center justify-between gap-2 pt-3 border-t border-secondary-100/70 mt-auto",
 				children: [/* @__PURE__ */ jsx("button", {
 					onClick: (e) => {
 						e.preventDefault();
@@ -18510,21 +18700,56 @@ function ProjectCard({ project, loading = false, priority = false }) {
 					"aria-label": `${trans("compare")} ${project.name}`,
 					"aria-pressed": isCompared,
 					children: isCompared ? isRtl ? "تمت الإضافة" : "Added" : trans("compare")
-				}), /* @__PURE__ */ jsxs(Link, {
-					href: localizedPath(`/projects/${projectSlug}`, locale),
-					className: "text-xs font-bold text-primary-900 hover:text-primary-700 flex items-center gap-1 group/link transition-colors",
-					children: [/* @__PURE__ */ jsx("span", { children: trans("show_more") || (isRtl ? "التفاصيل" : "Details") }), /* @__PURE__ */ jsx("svg", {
-						className: "w-3.5 h-3.5 rtl:rotate-180 group-hover/link:translate-x-0.5 rtl:group-hover/link:-translate-x-0.5 transition-transform",
-						fill: "none",
-						viewBox: "0 0 24 24",
-						stroke: "currentColor",
-						strokeWidth: 2.5,
-						children: /* @__PURE__ */ jsx("path", {
-							strokeLinecap: "round",
-							strokeLinejoin: "round",
-							d: "M8.25 4.5l7.5 7.5-7.5 7.5"
+				}), /* @__PURE__ */ jsxs("div", {
+					className: "flex items-center gap-1.5 shrink-0",
+					children: [
+						/* @__PURE__ */ jsx("a", {
+							href: whatsappLink,
+							target: "_blank",
+							rel: "noopener noreferrer",
+							onClick: (e) => e.stopPropagation(),
+							"aria-label": `${trans("contact_via_whatsapp")} ${project.name}`,
+							className: "w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center hover:bg-emerald-600 hover:text-white transition-colors shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500",
+							title: trans("contact_via_whatsapp"),
+							children: /* @__PURE__ */ jsx(WhatsAppIcon, { className: "w-4 h-4" })
+						}),
+						/* @__PURE__ */ jsx("a", {
+							href: phoneLink,
+							onClick: (e) => e.stopPropagation(),
+							"aria-label": `${trans("contact")} ${project.name}`,
+							className: "w-9 h-9 rounded-xl bg-surface text-secondary-800 border border-secondary-200 flex items-center justify-center hover:bg-secondary-200 transition-colors shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary-500",
+							title: isRtl ? "اتصال" : "Call",
+							children: /* @__PURE__ */ jsx("svg", {
+								className: "w-4 h-4",
+								fill: "none",
+								viewBox: "0 0 24 24",
+								stroke: "currentColor",
+								strokeWidth: 2,
+								"aria-hidden": "true",
+								children: /* @__PURE__ */ jsx("path", {
+									strokeLinecap: "round",
+									strokeLinejoin: "round",
+									d: "M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"
+								})
+							})
+						}),
+						/* @__PURE__ */ jsxs(Link, {
+							href: localizedPath(`/projects/${projectSlug}`, locale),
+							className: "text-xs font-bold text-primary-900 hover:text-primary-700 flex items-center gap-1 group/link transition-colors ms-1",
+							children: [/* @__PURE__ */ jsx("span", { children: trans("show_more") || (isRtl ? "التفاصيل" : "Details") }), /* @__PURE__ */ jsx("svg", {
+								className: "w-3.5 h-3.5 rtl:rotate-180 group-hover/link:translate-x-0.5 rtl:group-hover/link:-translate-x-0.5 transition-transform",
+								fill: "none",
+								viewBox: "0 0 24 24",
+								stroke: "currentColor",
+								strokeWidth: 2.5,
+								children: /* @__PURE__ */ jsx("path", {
+									strokeLinecap: "round",
+									strokeLinejoin: "round",
+									d: "M8.25 4.5l7.5 7.5-7.5 7.5"
+								})
+							})]
 						})
-					})]
+					]
 				})]
 			})]
 		})]
@@ -18747,6 +18972,10 @@ function AreaShow({ area, relatedAreas, units, projects, seo, areas, unitTypes, 
 										children: area.gallery.map((img, idx) => /* @__PURE__ */ jsx("img", {
 											src: getStorageUrl(img),
 											alt: `${areaName} gallery ${idx}`,
+											width: 800,
+											height: 450,
+											loading: "lazy",
+											decoding: "async",
 											onError: (e) => {
 												e.currentTarget.style.display = "none";
 											},
@@ -19049,6 +19278,10 @@ function AreaShow({ area, relatedAreas, units, projects, seo, areas, unitTypes, 
 										rImg ? /* @__PURE__ */ jsx("img", {
 											src: rImg,
 											alt: rName,
+											width: 800,
+											height: 500,
+											loading: "lazy",
+											decoding: "async",
 											onError: (e) => {
 												e.currentTarget.style.display = "none";
 											},
@@ -19602,7 +19835,7 @@ function ArticleShow({ article, relatedArticles, suggestedUnits }) {
 									})
 								}),
 								/* @__PURE__ */ jsx("div", {
-									className: "prose prose-base sm:prose-lg max-w-none text-secondary-800 leading-loose font-sans\n                            prose-headings:font-black prose-headings:text-secondary-950 prose-headings:mt-12 prose-headings:mb-4 prose-headings:tracking-tight\n                            prose-p:text-secondary-800 prose-p:leading-loose prose-p:mb-6 prose-p:font-medium\n                            prose-img:rounded-3xl prose-img:my-8 prose-img:w-full prose-img:object-cover prose-img:shadow-sm\n                            prose-blockquote:bg-primary-50/70 prose-blockquote:p-6 prose-blockquote:rounded-3xl prose-blockquote:text-secondary-950 prose-blockquote:font-semibold prose-blockquote:not-italic prose-blockquote:border border-primary-100\n                            prose-a:text-primary-900 prose-a:font-bold prose-a:underline hover:prose-a:text-primary-950",
+									className: "prose prose-base sm:prose-lg max-w-none text-secondary-800 leading-loose font-sans\r\n                            prose-headings:font-black prose-headings:text-secondary-950 prose-headings:mt-12 prose-headings:mb-4 prose-headings:tracking-tight\r\n                            prose-p:text-secondary-800 prose-p:leading-loose prose-p:mb-6 prose-p:font-medium\r\n                            prose-img:rounded-3xl prose-img:my-8 prose-img:w-full prose-img:object-cover prose-img:shadow-sm\r\n                            prose-blockquote:bg-primary-50/70 prose-blockquote:p-6 prose-blockquote:rounded-3xl prose-blockquote:text-secondary-950 prose-blockquote:font-semibold prose-blockquote:not-italic prose-blockquote:border border-primary-100\r\n                            prose-a:text-primary-900 prose-a:font-bold prose-a:underline hover:prose-a:text-primary-950",
 									dangerouslySetInnerHTML: { __html: normalizedContent }
 								}),
 								unusedMiddleImages.length > 0 && /* @__PURE__ */ jsx("div", {
@@ -19747,6 +19980,8 @@ function ArticleShow({ article, relatedArticles, suggestedUnits }) {
 														alt: unit.title,
 														width: 64,
 														height: 64,
+														loading: "lazy",
+														decoding: "async",
 														className: "w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
 													})
 												}), /* @__PURE__ */ jsxs("div", {
@@ -19805,6 +20040,8 @@ function ArticleShow({ article, relatedArticles, suggestedUnits }) {
 														alt: related.title,
 														width: 64,
 														height: 64,
+														loading: "lazy",
+														decoding: "async",
 														className: "w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
 													})
 												}), /* @__PURE__ */ jsxs("div", {
@@ -21086,7 +21323,7 @@ function Home({ featuredUnits, latestUnits, latestProjects, popularSearches, are
 							className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5",
 							children: latestProjects.data.map((project, i) => /* @__PURE__ */ jsx(ProjectCard_default, {
 								project,
-								priority: i < 4
+								priority: false
 							}, project.id))
 						}), /* @__PURE__ */ jsx(Pagination, {
 							meta: latestProjects,
@@ -23963,7 +24200,7 @@ function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles, seo_me
 						children: "✕"
 					}),
 					/* @__PURE__ */ jsx("img", {
-						src: getStorageUrl(images[lightboxIndex]?.url || images[lightboxIndex]?.path, "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 600\"%3E%3Crect fill=\"%23F0F0F0\" width=\"800\" height=\"600\"/%3E%3C/svg%3E"),
+						src: getStorageUrl(images[lightboxIndex]?.large_url || images[lightboxIndex]?.medium_url || images[lightboxIndex]?.url || images[lightboxIndex]?.path, "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 600\"%3E%3Crect fill=\"%23F0F0F0\" width=\"800\" height=\"600\"/%3E%3C/svg%3E"),
 						alt: images[lightboxIndex]?.alt_text || unit.name,
 						className: "max-w-[90vw] max-h-[85vh] object-contain rounded-xl",
 						onClick: (e) => e.stopPropagation(),
