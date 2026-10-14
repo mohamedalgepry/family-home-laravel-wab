@@ -36,6 +36,31 @@ class CreateUnitAction
         $unit->fill($sanitized);
         $unit->user_id = $user->id;
         $unit->is_active = $sanitized['is_active'] ?? true;
+
+        if (! empty($unit->project_id)) {
+            $project = \App\Domain\Listings\Models\Project::find($unit->project_id);
+            if ($project) {
+                if (empty($unit->area_id) && ! empty($project->area_id)) {
+                    $unit->area_id = $project->area_id;
+                }
+                if (empty($unit->location_address_ar) && ! empty($project->location_address_ar)) {
+                    $unit->location_address_ar = $project->location_address_ar;
+                }
+                if (empty($unit->location_address_en) && ! empty($project->location_address_en)) {
+                    $unit->location_address_en = $project->location_address_en;
+                }
+                if (empty($unit->map_embed_url) && ! empty($project->map_embed_url)) {
+                    $unit->map_embed_url = $project->map_embed_url;
+                }
+                if (is_null($unit->latitude) && ! is_null($project->latitude)) {
+                    $unit->latitude = $project->latitude;
+                }
+                if (is_null($unit->longitude) && ! is_null($project->longitude)) {
+                    $unit->longitude = $project->longitude;
+                }
+            }
+        }
+
         $unit->save();
 
         if (! empty($features)) {

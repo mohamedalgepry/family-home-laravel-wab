@@ -182,6 +182,12 @@ class ProjectController extends Controller
             'payment_method' => $project->payment_method,
             'down_payment' => $project->down_payment,
             'installment_years' => $project->installment_years,
+            'area_id' => $project->area_id,
+            'location_address_ar' => $project->location_address_ar,
+            'location_address_en' => $project->location_address_en,
+            'map_embed_url' => $project->map_embed_url,
+            'latitude' => $project->latitude,
+            'longitude' => $project->longitude,
         ]);
     }
 

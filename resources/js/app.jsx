@@ -178,6 +178,13 @@ if (typeof window !== 'undefined') {
         }
     });
 
+    // Prevent mouse wheel from inadvertently incrementing/decrementing number inputs
+    document.addEventListener('wheel', (e) => {
+        if (e.target && e.target.tagName === 'INPUT' && e.target.type === 'number') {
+            e.target.blur();
+        }
+    }, { passive: true });
+
     // تأمين التنقل الداخلي (SPA Navigation) ومنع فتح نوافذ منبثقة أو تبويبات في بيئات المعاينة المدمجة
     document.addEventListener('click', (e) => {
         const link = e.target.closest('a');

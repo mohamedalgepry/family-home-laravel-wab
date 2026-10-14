@@ -105,11 +105,17 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
                 setData(prev => ({
                     ...prev,
                     project_id: projectId, // Ensure project_id is set
-                    features: projectData.features || prev.features,
+                    features: (projectData.features && projectData.features.length > 0) ? projectData.features : prev.features,
                     finishing_type_id: projectData.finishing_type_id || prev.finishing_type_id,
                     payment_method: projectData.payment_method || prev.payment_method,
                     down_payment: projectData.down_payment || prev.down_payment,
                     installment_years: projectData.installment_years || prev.installment_years,
+                    area_id: projectData.area_id || prev.area_id,
+                    location_address_ar: projectData.location_address_ar || prev.location_address_ar,
+                    location_address_en: projectData.location_address_en || prev.location_address_en,
+                    map_embed_url: projectData.map_embed_url || prev.map_embed_url,
+                    latitude: (projectData.latitude !== null && projectData.latitude !== undefined && projectData.latitude !== '') ? projectData.latitude : prev.latitude,
+                    longitude: (projectData.longitude !== null && projectData.longitude !== undefined && projectData.longitude !== '') ? projectData.longitude : prev.longitude,
                 }));
                 setDirty(true);
             }
@@ -117,6 +123,20 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
             console.error('Failed to fetch project auto-fill data', error);
         }
     }
+
+    const handleNumberWheel = (e) => {
+        e.currentTarget.blur()
+    }
+
+    useEffect(() => {
+        const handleWheel = (e) => {
+            if (e.target && e.target.tagName === 'INPUT' && e.target.type === 'number') {
+                e.target.blur()
+            }
+        }
+        window.addEventListener('wheel', handleWheel, { passive: true })
+        return () => window.removeEventListener('wheel', handleWheel)
+    }, [])
 
     function toggleFeature(id) {
         if (data.features.includes(id)) {
@@ -515,7 +535,7 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('price', {}, 'units')} *</label>
-                                    <input type="number" min="0" value={data.price} onChange={e => handleChange('price', e.target.value)} required className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none" />
+                                    <input type="number" min="0" value={data.price} onChange={e => handleChange('price', e.target.value)} onWheel={handleNumberWheel} required className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none" />
                                     {errors.price && <p className="text-xs text-red-500 mt-1">{errors.price}</p>}
                                 </div>
                             </div>
@@ -524,15 +544,15 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
                             <div className="grid grid-cols-3 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('area_sqm', {}, 'units')}</label>
-                                    <input type="number" min="0" value={data.area_sqm} onChange={e => handleChange('area_sqm', e.target.value)} className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none" />
+                                    <input type="number" min="0" value={data.area_sqm} onChange={e => handleChange('area_sqm', e.target.value)} onWheel={handleNumberWheel} className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none" />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('rooms', {}, 'units')}</label>
-                                    <input type="number" min="0" value={data.rooms} onChange={e => handleChange('rooms', e.target.value)} className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none" />
+                                    <input type="number" min="0" value={data.rooms} onChange={e => handleChange('rooms', e.target.value)} onWheel={handleNumberWheel} className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none" />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('bathrooms', {}, 'units')}</label>
-                                    <input type="number" min="0" value={data.bathrooms} onChange={e => handleChange('bathrooms', e.target.value)} className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none" />
+                                    <input type="number" min="0" value={data.bathrooms} onChange={e => handleChange('bathrooms', e.target.value)} onWheel={handleNumberWheel} className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none" />
                                 </div>
                             </div>
 
@@ -591,7 +611,7 @@ export default function AdminUnitForm({ unit, areas, unitTypes, projects, featur
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-secondary-950 mb-1">{trans('installment_years') || 'Installment Years'}</label>
-                                            <input type="number" min="0" value={data.installment_years} onChange={e => handleChange('installment_years', e.target.value)} className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none" />
+                                            <input type="number" min="0" value={data.installment_years} onChange={e => handleChange('installment_years', e.target.value)} onWheel={handleNumberWheel} className="w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none" />
                                         </div>
                                     </>
                                 )}

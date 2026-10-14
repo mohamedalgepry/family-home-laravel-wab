@@ -903,6 +903,7 @@ export default function AdminUnitsIndex({ units, stats, areas, unitTypes, filter
                                         min="0"
                                         value={pointsData.points}
                                         onChange={e => setPointsData('points', e.target.value)}
+                                        onWheel={e => e.currentTarget.blur()}
                                         className={inputClasses}
                                         required
                                     />
@@ -991,6 +992,7 @@ export default function AdminUnitsIndex({ units, stats, areas, unitTypes, filter
                                             max="365"
                                             value={customDays}
                                             onChange={(e) => setCustomDays(e.target.value)}
+                                            onWheel={(e) => e.currentTarget.blur()}
                                             placeholder={isRtl ? 'مثال: 45' : 'e.g. 45'}
                                             className="w-full px-3.5 py-2.5 bg-secondary-50 border border-secondary-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 transition-colors"
                                             autoFocus

@@ -12837,11 +12837,17 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 				setData((prev) => ({
 					...prev,
 					project_id: projectId,
-					features: projectData.features || prev.features,
+					features: projectData.features && projectData.features.length > 0 ? projectData.features : prev.features,
 					finishing_type_id: projectData.finishing_type_id || prev.finishing_type_id,
 					payment_method: projectData.payment_method || prev.payment_method,
 					down_payment: projectData.down_payment || prev.down_payment,
-					installment_years: projectData.installment_years || prev.installment_years
+					installment_years: projectData.installment_years || prev.installment_years,
+					area_id: projectData.area_id || prev.area_id,
+					location_address_ar: projectData.location_address_ar || prev.location_address_ar,
+					location_address_en: projectData.location_address_en || prev.location_address_en,
+					map_embed_url: projectData.map_embed_url || prev.map_embed_url,
+					latitude: projectData.latitude !== null && projectData.latitude !== void 0 && projectData.latitude !== "" ? projectData.latitude : prev.latitude,
+					longitude: projectData.longitude !== null && projectData.longitude !== void 0 && projectData.longitude !== "" ? projectData.longitude : prev.longitude
 				}));
 				setDirty(true);
 			}
@@ -12849,6 +12855,16 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 			console.error("Failed to fetch project auto-fill data", error);
 		}
 	}
+	const handleNumberWheel = (e) => {
+		e.currentTarget.blur();
+	};
+	useEffect(() => {
+		const handleWheel = (e) => {
+			if (e.target && e.target.tagName === "INPUT" && e.target.type === "number") e.target.blur();
+		};
+		window.addEventListener("wheel", handleWheel, { passive: true });
+		return () => window.removeEventListener("wheel", handleWheel);
+	}, []);
 	function toggleFeature(id) {
 		if (data.features.includes(id)) setData("features", data.features.filter((f) => f !== id));
 		else setData("features", [...data.features, id]);
@@ -13293,6 +13309,7 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 										min: "0",
 										value: data.price,
 										onChange: (e) => handleChange("price", e.target.value),
+										onWheel: handleNumberWheel,
 										required: true,
 										className: "w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none"
 									}),
@@ -13313,6 +13330,7 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 										min: "0",
 										value: data.area_sqm,
 										onChange: (e) => handleChange("area_sqm", e.target.value),
+										onWheel: handleNumberWheel,
 										className: "w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none"
 									})] }),
 									/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
@@ -13323,6 +13341,7 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 										min: "0",
 										value: data.rooms,
 										onChange: (e) => handleChange("rooms", e.target.value),
+										onWheel: handleNumberWheel,
 										className: "w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none"
 									})] }),
 									/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
@@ -13333,6 +13352,7 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 										min: "0",
 										value: data.bathrooms,
 										onChange: (e) => handleChange("bathrooms", e.target.value),
+										onWheel: handleNumberWheel,
 										className: "w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none"
 									})] })
 								]
@@ -13435,6 +13455,7 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 										min: "0",
 										value: data.installment_years,
 										onChange: (e) => handleChange("installment_years", e.target.value),
+										onWheel: handleNumberWheel,
 										className: "w-full px-4 py-3 bg-[#F5F5F5] border-2 border-transparent rounded-xl text-sm transition-all duration-200 hover:bg-[#E4E4E4] focus:bg-white focus:border-[#CC0000] focus:ring-4 focus:ring-[#FFE3E3] focus:outline-none"
 									})] })] })
 								]
@@ -15209,6 +15230,7 @@ function AdminUnitsIndex({ units, stats, areas, unitTypes, filters, autoDeleteDa
 								min: "0",
 								value: pointsData.points,
 								onChange: (e) => setPointsData("points", e.target.value),
+								onWheel: (e) => e.currentTarget.blur(),
 								className: inputClasses,
 								required: true
 							}),
@@ -15321,6 +15343,7 @@ function AdminUnitsIndex({ units, stats, areas, unitTypes, filters, autoDeleteDa
 										max: "365",
 										value: customDays,
 										onChange: (e) => setCustomDays(e.target.value),
+										onWheel: (e) => e.currentTarget.blur(),
 										placeholder: isRtl ? "مثال: 45" : "e.g. 45",
 										className: "w-full px-3.5 py-2.5 bg-secondary-50 border border-secondary-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-900/20 focus:border-primary-900 transition-colors",
 										autoFocus: true
