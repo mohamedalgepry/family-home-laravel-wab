@@ -18560,86 +18560,483 @@ var UnitCard_default = memo(UnitCard);
 //#endregion
 //#region resources/js/Pages/Public/Agents/Show.jsx
 var Show_exports$4 = /* @__PURE__ */ __exportAll({ default: () => Show });
-function Show({ agent, units, locale }) {
+function Show({ agent, units, stats = {}, availableAreas = [], filters = {}, locale }) {
 	const pageProps = usePage().props;
 	const currentLocale = locale || pageProps.locale || "ar";
 	const settings = pageProps.settings;
 	const trans = useTrans(currentLocale);
 	const isRtl = currentLocale === "ar";
+	const [copied, setCopied] = useState(false);
+	const [searchTerm, setSearchTerm] = useState(filters.search || "");
 	const agentContacts = getAgentContacts(agent, settings);
 	const avatarSrc = getStorageUrl(agent.avatar, null);
-	const channels = [
-		{
-			key: "phone",
-			url: `tel:${agentContacts.phone}`,
-			label: agentContacts.rawPhone
-		},
-		{
-			key: "whatsapp",
-			url: `https://wa.me/${agentContacts.whatsapp}`,
-			label: agentContacts.rawWhatsapp
-		},
-		{
-			key: "facebook",
-			url: agent.facebook || agent.profile?.facebook || null,
-			label: trans("facebook", {}, "admin")
-		},
-		{
-			key: "linkedin",
-			url: agent.linkedin || agent.profile?.linkedin || null,
-			label: trans("social_linkedin", {}, "admin")
+	const whatsappMsg = encodeURIComponent(isRtl ? `مرحباً أستاذ ${agent.name}، تواصلت معك عبر موقع فاميلي هوم للاستفسار عن الوحدات والعقارات المتاحة لديك.` : `Hello ${agent.name}, I am contacting you through Family Home website regarding your available properties.`);
+	const whatsappUrl = `https://wa.me/${agentContacts.whatsapp}?text=${whatsappMsg}`;
+	const phoneUrl = `tel:${agentContacts.phone}`;
+	const socialChannels = [{
+		key: "facebook",
+		url: agent.facebook || agent.profile?.facebook || null,
+		label: "Facebook"
+	}, {
+		key: "linkedin",
+		url: agent.linkedin || agent.profile?.linkedin || null,
+		label: "LinkedIn"
+	}].filter((c) => c.url);
+	const applyFilter = useCallback((newFilters) => {
+		const query = {
+			...filters,
+			...newFilters,
+			page: 1
+		};
+		Object.keys(query).forEach((key) => {
+			if (!query[key] && query[key] !== 0) delete query[key];
+		});
+		const agentIdentifier = agent.slug || agent.id;
+		router.get(localizedPath(`/agents/${agentIdentifier}`, currentLocale), query, {
+			preserveState: true,
+			preserveScroll: true,
+			only: [
+				"units",
+				"filters",
+				"stats"
+			]
+		});
+	}, [
+		filters,
+		agent,
+		currentLocale
+	]);
+	const handleSearchSubmit = (e) => {
+		e.preventDefault();
+		applyFilter({ search: searchTerm });
+	};
+	const resetFilters = () => {
+		setSearchTerm("");
+		applyFilter({
+			transaction: "",
+			area_id: "",
+			search: "",
+			sort: "latest"
+		});
+	};
+	const copyProfileLink = () => {
+		if (typeof window !== "undefined" && navigator.clipboard) {
+			navigator.clipboard.writeText(window.location.href);
+			setCopied(true);
+			setTimeout(() => setCopied(false), 3e3);
 		}
-	].filter((c) => c.url);
+	};
+	const defaultBio = isRtl ? `مستشار عقاري معتمد في شركة فاميلي هوم للتطوير والتسويق العقاري. أساعدك في العثور على أفضل الفرص العقارية السكنية والتجارية في أرقى مناطق مصر بأعلى عوائد استثمارية وأيسر أنظمة سداد.` : `Certified Real Estate Consultant at Family Home Real Estate. Dedicated to helping you find premier residential and commercial properties in Egypt with flexible payment plans and outstanding investment returns.`;
+	const agentBio = agent.bio || agent.profile?.bio || defaultBio;
+	const totalUnitsCount = stats.total_units ?? units.total ?? 0;
+	const forSaleCount = stats.for_sale ?? 0;
+	const forRentCount = stats.for_rent ?? 0;
+	const areasCount = stats.areas_count ?? (availableAreas?.length || 0);
+	const hasActiveFilters = Boolean(filters.transaction || filters.area_id || filters.search || filters.sort && filters.sort !== "latest");
 	return /* @__PURE__ */ jsxs("div", {
-		className: "min-h-screen bg-background flex flex-col font-sans text-secondary-900 selection:bg-primary-200 selection:text-primary-900",
+		className: "min-h-screen bg-slate-50 flex flex-col font-sans text-secondary-900 selection:bg-primary-900 selection:text-white",
 		children: [
 			/* @__PURE__ */ jsx(SeoHead, {
 				title: `${agent.name} - ${trans("app_name")}`,
-				description: agent.bio || `${agent.name} - ${trans("app_name")}`,
-				ogImage: avatarSrc,
+				description: agentBio,
+				ogImage: avatarSrc || "/images/og-familyhome.png",
 				ogType: "profile"
 			}),
 			/* @__PURE__ */ jsx(Header, { locale: currentLocale }),
 			/* @__PURE__ */ jsxs("div", {
 				dir: isRtl ? "rtl" : "ltr",
-				className: "max-w-container mx-auto px-4 py-12 sm:py-16",
+				className: "relative bg-secondary-950 text-white overflow-hidden pb-24 pt-8 md:pt-12 border-b border-secondary-800",
 				children: [
+					/* @__PURE__ */ jsx("div", { className: "absolute inset-0 opacity-20 pointer-events-none bg-[radial-gradient(#CC0000_1px,transparent_1px)] [background-size:24px_24px]" }),
+					/* @__PURE__ */ jsx("div", { className: "absolute top-0 end-0 w-96 h-96 bg-primary-900/20 rounded-full blur-3xl pointer-events-none" }),
+					/* @__PURE__ */ jsx("div", { className: "absolute bottom-0 start-0 w-80 h-80 bg-red-950/30 rounded-full blur-3xl pointer-events-none" }),
 					/* @__PURE__ */ jsxs("div", {
-						className: "bg-white rounded-[2rem] shadow-sm border border-secondary-100 p-8 sm:p-12 mb-12 flex flex-col sm:flex-row items-center sm:items-start gap-8 relative overflow-hidden",
-						children: [
-							/* @__PURE__ */ jsx("div", { className: "absolute top-0 end-0 w-64 h-64 bg-primary-50 rounded-full blur-3xl opacity-50 -z-10 translate-x-1/3 -translate-y-1/3" }),
-							/* @__PURE__ */ jsx("div", {
-								className: "shrink-0 relative z-10",
-								children: avatarSrc ? /* @__PURE__ */ jsx("img", {
-									src: avatarSrc,
-									alt: agent.name,
-									width: 160,
-									height: 160,
-									className: "w-32 h-32 sm:w-40 sm:h-40 rounded-full object-cover shadow-sm border-4 border-white",
-									onError: (e) => {
-										e.currentTarget.onerror = null;
-										e.currentTarget.src = PLACEHOLDER$2;
-									}
-								}) : /* @__PURE__ */ jsx("div", {
-									className: "w-32 h-32 sm:w-40 sm:h-40 rounded-full bg-primary-50 flex items-center justify-center text-primary-900 font-black text-4xl sm:text-5xl border-4 border-white shadow-sm",
-									children: agent.name?.charAt(0)?.toUpperCase() || "?"
-								})
-							}),
-							/* @__PURE__ */ jsxs("div", {
-								className: "flex-1 text-center sm:text-start space-y-4 relative z-10",
-								children: [/* @__PURE__ */ jsx("div", { children: /* @__PURE__ */ jsx("h1", {
-									className: "text-3xl sm:text-4xl font-black text-secondary-950 tracking-tight",
+						className: "max-w-container mx-auto px-4 relative z-10",
+						children: [/* @__PURE__ */ jsxs("nav", {
+							"aria-label": "Breadcrumb",
+							className: "mb-6 flex items-center gap-2 text-xs text-secondary-400",
+							children: [
+								/* @__PURE__ */ jsx(Link, {
+									href: localizedPath("/", currentLocale),
+									className: "hover:text-white transition-colors",
+									children: trans("home")
+								}),
+								/* @__PURE__ */ jsx("span", {
+									className: "rtl:rotate-180 text-secondary-600",
+									children: "/"
+								}),
+								/* @__PURE__ */ jsx("span", {
+									className: "text-secondary-400",
+									children: isRtl ? "المستشارون العقاريون" : "Real Estate Agents"
+								}),
+								/* @__PURE__ */ jsx("span", {
+									className: "rtl:rotate-180 text-secondary-600",
+									children: "/"
+								}),
+								/* @__PURE__ */ jsx("span", {
+									className: "text-white font-medium truncate",
 									children: agent.name
-								}) }), /* @__PURE__ */ jsx("div", {
-									className: "flex flex-wrap items-center justify-center sm:justify-start gap-3 pt-2",
-									children: channels.map((ch) => /* @__PURE__ */ jsxs("a", {
-										href: ch.url,
-										target: ch.key !== "phone" ? "_blank" : void 0,
-										rel: ch.key !== "phone" ? "noopener noreferrer" : void 0,
-										className: `flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors ${ch.key === "whatsapp" ? "bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366]/20" : ch.key === "facebook" ? "bg-[#1877F2]/10 text-[#1877F2] hover:bg-[#1877F2]/20" : ch.key === "linkedin" ? "bg-[#0A66C2]/10 text-[#0A66C2] hover:bg-[#0A66C2]/20" : "bg-primary-50 text-primary-900 hover:bg-primary-100"}`,
+								})
+							]
+						}), /* @__PURE__ */ jsxs("div", {
+							className: "flex flex-col md:flex-row items-center md:items-start gap-8",
+							children: [/* @__PURE__ */ jsx("div", {
+								className: "relative shrink-0 group",
+								children: /* @__PURE__ */ jsxs("div", {
+									className: "relative",
+									children: [avatarSrc ? /* @__PURE__ */ jsx("img", {
+										src: avatarSrc,
+										alt: agent.name,
+										width: 176,
+										height: 176,
+										className: "w-36 h-36 sm:w-44 sm:h-44 rounded-3xl object-cover shadow-2xl border-4 border-white/10 ring-4 ring-primary-900/30 bg-secondary-900",
+										onError: (e) => {
+											e.currentTarget.onerror = null;
+											e.currentTarget.src = PLACEHOLDER$2;
+										}
+									}) : /* @__PURE__ */ jsx("div", {
+										className: "w-36 h-36 sm:w-44 sm:h-44 rounded-3xl bg-gradient-to-br from-primary-950 via-secondary-900 to-secondary-950 flex items-center justify-center text-primary-400 font-black text-5xl sm:text-6xl border-4 border-white/10 ring-4 ring-primary-900/30 shadow-2xl",
+										children: agent.name?.charAt(0)?.toUpperCase() || "?"
+									}), /* @__PURE__ */ jsx("div", {
+										className: "absolute -bottom-2 -end-2 bg-emerald-500 text-white rounded-xl p-2 shadow-lg border-2 border-secondary-950 flex items-center justify-center",
+										title: isRtl ? "مستشار عقاري موثق" : "Verified Real Estate Agent",
+										children: /* @__PURE__ */ jsx("svg", {
+											className: "w-5 h-5",
+											fill: "none",
+											viewBox: "0 0 24 24",
+											stroke: "currentColor",
+											strokeWidth: 2.5,
+											children: /* @__PURE__ */ jsx("path", {
+												strokeLinecap: "round",
+												strokeLinejoin: "round",
+												d: "M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z"
+											})
+										})
+									})]
+								})
+							}), /* @__PURE__ */ jsxs("div", {
+								className: "flex-1 text-center md:text-start space-y-4",
+								children: [
+									/* @__PURE__ */ jsxs("div", {
+										className: "flex flex-wrap items-center justify-center md:justify-start gap-2.5",
+										children: [/* @__PURE__ */ jsxs("span", {
+											className: "inline-flex items-center gap-1.5 bg-primary-900/30 text-primary-300 border border-primary-800/60 px-3 py-1 rounded-full text-xs font-bold tracking-wide",
+											children: [/* @__PURE__ */ jsx("span", { className: "w-2 h-2 rounded-full bg-primary-500 animate-pulse" }), isRtl ? "مستشار عقاري معتمد" : "Certified Real Estate Advisor"]
+										}), /* @__PURE__ */ jsx("span", {
+											className: "bg-secondary-800/80 text-secondary-300 text-xs font-semibold px-3 py-1 rounded-full border border-secondary-700/60",
+											children: isRtl ? "فاميلي هوم للتطوير العقاري" : "Family Home Real Estate"
+										})]
+									}),
+									/* @__PURE__ */ jsx("h1", {
+										className: "text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-tight",
+										children: agent.name
+									}),
+									/* @__PURE__ */ jsx("p", {
+										className: "text-secondary-300 text-sm sm:text-base leading-relaxed max-w-2xl font-normal",
+										children: agentBio
+									}),
+									/* @__PURE__ */ jsxs("div", {
+										className: "flex flex-wrap items-center justify-center md:justify-start gap-3 pt-3",
 										children: [
-											ch.key === "phone" && /* @__PURE__ */ jsx("svg", {
-												className: "w-4 h-4 shrink-0",
+											agentContacts.phone && /* @__PURE__ */ jsxs("a", {
+												href: phoneUrl,
+												className: "inline-flex items-center gap-2.5 px-6 py-3.5 rounded-2xl bg-white text-secondary-950 font-bold text-sm hover:bg-slate-100 transition-all shadow-lg hover:-translate-y-0.5",
+												title: isRtl ? "اتصال مباشر" : "Call Directly",
+												children: [/* @__PURE__ */ jsx("svg", {
+													className: "w-4 h-4 text-primary-900 shrink-0",
+													fill: "none",
+													viewBox: "0 0 24 24",
+													stroke: "currentColor",
+													strokeWidth: 2.2,
+													children: /* @__PURE__ */ jsx("path", {
+														strokeLinecap: "round",
+														strokeLinejoin: "round",
+														d: "M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"
+													})
+												}), /* @__PURE__ */ jsx("span", {
+													dir: "ltr",
+													className: "font-extrabold",
+													children: agentContacts.rawPhone
+												})]
+											}),
+											agentContacts.whatsapp && /* @__PURE__ */ jsxs("a", {
+												href: whatsappUrl,
+												target: "_blank",
+												rel: "noopener noreferrer",
+												className: "inline-flex items-center gap-2.5 px-6 py-3.5 rounded-2xl bg-[#25D366] text-white font-bold text-sm hover:bg-[#20ba59] transition-all shadow-lg hover:-translate-y-0.5",
+												title: isRtl ? "محادثة واتساب" : "WhatsApp Chat",
+												children: [/* @__PURE__ */ jsx(WhatsAppIcon, { className: "w-5 h-5 fill-current shrink-0" }), /* @__PURE__ */ jsx("span", { children: isRtl ? "تواصل عبر واتساب" : "WhatsApp Chat" })]
+											}),
+											/* @__PURE__ */ jsx("button", {
+												type: "button",
+												onClick: copyProfileLink,
+												className: "inline-flex items-center gap-2 px-4 py-3.5 rounded-2xl bg-secondary-900 hover:bg-secondary-800 text-secondary-200 border border-secondary-700 font-semibold text-sm transition-all",
+												title: isRtl ? "مشاركة رابط الملف الشخصي" : "Share profile link",
+												children: copied ? /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("svg", {
+													className: "w-4 h-4 text-emerald-400",
+													fill: "none",
+													viewBox: "0 0 24 24",
+													stroke: "currentColor",
+													strokeWidth: 2,
+													children: /* @__PURE__ */ jsx("path", {
+														strokeLinecap: "round",
+														strokeLinejoin: "round",
+														d: "M4.5 12.75l6 6 9-13.5"
+													})
+												}), /* @__PURE__ */ jsx("span", {
+													className: "text-emerald-400",
+													children: isRtl ? "تم النسخ!" : "Copied!"
+												})] }) : /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("svg", {
+													className: "w-4 h-4 text-secondary-400",
+													fill: "none",
+													viewBox: "0 0 24 24",
+													stroke: "currentColor",
+													strokeWidth: 2,
+													children: /* @__PURE__ */ jsx("path", {
+														strokeLinecap: "round",
+														strokeLinejoin: "round",
+														d: "M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z"
+													})
+												}), /* @__PURE__ */ jsx("span", { children: isRtl ? "مشاركة" : "Share" })] })
+											}),
+											socialChannels.map((ch) => /* @__PURE__ */ jsxs("a", {
+												href: ch.url,
+												target: "_blank",
+												rel: "noopener noreferrer",
+												className: "w-12 h-12 rounded-2xl bg-secondary-900 hover:bg-primary-900 text-secondary-300 hover:text-white border border-secondary-700 flex items-center justify-center transition-all",
+												title: ch.label,
+												"aria-label": ch.label,
+												children: [ch.key === "facebook" && /* @__PURE__ */ jsx("svg", {
+													className: "w-5 h-5 fill-current",
+													viewBox: "0 0 24 24",
+													children: /* @__PURE__ */ jsx("path", { d: "M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" })
+												}), ch.key === "linkedin" && /* @__PURE__ */ jsx("svg", {
+													className: "w-5 h-5 fill-current",
+													viewBox: "0 0 24 24",
+													children: /* @__PURE__ */ jsx("path", { d: "M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" })
+												})]
+											}, ch.key))
+										]
+									})
+								]
+							})]
+						})]
+					})
+				]
+			}),
+			/* @__PURE__ */ jsx("div", {
+				dir: isRtl ? "rtl" : "ltr",
+				className: "max-w-container mx-auto px-4 -mt-12 relative z-20 w-full mb-10",
+				children: /* @__PURE__ */ jsxs("div", {
+					className: "bg-white rounded-3xl p-5 sm:p-6 shadow-xl shadow-secondary-950/5 border border-secondary-200/80 grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 divide-y sm:divide-y-0 sm:divide-x sm:divide-x-reverse divide-secondary-100",
+					children: [
+						/* @__PURE__ */ jsxs("div", {
+							className: "flex items-center gap-4 pt-3 sm:pt-0",
+							children: [/* @__PURE__ */ jsx("div", {
+								className: "w-12 h-12 rounded-2xl bg-primary-50 text-primary-900 flex items-center justify-center shrink-0",
+								children: /* @__PURE__ */ jsx("svg", {
+									className: "w-6 h-6",
+									fill: "none",
+									viewBox: "0 0 24 24",
+									stroke: "currentColor",
+									strokeWidth: 1.8,
+									children: /* @__PURE__ */ jsx("path", {
+										strokeLinecap: "round",
+										strokeLinejoin: "round",
+										d: "M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+									})
+								})
+							}), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("span", {
+								className: "text-2xl sm:text-3xl font-black text-secondary-950 block leading-tight",
+								children: totalUnitsCount.toLocaleString(currentLocale === "ar" ? "ar-EG" : "en-US")
+							}), /* @__PURE__ */ jsx("span", {
+								className: "text-xs font-semibold text-secondary-700",
+								children: isRtl ? "إجمالي العقارات المتاحة" : "Total Available Units"
+							})] })]
+						}),
+						/* @__PURE__ */ jsxs("div", {
+							className: "flex items-center gap-4 pt-3 sm:pt-0 ps-0 sm:ps-6",
+							children: [/* @__PURE__ */ jsx("div", {
+								className: "w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0",
+								children: /* @__PURE__ */ jsxs("svg", {
+									className: "w-6 h-6",
+									fill: "none",
+									viewBox: "0 0 24 24",
+									stroke: "currentColor",
+									strokeWidth: 1.8,
+									children: [/* @__PURE__ */ jsx("path", {
+										strokeLinecap: "round",
+										strokeLinejoin: "round",
+										d: "M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z"
+									}), /* @__PURE__ */ jsx("path", {
+										strokeLinecap: "round",
+										strokeLinejoin: "round",
+										d: "M6 6h.008v.008H6V6z"
+									})]
+								})
+							}), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("span", {
+								className: "text-2xl sm:text-3xl font-black text-secondary-950 block leading-tight",
+								children: forSaleCount.toLocaleString(currentLocale === "ar" ? "ar-EG" : "en-US")
+							}), /* @__PURE__ */ jsx("span", {
+								className: "text-xs font-semibold text-secondary-700",
+								children: isRtl ? "عقارات للبيع" : "Properties For Sale"
+							})] })]
+						}),
+						/* @__PURE__ */ jsxs("div", {
+							className: "flex items-center gap-4 pt-3 sm:pt-0 ps-0 sm:ps-6",
+							children: [/* @__PURE__ */ jsx("div", {
+								className: "w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0",
+								children: /* @__PURE__ */ jsx("svg", {
+									className: "w-6 h-6",
+									fill: "none",
+									viewBox: "0 0 24 24",
+									stroke: "currentColor",
+									strokeWidth: 1.8,
+									children: /* @__PURE__ */ jsx("path", {
+										strokeLinecap: "round",
+										strokeLinejoin: "round",
+										d: "M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z"
+									})
+								})
+							}), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("span", {
+								className: "text-2xl sm:text-3xl font-black text-secondary-950 block leading-tight",
+								children: forRentCount.toLocaleString(currentLocale === "ar" ? "ar-EG" : "en-US")
+							}), /* @__PURE__ */ jsx("span", {
+								className: "text-xs font-semibold text-secondary-700",
+								children: isRtl ? "عقارات للإيجار" : "Properties For Rent"
+							})] })]
+						}),
+						/* @__PURE__ */ jsxs("div", {
+							className: "flex items-center gap-4 pt-3 sm:pt-0 ps-0 sm:ps-6",
+							children: [/* @__PURE__ */ jsx("div", {
+								className: "w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0",
+								children: /* @__PURE__ */ jsxs("svg", {
+									className: "w-6 h-6",
+									fill: "none",
+									viewBox: "0 0 24 24",
+									stroke: "currentColor",
+									strokeWidth: 1.8,
+									children: [/* @__PURE__ */ jsx("path", {
+										strokeLinecap: "round",
+										strokeLinejoin: "round",
+										d: "M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"
+									}), /* @__PURE__ */ jsx("path", {
+										strokeLinecap: "round",
+										strokeLinejoin: "round",
+										d: "M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
+									})]
+								})
+							}), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("span", {
+								className: "text-2xl sm:text-3xl font-black text-secondary-950 block leading-tight",
+								children: areasCount.toLocaleString(currentLocale === "ar" ? "ar-EG" : "en-US")
+							}), /* @__PURE__ */ jsx("span", {
+								className: "text-xs font-semibold text-secondary-700",
+								children: isRtl ? "مناطق التغطية" : "Covered Areas"
+							})] })]
+						})
+					]
+				})
+			}),
+			/* @__PURE__ */ jsxs("div", {
+				dir: isRtl ? "rtl" : "ltr",
+				className: "max-w-container mx-auto px-4 pb-16 flex-1 w-full",
+				children: [
+					/* @__PURE__ */ jsx("div", {
+						className: "bg-white rounded-3xl border border-secondary-200/80 shadow-sm p-4 sm:p-6 mb-8",
+						children: /* @__PURE__ */ jsxs("div", {
+							className: "flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4",
+							children: [/* @__PURE__ */ jsxs("div", {
+								className: "flex items-center bg-slate-100 p-1.5 rounded-2xl self-start overflow-x-auto max-w-full",
+								children: [
+									/* @__PURE__ */ jsxs("button", {
+										type: "button",
+										onClick: () => applyFilter({ transaction: "" }),
+										className: `px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${!filters.transaction ? "bg-primary-900 text-white shadow-sm" : "text-secondary-600 hover:text-secondary-950"}`,
+										children: [
+											isRtl ? "جميع العقارات" : "All Properties",
+											" (",
+											totalUnitsCount,
+											")"
+										]
+									}),
+									/* @__PURE__ */ jsxs("button", {
+										type: "button",
+										onClick: () => applyFilter({ transaction: "sale" }),
+										className: `px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${filters.transaction === "sale" ? "bg-primary-900 text-white shadow-sm" : "text-secondary-600 hover:text-secondary-950"}`,
+										children: [
+											isRtl ? "للبيع" : "For Sale",
+											" (",
+											forSaleCount,
+											")"
+										]
+									}),
+									/* @__PURE__ */ jsxs("button", {
+										type: "button",
+										onClick: () => applyFilter({ transaction: "rent" }),
+										className: `px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${filters.transaction === "rent" ? "bg-primary-900 text-white shadow-sm" : "text-secondary-600 hover:text-secondary-950"}`,
+										children: [
+											isRtl ? "للإيجار" : "For Rent",
+											" (",
+											forRentCount,
+											")"
+										]
+									})
+								]
+							}), /* @__PURE__ */ jsxs("div", {
+								className: "flex flex-wrap items-center gap-3",
+								children: [
+									availableAreas.length > 0 && /* @__PURE__ */ jsxs("select", {
+										value: filters.area_id || "",
+										onChange: (e) => applyFilter({ area_id: e.target.value }),
+										className: "bg-slate-50 border border-secondary-200 text-secondary-800 text-xs sm:text-sm rounded-xl px-3.5 py-2.5 font-semibold focus:ring-2 focus:ring-primary-900 focus:outline-none",
+										"aria-label": isRtl ? "تصفية حسب المنطقة" : "Filter by Area",
+										children: [/* @__PURE__ */ jsx("option", {
+											value: "",
+											children: isRtl ? "كل المناطق" : "All Areas"
+										}), availableAreas.map((area) => /* @__PURE__ */ jsx("option", {
+											value: area.id,
+											children: isRtl ? area.name_ar || area.name : area.name_en || area.name
+										}, area.id))]
+									}),
+									/* @__PURE__ */ jsxs("select", {
+										value: filters.sort || "latest",
+										onChange: (e) => applyFilter({ sort: e.target.value }),
+										className: "bg-slate-50 border border-secondary-200 text-secondary-800 text-xs sm:text-sm rounded-xl px-3.5 py-2.5 font-semibold focus:ring-2 focus:ring-primary-900 focus:outline-none",
+										"aria-label": isRtl ? "ترتيب النتائج" : "Sort Results",
+										children: [
+											/* @__PURE__ */ jsx("option", {
+												value: "latest",
+												children: isRtl ? "الأحدث إضافة" : "Latest"
+											}),
+											/* @__PURE__ */ jsx("option", {
+												value: "price_asc",
+												children: isRtl ? "الأقل سعراً" : "Price: Low to High"
+											}),
+											/* @__PURE__ */ jsx("option", {
+												value: "price_desc",
+												children: isRtl ? "الأعلى سعراً" : "Price: High to Low"
+											}),
+											/* @__PURE__ */ jsx("option", {
+												value: "area_desc",
+												children: isRtl ? "المساحة الأكبر" : "Largest Area"
+											})
+										]
+									}),
+									/* @__PURE__ */ jsxs("form", {
+										onSubmit: handleSearchSubmit,
+										className: "relative flex-1 sm:w-64",
+										children: [/* @__PURE__ */ jsx("input", {
+											type: "text",
+											value: searchTerm,
+											onChange: (e) => setSearchTerm(e.target.value),
+											placeholder: isRtl ? "ابحث في وحدات المستشار..." : "Search agent units...",
+											className: "w-full bg-slate-50 border border-secondary-200 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-secondary-900 placeholder:text-secondary-400 focus:ring-2 focus:ring-primary-900 focus:outline-none pe-10"
+										}), /* @__PURE__ */ jsx("button", {
+											type: "submit",
+											className: "absolute end-2 top-1/2 -translate-y-1/2 p-1.5 text-secondary-400 hover:text-primary-900 transition-colors",
+											"aria-label": isRtl ? "بحث" : "Search",
+											children: /* @__PURE__ */ jsx("svg", {
+												className: "w-4 h-4",
 												fill: "none",
 												viewBox: "0 0 24 24",
 												stroke: "currentColor",
@@ -18647,89 +19044,142 @@ function Show({ agent, units, locale }) {
 												children: /* @__PURE__ */ jsx("path", {
 													strokeLinecap: "round",
 													strokeLinejoin: "round",
-													d: "M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+													d: "M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
 												})
-											}),
-											ch.key === "whatsapp" && /* @__PURE__ */ jsx("svg", {
-												className: "w-4 h-4 shrink-0",
-												fill: "currentColor",
-												viewBox: "0 0 24 24",
-												children: /* @__PURE__ */ jsx("path", { d: "M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" })
-											}),
-											ch.key === "facebook" && /* @__PURE__ */ jsx("svg", {
-												className: "w-4 h-4 shrink-0",
-												fill: "currentColor",
-												viewBox: "0 0 24 24",
-												children: /* @__PURE__ */ jsx("path", { d: "M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" })
-											}),
-											ch.key === "linkedin" && /* @__PURE__ */ jsx("svg", {
-												className: "w-4 h-4 shrink-0",
-												fill: "currentColor",
-												viewBox: "0 0 24 24",
-												children: /* @__PURE__ */ jsx("path", { d: "M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" })
-											}),
-											/* @__PURE__ */ jsx("span", {
-												dir: "ltr",
-												children: ch.label
 											})
-										]
-									}, ch.key))
-								})]
-							})
-						]
-					}),
-					/* @__PURE__ */ jsx("div", {
-						className: "mb-8 flex items-center justify-between",
-						children: /* @__PURE__ */ jsxs("div", {
-							className: "flex items-center gap-3",
-							children: [/* @__PURE__ */ jsx("div", { className: "w-1.5 h-6 bg-primary-600 rounded-full" }), /* @__PURE__ */ jsxs("h2", {
-								className: "text-2xl sm:text-3xl font-black text-secondary-950 tracking-tight",
-								children: [
-									trans("agent_units", {}, "units") || trans("units_count", {}, "units"),
-									" ",
-									/* @__PURE__ */ jsxs("span", {
-										className: "text-secondary-400 font-medium",
-										children: [
-											"(",
-											units.total,
-											")"
-										]
+										})]
+									}),
+									hasActiveFilters && /* @__PURE__ */ jsxs("button", {
+										type: "button",
+										onClick: resetFilters,
+										className: "px-3.5 py-2.5 rounded-xl bg-red-50 hover:bg-red-100 text-primary-900 text-xs font-bold transition-colors flex items-center gap-1.5",
+										title: isRtl ? "إعادة ضبط الفلاتر" : "Reset filters",
+										children: [/* @__PURE__ */ jsx("svg", {
+											className: "w-3.5 h-3.5",
+											fill: "none",
+											viewBox: "0 0 24 24",
+											stroke: "currentColor",
+											strokeWidth: 2,
+											children: /* @__PURE__ */ jsx("path", {
+												strokeLinecap: "round",
+												strokeLinejoin: "round",
+												d: "M6 18L18 6M6 6l12 12"
+											})
+										}), /* @__PURE__ */ jsx("span", { children: isRtl ? "مسح الفلاتر" : "Clear" })]
 									})
 								]
 							})]
+						})
+					}),
+					/* @__PURE__ */ jsx("div", {
+						className: "mb-6 flex items-center justify-between",
+						children: /* @__PURE__ */ jsxs("div", {
+							className: "flex items-center gap-3",
+							children: [/* @__PURE__ */ jsx("div", { className: "w-2 h-7 bg-primary-900 rounded-full" }), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("h2", {
+								className: "text-xl sm:text-2xl font-black text-secondary-950 tracking-tight",
+								children: isRtl ? "العقارات والوحدات المعروضة" : "Available Real Estate Listings"
+							}), /* @__PURE__ */ jsx("p", {
+								className: "text-xs text-secondary-500 font-medium",
+								children: isRtl ? `عرض ${units.data.length} من إجمالي ${units.total} عقار` : `Showing ${units.data.length} of ${units.total} properties`
+							})] })]
 						})
 					}),
 					units.data.length > 0 ? /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("div", {
 						className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6",
 						children: units.data.map((unit) => /* @__PURE__ */ jsx(UnitCard_default, { unit }, unit.id))
 					}), units.last_page > 1 && /* @__PURE__ */ jsx("div", {
-						className: "mt-10 flex justify-center",
+						className: "mt-12 flex justify-center",
 						children: /* @__PURE__ */ jsx(Pagination, { links: units.links })
 					})] }) : /* @__PURE__ */ jsxs("div", {
-						className: "text-center py-24 bg-white rounded-[2rem] border border-secondary-100 shadow-sm max-w-2xl mx-auto",
+						className: "text-center py-20 bg-white rounded-3xl border border-secondary-200/80 shadow-sm max-w-2xl mx-auto px-6",
 						children: [
 							/* @__PURE__ */ jsx("div", {
-								className: "w-20 h-20 bg-secondary-50 rounded-full flex items-center justify-center mx-auto mb-6",
+								className: "w-20 h-20 bg-secondary-100 rounded-3xl flex items-center justify-center mx-auto mb-6 text-secondary-400",
 								children: /* @__PURE__ */ jsx("svg", {
-									className: "w-10 h-10 text-secondary-400",
+									className: "w-10 h-10",
 									fill: "none",
 									viewBox: "0 0 24 24",
 									stroke: "currentColor",
+									strokeWidth: 1.5,
 									children: /* @__PURE__ */ jsx("path", {
 										strokeLinecap: "round",
 										strokeLinejoin: "round",
-										strokeWidth: 1.5,
 										d: "M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
 									})
 								})
 							}),
 							/* @__PURE__ */ jsx("h3", {
 								className: "text-2xl font-black text-secondary-950 mb-3",
-								children: trans("no_units", {}, "units")
+								children: isRtl ? "لا توجد وحدات تطابق خيارات البحث" : "No properties found matching filters"
 							}),
 							/* @__PURE__ */ jsx("p", {
-								className: "text-secondary-500 text-sm md:text-base leading-relaxed max-w-sm mx-auto",
-								children: trans("agent_no_units", {}, "units") || trans("no_units", {}, "units")
+								className: "text-secondary-500 text-sm md:text-base leading-relaxed max-w-md mx-auto mb-6",
+								children: isRtl ? "جرب تغيير خيارات التصفية أو مسح الفلاتر لعرض كافة الوحدات المتاحة لهذا المستشار." : "Try adjusting your filters or clearing them to explore all listings from this consultant."
+							}),
+							hasActiveFilters && /* @__PURE__ */ jsxs("button", {
+								type: "button",
+								onClick: resetFilters,
+								className: "inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-primary-900 text-white font-bold text-sm hover:bg-primary-950 transition-colors shadow-md",
+								children: [/* @__PURE__ */ jsx("svg", {
+									className: "w-4 h-4",
+									fill: "none",
+									viewBox: "0 0 24 24",
+									stroke: "currentColor",
+									strokeWidth: 2,
+									children: /* @__PURE__ */ jsx("path", {
+										strokeLinecap: "round",
+										strokeLinejoin: "round",
+										d: "M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
+									})
+								}), /* @__PURE__ */ jsx("span", { children: isRtl ? "عرض كل عقارات المستشار" : "Show All Agent Properties" })]
+							})
+						]
+					}),
+					/* @__PURE__ */ jsxs("div", {
+						className: "mt-16 bg-gradient-to-br from-secondary-950 via-secondary-900 to-secondary-950 rounded-3xl p-8 sm:p-12 text-white relative overflow-hidden shadow-2xl border border-secondary-800 flex flex-col md:flex-row items-center justify-between gap-8",
+						children: [
+							/* @__PURE__ */ jsx("div", { className: "absolute top-0 end-0 w-72 h-72 bg-primary-900/20 rounded-full blur-3xl pointer-events-none" }),
+							/* @__PURE__ */ jsxs("div", {
+								className: "space-y-3 text-center md:text-start relative z-10 max-w-xl",
+								children: [
+									/* @__PURE__ */ jsxs("div", {
+										className: "inline-flex items-center gap-2 bg-primary-900/40 text-primary-300 border border-primary-800/80 px-3 py-1 rounded-full text-xs font-bold",
+										children: [/* @__PURE__ */ jsx("span", { className: "w-2 h-2 rounded-full bg-primary-500" }), isRtl ? "استشارة عقارية مجانية" : "Free Real Estate Consultation"]
+									}),
+									/* @__PURE__ */ jsx("h3", {
+										className: "text-2xl sm:text-3xl font-black tracking-tight leading-tight",
+										children: isRtl ? `هل تحتاج مساعدة في اختيار وحدتك العقارية؟` : `Need expert help finding your dream property?`
+									}),
+									/* @__PURE__ */ jsx("p", {
+										className: "text-secondary-300 text-sm sm:text-base leading-relaxed",
+										children: isRtl ? `تواصل مباشرة مع المستشار ${agent.name} لمساعدتك في العثور على أفضل شقة، فيلا، أو محل تجاري يناسب ميزانيتك وخطة سدادك.` : `Get in touch directly with ${agent.name} for tailored advice on the best apartments, villas, and commercial spaces.`
+									})
+								]
+							}),
+							/* @__PURE__ */ jsxs("div", {
+								className: "flex flex-wrap items-center justify-center gap-3 relative z-10 shrink-0",
+								children: [agentContacts.whatsapp && /* @__PURE__ */ jsxs("a", {
+									href: whatsappUrl,
+									target: "_blank",
+									rel: "noopener noreferrer",
+									className: "inline-flex items-center gap-2.5 px-6 py-4 rounded-2xl bg-[#25D366] hover:bg-[#20ba59] text-white font-bold text-sm shadow-xl transition-all hover:-translate-y-0.5",
+									children: [/* @__PURE__ */ jsx(WhatsAppIcon, { className: "w-5 h-5 fill-current shrink-0" }), /* @__PURE__ */ jsx("span", { children: isRtl ? "محادثة عبر واتساب" : "Chat on WhatsApp" })]
+								}), agentContacts.phone && /* @__PURE__ */ jsxs("a", {
+									href: phoneUrl,
+									className: "inline-flex items-center gap-2.5 px-6 py-4 rounded-2xl bg-white text-secondary-950 hover:bg-slate-100 font-bold text-sm shadow-xl transition-all hover:-translate-y-0.5",
+									children: [/* @__PURE__ */ jsx("svg", {
+										className: "w-4 h-4 text-primary-900 shrink-0",
+										fill: "none",
+										viewBox: "0 0 24 24",
+										stroke: "currentColor",
+										strokeWidth: 2.2,
+										children: /* @__PURE__ */ jsx("path", {
+											strokeLinecap: "round",
+											strokeLinejoin: "round",
+											d: "M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"
+										})
+									}), /* @__PURE__ */ jsx("span", { children: isRtl ? "اتصال بالمستشار" : "Call Consultant" })]
+								})]
 							})
 						]
 					})
