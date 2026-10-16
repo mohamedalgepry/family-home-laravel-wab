@@ -28,7 +28,12 @@ class AgentController extends Controller
             ->firstOrFail();
 
         $units = Unit::active()
-            ->where('user_id', $agent->id)
+            ->where(function ($query) use ($agent) {
+                $query->where('user_id', $agent->id)
+                    ->orWhereHas('project', function ($q) use ($agent) {
+                        $q->where('user_id', $agent->id);
+                    });
+            })
             ->with(['type', 'area', 'images', 'user.profile'])
             ->orderByDesc('created_at')
             ->paginate(12)
