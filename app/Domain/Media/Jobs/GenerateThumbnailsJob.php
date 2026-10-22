@@ -67,11 +67,15 @@ class GenerateThumbnailsJob implements ShouldQueue
                 Cache::forget("image_variant_exists:{$variant}:{$relativePath}");
             }
         } catch (\Throwable $e) {
-            Log::warning('Image variant generation failed', [
+            Log::warning('Image variant generation failed; queue retry will be requested', [
                 'path' => $relativePath,
                 'model' => "{$this->modelType}#{$this->modelId}",
                 'error' => $e->getMessage(),
             ]);
+
+            // Do not mark a failed conversion as a successful queue job. The configured
+            // tries/backoff only work when the exception reaches Laravel's queue worker.
+            throw new \RuntimeException("Failed to generate image variants for {$relativePath}.", 0, $e);
         }
     }
 
@@ -87,7 +91,15 @@ class GenerateThumbnailsJob implements ShouldQueue
         try {
             foreach (self::VARIANTS as $variant => $options) {
                 $scaled = $this->scaleDownWithGd($source, $options['width']);
-                imagewebp($scaled, $this->absoluteVariantPath($fullPath, $relativePath, $variant), $options['quality']);
+                $variantPath = $this->absoluteVariantPath($fullPath, $relativePath, $variant);
+                $written = imagewebp($scaled, $variantPath, $options['quality']);
+                if (! $written || ! is_file($variantPath) || filesize($variantPath) <= 0) {
+                    @unlink($variantPath);
+                    if ($scaled !== $source) {
+                        imagedestroy($scaled);
+                    }
+                    throw new \RuntimeException("Failed writing WebP variant {$variant} for {$relativePath}.");
+                }
                 if ($scaled !== $source) {
                     imagedestroy($scaled);
                 }
@@ -104,10 +116,16 @@ class GenerateThumbnailsJob implements ShouldQueue
         foreach (self::VARIANTS as $variant => $options) {
             $image = clone $source;
             $image->scaleDown(width: $options['width']);
-            file_put_contents(
-                $this->absoluteVariantPath($fullPath, $relativePath, $variant),
-                (string) $image->encode(new WebpEncoder(quality: $options['quality']))
-            );
+            $variantPath = $this->absoluteVariantPath($fullPath, $relativePath, $variant);
+            $encoded = (string) $image->encode(new WebpEncoder(quality: $options['quality']));
+            if ($encoded === '') {
+                throw new \RuntimeException("Empty WebP output for {$variant} variant of {$relativePath}.");
+            }
+            $written = file_put_contents($variantPath, $encoded);
+            if ($written === false || $written !== strlen($encoded) || ! is_file($variantPath) || filesize($variantPath) <= 0) {
+                @unlink($variantPath);
+                throw new \RuntimeException("Failed writing WebP variant {$variant} for {$relativePath}.");
+            }
         }
     }
 
