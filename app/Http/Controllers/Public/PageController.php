@@ -58,8 +58,8 @@ class PageController extends Controller
             $locale = 'ar';
         }
 
-        // 301 دائم للواحة الحفانية باللغة لمنع المشعّبات والجزء من الـ SEO
-        return redirect()->route('home', ['locale' => $locale], 301);
+        // The destination depends on the visitor's saved locale, so it must not be a permanent redirect.
+        return redirect()->route('home', ['locale' => $locale], 302);
     }
 
     public function about()
