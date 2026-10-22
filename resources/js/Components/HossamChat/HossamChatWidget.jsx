@@ -250,16 +250,20 @@ export default function HossamChatWidget({ autoOpen = false }) {
                         title={trans('assistant_name')}
                     >
                         {/* Status Glowing Dot (emerald) */}
-                        <span className="absolute top-1.5 end-1.5 flex h-3 w-3">
+                        <span className="absolute top-1.5 end-1.5 flex h-3 w-3 z-20">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                             <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 border-2 border-[#1A1A1A] shadow-sm"></span>
                         </span>
 
-                        {/* Monogram — "H" with a crimson dot */}
-                        <div className="concierge-fab-icon relative flex items-center justify-center">
-                            <span className="font-black text-xl sm:text-2xl tracking-tight text-white leading-none select-none">
-                                H<span className="inline-block w-1.5 h-1.5 rounded-full bg-[#CC0000] align-top ms-0.5"></span>
-                            </span>
+                        {/* 3D AI Robot — head only */}
+                        <div className="concierge-fab-icon relative z-10 w-14 h-14 sm:w-[72px] sm:h-[72px] flex items-center justify-center overflow-hidden rounded-full transition-transform duration-300 ease-out animate-[bounce_3.5s_ease-in-out_infinite] group-hover:scale-110 group-hover:-rotate-3">
+                            <img
+                                src="/images/ai-agent-head.webp"
+                                alt=""
+                                aria-hidden="true"
+                                draggable="false"
+                                className="pointer-events-none w-full h-full object-contain drop-shadow-[0_6px_14px_rgba(37,99,235,0.45)]"
+                            />
                         </div>
                     </button>
                 </div>
