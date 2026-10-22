@@ -38,6 +38,11 @@ class ExportPrerenderData extends Command
             try {
                 $request = Request::create($baseUrl.$url, 'GET');
                 $response = $kernel->handle($request);
+                if ($response->getStatusCode() >= 400) {
+                    $status = $response->getStatusCode();
+                    $kernel->terminate($request, $response);
+                    throw new \RuntimeException("HTTP {$status} returned while exporting prerender URL {$url}");
+                }
                 $html = $this->normalizeBaseUrls($response->getContent() ?? '', $baseUrl);
                 $kernel->terminate($request, $response);
 
@@ -71,22 +76,6 @@ class ExportPrerenderData extends Command
             return Command::FAILURE;
         }
 
-        if (empty($results) && file_exists(storage_path('app/prerender_pages.json'))) {
-            $existingRaw = file_get_contents(storage_path('app/prerender_pages.json'));
-            $existing = json_decode($existingRaw, true);
-            if (is_array($existing) && ! empty($existing)) {
-                $updated = [];
-                foreach ($existing as $item) {
-                    $item['baseUrl'] = $baseUrl;
-                    $item['htmlTemplate'] = $this->normalizeBaseUrls($item['htmlTemplate'] ?? '', $baseUrl);
-                    $item['page'] = $this->normalizePageUrls($item['page'] ?? [], $baseUrl);
-                    $updated[] = $item;
-                }
-                $results = $updated;
-                $this->info('Used and normalized existing exported page templates from storage/app/prerender_pages.json.');
-            }
-        }
-
         $filePath = storage_path('app/prerender_pages.json');
         file_put_contents($filePath, json_encode($results, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE));
         $this->info('Exported '.count($results)." page templates to {$filePath}");
@@ -101,9 +90,9 @@ class ExportPrerenderData extends Command
 
             return true;
         } catch (\Throwable $e) {
-            Log::warning('ExportPrerenderData: Database unavailable — proceeding with core static pages.');
+            Log::error('ExportPrerenderData: Database unavailable; prerender export aborted.');
             if ($this->output) {
-                $this->warn('Database unavailable — proceeding with core static pages.');
+                $this->error('Database unavailable; prerender export aborted.');
             }
 
             return false;
