@@ -25,23 +25,24 @@ async function main() {
         process.exit(1)
     }
 
-    // Kill any lingering SSR process from a previous build attempt (prevents EADDRINUSE on Windows)
-    try {
-        const net = await import('node:net')
-        await new Promise((resolve) => {
-            const probe = net.createConnection({ host: '127.0.0.1', port: SSR_PORT })
-            probe.on('connect', () => { probe.destroy(); resolve() })
-            probe.on('error', () => resolve())
-        })
-        // If we got here, something is already listening — try to kill it via a dummy request
-        await new Promise((resolve) => {
-            const req = http.request({ hostname: '127.0.0.1', port: SSR_PORT, path: '/shutdown', method: 'POST', timeout: 1000 }, () => resolve())
-            req.on('error', () => resolve())
-            req.end()
-        })
-        // Give it a moment to die
-        await new Promise((r) => setTimeout(r, 1500))
-    } catch { /* ignore */ }
+    // Do not accidentally attach to an unrelated/stale SSR process on the fixed port.
+    const net = await import('node:net')
+    const portInUse = await new Promise((resolve) => {
+        const probe = net.createConnection({ host: '127.0.0.1', port: SSR_PORT })
+        let settled = false
+        const finish = (value) => {
+            if (settled) return
+            settled = true
+            probe.destroy()
+            resolve(value)
+        }
+        probe.once('connect', () => finish(true))
+        probe.once('error', () => finish(false))
+        probe.setTimeout(1000, () => finish(false))
+    })
+    if (portInUse) {
+        throw new Error(`[Prerender] Port ${SSR_PORT} is already in use. Stop the stale SSR process before rebuilding; refusing to render with an unknown bundle.`)
+    }
 
     // Launch SSR server
     console.log('[Prerender] Spawning SSR server process...')
@@ -70,15 +71,7 @@ async function main() {
         const pages = JSON.parse(rawData.trim())
 
         if (pages.length < 10) {
-            console.warn(`[Prerender] Warning: Only ${pages.length} pages were exported — expected at least 10. ` +
-                'This usually means the database is unreachable. Skipping prerender phase to allow the build to succeed.')
-            if (fs.existsSync(STAGING_DIR)) {
-                fs.rmSync(STAGING_DIR, { recursive: true, force: true })
-            }
-            if (ssrProcess) {
-                ssrProcess.kill('SIGTERM')
-            }
-            return
+            throw new Error(`Only ${pages.length} prerender pages were exported (expected at least 10). The full build is invalid without a working, seeded database; use npm run build:client for asset-only development builds.`)
         }
         console.log(`[Prerender] Found ${pages.length} pages to prerender.`)
 
@@ -222,6 +215,7 @@ function renderPage(pageObject, maxAttempts = 5) {
                     reject(err)
                 }
             })
+            req.setTimeout(30_000, () => req.destroy(new Error(`SSR render timed out after 30000ms for ${pageObject.url}`)))
             req.write(payload)
             req.end()
         }

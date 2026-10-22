@@ -21,13 +21,13 @@
           href="{{ $lcpImage }}"
           @if(!empty($lcpImageSrcSet)) imagesrcset="{{ $lcpImageSrcSet }}" imagesizes="(max-width: 1024px) 100vw, 850px" @endif
           fetchpriority="high">
+    @elseif(request()->routeIs('home') || request()->is('/') || request()->is('ar') || request()->is('en'))
+    <!-- Preload the actual LCP hero candidate before the general Open Graph image -->
+    <link rel="preload" as="image" href="{{ $heroMobileUrl }}" type="image/webp" media="(max-width: 640px)" fetchpriority="high">
+    <link rel="preload" as="image" href="{{ $heroDesktopUrl }}" type="image/webp" media="(min-width: 641px)" fetchpriority="high">
     @elseif(!empty($seo_meta['image']) && !str_contains($seo_meta['image'], 'icon.webp') && !str_contains($seo_meta['image'], 'site_logo'))
     <!-- Preload Entity Featured Cover Image for Instant LCP Discovery -->
     <link rel="preload" as="image" href="{{ str_starts_with($seo_meta['image'], 'http') ? $seo_meta['image'] : asset(ltrim($seo_meta['image'], '/')) }}" fetchpriority="high">
-    @elseif(request()->routeIs('home') || request()->is('/') || request()->is('ar') || request()->is('en'))
-    <!-- Preload LCP Hero Image for Mobile & Desktop (Home Page Only) -->
-    <link rel="preload" as="image" href="{{ $heroMobileUrl }}" type="image/webp" media="(max-width: 640px)" fetchpriority="high">
-    <link rel="preload" as="image" href="{{ $heroDesktopUrl }}" type="image/webp" media="(min-width: 641px)" fetchpriority="high">
     @endif
 
     <!-- Google Analytics (Deferred to user interaction & idle to eliminate Unused JS & TBT in PageSpeed/Lighthouse) -->

@@ -60,3 +60,13 @@ test('contact form submission succeeds without csrf errors', function () {
 
     $response->assertSessionHasNoErrors();
 });
+
+
+test('it does not publicly cache the session-dependent root locale redirect', function () {
+    $response = $this->get('/');
+
+    $response->assertRedirect();
+    expect($response->getStatusCode())->toBe(302);
+    $this->assertStringContainsString('/ar', $response->headers->get('Location'));
+    $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
+});

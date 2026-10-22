@@ -169,12 +169,11 @@
         color: var(--color-primary-900) !important;
     }
 
-    @media (hover: hover) and (pointer: fine) {
-        *:focus-visible {
-            outline: 2px solid var(--color-primary-900);
-            outline-offset: 2px;
-            border-radius: 2px;
-        }
+    /* Keep keyboard focus visible on touch and hybrid devices as well as desktop. */
+    *:focus-visible {
+        outline: 2px solid var(--color-primary-900);
+        outline-offset: 2px;
+        border-radius: 2px;
     }
 }
 
