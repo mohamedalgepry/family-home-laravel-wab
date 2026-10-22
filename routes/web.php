@@ -116,14 +116,35 @@ Route::middleware('auth')->group(function () {
 Route::get('/', [PageController::class, 'rootRedirect'])->name('root');
 
 Route::post('/csp-report', function (\Illuminate\Http\Request $request) {
+    // CSP reporting is intentionally CSRF-exempt, so bound both body size and request rate.
+    $contentLength = (int) $request->server('CONTENT_LENGTH', 0);
+    if ($contentLength > 16_384) {
+        return response()->noContent(413);
+    }
+
+    $rawBody = $request->getContent();
+    if (strlen($rawBody) > 16_384) {
+        return response()->noContent(413);
+    }
+
+    $decoded = json_decode($rawBody, true);
+    $report = is_array($decoded) ? $decoded : $request->all();
+
+    // Keep actionable policy fields only; avoid retaining whole request payloads, IPs, or user-agent strings.
+    $reportBody = is_array($report['csp-report'] ?? null) ? $report['csp-report'] : $report;
+    $allowedFields = [
+        'document-uri', 'blocked-uri', 'violated-directive', 'effective-directive',
+        'original-policy', 'disposition', 'status-code', 'source-file',
+        'line-number', 'column-number',
+    ];
+    $summary = array_intersect_key($reportBody, array_flip($allowedFields));
+
     \Illuminate\Support\Facades\Log::warning('CSP Violation Report', [
-        'report' => $request->all() ?: json_decode($request->getContent(), true),
-        'ip' => $request->ip(),
-        'user_agent' => $request->userAgent(),
+        'report' => $summary,
     ]);
 
     return response()->noContent();
-})->name('csp.report');
+})->middleware('throttle:60,1')->name('csp.report');
 
 Route::post('/units/{unit:slug}/contact', [MessageController::class, 'store'])
     ->middleware('throttle:contact-form');
