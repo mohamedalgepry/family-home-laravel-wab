@@ -2,7 +2,8 @@ import { usePage, Link } from '@inertiajs/react'
 import { useTrans } from '../../Utils/trans'
 
 export default function Pagination({ meta, links: routeLinks, pageParam = 'page' }) {
-    const { locale } = usePage().props
+    const pageContext = usePage()
+    const { locale } = pageContext.props
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
 
@@ -24,10 +25,16 @@ export default function Pagination({ meta, links: routeLinks, pageParam = 'page'
     }
 
     function buildUrl(page) {
-        if (typeof window === 'undefined') return '#'
-        const params = new URLSearchParams(window.location.search)
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search)
+            params.set(pageParam, page)
+            return window.location.pathname + '?' + params.toString()
+        }
+        const fullUrl = pageContext?.url || '/'
+        const [path, search] = fullUrl.split('?')
+        const params = new URLSearchParams(search || '')
         params.set(pageParam, page)
-        return window.location.pathname + '?' + params.toString()
+        return path + '?' + params.toString()
     }
 
     return (

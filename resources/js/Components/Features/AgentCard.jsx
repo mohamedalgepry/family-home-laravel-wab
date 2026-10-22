@@ -14,7 +14,8 @@ export default function AgentCard({ agent }) {
     if (!agent) return null
 
     const agentContacts = getAgentContacts(agent, settings)
-    const avatarSrc = getStorageUrl(agent.avatar, null)
+    const isAiAgent = !agent.avatar || /حسام|hossam|ai|bot|ذك(ي|اء)|آلي/i.test(`${agent.name || ''} ${agent.slug || ''}`)
+    const avatarSrc = getStorageUrl(agent.avatar, null) || (isAiAgent ? '/images/ai-agent-head.webp' : null)
     const agentAlt = isRtl ? `الوكيل العقاري ${agent.name}` : `Real Estate Agent ${agent.name}`;
 
     const channels = [
@@ -34,12 +35,18 @@ export default function AgentCard({ agent }) {
                         width={56}
                         height={56}
                         lazy={true}
-                        className="w-14 h-14 rounded-full object-cover border border-secondary-200"
+                        className={`w-14 h-14 rounded-full border border-secondary-200 ${
+                            avatarSrc.includes('ai-agent-head') ? 'object-contain bg-secondary-900 p-1' : 'object-cover'
+                        }`}
                     />
                 ) : (
-                    <div className="w-14 h-14 rounded-full bg-primary-100 flex items-center justify-center text-primary-900 font-bold text-lg border border-primary-200" aria-label={agentAlt}>
-                        {agent.name?.charAt(0)?.toUpperCase() || '?'}
-                    </div>
+                    <img
+                        src="/images/ai-agent-head.webp"
+                        alt={agentAlt}
+                        width={56}
+                        height={56}
+                        className="w-14 h-14 rounded-full border border-secondary-200 object-contain bg-secondary-900 p-1"
+                    />
                 )}
                 <div>
                     <h3 className="text-sm font-semibold text-secondary-950">{agent.name}</h3>

@@ -12,10 +12,14 @@ export default function ChatHeader({
         <header className="bg-white border-b concierge-rule shrink-0 concierge-safe-top">
             <div className="px-4 sm:px-5 pt-4 pb-3 flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
-                    {/* Advisor avatar — clean monogram */}
+                    {/* Advisor avatar — 3D Robot Head */}
                     <div className="relative shrink-0">
-                        <div className="w-11 h-11 rounded-2xl bg-[#1A1A1A] text-white flex items-center justify-center shadow-sm">
-                            <span className="font-black text-lg leading-none">H</span>
+                        <div className="w-11 h-11 rounded-2xl bg-[#1A1A1A] text-white flex items-center justify-center shadow-sm overflow-hidden p-1 border border-white/10">
+                            <img
+                                src="/images/ai-agent-head.webp"
+                                alt={trans('assistant_name')}
+                                className="w-full h-full object-contain drop-shadow-[0_2px_8px_rgba(37,99,235,0.35)]"
+                            />
                         </div>
                         <span className="absolute -bottom-0.5 -end-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full shadow-sm" aria-hidden="true"></span>
                     </div>

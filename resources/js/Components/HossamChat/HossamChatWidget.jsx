@@ -186,7 +186,14 @@ export default function HossamChatWidget({ autoOpen = false }) {
                         >
                             <div className="flex items-start justify-between gap-2">
                                 <div className="flex items-center gap-2">
-                                    <span className="w-6 h-6 rounded-full bg-[#1A1A1A] text-white flex items-center justify-center font-bold text-xs shrink-0">H</span>
+                                    <span className="w-6 h-6 rounded-full bg-[#1A1A1A] text-white flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden p-0.5 border border-white/10">
+                                        <img
+                                            src="/images/ai-agent-head.webp"
+                                            alt=""
+                                            aria-hidden="true"
+                                            className="w-full h-full object-contain"
+                                        />
+                                    </span>
                                     <span className="text-xs font-bold text-slate-900">{trans('assistant_name')}</span>
                                     <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                                 </div>

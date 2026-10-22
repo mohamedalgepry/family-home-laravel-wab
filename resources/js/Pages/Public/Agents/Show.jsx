@@ -18,15 +18,20 @@ export default function Show({ agent, units, projects, stats = {}, availableArea
     const settings = pageProps.settings
     const trans = useTrans(currentLocale)
     const isRtl = currentLocale === 'ar'
-    const unitData = units?.data || []
-    const unitLinks = units?.links || []
-    const projectData = projects?.data || []
+    const unitData = units?.data || (Array.isArray(units) ? units : [])
+    const unitMeta = units?.meta || units || {}
+    const unitLinks = units?.links || unitMeta?.links || []
+    const lastPage = typeof unitMeta?.last_page === 'number' ? unitMeta.last_page : 1
+    const projectData = projects?.data || (Array.isArray(projects) ? projects : [])
 
     const [copied, setCopied] = useState(false)
     const [searchTerm, setSearchTerm] = useState(filters.search || '')
 
     const agentContacts = getAgentContacts(agent, settings)
-    const avatarSrc = getStorageUrl(agent.avatar, null)
+    const defaultAvatar = '/images/ai-agent-head.webp'
+    const isAiAgent = !agent.avatar || /حسام|hossam|ai|bot|ذك(ي|اء)|آلي/i.test(`${agent.name || ''} ${agent.slug || ''}`)
+    const avatarSrc = getStorageUrl(agent.avatar, null) || (isAiAgent ? defaultAvatar : null)
+    const isRobotHead = avatarSrc === defaultAvatar || (avatarSrc && avatarSrc.includes('ai-agent-head'))
     const agentIdentifier = agent.slug || agent.id
 
     const whatsappMsg = encodeURIComponent(
@@ -77,7 +82,7 @@ export default function Show({ agent, units, projects, stats = {}, availableArea
         : 'Real estate consultant at Family Home helping clients find residential and commercial units and projects with suitable payment plans.'
     const agentBio = agent.bio || agent.profile?.bio || defaultBio
 
-    const totalUnitsCount = stats.total_units ?? units?.total ?? 0
+    const totalUnitsCount = stats.total_units ?? unitMeta?.total ?? units?.total ?? unitData.length
     const forSaleCount = stats.for_sale ?? 0
     const forRentCount = stats.for_rent ?? 0
     const areasCount = stats.areas_count ?? availableAreas.length
@@ -89,7 +94,7 @@ export default function Show({ agent, units, projects, stats = {}, availableArea
             <SeoHead
                 title={`${agent.name} - ${trans('app_name')}`}
                 description={agentBio}
-                ogImage={avatarSrc || '/images/og-familyhome.png'}
+                ogImage={avatarSrc || defaultAvatar}
                 ogType="profile"
             />
 
@@ -119,16 +124,23 @@ export default function Show({ agent, units, projects, stats = {}, availableArea
                                         alt={agent.name}
                                         width={168}
                                         height={168}
-                                        className="w-32 h-32 sm:w-40 sm:h-40 rounded-[2rem] object-cover border-4 border-white/10 ring-4 ring-primary-900/20 shadow-2xl bg-secondary-900"
+                                        className={`w-32 h-32 sm:w-40 sm:h-40 rounded-[2rem] border-4 border-white/10 ring-4 ring-primary-900/20 shadow-2xl bg-secondary-900 ${
+                                            isRobotHead ? 'object-contain p-2' : 'object-cover'
+                                        }`}
                                         onError={(event) => {
                                             event.currentTarget.onerror = null
-                                            event.currentTarget.src = PLACEHOLDER
+                                            event.currentTarget.src = defaultAvatar
+                                            event.currentTarget.className = 'w-32 h-32 sm:w-40 sm:h-40 rounded-[2rem] border-4 border-white/10 ring-4 ring-primary-900/20 shadow-2xl bg-secondary-900 object-contain p-2'
                                         }}
                                     />
                                 ) : (
-                                    <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-[2rem] bg-secondary-900 border-4 border-white/10 ring-4 ring-primary-900/20 flex items-center justify-center text-5xl font-black text-primary-400 shadow-2xl">
-                                        {agent.name?.charAt(0)?.toUpperCase() || '?'}
-                                    </div>
+                                    <img
+                                        src={defaultAvatar}
+                                        alt={agent.name}
+                                        width={168}
+                                        height={168}
+                                        className="w-32 h-32 sm:w-40 sm:h-40 rounded-[2rem] border-4 border-white/10 ring-4 ring-primary-900/20 shadow-2xl bg-secondary-900 object-contain p-2"
+                                    />
                                 )}
                                 <span className="absolute -bottom-2 -end-2 w-10 h-10 rounded-xl bg-emerald-500 border-4 border-secondary-950 flex items-center justify-center shadow-lg" title={isRtl ? 'مستشار موثق' : 'Verified agent'}>
                                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
@@ -258,7 +270,11 @@ export default function Show({ agent, units, projects, stats = {}, availableArea
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                                     {unitData.map(unit => <UnitCard key={unit.id} unit={unit} />)}
                                 </div>
-                                {units?.last_page > 1 && <div className="mt-10 flex justify-center"><Pagination links={unitLinks} /></div>}
+                                {lastPage > 1 && (
+                                    <div className="mt-10 flex justify-center">
+                                        <Pagination meta={unitMeta} links={unitLinks} pageParam="page" />
+                                    </div>
+                                )}
                             </>
                         ) : (
                             <EmptyState icon="unit" title={isRtl ? 'لا توجد وحدات مطابقة' : 'No matching units'} text={isRtl ? 'جرّب تغيير الفلاتر أو البحث مرة أخرى.' : 'Try changing the filters or search term.'} />

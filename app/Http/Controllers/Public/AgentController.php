@@ -40,11 +40,15 @@ class AgentController extends Controller
                 ->all();
         }
 
-        // الوحدات النشطة المرتبطة بالمستشار، أو بفريقه، أو بمشاريعه.
+        $isAiAgent = $agent->role === 'ai'
+            || in_array(strtolower($agent->slug ?? ''), ['hossam', 'ai-agent', 'concierge'], true)
+            || str_contains(mb_strtolower($agent->name ?? ''), 'حسام');
+
+        // الوحدات النشطة المرتبطة بالمستشار، أو بفريقه، أو بمشاريعه (أو كامل المخزون للأدمن والمستشار الذكي).
         $baseQuery = Unit::active();
 
-        if ($agent->isAdmin()) {
-            // الأدمن يمثل الشركة ويعرض له كامل المخزون النشط.
+        if ($agent->isAdmin() || $isAiAgent) {
+            // الأدمن والمستشار الذكي يمثلان الشركة ويعرض لهما كامل المخزون النشط.
         } else {
             $baseQuery->where(function ($query) use ($managedAgentIds) {
                 $query->whereIn('user_id', $managedAgentIds)
@@ -60,7 +64,7 @@ class AgentController extends Controller
             ->withCount(['units' => fn ($query) => $query->active()])
             ->orderByDesc('created_at');
 
-        if (! $agent->isAdmin()) {
+        if (! $agent->isAdmin() && ! $isAiAgent) {
             $projectsQuery->whereIn('user_id', $managedAgentIds);
         }
 
@@ -108,9 +112,14 @@ class AgentController extends Controller
             default => $unitsQuery->orderByDesc('created_at'),
         };
 
+        $perPage = (int) $request->query('per_page', 12);
+        if ($perPage < 6 || $perPage > 48) {
+            $perPage = 12;
+        }
+
         $units = $unitsQuery
             ->with(['type', 'area', 'images', 'finishingType', 'user.profile'])
-            ->paginate(24)
+            ->paginate($perPage)
             ->withQueryString();
 
         $agentIdentifier = $agent->slug ?: $agent->id;

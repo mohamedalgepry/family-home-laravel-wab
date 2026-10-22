@@ -174,13 +174,25 @@ export default function Footer() {
                 <button
                     type="button"
                     onClick={() => setChatMounted(true)}
-                    className="fixed z-50 end-4 bottom-6 sm:bottom-8 sm:end-8 w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#1A1A1A] text-white flex items-center justify-center shadow-[0_10px_30px_rgba(0,0,0,0.20)] focus:outline-none focus:ring-4 focus:ring-[#CC0000]/30 print:hidden"
+                    className="group fixed z-50 end-4 bottom-6 sm:bottom-8 sm:end-8 w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#1A1A1A] text-white flex items-center justify-center shadow-[0_10px_30px_rgba(0,0,0,0.20)] hover:shadow-[0_14px_40px_rgba(0,0,0,0.30)] focus:outline-none focus:ring-4 focus:ring-[#CC0000]/30 print:hidden transition-all duration-300"
                     aria-label={trans('assistant_name')}
                     title={trans('assistant_name')}
                 >
-                    <span className="font-black text-xl sm:text-2xl tracking-tight leading-none">
-                        H<span className="inline-block w-1.5 h-1.5 rounded-full bg-[#CC0000] align-top ms-0.5"></span>
+                    {/* Status Glowing Dot (emerald) */}
+                    <span className="absolute top-1.5 end-1.5 flex h-3 w-3 z-20">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 border-2 border-[#1A1A1A] shadow-sm"></span>
                     </span>
+
+                    {/* 3D AI Robot — head only */}
+                    <div className="concierge-fab-icon relative z-10 w-14 h-14 sm:w-[72px] sm:h-[72px] flex items-center justify-center overflow-hidden rounded-full transition-transform duration-300 ease-out animate-[bounce_3.5s_ease-in-out_infinite] group-hover:scale-110 group-hover:-rotate-3">
+                        <img
+                            src="/images/ai-agent-head.webp"
+                            alt={trans('assistant_name')}
+                            draggable="false"
+                            className="pointer-events-none w-full h-full object-contain drop-shadow-[0_6px_14px_rgba(37,99,235,0.45)]"
+                        />
+                    </div>
                 </button>
             )}
         </footer>

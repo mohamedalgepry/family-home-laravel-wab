@@ -10761,7 +10761,8 @@ function AdminProjectForm({ project, areas, features, finishingTypes, managers }
 //#endregion
 //#region resources/js/Components/UI/Pagination.jsx
 function Pagination({ meta, links: routeLinks, pageParam = "page" }) {
-	const { locale } = usePage().props;
+	const pageContext = usePage();
+	const { locale } = pageContext.props;
 	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
 	const pageMeta = meta?.meta || meta;
@@ -10777,10 +10778,15 @@ function Pagination({ meta, links: routeLinks, pageParam = "page" }) {
 	const end = Math.min(last_page, current_page + range);
 	for (let i = start; i <= end; i++) pages.push(i);
 	function buildUrl(page) {
-		if (typeof window === "undefined") return "#";
-		const params = new URLSearchParams(window.location.search);
+		if (typeof window !== "undefined") {
+			const params = new URLSearchParams(window.location.search);
+			params.set(pageParam, page);
+			return window.location.pathname + "?" + params.toString();
+		}
+		const [path, search] = (pageContext?.url || "/").split("?");
+		const params = new URLSearchParams(search || "");
 		params.set(pageParam, page);
-		return window.location.pathname + "?" + params.toString();
+		return path + "?" + params.toString();
 	}
 	return /* @__PURE__ */ jsxs("nav", {
 		dir: isRtl ? "rtl" : "ltr",
@@ -17790,7 +17796,7 @@ function CompareBar() {
 }
 //#endregion
 //#region resources/js/Components/Layout/Footer.jsx
-var HossamChatWidget = lazy(() => import("./assets/HossamChatWidget-Dww1xpYv.js"));
+var HossamChatWidget = lazy(() => import("./assets/HossamChatWidget-CrAZn3fB.js"));
 var QUICK_LINKS = [
 	{
 		key: "home",
@@ -18005,16 +18011,24 @@ function Footer() {
 			chatMounted ? /* @__PURE__ */ jsx(Suspense, {
 				fallback: null,
 				children: /* @__PURE__ */ jsx(HossamChatWidget, { autoOpen: true })
-			}) : /* @__PURE__ */ jsx("button", {
+			}) : /* @__PURE__ */ jsxs("button", {
 				type: "button",
 				onClick: () => setChatMounted(true),
-				className: "fixed z-50 end-4 bottom-6 sm:bottom-8 sm:end-8 w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#1A1A1A] text-white flex items-center justify-center shadow-[0_10px_30px_rgba(0,0,0,0.20)] focus:outline-none focus:ring-4 focus:ring-[#CC0000]/30 print:hidden",
+				className: "group fixed z-50 end-4 bottom-6 sm:bottom-8 sm:end-8 w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#1A1A1A] text-white flex items-center justify-center shadow-[0_10px_30px_rgba(0,0,0,0.20)] hover:shadow-[0_14px_40px_rgba(0,0,0,0.30)] focus:outline-none focus:ring-4 focus:ring-[#CC0000]/30 print:hidden transition-all duration-300",
 				"aria-label": trans("assistant_name"),
 				title: trans("assistant_name"),
-				children: /* @__PURE__ */ jsxs("span", {
-					className: "font-black text-xl sm:text-2xl tracking-tight leading-none",
-					children: ["H", /* @__PURE__ */ jsx("span", { className: "inline-block w-1.5 h-1.5 rounded-full bg-[#CC0000] align-top ms-0.5" })]
-				})
+				children: [/* @__PURE__ */ jsxs("span", {
+					className: "absolute top-1.5 end-1.5 flex h-3 w-3 z-20",
+					children: [/* @__PURE__ */ jsx("span", { className: "animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" }), /* @__PURE__ */ jsx("span", { className: "relative inline-flex rounded-full h-3 w-3 bg-emerald-500 border-2 border-[#1A1A1A] shadow-sm" })]
+				}), /* @__PURE__ */ jsx("div", {
+					className: "concierge-fab-icon relative z-10 w-14 h-14 sm:w-[72px] sm:h-[72px] flex items-center justify-center overflow-hidden rounded-full transition-transform duration-300 ease-out animate-[bounce_3.5s_ease-in-out_infinite] group-hover:scale-110 group-hover:-rotate-3",
+					children: /* @__PURE__ */ jsx("img", {
+						src: "/images/ai-agent-head.webp",
+						alt: trans("assistant_name"),
+						draggable: "false",
+						className: "pointer-events-none w-full h-full object-contain drop-shadow-[0_6px_14px_rgba(37,99,235,0.45)]"
+					})
+				})]
 			})
 		]
 	});
@@ -18769,13 +18783,18 @@ function Show({ agent, units, projects, stats = {}, availableAreas = [], filters
 	const settings = pageProps.settings;
 	const trans = useTrans(currentLocale);
 	const isRtl = currentLocale === "ar";
-	const unitData = units?.data || [];
-	const unitLinks = units?.links || [];
-	const projectData = projects?.data || [];
+	const unitData = units?.data || (Array.isArray(units) ? units : []);
+	const unitMeta = units?.meta || units || {};
+	const unitLinks = units?.links || unitMeta?.links || [];
+	const lastPage = typeof unitMeta?.last_page === "number" ? unitMeta.last_page : 1;
+	const projectData = projects?.data || (Array.isArray(projects) ? projects : []);
 	const [copied, setCopied] = useState(false);
 	const [searchTerm, setSearchTerm] = useState(filters.search || "");
 	const agentContacts = getAgentContacts(agent, settings);
-	const avatarSrc = getStorageUrl(agent.avatar, null);
+	const defaultAvatar = "/images/ai-agent-head.webp";
+	const isAiAgent = !agent.avatar || /حسام|hossam|ai|bot|ذك(ي|اء)|آلي/i.test(`${agent.name || ""} ${agent.slug || ""}`);
+	const avatarSrc = getStorageUrl(agent.avatar, null) || (isAiAgent ? defaultAvatar : null);
+	const isRobotHead = avatarSrc === defaultAvatar || avatarSrc && avatarSrc.includes("ai-agent-head");
 	const agentIdentifier = agent.slug || agent.id;
 	const whatsappMsg = encodeURIComponent(isRtl ? `مرحباً أستاذ ${agent.name}، تواصلت معك عبر موقع فاميلي هوم للاستفسار عن الوحدات والمشاريع المتاحة لديك.` : `Hello ${agent.name}, I am contacting you through Family Home regarding your available units and projects.`);
 	const whatsappUrl = agentContacts.whatsapp ? `https://wa.me/${agentContacts.whatsapp}?text=${whatsappMsg}` : null;
@@ -18833,7 +18852,7 @@ function Show({ agent, units, projects, stats = {}, availableAreas = [], filters
 	};
 	const defaultBio = isRtl ? "مستشار عقاري في فاميلي هوم يساعدك في الوصول إلى أفضل الوحدات والمشاريع السكنية والتجارية مع أنظمة سداد مناسبة." : "Real estate consultant at Family Home helping clients find residential and commercial units and projects with suitable payment plans.";
 	const agentBio = agent.bio || agent.profile?.bio || defaultBio;
-	const totalUnitsCount = stats.total_units ?? units?.total ?? 0;
+	const totalUnitsCount = stats.total_units ?? unitMeta?.total ?? units?.total ?? unitData.length;
 	const forSaleCount = stats.for_sale ?? 0;
 	const forRentCount = stats.for_rent ?? 0;
 	stats.areas_count ?? availableAreas.length;
@@ -18845,7 +18864,7 @@ function Show({ agent, units, projects, stats = {}, availableAreas = [], filters
 			/* @__PURE__ */ jsx(SeoHead, {
 				title: `${agent.name} - ${trans("app_name")}`,
 				description: agentBio,
-				ogImage: avatarSrc || "/images/og-familyhome.png",
+				ogImage: avatarSrc || defaultAvatar,
 				ogType: "profile"
 			}),
 			/* @__PURE__ */ jsx(Header, { locale: currentLocale }),
@@ -18887,14 +18906,18 @@ function Show({ agent, units, projects, stats = {}, availableAreas = [], filters
 											alt: agent.name,
 											width: 168,
 											height: 168,
-											className: "w-32 h-32 sm:w-40 sm:h-40 rounded-[2rem] object-cover border-4 border-white/10 ring-4 ring-primary-900/20 shadow-2xl bg-secondary-900",
+											className: `w-32 h-32 sm:w-40 sm:h-40 rounded-[2rem] border-4 border-white/10 ring-4 ring-primary-900/20 shadow-2xl bg-secondary-900 ${isRobotHead ? "object-contain p-2" : "object-cover"}`,
 											onError: (event) => {
 												event.currentTarget.onerror = null;
-												event.currentTarget.src = PLACEHOLDER$2;
+												event.currentTarget.src = defaultAvatar;
+												event.currentTarget.className = "w-32 h-32 sm:w-40 sm:h-40 rounded-[2rem] border-4 border-white/10 ring-4 ring-primary-900/20 shadow-2xl bg-secondary-900 object-contain p-2";
 											}
-										}) : /* @__PURE__ */ jsx("div", {
-											className: "w-32 h-32 sm:w-40 sm:h-40 rounded-[2rem] bg-secondary-900 border-4 border-white/10 ring-4 ring-primary-900/20 flex items-center justify-center text-5xl font-black text-primary-400 shadow-2xl",
-											children: agent.name?.charAt(0)?.toUpperCase() || "?"
+										}) : /* @__PURE__ */ jsx("img", {
+											src: defaultAvatar,
+											alt: agent.name,
+											width: 168,
+											height: 168,
+											className: "w-32 h-32 sm:w-40 sm:h-40 rounded-[2rem] border-4 border-white/10 ring-4 ring-primary-900/20 shadow-2xl bg-secondary-900 object-contain p-2"
 										}), /* @__PURE__ */ jsx("span", {
 											className: "absolute -bottom-2 -end-2 w-10 h-10 rounded-xl bg-emerald-500 border-4 border-secondary-950 flex items-center justify-center shadow-lg",
 											title: isRtl ? "مستشار موثق" : "Verified agent",
@@ -19128,9 +19151,13 @@ function Show({ agent, units, projects, stats = {}, availableAreas = [], filters
 								unitData.length > 0 ? /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx("div", {
 									className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5",
 									children: unitData.map((unit) => /* @__PURE__ */ jsx(UnitCard_default, { unit }, unit.id))
-								}), units?.last_page > 1 && /* @__PURE__ */ jsx("div", {
+								}), lastPage > 1 && /* @__PURE__ */ jsx("div", {
 									className: "mt-10 flex justify-center",
-									children: /* @__PURE__ */ jsx(Pagination, { links: unitLinks })
+									children: /* @__PURE__ */ jsx(Pagination, {
+										meta: unitMeta,
+										links: unitLinks,
+										pageParam: "page"
+									})
 								})] }) : /* @__PURE__ */ jsx(EmptyState, {
 									icon: "unit",
 									title: isRtl ? "لا توجد وحدات مطابقة" : "No matching units",
