@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Public;
 
 use App\Domain\Listings\Models\Area;
+use App\Domain\Listings\Models\Project;
 use App\Domain\Listings\Models\Unit;
 use App\Domain\Users\Models\User;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Public\HomeProjectCardResource;
 use App\Http\Resources\Public\HomeUnitCardResource;
 use App\Services\SeoService;
 use Illuminate\Http\Request;
@@ -28,47 +30,58 @@ class AgentController extends Controller
             })
             ->firstOrFail();
 
-        // استعلام الوحدات النشطة
+        $managedAgentIds = [$agent->id];
+        if ($agent->isManager()) {
+            $managedAgentIds = User::where('manager_id', $agent->id)
+                ->pluck('id')
+                ->push($agent->id)
+                ->unique()
+                ->values()
+                ->all();
+        }
+
+        // الوحدات النشطة المرتبطة بالمستشار، أو بفريقه، أو بمشاريعه.
         $baseQuery = Unit::active();
 
         if ($agent->isAdmin()) {
-            // الأدمن هو المسؤول الأول وممثل الشركة، تعرض له كافة وحدات المنصة النشطة
-        } elseif ($agent->isManager()) {
-            // المدير تعرض له وحداته ووحدات وكلائه التابعين له ووحدات مشاريعهم
-            $managedAgentIds = User::where('manager_id', $agent->id)->pluck('id')->push($agent->id)->all();
+            // الأدمن يمثل الشركة ويعرض له كامل المخزون النشط.
+        } else {
             $baseQuery->where(function ($query) use ($managedAgentIds) {
                 $query->whereIn('user_id', $managedAgentIds)
                     ->orWhereHas('project', function ($q) use ($managedAgentIds) {
                         $q->whereIn('user_id', $managedAgentIds);
                     });
             });
-        } else {
-            // الوكيل تعرض له وحداته ووحدات مشاريعه
-            $baseQuery->where(function ($query) use ($agent) {
-                $query->where('user_id', $agent->id)
-                    ->orWhereHas('project', function ($q) use ($agent) {
-                        $q->where('user_id', $agent->id);
-                    });
-            });
         }
 
-        // حساب الإحصائيات قبل تطبيق فلاتر الصفحة
+        // المشاريع النشطة التي أنشأها المستشار أو فريقه.
+        $projectsQuery = Project::active()
+            ->with(['area', 'images', 'user.profile'])
+            ->withCount(['units' => fn ($query) => $query->active()])
+            ->orderByDesc('created_at');
+
+        if (! $agent->isAdmin()) {
+            $projectsQuery->whereIn('user_id', $managedAgentIds);
+        }
+
+        $projects = $projectsQuery->get();
+
+        // حساب الإحصائيات قبل تطبيق فلاتر الصفحة.
         $statsBaseQuery = clone $baseQuery;
         $totalUnits = (clone $statsBaseQuery)->count();
         $forSaleCount = (clone $statsBaseQuery)->where('transaction', 'sale')->count();
         $forRentCount = (clone $statsBaseQuery)->where('transaction', 'rent')->count();
 
-        // المناطق المتاحة التي بها عقارات لهذا المستشار
         $areaIds = (clone $statsBaseQuery)->whereNotNull('area_id')->distinct()->pluck('area_id');
         $availableAreas = Area::whereIn('id', $areaIds)
             ->select('id', 'name_ar', 'name_en', 'slug')
             ->orderBy('name_ar')
             ->get();
 
-        // تطبيق الفلاتر الاختيارية (transaction, area_id, search, sort)
+        // تطبيق الفلاتر الاختيارية (transaction, area_id, search, sort).
         $unitsQuery = clone $baseQuery;
 
-        if ($request->filled('transaction') && in_array($request->query('transaction'), ['sale', 'rent'])) {
+        if ($request->filled('transaction') && in_array($request->query('transaction'), ['sale', 'rent'], true)) {
             $unitsQuery->where('transaction', $request->query('transaction'));
         }
 
@@ -87,7 +100,6 @@ class AgentController extends Controller
             });
         }
 
-        // خيارات الترتيب
         $sort = $request->query('sort', 'latest');
         match ($sort) {
             'price_asc' => $unitsQuery->orderBy('price', 'asc'),
@@ -98,7 +110,7 @@ class AgentController extends Controller
 
         $units = $unitsQuery
             ->with(['type', 'area', 'images', 'finishingType', 'user.profile'])
-            ->paginate(12)
+            ->paginate(24)
             ->withQueryString();
 
         $agentIdentifier = $agent->slug ?: $agent->id;
@@ -106,8 +118,8 @@ class AgentController extends Controller
         $title = $agent->name.' - '.config('app.name');
         $description = $agent->profile?->bio ?: (
             app()->getLocale() === 'ar'
-                ? "تصفح جميع الوحدات والعقارات المتاحة عبر المستشار العقاري {$agent->name} من شركة فاميلي هوم للتطوير العقاري. شقق، فلل، ومحلات بأفضل الأسعار وخطط السداد في مصر."
-                : "Explore all properties and real estate units offered by consultant {$agent->name} at Family Home Real Estate. Apartments, villas, and commercial spaces with the best payment plans in Egypt."
+                ? "تصفح جميع الوحدات والمشاريع العقارية المتاحة عبر المستشار العقاري {$agent->name} من شركة فاميلي هوم للتطوير العقاري."
+                : "Explore all available real estate units and projects offered by consultant {$agent->name} at Family Home Real Estate."
         );
 
         $meta = app(SeoService::class)->forPage('agents', [
@@ -140,6 +152,7 @@ class AgentController extends Controller
                 'for_sale' => $forSaleCount,
                 'for_rent' => $forRentCount,
                 'areas_count' => $availableAreas->count(),
+                'projects_count' => $projects->count(),
             ],
             'availableAreas' => $availableAreas,
             'filters' => [
@@ -149,6 +162,7 @@ class AgentController extends Controller
                 'search' => $request->query('search', ''),
             ],
             'units' => HomeUnitCardResource::collection($units),
+            'projects' => HomeProjectCardResource::collection($projects),
             'seo_meta' => $meta,
         ])->withViewData(['meta' => $meta]);
     }
