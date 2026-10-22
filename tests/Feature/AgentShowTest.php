@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Listings\Models\Project;
 use App\Domain\Users\Models\AgentProfile;
 use App\Domain\Users\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -35,8 +36,79 @@ class AgentShowTest extends TestCase
         $response->assertInertia(fn ($page) => $page
             ->component('Public/Agents/Show')
             ->has('agent')
+            ->has('projects')
             ->where('agent.name', 'Ahmed Mahmoud')
             ->where('agent.slug', 'ahmed-mahmoud')
+        );
+    }
+
+    public function test_agent_profile_includes_agent_owned_projects(): void
+    {
+        $user = User::create([
+            'name' => 'Project Agent',
+            'slug' => 'project-agent',
+            'email' => 'project-agent@test.com',
+            'password' => bcrypt('password'),
+            'is_active' => true,
+            'role' => 'agent',
+        ]);
+
+        AgentProfile::create(['user_id' => $user->id]);
+
+        Project::create([
+            'user_id' => $user->id,
+            'name' => 'Agent Project',
+            'slug' => 'agent-project',
+            'is_active' => true,
+        ]);
+
+        $response = $this->get('/ar/agents/project-agent');
+
+        $response->assertStatus(200);
+        $response->assertInertia(fn ($page) => $page
+            ->has('projects.data', 1)
+            ->where('projects.data.0.name', 'Agent Project')
+            ->where('stats.projects_count', 1)
+        );
+    }
+
+    public function test_manager_profile_includes_projects_created_by_managed_agents(): void
+    {
+        $manager = User::create([
+            'name' => 'Sales Manager',
+            'slug' => 'sales-manager',
+            'email' => 'manager@test.com',
+            'password' => bcrypt('password'),
+            'is_active' => true,
+            'role' => 'manager',
+        ]);
+
+        AgentProfile::create(['user_id' => $manager->id]);
+
+        $agent = User::create([
+            'name' => 'Managed Agent',
+            'slug' => 'managed-agent',
+            'email' => 'managed@test.com',
+            'password' => bcrypt('password'),
+            'is_active' => true,
+            'role' => 'agent',
+            'manager_id' => $manager->id,
+        ]);
+
+        Project::create([
+            'user_id' => $agent->id,
+            'name' => 'Managed Project',
+            'slug' => 'managed-project',
+            'is_active' => true,
+        ]);
+
+        $response = $this->get('/ar/agents/sales-manager');
+
+        $response->assertStatus(200);
+        $response->assertInertia(fn ($page) => $page
+            ->has('projects.data', 1)
+            ->where('projects.data.0.name', 'Managed Project')
+            ->where('stats.projects_count', 1)
         );
     }
 
