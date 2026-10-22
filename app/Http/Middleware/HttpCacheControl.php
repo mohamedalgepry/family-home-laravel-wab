@@ -28,6 +28,12 @@ class HttpCacheControl
         // Separate cache entries for full-page HTML vs Inertia JSON (same URL, different Accept/X-Inertia)
         $response->headers->set('Vary', 'X-Inertia, Accept');
 
+        // Redirects may depend on the user's locale/session, and errors must not be cached as public HTML.
+        $status = $response->getStatusCode();
+        if (($status >= 300 && $status < 400) || $status >= 400) {
+            return $this->noCache($response);
+        }
+
         // Never cache Inertia partial navigations — using no-store prevents mobile browsers (Chrome/Safari)
         // from saving AJAX JSON responses into BFCache/disk cache, which caused raw JSON to be rendered
         // as a text document when returning to an idle tab on mobile phones.
