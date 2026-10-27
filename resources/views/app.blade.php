@@ -66,6 +66,14 @@
         $appleTouchIcon = $siteLogo ? asset('storage/' . $siteLogo) : asset('icon.png');
         $seoService = app(\App\Services\SeoService::class);
         $currentMeta = $meta ?? $seoService->forPage(request()->route()?->getName() ?? 'home');
+        $seoPath = trim(preg_replace('#^(ar|en)(/|$)#', '', request()->path()), '/');
+        $privatePrefixes = ['admin', 'login', 'forgot-password', 'verify-otp', 'reset-password', 'profile'];
+        foreach ($privatePrefixes as $prefix) {
+            if ($seoPath === $prefix || str_starts_with($seoPath, $prefix.'/')) {
+                $currentMeta['robots'] = 'noindex, nofollow';
+                break;
+            }
+        }
     @endphp
 
     <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="any">
@@ -81,6 +89,9 @@
     @vite(['resources/js/app.jsx', 'resources/css/app.css'])
     @php
         $localeChunk = null;
+        $fontUrl = app()->getLocale() === 'ar'
+            ? asset('fonts/cairo/cairo-1.woff2')
+            : asset('fonts/cairo/cairo-3.woff2');
         $manifestPath = public_path('build/manifest.json');
         if (file_exists($manifestPath)) {
             $manifest = json_decode(file_get_contents($manifestPath), true);
@@ -94,6 +105,7 @@
     <!-- Preload the active locale dictionary (code-split per language) -->
     <link rel="modulepreload" as="script" href="{{ asset('build/' . $localeChunk) }}">
     @endif
+    <link rel="preload" as="font" type="font/woff2" href="{{ $fontUrl }}" crossorigin>
     @inertiaHead
 </head>
 <body class="font-cairo antialiased bg-gray-50 text-gray-900 selection:bg-primary-500 selection:text-white">

@@ -7,7 +7,6 @@ use App\Domain\Listings\Notifications\NewProjectCreatedNotification;
 use App\Domain\Users\Models\User;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
-use Illuminate\Support\Facades\Cache;
 
 class NotifyNewProjectJob implements ShouldQueue
 {
@@ -29,7 +28,6 @@ class NotifyNewProjectJob implements ShouldQueue
 
         foreach ($admins as $admin) {
             $admin->notify(new NewProjectCreatedNotification($this->project, $user));
-            Cache::forget("user_{$admin->id}_unread_count");
         }
     }
 }

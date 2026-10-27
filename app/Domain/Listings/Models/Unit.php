@@ -15,6 +15,15 @@ class Unit extends Model
 {
     use ByAnySlug;
 
+    public function scopeWithCardImage(Builder $query): Builder
+    {
+        return $query->with(['images' => static fn ($images) => $images
+            ->select(['id', 'unit_id', 'path', 'alt_text', 'sort_order', 'is_primary'])
+            ->orderByDesc('is_primary')
+            ->orderBy('sort_order')
+            ->limit(1)]);
+    }
+
     protected $fillable = [
         'project_id', 'name', 'name_ar', 'name_en', 'slug', 'slug_ar', 'slug_en', 'description', 'description_ar', 'description_en', 'type_id',
         'area_id', 'transaction', 'price', 'area_sqm', 'rooms', 'bathrooms',

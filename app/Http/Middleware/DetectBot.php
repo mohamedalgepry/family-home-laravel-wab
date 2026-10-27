@@ -81,7 +81,7 @@ class DetectBot
         return response($content, 200, [
             'Content-Type' => 'text/html; charset=UTF-8',
             'X-Prerendered-By' => 'FamilyHome-StaticPrerender',
-            'Cache-Control' => 'public, max-age=3600, stale-while-revalidate=86400',
+            'Cache-Control' => 'public, max-age=0, s-maxage=60, stale-while-revalidate=30',
         ]);
     }
 

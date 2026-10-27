@@ -106,10 +106,10 @@ class UnitController
 
         // المقالات هي نفسها بصرف النظر عن الوحدة — cache مشترك بدلاً من cache لكل unit
         $relatedArticles = \Illuminate\Support\Facades\Cache::remember(
-            'latest_published_articles_4',
+            'latest_published_articles_4_v2',
             600,
             fn () => Article::where('is_published', true)
-                ->with(['images', 'category'])
+                ->with('category')->withCardImage()
                 ->orderByDesc('published_at')
                 ->limit(4)
                 ->get()
@@ -121,7 +121,7 @@ class UnitController
             function () use ($unit) {
                 return Project::where('is_active', true)
                     ->when($unit->project_id, fn ($q) => $q->where('id', '!=', $unit->project_id))
-                    ->with(['area', 'images', 'user.profile'])
+                    ->with(['area', 'user.profile'])->withCardImage()
                     ->withCount(['units' => fn ($q) => $q->active()])
                     // ترتيب: المنطقة المطابقة أولاً، ثم الأحدث
                     ->orderByRaw('CASE WHEN area_id = ? THEN 0 ELSE 1 END', [$unit->area_id ?? 0])
@@ -182,6 +182,10 @@ class UnitController
 
         if (! empty($filters['search'])) {
             $parts[] = $filters['search'];
+        }
+
+        if (! empty(array_filter($filters, fn ($value) => $value !== null && $value !== '' && $value !== []))) {
+            $customMeta['robots'] = 'noindex, follow';
         }
 
         if (! empty($parts)) {

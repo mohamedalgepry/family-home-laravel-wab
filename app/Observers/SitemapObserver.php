@@ -2,37 +2,50 @@
 
 namespace App\Observers;
 
+use App\Domain\Listings\Jobs\RegeneratePrerenderJob;
 use App\Domain\Listings\Jobs\RegenerateSitemapJob;
+use App\Domain\Listings\Models\Article;
+use App\Domain\Listings\Models\Project;
+use App\Domain\Listings\Models\Unit;
+use Illuminate\Database\Eloquent\Model;
 
 class SitemapObserver
 {
-    private function triggerRegeneration(): void
+    private function triggerRegeneration(Model $model): void
     {
-        try {
-            app(\App\Domain\Listings\Services\SitemapService::class)->regenerate();
-        } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::warning('Direct sitemap regeneration failed in observer, dispatching job fallback: ' . $e->getMessage());
-            dispatch(new RegenerateSitemapJob)->afterCommit();
+        if (! $model->wasRecentlyCreated && ! $this->hasContentChanges($model)) {
+            return;
+        }
+
+        dispatch(new RegenerateSitemapJob)->afterCommit();
+
+        if ($model instanceof Unit || $model instanceof Project || $model instanceof Article) {
+            dispatch(new RegeneratePrerenderJob)->afterCommit();
         }
     }
 
-    public function saved($model): void
+    private function hasContentChanges(Model $model): bool
     {
-        $this->triggerRegeneration();
+        $changedAttributes = array_diff(array_keys($model->getChanges()), ['views_count', 'updated_at']);
+
+        return $changedAttributes !== [];
     }
 
-    public function deleted($model): void
+    public function saved(Model $model): void
     {
-        $this->triggerRegeneration();
+        $this->triggerRegeneration($model);
     }
 
-    public function restored($model): void
+    public function deleted(Model $model): void
     {
-        $this->triggerRegeneration();
+        dispatch(new RegenerateSitemapJob)->afterCommit();
+        if ($model instanceof Unit || $model instanceof Project || $model instanceof Article) {
+            dispatch(new RegeneratePrerenderJob)->afterCommit();
+        }
     }
 
-    public function forceDeleted($model): void
+    public function restored(Model $model): void
     {
-        $this->triggerRegeneration();
+        $this->triggerRegeneration($model);
     }
 }

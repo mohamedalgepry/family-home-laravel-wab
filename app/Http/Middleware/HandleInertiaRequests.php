@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Domain\Listings\Models\PageSeo;
 use App\Domain\Listings\Services\SettingsService;
+use App\Domain\Users\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Inertia\Middleware;
@@ -45,11 +46,7 @@ class HandleInertiaRequests extends Middleware
         $unreadCount = 0;
         if ($user) {
             $user->loadMissing('profile');
-            $unreadCount = Cache::remember(
-                "user_{$user->id}_unread_count",
-                60,
-                fn () => $user->unreadNotifications()->count()
-            );
+            $unreadCount = app(NotificationService::class)->unreadCount($user);
         }
 
         $seoPage = null;

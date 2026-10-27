@@ -3,7 +3,6 @@
 namespace App\Domain\Listings\Services;
 
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
 
 class SitemapService
 {
@@ -15,14 +14,7 @@ class SitemapService
     public function regenerate(): void
     {
         $this->forgetCache();
-
-        try {
-            $this->writePublicFiles();
-        } catch (\Throwable $exception) {
-            Log::error('Sitemap regeneration failed', [
-                'error' => $exception->getMessage(),
-            ]);
-        }
+        $this->writePublicFiles();
     }
 
     public function forgetCache(): void
@@ -50,7 +42,13 @@ class SitemapService
         ];
 
         foreach ($files as $filename => $contents) {
-            file_put_contents(public_path($filename), $contents);
+            $target = public_path($filename);
+            $temporary = $target.'.'.bin2hex(random_bytes(8)).'.tmp';
+
+            if (file_put_contents($temporary, $contents, LOCK_EX) === false || ! rename($temporary, $target)) {
+                @unlink($temporary);
+                throw new \RuntimeException("Unable to write sitemap file: {$filename}");
+            }
         }
     }
 

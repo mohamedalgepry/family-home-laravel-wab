@@ -122,6 +122,12 @@ class SeoService
         $imageUrl = ($siteLogo && !str_contains($siteLogo, '.webp'))
             ? asset('storage/'.$siteLogo)
             : (file_exists(public_path('images/og-familyhome.png')) ? asset('images/og-familyhome.png') : asset('icon.png'));
+        $customImage = $customMeta['image'] ?? $customMeta['ogImage'] ?? null;
+        if (is_string($customImage) && $customImage !== '') {
+            $imageUrl = str_starts_with($customImage, 'http')
+                ? $customImage
+                : asset(ltrim($customImage, '/'));
+        }
 
         $schemas = [];
         if ($pageKey === 'home') {

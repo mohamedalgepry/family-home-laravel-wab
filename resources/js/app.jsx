@@ -81,6 +81,8 @@ import { Component } from 'react'
 import { loadLocale } from './Utils/trans'
 import { CompareProvider } from './Contexts/CompareContext'
 
+const pageModules = import.meta.glob('./Pages/**/*.jsx', { lazy: true })
+
 class ErrorBoundary extends Component {
     constructor(props) {
         super(props)
@@ -164,17 +166,6 @@ if (typeof window !== 'undefined') {
     document.addEventListener('inertia:invalid', handleNonInertiaResponse);
     document.addEventListener('inertia:httpException', handleNonInertiaResponse);
 
-    // Auto-remove any #inertia-error-dialog element if dynamically created
-    if (typeof MutationObserver !== 'undefined' && typeof document !== 'undefined') {
-        const observer = new MutationObserver(() => {
-            const dialog = document.getElementById('inertia-error-dialog');
-            if (dialog) {
-                dialog.remove();
-            }
-        });
-        observer.observe(document.documentElement, { childList: true, subtree: true });
-    }
-
     // Auto-refresh page state if tab is restored from mobile browser BFCache / background sleep
     window.addEventListener('pageshow', (event) => {
         if (event.persisted) {
@@ -237,10 +228,7 @@ async function boot() {
     await loadLocale(initialLocale)
 
     createInertiaApp({
-        resolve: name => {
-            const pages = import.meta.glob('./Pages/**/*.jsx', { lazy: true })
-            return pages[`./Pages/${name}.jsx`]()
-        },
+        resolve: name => pageModules[`./Pages/${name}.jsx`](),
         setup({ el, App, props }) {
             createRoot(el).render(
                 <ErrorBoundary>

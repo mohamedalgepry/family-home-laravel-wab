@@ -310,36 +310,40 @@ export default function AdminSidebar({ children }) {
     }
 
     function handleNewNotif(count) {
-        if (!soundReadyRef.current) return
-        if (count > prevNotifRef.current) {
+        const previousCount = prevNotifRef.current
+        const newCount = Math.max(0, count - previousCount)
+        prevNotifRef.current = count
+        setLiveNotifCount(count)
+
+        if (soundReadyRef.current && newCount > 0) {
             if (soundRef.current) playNotificationSound()
             fetchRecentNotifs(false)
             const el = document.createElement('div')
             el.setAttribute('role', 'alert')
             el.setAttribute('aria-live', 'polite')
             el.className = 'fixed top-4 end-4 z-50 bg-amber-500 text-white px-4 py-3 rounded-xl shadow-lg text-sm font-bold animate-fade-in'
-            el.textContent = isRtl ? `🔔 لديك ${count} إشعار جديد` : `🔔 You have ${count} new notifications`
+            el.textContent = isRtl ? `🔔 لديك ${newCount} إشعار جديد` : `🔔 You have ${newCount} new notifications`
             document.body.appendChild(el)
             setTimeout(() => { el.remove() }, 4000)
         }
-        prevNotifRef.current = count
-        setLiveNotifCount(count)
     }
 
     function handleNewMsg(count) {
-        if (!soundReadyRef.current) return
-        if (count > prevMsgRef.current) {
+        const previousCount = prevMsgRef.current
+        const newCount = Math.max(0, count - previousCount)
+        prevMsgRef.current = count
+        setLiveMsgCount(count)
+
+        if (soundReadyRef.current && newCount > 0) {
             if (soundRef.current) playNotificationSound()
             const el = document.createElement('div')
             el.setAttribute('role', 'alert')
             el.setAttribute('aria-live', 'polite')
             el.className = 'fixed top-4 end-4 z-50 bg-blue-500 text-white px-4 py-3 rounded-xl shadow-lg text-sm font-bold animate-fade-in'
-            el.textContent = isRtl ? `💬 لديك ${count} رسالة جديدة` : `💬 You have ${count} new messages`
+            el.textContent = isRtl ? `💬 لديك ${newCount} رسالة جديدة` : `💬 You have ${newCount} new messages`
             document.body.appendChild(el)
             setTimeout(() => { el.remove() }, 4000)
         }
-        prevMsgRef.current = count
-        setLiveMsgCount(count)
     }
 
     useEffect(() => {

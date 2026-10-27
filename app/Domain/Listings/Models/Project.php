@@ -13,6 +13,14 @@ class Project extends Model
 {
     use ByAnySlug;
 
+    public function scopeWithCardImage(Builder $query): Builder
+    {
+        return $query->with(['images' => static fn ($images) => $images
+            ->select(['id', 'project_id', 'path', 'alt_text', 'sort_order'])
+            ->orderBy('sort_order')
+            ->limit(1)]);
+    }
+
     protected $fillable = [
         'user_id', 'area_id', 'name', 'name_ar', 'name_en', 'slug', 'slug_ar', 'slug_en', 'description', 'description_ar', 'description_en', 'alt_text',
         'video_url', 'map_embed_url', 'latitude', 'longitude', 'location_address_ar', 'location_address_en',

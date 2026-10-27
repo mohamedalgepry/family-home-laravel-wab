@@ -16,7 +16,7 @@ class ListingService
 
     private const CACHE_PREFIX = 'listing_';
 
-    public const CACHE_VERSION_KEY = 'listing_cache_version_v2';
+    public const CACHE_VERSION_KEY = 'listing_cache_version_v3';
 
     public function version(): int
     {
@@ -41,7 +41,8 @@ class ListingService
 
         return Cache::remember(self::CACHE_PREFIX."featured_{$limit}_{$pageName}_{$page}_{$this->locale()}_v{$this->version()}", self::CACHE_TTL, function () use ($limit, $pageName) {
             return Unit::featured()
-                ->with(['type', 'area', 'images', 'user'])
+                ->with(['type', 'area', 'user'])
+                ->withCardImage()
                 ->paginate($limit, ['*'], $pageName);
         });
     }
@@ -72,7 +73,7 @@ class ListingService
 
     private function unitBaseQuery(): Builder
     {
-        return Unit::active()->with(['type', 'area', 'images', 'finishingType', 'user.profile']);
+        return Unit::active()->with(['type', 'area', 'finishingType', 'user.profile'])->withCardImage();
     }
 
     private function applyUnitFilters($query, array $filters): void
@@ -96,7 +97,8 @@ class ListingService
 
         return Cache::remember($key, self::CACHE_TTL, function () use ($filters, $perPage) {
             $query = Project::where('is_active', true)
-                ->with(['area', 'images', 'user.profile'])
+                ->with(['area', 'user.profile'])
+                ->withCardImage()
                 ->withCount(['units' => function ($q) {
                     $q->active();
                 }]);
@@ -113,7 +115,8 @@ class ListingService
 
         return Cache::remember(self::CACHE_PREFIX."latest_projects_{$limit}_{$pageName}_{$page}_{$this->locale()}_v{$this->version()}", self::CACHE_TTL, function () use ($limit, $pageName) {
             return Project::where('is_active', true)
-                ->with(['area', 'images', 'user.profile'])
+                ->with(['area', 'user.profile'])
+                ->withCardImage()
                 ->withCount(['units' => function ($q) {
                     $q->active();
                 }])
@@ -144,7 +147,8 @@ class ListingService
     {
         return Cache::remember(self::CACHE_PREFIX."unit_{$slug}_{$this->locale()}_v{$this->version()}", self::CACHE_TTL, function () use ($slug) {
             return Unit::byAnySlug($slug)
-                ->with(['type', 'area', 'images', 'user.profile', 'project.area', 'features', 'finishingType'])
+                ->with(['type', 'area', 'user.profile', 'project.area', 'features', 'finishingType'])
+                ->withCardImage()
                 ->first();
         });
     }
@@ -153,7 +157,8 @@ class ListingService
     {
         return Cache::remember(self::CACHE_PREFIX."project_{$slug}_{$this->locale()}_v{$this->version()}", self::CACHE_TTL, function () use ($slug) {
             return Project::byAnySlug($slug)
-                ->with(['area', 'images', 'user.profile', 'features', 'finishingType'])
+                ->with(['area', 'user.profile', 'features', 'finishingType'])
+                ->withCardImage()
                 ->withCount(['units' => function ($q) {
                     $q->active();
                 }])
@@ -170,7 +175,8 @@ class ListingService
                     $q->where('type_id', $unit->type_id)
                         ->orWhere('area_id', $unit->area_id);
                 })
-                ->with(['type', 'area', 'images', 'finishingType', 'user.profile'])
+                ->with(['type', 'area', 'finishingType', 'user.profile'])
+                ->withCardImage()
                 ->orderByFeatured()
                 ->limit($limit)
                 ->get();

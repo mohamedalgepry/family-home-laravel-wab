@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Domain\Listings\Jobs\RegenerateSitemapJob;
 use App\Domain\Listings\Models\Project;
 use App\Domain\Listings\Models\Setting;
 use App\Domain\Listings\Models\Unit;
@@ -31,7 +30,7 @@ class NotificationController extends Controller
 
         return Inertia::render('Admin/Notifications/Index', [
             'notifications' => $this->notificationService->paginated($user),
-            'unreadCount' => $user->unreadNotifications()->count(),
+            'unreadCount' => $this->notificationService->unreadCount($user),
             'autoDeleteDays' => (int) Setting::getValue('auto_delete_days', '30'),
         ]);
     }
@@ -55,7 +54,6 @@ class NotificationController extends Controller
         abort_unless($request->user()->isAdmin(), 403);
 
         $project->update(['is_active' => true]);
-        dispatch(new RegenerateSitemapJob)->afterCommit();
         $this->clearListingsCache();
 
         $this->notificationService->markEntityNotificationsAsRead(
@@ -144,7 +142,6 @@ class NotificationController extends Controller
             'extension_days' => $days,
         ]);
 
-        dispatch(new RegenerateSitemapJob)->afterCommit();
         $this->clearListingsCache();
 
         // Clean up obsolete expiry notifications across all recipients
@@ -274,7 +271,6 @@ class NotificationController extends Controller
             'auto_delete_at' => now()->addDays($this->extensionDays()),
         ]);
 
-        dispatch(new RegenerateSitemapJob)->afterCommit();
         $this->clearListingsCache();
 
         $this->notificationService->markEntityNotificationsAsRead($user, $entityColumn, $listing->id);

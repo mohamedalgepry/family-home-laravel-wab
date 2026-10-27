@@ -18,12 +18,11 @@ class ArticleService
         private readonly CreateArticleAction $createAction,
         private readonly UpdateArticleAction $updateAction,
         private readonly ListingImageService $listingImageService,
-        private readonly SitemapService $sitemapService,
     ) {}
 
     public function getPaginatedArticles(array $filters = []): LengthAwarePaginator
     {
-        $query = Article::with(['category', 'images']);
+        $query = Article::with('category')->withCardImage();
 
         ListingQueryBuilder::applySearch($query, $filters, ['title_en', 'title_ar', 'slug', 'slug_ar', 'slug_en', 'content_en', 'content_ar']);
         ListingQueryBuilder::applyExactMatches($query, $filters, ['category_id']);
@@ -107,9 +106,7 @@ class ArticleService
         ]);
 
         // إبطال cache المقالات الأحدث المُستخدم في صفحات الوحدات والمشاريع
-        \Illuminate\Support\Facades\Cache::forget('latest_published_articles_4');
-
-        $this->sitemapService->regenerate();
+        \Illuminate\Support\Facades\Cache::forget('latest_published_articles_4_v2');
 
         return $article->fresh()->load(['category', 'images']);
     }

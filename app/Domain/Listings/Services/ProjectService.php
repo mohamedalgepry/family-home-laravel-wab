@@ -21,12 +21,11 @@ class ProjectService
         private readonly UpdateProjectAction $updateAction,
         private readonly DeleteProjectAction $deleteAction,
         private readonly ListingImageService $listingImageService,
-        private readonly SitemapService $sitemapService,
     ) {}
 
     public function getPaginatedProjects(array $filters = [], ?User $user = null): LengthAwarePaginator
     {
-        $query = Project::with(['area', 'images'])->withCount('units');
+        $query = Project::with('area')->withCardImage()->withCount('units');
 
         UserScopeQueryBuilder::applyOwnershipScope($query, $user);
         ListingQueryBuilder::applySearch($query, $filters, ['name_en', 'name_ar', 'slug', 'slug_ar', 'slug_en', 'keywords_ar', 'keywords_en']);
@@ -101,8 +100,6 @@ class ProjectService
         // حذف الصور الأصلية والـ Thumbnails من الـ Storage
         $this->listingImageService->deleteImageFiles($imagePaths);
 
-        // إعادة توليد ملف sitemap.xml فوراً
-        $this->sitemapService->regenerate();
     }
 
     public function toggleActive(int $projectId): Project
@@ -122,8 +119,6 @@ class ProjectService
         $project->save();
 
         $this->clearListingsCache();
-        $this->sitemapService->regenerate();
-
         return $project->fresh();
     }
 

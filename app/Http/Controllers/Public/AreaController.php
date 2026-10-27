@@ -47,13 +47,13 @@ class AreaController
 
         $units = Unit::active()
             ->where('area_id', $area->id)
-            ->with(['type', 'area', 'images', 'user'])
+            ->with(['type', 'area', 'user'])->withCardImage()
             ->orderByFeatured()
             ->paginate(12, ['*'], 'units_page', $unitsPage);
 
         $projects = Project::where('is_active', true)
             ->where('area_id', $area->id)
-            ->with(['area', 'images'])
+            ->with('area')->withCardImage()
             ->withCount(['units' => function ($q) {
                 $q->active();
             }])
@@ -90,6 +90,7 @@ class AreaController
         $customMeta = [
             'title' => $metaTitle,
             'description' => $metaDescription,
+            'image' => $ogImage,
             'canonical' => $canonical,
             'hreflang' => $hreflang,
             'ogTitle' => $metaTitle,

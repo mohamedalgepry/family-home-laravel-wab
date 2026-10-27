@@ -29,11 +29,13 @@ use App\Domain\Users\Models\Message;
 use App\Domain\Users\Models\User;
 use App\Domain\Users\Policies\MessagePolicy;
 use App\Domain\Users\Policies\UserPolicy;
+use App\Observers\DatabaseNotificationObserver;
 use App\Observers\LookupObserver;
 use App\Observers\SitemapObserver;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
@@ -71,6 +73,7 @@ class AppServiceProvider extends ServiceProvider
         UnitType::observe(LookupObserver::class);
         Feature::observe(LookupObserver::class);
         FinishingType::observe(LookupObserver::class);
+        DatabaseNotification::observe(DatabaseNotificationObserver::class);
 
         Unit::observe(SitemapObserver::class);
         Project::observe(SitemapObserver::class);

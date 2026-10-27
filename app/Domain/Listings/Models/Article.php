@@ -2,11 +2,21 @@
 
 namespace App\Domain\Listings\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
 class Article extends Model
 {
+    public function scopeWithCardImage(Builder $query): Builder
+    {
+        return $query->with(['images' => static fn ($images) => $images
+            ->select(['id', 'article_id', 'path', 'alt_text', 'position', 'size', 'sort_order'])
+            ->orderByRaw("CASE WHEN position = 'header' THEN 0 ELSE 1 END")
+            ->orderBy('sort_order')
+            ->limit(1)]);
+    }
+
     protected $fillable = [
         'category_id', 'title', 'title_ar', 'title_en', 'slug', 'slug_ar', 'slug_en', 'content', 'content_ar', 'content_en',
         'excerpt', 'excerpt_ar', 'excerpt_en', 'alt_text', 'alt_text_ar', 'alt_text_en',

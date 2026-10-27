@@ -28,6 +28,10 @@ class HttpCacheControl
         // Separate cache entries for full-page HTML vs Inertia JSON (same URL, different Accept/X-Inertia)
         $response->headers->set('Vary', 'X-Inertia, Accept');
 
+        if ($response->headers->has('X-Prerendered-By')) {
+            return $response;
+        }
+
         // Redirects may depend on the user's locale/session, and errors must not be cached as public HTML.
         $status = $response->getStatusCode();
         if (($status >= 300 && $status < 400) || $status >= 400) {
@@ -70,6 +74,10 @@ class HttpCacheControl
 
     private function shouldBypassCache(string $rawPath, string $path): bool
     {
+        if (in_array($path, ['health', 'up'], true)) {
+            return true;
+        }
+
         // 1. Admin, API, or Auth routes
         if (str_starts_with($rawPath, 'admin') || str_starts_with($rawPath, 'api')) {
             return true;

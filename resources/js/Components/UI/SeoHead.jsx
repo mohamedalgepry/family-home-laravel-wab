@@ -60,7 +60,7 @@ export default function SeoHead({
     const keywordsString = Array.isArray(rawKeywords) ? rawKeywords.filter(Boolean).join(', ') : (typeof rawKeywords === 'string' ? rawKeywords : null);
 
     const hasFilterQuery = typeof url === 'string' && url.includes('?') &&
-        /[?&](area_id|type_id|page|price_|size_|features|transaction|search|finishing_type|payment_method|rooms|bathrooms|sort|direction)/.test(url);
+        /[?&](area_id|type_id|page|price_|size_|features|transaction|search|finishing_type|payment_method|rooms|bathrooms|sort|direction|category)/.test(url);
     const finalRobots = robots || seo_meta?.robots || (hasFilterQuery ? 'noindex, follow' : null);
 
     // Clean canonical URL without query string

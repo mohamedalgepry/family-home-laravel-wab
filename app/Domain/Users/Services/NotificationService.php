@@ -9,19 +9,13 @@ use Illuminate\Support\Facades\Cache;
 
 class NotificationService
 {
-    private const CACHE_KEY_UNREAD_COUNT = 'user_{id}_unread_count';
-
-    private const CACHE_KEY_NOTIFICATIONS_PAGE = 'user_{id}_notifications_page';
-
-    private const CACHE_KEY_RECENT = 'user_{id}_recent_notifications';
-
     public function paginated(User $user): LengthAwarePaginator
     {
         $page = (int) request('page', 1);
-        $cacheKey = "user_{$user->id}_notifications_page_{$page}";
 
-        return Cache::remember(
-            $cacheKey,
+        return $this->rememberForUser(
+            $user,
+            "notifications_page_{$page}",
             60,
             function () use ($user) {
                 return $user->notifications()
@@ -34,11 +28,14 @@ class NotificationService
 
     public function recent(User $user, int $limit = 5): array
     {
-        return Cache::remember(
-            str_replace('{id}', $user->id, self::CACHE_KEY_RECENT),
+        return $this->rememberForUser(
+            $user,
+            "recent_notifications_{$limit}",
             30,
             function () use ($user, $limit) {
                 return $user->notifications()
+                    ->orderByDesc('created_at')
+                    ->orderByDesc('id')
                     ->take($limit)
                     ->get()
                     ->map(fn (DatabaseNotification $n) => $this->present($n))
@@ -49,8 +46,9 @@ class NotificationService
 
     public function unreadCount(User $user): int
     {
-        return Cache::remember(
-            str_replace('{id}', $user->id, self::CACHE_KEY_UNREAD_COUNT),
+        return $this->rememberForUser(
+            $user,
+            'unread_count',
             30,
             fn () => $user->unreadNotifications()->count()
         );
@@ -137,7 +135,7 @@ class NotificationService
 
     public function markAllAsRead(User $user): void
     {
-        $user->unreadNotifications->markAsRead();
+        $user->unreadNotifications()->update(['read_at' => now()]);
         $this->clearUserCache($user);
     }
 
@@ -211,15 +209,34 @@ class NotificationService
     public function clearUserCache(User $user): void
     {
         $this->clearCacheForUserId($user->id);
+        Cache::forget("user_{$user->id}_unread_count");
+        Cache::forget("user_{$user->id}_recent_notifications_5");
+        for ($page = 1; $page <= 30; $page++) {
+            Cache::forget("user_{$user->id}_notifications_page_{$page}");
+        }
     }
 
     public function clearCacheForUserId(int $userId): void
     {
-        Cache::forget("user_{$userId}_unread_count");
-        Cache::forget("user_{$userId}_notifications_page");
-        Cache::forget("user_{$userId}_recent_notifications");
-        for ($p = 1; $p <= 30; $p++) {
-            Cache::forget("user_{$userId}_notifications_page_{$p}");
+        $versionKey = "user_{$userId}_notifications_cache_version";
+        Cache::add($versionKey, 1);
+        Cache::increment($versionKey);
+    }
+
+    private function rememberForUser(User $user, string $key, int $seconds, callable $callback): mixed
+    {
+        $versionKey = "user_{$user->id}_notifications_cache_version";
+        $version = Cache::get($versionKey, 1);
+        $cacheKey = "user_{$user->id}_{$key}";
+        $cached = Cache::get($cacheKey);
+
+        if (is_array($cached) && ($cached['version'] ?? null) === $version && array_key_exists('value', $cached)) {
+            return $cached['value'];
         }
+
+        $value = $callback();
+        Cache::put($cacheKey, ['version' => $version, 'value' => $value], $seconds);
+
+        return $value;
     }
 }

@@ -40,6 +40,9 @@ class ProjectController
 
         $areas = $this->lookupService->areas();
         $customMeta = [];
+        if (! empty(array_filter($filters, fn ($value) => $value !== null && $value !== '' && $value !== []))) {
+            $customMeta['robots'] = 'noindex, follow';
+        }
         if (! empty($filters['area_id'])) {
             $area = collect($areas)->firstWhere('id', (int) $filters['area_id']);
             if ($area) {
@@ -83,7 +86,7 @@ class ProjectController
             300,
             fn () => Unit::where('project_id', $project->id)
                 ->where('is_active', true)
-                ->with(['type', 'area', 'images', 'finishingType', 'user.profile'])
+                ->with(['type', 'area', 'finishingType', 'user.profile'])->withCardImage()
                 ->orderByFeatured()
                 ->limit(12)
                 ->get()
@@ -95,7 +98,7 @@ class ProjectController
             function () use ($project) {
                 return Project::where('is_active', true)
                     ->where('id', '!=', $project->id)
-                    ->with(['area', 'images', 'user.profile'])
+                    ->with(['area', 'user.profile'])->withCardImage()
                     ->withCount(['units' => fn ($q) => $q->active()])
                     ->orderByRaw('CASE WHEN area_id = ? THEN 0 ELSE 1 END', [$project->area_id ?? 0])
                     ->orderByDesc('created_at')
@@ -105,10 +108,10 @@ class ProjectController
         );
 
         $relatedArticles = \Illuminate\Support\Facades\Cache::remember(
-            'latest_published_articles_4',
+            'latest_published_articles_4_v2',
             600,
             fn () => Article::where('is_published', true)
-                ->with(['images', 'category'])
+                ->with('category')->withCardImage()
                 ->orderByDesc('published_at')
                 ->limit(4)
                 ->get()

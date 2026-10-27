@@ -46,6 +46,9 @@ class ArticleController
         $categories = Category::orderBy('name_ar')->get(['id', 'name_ar', 'name_en', 'slug']);
 
         $customMeta = [];
+        if ($categorySlug) {
+            $customMeta['robots'] = 'noindex, follow';
+        }
         if ($currentCategory) {
             $catName = app()->getLocale() === 'ar' ? ($currentCategory->name_ar ?? $currentCategory->name) : ($currentCategory->name_en ?? $currentCategory->name);
             $customMeta['title'] = __('seo.articles_category_meta_title', ['category' => $catName, 'app' => config('app.name')]);
@@ -87,7 +90,7 @@ class ArticleController
         $relatedArticles = Article::where('is_published', true)
             ->where('category_id', $article->category_id)
             ->where('id', '!=', $article->id)
-            ->with('images')
+            ->withCardImage()
             ->orderByDesc('published_at')
             ->limit(4)
             ->get();
@@ -96,7 +99,7 @@ class ArticleController
             $moreArticles = Article::where('is_published', true)
                 ->where('id', '!=', $article->id)
                 ->whereNotIn('id', $relatedArticles->pluck('id'))
-                ->with('images')
+                ->withCardImage()
                 ->inRandomOrder()
                 ->limit(4 - $relatedArticles->count())
                 ->get();
@@ -116,7 +119,7 @@ class ArticleController
             : [];
 
         $suggestedUnits = !empty($randomUnitIds)
-            ? Unit::whereIn('id', $randomUnitIds)->with(['images', 'area'])->get()
+            ? Unit::whereIn('id', $randomUnitIds)->with('area')->withCardImage()->get()
             : collect();
 
         // نمرّر لغة واحدة فقط (لغة العرض الحالية) بدلاً من إرسال content_ar + content_en + content معاً
@@ -140,7 +143,7 @@ class ArticleController
     {
         return Article::where('is_published', true)
             ->when($categoryId, fn ($query) => $query->where('category_id', $categoryId))
-            ->with(['images', 'category'])
+            ->with('category')->withCardImage()
             ->orderByDesc('published_at')
             ->paginate(12);
     }

@@ -8,10 +8,6 @@ use Illuminate\Support\Str;
 
 class CategoryService
 {
-    public function __construct(
-        private readonly SitemapService $sitemapService,
-    ) {}
-
     public function getAll(): array
     {
         return Category::orderBy('name_ar')->get()->toArray();
@@ -52,7 +48,6 @@ class CategoryService
     {
         $category = Category::findOrFail($id);
         $category->delete();
-        $this->sitemapService->regenerate();
     }
 
     private function generateUniqueSlug(string $name, ?int $excludeId = null): string

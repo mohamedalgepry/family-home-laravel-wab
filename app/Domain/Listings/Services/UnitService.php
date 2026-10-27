@@ -23,7 +23,6 @@ class UnitService
         private readonly UpdateUnitAction $updateUnitAction,
         private readonly DeleteUnitAction $deleteUnitAction,
         private readonly ListingImageService $listingImageService,
-        private readonly SitemapService $sitemapService,
     ) {}
 
     public function getPaginatedUnits(array $filters = [], ?User $user = null): LengthAwarePaginator
@@ -33,7 +32,7 @@ class UnitService
             'area',
             'project',
             'user:id,name,email,role',
-            'images' => fn ($q) => $q->orderByDesc('is_primary')->orderBy('sort_order'),
+            'images' => fn ($q) => $q->orderByDesc('is_primary')->orderBy('sort_order')->limit(1),
         ]);
 
         UserScopeQueryBuilder::applyListingsScope($query, $user);
@@ -78,12 +77,10 @@ class UnitService
 
         if ($manager) {
             $manager->notify(new UnitPendingApprovalNotification($unit, $user));
-            Cache::forget("user_{$manager->id}_unread_count");
         } else {
             $admins = User::where('role', 'admin')->get(['id']);
             foreach ($admins as $admin) {
                 $admin->notify(new UnitPendingApprovalNotification($unit, $user));
-                Cache::forget("user_{$admin->id}_unread_count");
             }
         }
     }
@@ -120,8 +117,6 @@ class UnitService
         // حذف الصور الأصلية والـ Thumbnails من الـ Storage
         $this->listingImageService->deleteImageFiles($imagePaths);
 
-        // إعادة توليد ملف sitemap.xml فوراً
-        $this->sitemapService->regenerate();
     }
 
     public function togglePin(int $unitId): Unit
@@ -174,8 +169,6 @@ class UnitService
 
         $unit = $unit->fresh();
 
-        $this->sitemapService->regenerate();
-
         if (! $wasActive && $unit->is_active) {
             $this->notifyApproved($unit, $approver);
         }
@@ -192,7 +185,6 @@ class UnitService
         }
 
         $owner->notify(new UnitApprovedNotification($unit, $approver ?? $owner));
-        Cache::forget("user_{$owner->id}_unread_count");
     }
 
     private function clearListingsCache(): void

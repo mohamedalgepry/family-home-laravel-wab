@@ -60,7 +60,7 @@ class AgentController extends Controller
 
         // المشاريع النشطة التي أنشأها المستشار أو فريقه.
         $projectsQuery = Project::active()
-            ->with(['area', 'images', 'user.profile'])
+            ->with(['area', 'user.profile'])->withCardImage()
             ->withCount(['units' => fn ($query) => $query->active()])
             ->orderByDesc('created_at');
 
@@ -118,7 +118,7 @@ class AgentController extends Controller
         }
 
         $units = $unitsQuery
-            ->with(['type', 'area', 'images', 'finishingType', 'user.profile'])
+            ->with(['type', 'area', 'finishingType', 'user.profile'])->withCardImage()
             ->paginate($perPage)
             ->withQueryString();
 
@@ -130,10 +130,15 @@ class AgentController extends Controller
                 ? "تصفح جميع الوحدات والمشاريع العقارية المتاحة عبر المستشار العقاري {$agent->name} من شركة فاميلي هوم للتطوير العقاري."
                 : "Explore all available real estate units and projects offered by consultant {$agent->name} at Family Home Real Estate."
         );
+        $filtered = $request->only(['transaction', 'area_id', 'search', 'sort', 'per_page', 'page']);
+        $robots = array_filter($filtered, fn ($value) => $value !== null && $value !== '' && $value !== [])
+            ? 'noindex, follow'
+            : null;
 
         $meta = app(SeoService::class)->forPage('agents', [
             'title' => $title,
             'description' => $description,
+            'robots' => $robots,
             'canonical' => url('/'.app()->getLocale()."/agents/{$agentIdentifier}"),
             'hreflang' => [
                 'ar' => url("/ar/agents/{$agentIdentifier}"),

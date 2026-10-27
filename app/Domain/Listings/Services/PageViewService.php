@@ -15,11 +15,9 @@ class PageViewService
         if ($ip && $ip !== '127.0.0.1' && $ip !== '::1') {
             $cacheKey = "pageview_{$viewableType}_{$viewableId}_{$ip}";
 
-            if (Cache::has($cacheKey)) {
+            if (! Cache::add($cacheKey, true, self::DEDUP_CACHE_TTL)) {
                 return;
             }
-
-            Cache::put($cacheKey, true, self::DEDUP_CACHE_TTL);
         }
 
         dispatch(new RecordPageViewJob($viewableType, $viewableId, $ip, $userAgent))->afterCommit();
