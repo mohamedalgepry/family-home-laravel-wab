@@ -29,7 +29,7 @@ class SecurityHeadersMiddleware
             ."style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
             ."img-src 'self' data: blob: https: https://*.googleapis.com https://maps.gstatic.com; "
             ."font-src 'self' data: https://fonts.gstatic.com; "
-            ."connect-src 'self' https://*.google-analytics.com https://*.googletagmanager.com https://*.googleapis.com https://maps.googleapis.com; "
+            ."connect-src 'self' https://*.google-analytics.com https://*.googletagmanager.com https://*.googleapis.com https://maps.googleapis.com https://www.google.com https://analytics.google.com; "
             .'frame-src https://maps.google.com https://www.google.com https://www.youtube.com; '
             ."form-action 'self'; "
             ."frame-ancestors 'self'; "
