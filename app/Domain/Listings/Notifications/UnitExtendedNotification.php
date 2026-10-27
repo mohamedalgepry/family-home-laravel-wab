@@ -5,11 +5,18 @@ namespace App\Domain\Listings\Notifications;
 use App\Domain\Listings\Models\Unit;
 use Carbon\CarbonInterface;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 
-class UnitExtendedNotification extends Notification
+class UnitExtendedNotification extends Notification implements ShouldQueue
 {
     use Queueable;
+
+    public int $tries = 3;
+
+    public array $backoff = [10, 30, 60];
+
+    public int $timeout = 30;
 
     public function __construct(
         public Unit $unit,

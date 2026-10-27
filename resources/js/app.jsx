@@ -1,4 +1,8 @@
-// URL & History safety wrapper for iframe/srcdoc/sandboxed environments
+/**
+ * URL & History safety wrapper for iframe/srcdoc/sandboxed environments.
+ * Prevents TypeError crashes in headless test runners (Playwright), preview iframes,
+ * and environments where window.origin is 'null' or 'about:blank' when Inertia initializes URLs.
+ */
 if (typeof window !== 'undefined') {
     const OriginalURL = window.URL;
 
@@ -124,11 +128,11 @@ class ErrorBoundary extends Component {
 
 if (typeof window !== 'undefined') {
     console.log(
-        '%cتنسيق الأمان | Security Notice',
+        '%cتنسيق الأمان | Security Warning',
         'color: #CC0000; font-size: 24px; font-weight: bold;'
     );
     console.log(
-        '%cهذه الشاشة مخصصة للمطورين. لا تقم بنسخ أو تنفيذ أي أكواد هنا للحفاظ على أمان حسابك وموقعك.',
+        '%cهذه الشاشة مخصصة للمطورين. لا تقم بنسخ أو تنفيذ أي أكواد هنا للحفاظ على أمان حسابك وموقعك.\nThis console is for developers only. Do not paste or run any code here to protect your account and website.',
         'font-size: 14px; color: #333;'
     );
 

@@ -5,12 +5,19 @@ namespace App\Domain\Users\Notifications;
 use App\Domain\Listings\Services\SettingsService;
 use App\Domain\Users\Models\Message;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class NewMessageNotification extends Notification
+class NewMessageNotification extends Notification implements ShouldQueue
 {
     use Queueable;
+
+    public int $tries = 3;
+
+    public array $backoff = [10, 30, 60];
+
+    public int $timeout = 30;
 
     public function __construct(
         public readonly Message $message,
@@ -82,6 +89,9 @@ class NewMessageNotification extends Notification
             'message' => $unitName
                 ? "رسالة جديدة من {$this->message->client_name} بخصوص: {$unitName}"
                 : "رسالة جديدة من {$this->message->client_name}",
+            'message_en' => $unitName
+                ? "New message from {$this->message->client_name} regarding: {$unitName}"
+                : "New message from {$this->message->client_name}",
         ];
     }
 }

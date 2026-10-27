@@ -44,6 +44,7 @@ class HandleInertiaRequests extends Middleware
 
         $unreadCount = 0;
         if ($user) {
+            $user->loadMissing('profile');
             $unreadCount = Cache::remember(
                 "user_{$user->id}_unread_count",
                 60,
@@ -56,10 +57,9 @@ class HandleInertiaRequests extends Middleware
             $seoPages = Cache::remember('seo_pages_cache', 3600, function () {
                 return PageSeo::all()->keyBy('page_key')->toArray();
             });
-            $path = '/'.trim((string) preg_replace('#^/(ar|en)(/|$)#', '/', $request->path()), '/');
-            $segment = strtok($path, '/') ?: '/';
+            $cleanPath = trim((string) preg_replace('#^/(ar|en)(/|$)#', '/', $request->path()), '/');
             $keyMap = [
-                '/' => 'home',
+                '' => 'home',
                 'about' => 'about',
                 'contact' => 'contact',
                 'units' => 'units_index',
@@ -68,7 +68,7 @@ class HandleInertiaRequests extends Middleware
                 'articles' => 'articles_index',
                 'comparison' => 'comparison',
             ];
-            $activeKey = $keyMap[$segment] ?? null;
+            $activeKey = $keyMap[$cleanPath] ?? null;
             $seoPage = $activeKey ? ($seoPages[$activeKey] ?? null) : null;
         } catch (\Throwable $e) {
             \Log::warning('PageSeo failed in HandleInertiaRequests', ['error' => $e->getMessage()]);

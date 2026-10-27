@@ -5,12 +5,19 @@ namespace App\Domain\Listings\Notifications;
 use App\Domain\Listings\Models\Project;
 use App\Domain\Listings\Services\SettingsService;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class ProjectExpiryWarningNotification extends Notification
+class ProjectExpiryWarningNotification extends Notification implements ShouldQueue
 {
     use Queueable;
+
+    public int $tries = 3;
+
+    public array $backoff = [10, 30, 60];
+
+    public int $timeout = 30;
 
     public function __construct(
         public Project $project,

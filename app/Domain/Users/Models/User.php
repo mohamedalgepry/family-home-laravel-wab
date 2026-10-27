@@ -20,7 +20,7 @@ class User extends Authenticatable
     use HasFactory, Notifiable;
 
     protected $fillable = [
-        'name', 'slug', 'email', 'password', 'manager_id', 'role', 'is_active', 'points_balance', 'initial_monthly_balance',
+        'name', 'slug', 'email', 'password', 'manager_id', 'role', 'is_active',
     ];
 
     protected $appends = ['phone', 'avatar', 'whatsapp'];

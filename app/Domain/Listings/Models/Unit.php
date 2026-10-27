@@ -108,17 +108,27 @@ class Unit extends Model
             }
         });
 
-        static::saved(function () {
+        static::saved(function (self $unit) {
             try {
                 app(ListingService::class)->clearCache();
+                \Illuminate\Support\Facades\Cache::forget("unit_{$unit->id}_primary_thumb");
+                \Illuminate\Support\Facades\Cache::forget("unit_{$unit->id}_agent_name");
             } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("Failed to clear cache on unit saved ({$unit->id}): {$e->getMessage()}", [
+                    'exception' => $e,
+                ]);
             }
         });
 
-        static::deleted(function () {
+        static::deleted(function (self $unit) {
             try {
                 app(ListingService::class)->clearCache();
+                \Illuminate\Support\Facades\Cache::forget("unit_{$unit->id}_primary_thumb");
+                \Illuminate\Support\Facades\Cache::forget("unit_{$unit->id}_agent_name");
             } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("Failed to clear cache on unit deleted ({$unit->id}): {$e->getMessage()}", [
+                    'exception' => $e,
+                ]);
             }
         });
     }

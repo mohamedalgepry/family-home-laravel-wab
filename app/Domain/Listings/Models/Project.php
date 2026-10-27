@@ -100,17 +100,23 @@ class Project extends Model
             }
         });
 
-        static::saved(function () {
+        static::saved(function (self $project) {
             try {
                 app(ListingService::class)->clearCache();
             } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("Failed to clear cache on project saved ({$project->id}): {$e->getMessage()}", [
+                    'exception' => $e,
+                ]);
             }
         });
 
-        static::deleted(function () {
+        static::deleted(function (self $project) {
             try {
                 app(ListingService::class)->clearCache();
             } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("Failed to clear cache on project deleted ({$project->id}): {$e->getMessage()}", [
+                    'exception' => $e,
+                ]);
             }
         });
     }

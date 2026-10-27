@@ -23,9 +23,14 @@ class ListingService
         return Cache::rememberForever(self::CACHE_VERSION_KEY, fn () => 2);
     }
 
+    private function locale(): string
+    {
+        return app()->getLocale() ?: 'ar';
+    }
+
     private function generateCacheKey(string $prefix, array $filters, int $perPage, int $page): string
     {
-        $hash = md5(serialize($filters)."_{$perPage}_page_{$page}");
+        $hash = md5(serialize($filters)."_{$perPage}_page_{$page}_{$this->locale()}");
 
         return self::CACHE_PREFIX."{$prefix}_{$hash}_v{$this->version()}";
     }
@@ -34,7 +39,7 @@ class ListingService
     {
         $page = request()->input($pageName, 1);
 
-        return Cache::remember(self::CACHE_PREFIX."featured_{$limit}_{$pageName}_{$page}_v{$this->version()}", self::CACHE_TTL, function () use ($limit, $pageName) {
+        return Cache::remember(self::CACHE_PREFIX."featured_{$limit}_{$pageName}_{$page}_{$this->locale()}_v{$this->version()}", self::CACHE_TTL, function () use ($limit, $pageName) {
             return Unit::featured()
                 ->with(['type', 'area', 'images', 'user'])
                 ->paginate($limit, ['*'], $pageName);
@@ -45,7 +50,7 @@ class ListingService
     {
         $page = request()->input($pageName, 1);
 
-        return Cache::remember(self::CACHE_PREFIX."latest_{$limit}_{$pageName}_{$page}_v{$this->version()}", self::CACHE_TTL, function () use ($limit, $pageName) {
+        return Cache::remember(self::CACHE_PREFIX."latest_{$limit}_{$pageName}_{$page}_{$this->locale()}_v{$this->version()}", self::CACHE_TTL, function () use ($limit, $pageName) {
             return $this->unitBaseQuery()
                 ->orderByFeatured()
                 ->paginate($limit, ['*'], $pageName);
@@ -106,7 +111,7 @@ class ListingService
     {
         $page = request()->input($pageName, 1);
 
-        return Cache::remember(self::CACHE_PREFIX."latest_projects_{$limit}_{$pageName}_{$page}_v{$this->version()}", self::CACHE_TTL, function () use ($limit, $pageName) {
+        return Cache::remember(self::CACHE_PREFIX."latest_projects_{$limit}_{$pageName}_{$page}_{$this->locale()}_v{$this->version()}", self::CACHE_TTL, function () use ($limit, $pageName) {
             return Project::where('is_active', true)
                 ->with(['area', 'images', 'user.profile'])
                 ->withCount(['units' => function ($q) {
@@ -137,7 +142,7 @@ class ListingService
 
     public function getUnitBySlug(string $slug): ?Unit
     {
-        return Cache::remember(self::CACHE_PREFIX."unit_{$slug}_v{$this->version()}", self::CACHE_TTL, function () use ($slug) {
+        return Cache::remember(self::CACHE_PREFIX."unit_{$slug}_{$this->locale()}_v{$this->version()}", self::CACHE_TTL, function () use ($slug) {
             return Unit::byAnySlug($slug)
                 ->with(['type', 'area', 'images', 'user.profile', 'project.area', 'features', 'finishingType'])
                 ->first();
@@ -146,7 +151,7 @@ class ListingService
 
     public function getProjectBySlug(string $slug): ?Project
     {
-        return Cache::remember(self::CACHE_PREFIX."project_{$slug}_v{$this->version()}", self::CACHE_TTL, function () use ($slug) {
+        return Cache::remember(self::CACHE_PREFIX."project_{$slug}_{$this->locale()}_v{$this->version()}", self::CACHE_TTL, function () use ($slug) {
             return Project::byAnySlug($slug)
                 ->with(['area', 'images', 'user.profile', 'features', 'finishingType'])
                 ->withCount(['units' => function ($q) {
@@ -158,7 +163,7 @@ class ListingService
 
     public function getSimilarUnits(Unit $unit, int $limit = 4): Collection
     {
-        return Cache::remember(self::CACHE_PREFIX."similar_{$unit->id}_{$limit}_v{$this->version()}", self::CACHE_TTL, function () use ($unit, $limit) {
+        return Cache::remember(self::CACHE_PREFIX."similar_{$unit->id}_{$limit}_{$this->locale()}_v{$this->version()}", self::CACHE_TTL, function () use ($unit, $limit) {
             return Unit::active()
                 ->where('id', '!=', $unit->id)
                 ->where(function ($q) use ($unit) {
@@ -174,6 +179,12 @@ class ListingService
 
     public function clearCache(): void
     {
-        Cache::increment(self::CACHE_VERSION_KEY);
+        try {
+            Cache::lock('listing_cache_version_lock', 5)->get(function () {
+                Cache::increment(self::CACHE_VERSION_KEY);
+            });
+        } catch (\Throwable) {
+            Cache::increment(self::CACHE_VERSION_KEY);
+        }
     }
 }

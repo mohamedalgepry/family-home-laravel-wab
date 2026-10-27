@@ -11,13 +11,13 @@ use App\Domain\Listings\Services\FilterResolver;
 use App\Domain\Listings\Services\PriceParser;
 use App\Domain\Listings\Services\SearchNormalizer;
 use App\Domain\Listings\Services\SmartSearchService;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 class SmartSearchTest extends TestCase
 {
-    use DatabaseTransactions;
+    use RefreshDatabase;
 
     public function test_normalizer_cleans_arabic_text()
     {

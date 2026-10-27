@@ -17,12 +17,16 @@ class NotificationService
 
     public function paginated(User $user): LengthAwarePaginator
     {
+        $page = (int) request('page', 1);
+        $cacheKey = "user_{$user->id}_notifications_page_{$page}";
+
         return Cache::remember(
-            str_replace('{id}', $user->id, self::CACHE_KEY_NOTIFICATIONS_PAGE),
+            $cacheKey,
             60,
             function () use ($user) {
                 return $user->notifications()
                     ->paginate(20)
+                    ->withQueryString()
                     ->through(fn (DatabaseNotification $notification) => $this->present($notification));
             }
         );
@@ -173,20 +177,13 @@ class NotificationService
      */
     public function markEntityNotificationsAsRead(User $user, string $entityColumn, int $entityId, ?string $dataType = null): void
     {
-        $notifications = $user->unreadNotifications()
-            ->get()
-            ->filter(function (DatabaseNotification $notification) use ($entityColumn, $entityId, $dataType) {
-                return ($notification->data[$entityColumn] ?? null) == $entityId
-                    && ($dataType === null || ($notification->data['type'] ?? '') === $dataType);
-            });
+        $query = $user->unreadNotifications()->where("data->{$entityColumn}", $entityId);
 
-        if ($notifications->isEmpty()) {
-            return;
+        if ($dataType !== null) {
+            $query->where('data->type', $dataType);
         }
 
-        foreach ($notifications as $notification) {
-            $notification->markAsRead();
-        }
+        $query->update(['read_at' => now()]);
 
         $this->clearUserCache($user);
     }
@@ -200,16 +197,11 @@ class NotificationService
         if (! empty($types)) {
             $query->whereIn('type', $types);
         }
+        $query->where("data->{$entityColumn}", $entityId);
 
-        $notifications = $query->get()->filter(function (DatabaseNotification $notification) use ($entityColumn, $entityId) {
-            return ($notification->data[$entityColumn] ?? null) == $entityId;
-        });
+        $userIds = (clone $query)->distinct()->pluck('notifiable_id');
 
-        $userIds = $notifications->pluck('notifiable_id')->unique();
-
-        foreach ($notifications as $notification) {
-            $notification->delete();
-        }
+        $query->delete();
 
         foreach ($userIds as $uid) {
             $this->clearCacheForUserId((int) $uid);
@@ -226,5 +218,8 @@ class NotificationService
         Cache::forget("user_{$userId}_unread_count");
         Cache::forget("user_{$userId}_notifications_page");
         Cache::forget("user_{$userId}_recent_notifications");
+        for ($p = 1; $p <= 30; $p++) {
+            Cache::forget("user_{$userId}_notifications_page_{$p}");
+        }
     }
 }

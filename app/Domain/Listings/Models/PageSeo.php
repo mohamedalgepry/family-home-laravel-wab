@@ -25,4 +25,15 @@ class PageSeo extends Model
             'meta_keywords_en' => 'array',
         ];
     }
+
+    protected static function booted(): void
+    {
+        static::saved(function () {
+            \Illuminate\Support\Facades\Cache::forget('seo_pages_cache');
+        });
+
+        static::deleted(function () {
+            \Illuminate\Support\Facades\Cache::forget('seo_pages_cache');
+        });
+    }
 }

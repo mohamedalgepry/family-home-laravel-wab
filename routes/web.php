@@ -1,16 +1,32 @@
 <?php
 
+use App\Http\Controllers\Admin\AboutController;
+use App\Http\Controllers\Admin\AreaController;
+use App\Http\Controllers\Admin\CategoryController;
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\FeatureController;
+use App\Http\Controllers\Admin\FinishingTypeController;
+use App\Http\Controllers\Admin\MediaController;
+use App\Http\Controllers\Admin\NotificationController;
+use App\Http\Controllers\Admin\PageSeoController;
+use App\Http\Controllers\Admin\PointsController;
+use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Admin\UnitTypeController;
+use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\ProfileController;
+use App\Http\Controllers\Public\AgentController;
 use App\Http\Controllers\Public\AiAssistantController;
 use App\Http\Controllers\Public\AreaController as PublicAreaController;
 use App\Http\Controllers\Public\ArticleController;
 use App\Http\Controllers\Public\ComparisonController;
 use App\Http\Controllers\Public\HomeController;
 use App\Http\Controllers\Public\MessageController;
+use App\Http\Controllers\Public\PageController;
 use App\Http\Controllers\Public\ProjectController;
 use App\Http\Controllers\Public\SitemapController;
 use App\Http\Controllers\Public\UnitController;
+use App\Http\Middleware\SetLocale;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
@@ -75,22 +91,7 @@ Route::get('/storage/{path}', function ($path) {
     abort(404);
 })->where('path', '.*');
 
-use App\Http\Controllers\Admin\AboutController;
-use App\Http\Controllers\Admin\AreaController;
-use App\Http\Controllers\Admin\CategoryController;
-use App\Http\Controllers\Admin\DashboardController;
-use App\Http\Controllers\Admin\FeatureController;
-use App\Http\Controllers\Admin\FinishingTypeController;
-use App\Http\Controllers\Admin\MediaController;
-use App\Http\Controllers\Admin\NotificationController;
-use App\Http\Controllers\Admin\PageSeoController;
-use App\Http\Controllers\Admin\PointsController;
-use App\Http\Controllers\Admin\SettingsController;
-use App\Http\Controllers\Admin\UnitTypeController;
-use App\Http\Controllers\Admin\UserController;
-use App\Http\Controllers\Public\AgentController;
-use App\Http\Controllers\Public\PageController;
-use App\Http\Middleware\SetLocale;
+
 
 Route::get('/locale/{lang}', [PageController::class, 'switchLocale'])->name('locale.switch');
 
@@ -253,7 +254,7 @@ Route::prefix('admin')->middleware(['auth', 'role:admin,manager,agent'])->group(
         Route::delete('/{user}', [UserController::class, 'destroy'])->name('destroy');
     });
 
-    Route::prefix('messages')->name('admin.messages.')->group(function () {
+    Route::prefix('messages')->name('admin.messages.')->middleware('throttle:60,1')->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\MessageController::class, 'index'])->name('index');
         Route::get('/export', [App\Http\Controllers\Admin\MessageController::class, 'export'])->name('export');
         Route::get('/unread-count', [App\Http\Controllers\Admin\MessageController::class, 'unreadCount'])->name('unread-count');

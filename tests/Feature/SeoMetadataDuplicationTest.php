@@ -2,11 +2,13 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
 use Tests\TestCase;
 
 class SeoMetadataDuplicationTest extends TestCase
 {
+    use RefreshDatabase;
     /**
      * Test that all core public routes have zero duplicate SEO meta tags in their dynamic HTML output.
      */

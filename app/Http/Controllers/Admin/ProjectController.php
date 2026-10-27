@@ -27,12 +27,12 @@ class ProjectController extends Controller
         private readonly StoreUploadedImagesAction $storeUploadedImagesAction,
     ) {}
 
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $this->authorize('viewAny', Project::class);
 
-        $user = auth()->user();
-        $filters = request()->only(['search', 'area_id', 'sort', 'direction', 'per_page']);
+        $user = $request->user();
+        $filters = $request->only(['search', 'area_id', 'sort', 'direction', 'per_page']);
 
         $projects = $this->projectService->getPaginatedProjects(
             filters: $filters,

@@ -4,10 +4,10 @@ use App\Domain\Listings\Models\Area;
 use App\Domain\Listings\Models\Unit;
 use App\Domain\Listings\Models\UnitType;
 use App\Domain\Users\Models\User;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-uses(TestCase::class, DatabaseTransactions::class)->in('Feature');
+uses(TestCase::class, RefreshDatabase::class)->in('Feature');
 
 uses()->in('Unit');
 

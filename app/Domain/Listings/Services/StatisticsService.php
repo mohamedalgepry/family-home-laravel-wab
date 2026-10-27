@@ -25,8 +25,8 @@ class StatisticsService
                 $unitStats = Unit::whereIn('user_id', $teamUserIds)
                     ->selectRaw("
                         COUNT(*) as total_units,
-                        COUNT(CASE WHEN transaction = 'sale' THEN 1 END) as sale_units,
-                        COUNT(CASE WHEN transaction = 'rent' THEN 1 END) as rent_units,
+                        COUNT(CASE WHEN `units`.`transaction` = 'sale' THEN 1 END) as sale_units,
+                        COUNT(CASE WHEN `units`.`transaction` = 'rent' THEN 1 END) as rent_units,
                         COALESCE(SUM(views_count), 0) as total_views
                     ")
                     ->first();
@@ -56,8 +56,8 @@ class StatisticsService
                 $unitStats = Unit::whereIn('user_id', $teamUserIds)
                     ->selectRaw("
                         COUNT(*) as total_units,
-                        COUNT(CASE WHEN transaction = 'sale' THEN 1 END) as sale_units,
-                        COUNT(CASE WHEN transaction = 'rent' THEN 1 END) as rent_units,
+                        COUNT(CASE WHEN `units`.`transaction` = 'sale' THEN 1 END) as sale_units,
+                        COUNT(CASE WHEN `units`.`transaction` = 'rent' THEN 1 END) as rent_units,
                         COALESCE(SUM(views_count), 0) as total_views
                     ")
                     ->first();
@@ -84,8 +84,8 @@ class StatisticsService
             $unitStats = Unit::query()
                 ->selectRaw("
                     COUNT(*) as total_units,
-                    COUNT(CASE WHEN transaction = 'sale' THEN 1 END) as sale_units,
-                    COUNT(CASE WHEN transaction = 'rent' THEN 1 END) as rent_units,
+                    COUNT(CASE WHEN `units`.`transaction` = 'sale' THEN 1 END) as sale_units,
+                    COUNT(CASE WHEN `units`.`transaction` = 'rent' THEN 1 END) as rent_units,
                     COALESCE(SUM(views_count), 0) as total_views
                 ")
                 ->first();

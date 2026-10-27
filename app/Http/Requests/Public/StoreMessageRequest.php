@@ -15,9 +15,10 @@ class StoreMessageRequest extends FormRequest
     {
         return [
             'client_name' => 'required|string|max:255',
-            'client_phone' => 'nullable|string|max:50',
+            'client_phone' => 'nullable|string|max:25',
             'client_email' => 'nullable|email|max:255',
             'content' => 'required|string|max:2000',
+            'hp_field' => 'nullable|prohibited',
         ];
     }
 }

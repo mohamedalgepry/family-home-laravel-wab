@@ -4,13 +4,13 @@ namespace Tests\Feature;
 
 use App\Domain\Listings\Models\Area;
 use App\Domain\Listings\Models\UnitType;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 class SmartSearchFeatureTest extends TestCase
 {
-    use DatabaseTransactions;
+    use RefreshDatabase;
 
     protected function setUp(): void
     {

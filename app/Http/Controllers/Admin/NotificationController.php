@@ -222,7 +222,11 @@ class NotificationController extends Controller
             }
 
             return response()->json(['notifications' => $this->notificationService->recent($user)]);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Failed to fetch recent notifications: ' . $e->getMessage(), [
+                'user_id' => $request->user()?->id,
+            ]);
+
             return response()->json(['notifications' => []]);
         }
     }
@@ -240,7 +244,11 @@ class NotificationController extends Controller
             }
 
             return response()->json(['count' => $this->notificationService->unreadCount($user)]);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Failed to fetch unread notification count: ' . $e->getMessage(), [
+                'user_id' => $request->user()?->id,
+            ]);
+
             return response()->json(['count' => 0]);
         }
     }

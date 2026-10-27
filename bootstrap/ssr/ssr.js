@@ -7168,6 +7168,86 @@ function AdminFinishingTypesIndex({ finishingTypes }) {
 	})] });
 }
 //#endregion
+//#region resources/js/Components/UI/Pagination.jsx
+function Pagination({ meta, links: routeLinks, pageParam = "page" }) {
+	const pageContext = usePage();
+	const { locale } = pageContext.props;
+	const trans = useTrans(locale);
+	const isRtl = locale === "ar";
+	const pageMeta = meta?.meta || meta;
+	if (!pageMeta || typeof pageMeta.last_page !== "number" || pageMeta.last_page <= 1) return null;
+	const { current_page = 1, last_page = 1 } = pageMeta;
+	const preserveState = {
+		preserveState: true,
+		preserveScroll: true
+	};
+	const range = 2;
+	const pages = [];
+	const start = Math.max(1, current_page - range);
+	const end = Math.min(last_page, current_page + range);
+	for (let i = start; i <= end; i++) pages.push(i);
+	function buildUrl(page) {
+		if (typeof window !== "undefined") {
+			const params = new URLSearchParams(window.location.search);
+			params.set(pageParam, page);
+			return window.location.pathname + "?" + params.toString();
+		}
+		const [path, search] = (pageContext?.url || "/").split("?");
+		const params = new URLSearchParams(search || "");
+		params.set(pageParam, page);
+		return path + "?" + params.toString();
+	}
+	return /* @__PURE__ */ jsxs("nav", {
+		dir: isRtl ? "rtl" : "ltr",
+		className: "flex items-center justify-center gap-1.5 mt-8 flex-wrap",
+		"aria-label": isRtl ? "صفحات النتائج" : "Pagination",
+		children: [
+			current_page > 1 ? /* @__PURE__ */ jsx(Link, {
+				href: buildUrl(current_page - 1),
+				className: "min-w-[44px] min-h-[44px] px-3.5 flex items-center justify-center text-sm font-semibold text-secondary-700 hover:bg-surface-hover rounded-xl transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
+				...preserveState,
+				children: trans("previous")
+			}) : /* @__PURE__ */ jsx("span", {
+				className: "min-w-[44px] min-h-[44px] px-3.5 flex items-center justify-center text-sm font-semibold text-secondary-300 cursor-not-allowed",
+				children: trans("previous")
+			}),
+			start > 1 && /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx(Link, {
+				href: buildUrl(1),
+				className: "min-w-[44px] min-h-[44px] px-3.5 flex items-center justify-center text-sm font-semibold text-secondary-700 hover:bg-surface-hover rounded-xl transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
+				...preserveState,
+				children: "1"
+			}), start > 2 && /* @__PURE__ */ jsx("span", {
+				className: "min-w-[36px] min-h-[44px] px-1 flex items-center justify-center text-secondary-400 text-sm",
+				children: "..."
+			})] }),
+			pages.map((page) => /* @__PURE__ */ jsx(Link, {
+				href: buildUrl(page),
+				className: `min-w-[44px] min-h-[44px] px-3.5 flex items-center justify-center text-sm font-semibold rounded-xl transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${page === current_page ? "bg-primary-900 text-white shadow-sm" : "text-secondary-700 hover:bg-surface-hover"}`,
+				...preserveState,
+				children: page
+			}, page)),
+			end < last_page && /* @__PURE__ */ jsxs(Fragment, { children: [end < last_page - 1 && /* @__PURE__ */ jsx("span", {
+				className: "min-w-[36px] min-h-[44px] px-1 flex items-center justify-center text-secondary-400 text-sm",
+				children: "..."
+			}), /* @__PURE__ */ jsx(Link, {
+				href: buildUrl(last_page),
+				className: "min-w-[44px] min-h-[44px] px-3.5 flex items-center justify-center text-sm font-semibold text-secondary-700 hover:bg-surface-hover rounded-xl transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
+				...preserveState,
+				children: last_page
+			})] }),
+			current_page < last_page ? /* @__PURE__ */ jsx(Link, {
+				href: buildUrl(current_page + 1),
+				className: "min-w-[44px] min-h-[44px] px-3.5 flex items-center justify-center text-sm font-semibold text-secondary-700 hover:bg-surface-hover rounded-xl transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
+				...preserveState,
+				children: trans("next")
+			}) : /* @__PURE__ */ jsx("span", {
+				className: "min-w-[44px] min-h-[44px] px-3.5 flex items-center justify-center text-sm font-semibold text-secondary-300 cursor-not-allowed",
+				children: trans("next")
+			})
+		]
+	});
+}
+//#endregion
 //#region resources/js/Pages/Admin/Messages/Index.jsx
 var Index_exports$11 = /* @__PURE__ */ __exportAll({ default: () => AdminMessagesIndex });
 function AdminMessagesIndex({ messages, agents, filters }) {
@@ -7177,25 +7257,36 @@ function AdminMessagesIndex({ messages, agents, filters }) {
 	const isAdmin = auth?.user?.role === "admin";
 	const [statusFilter, setStatusFilter] = useState(filters?.status || "");
 	const [agentFilter, setAgentFilter] = useState(filters?.agent_id || "");
+	const [isFiltering, setIsFiltering] = useState(false);
 	const [selectedMessage, setSelectedMessage] = useState(null);
 	const [deletingMessage, setDeletingMessage] = useState(null);
 	const [isDeleting, setIsDeleting] = useState(false);
 	useEffect(() => {
 		const interval = setInterval(() => {
-			router.reload({
+			if (typeof document !== "undefined" && document.visibilityState === "visible") router.reload({
 				only: ["messages"],
 				preserveScroll: true
 			});
 		}, 3e4);
 		return () => clearInterval(interval);
 	}, []);
+	useEffect(() => {
+		if (!selectedMessage) return;
+		function handleKeyDown(e) {
+			if (e.key === "Escape") setSelectedMessage(null);
+		}
+		window.addEventListener("keydown", handleKeyDown);
+		return () => window.removeEventListener("keydown", handleKeyDown);
+	}, [selectedMessage]);
 	function applyFilters() {
 		router.get("/admin/messages", {
 			status: statusFilter,
 			agent_id: agentFilter
 		}, {
 			preserveState: true,
-			preserveScroll: true
+			preserveScroll: true,
+			onBefore: () => setIsFiltering(true),
+			onFinish: () => setIsFiltering(false)
 		});
 	}
 	function markReplied(messageId) {
@@ -7225,17 +7316,20 @@ function AdminMessagesIndex({ messages, agents, filters }) {
 		/* @__PURE__ */ jsx(Head, { title: trans("sidebar_messages") + " — " + trans("app_name") }),
 		/* @__PURE__ */ jsxs("div", {
 			dir: isRtl ? "rtl" : "ltr",
-			className: "p-6",
+			className: "p-4 sm:p-6 max-w-7xl mx-auto",
 			children: [
 				/* @__PURE__ */ jsxs("div", {
 					className: "flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6",
-					children: [/* @__PURE__ */ jsx("h1", {
-						className: "text-2xl font-bold text-secondary-950",
+					children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("h1", {
+						className: "text-xl sm:text-2xl font-bold text-secondary-950",
 						children: trans("sidebar_messages")
-					}), /* @__PURE__ */ jsxs("a", {
+					}), /* @__PURE__ */ jsx("p", {
+						className: "text-xs sm:text-sm text-muted mt-0.5",
+						children: messages?.total !== void 0 ? `${messages.total} ${trans("messages.all")}` : ""
+					})] }), /* @__PURE__ */ jsxs("a", {
 						href: `/admin/messages/export?status=${encodeURIComponent(statusFilter)}&agent_id=${encodeURIComponent(agentFilter)}`,
 						download: true,
-						className: "inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-secondary-900 hover:bg-secondary-950 text-white rounded-xl text-xs sm:text-sm font-semibold transition-all shadow-xs",
+						className: "inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-secondary-900 hover:bg-secondary-950 text-white rounded-xl text-xs sm:text-sm font-semibold transition-all shadow-xs shrink-0",
 						children: [/* @__PURE__ */ jsx("svg", {
 							className: "w-4 h-4",
 							fill: "none",
@@ -7253,52 +7347,130 @@ function AdminMessagesIndex({ messages, agents, filters }) {
 				/* @__PURE__ */ jsxs("div", {
 					className: "bg-white rounded-xl shadow-card p-4 mb-6 flex flex-wrap gap-3 items-end",
 					children: [
-						/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
-							className: "block text-xs font-medium text-secondary-950 mb-1",
-							children: trans("messages.status")
-						}), /* @__PURE__ */ jsxs(Select, {
-							value: statusFilter,
-							onChange: (e) => setStatusFilter(e.target.value),
-							className: "px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white",
-							children: [
-								/* @__PURE__ */ jsx("option", {
+						/* @__PURE__ */ jsxs("div", {
+							className: "w-full sm:w-auto flex-1 min-w-[140px]",
+							children: [/* @__PURE__ */ jsx("label", {
+								className: "block text-xs font-medium text-secondary-950 mb-1",
+								children: trans("messages.status")
+							}), /* @__PURE__ */ jsxs(Select, {
+								value: statusFilter,
+								onChange: (e) => setStatusFilter(e.target.value),
+								className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white",
+								children: [
+									/* @__PURE__ */ jsx("option", {
+										value: "",
+										children: trans("messages.all")
+									}),
+									/* @__PURE__ */ jsx("option", {
+										value: "pending",
+										children: trans("messages.status_pending")
+									}),
+									/* @__PURE__ */ jsx("option", {
+										value: "replied",
+										children: trans("messages.status_replied")
+									})
+								]
+							})]
+						}),
+						/* @__PURE__ */ jsxs("div", {
+							className: "w-full sm:w-auto flex-1 min-w-[160px]",
+							children: [/* @__PURE__ */ jsx("label", {
+								className: "block text-xs font-medium text-secondary-950 mb-1",
+								children: trans("messages.filter_by_agent")
+							}), /* @__PURE__ */ jsxs(Select, {
+								value: agentFilter,
+								onChange: (e) => setAgentFilter(e.target.value),
+								className: "w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white",
+								children: [/* @__PURE__ */ jsx("option", {
 									value: "",
-									children: trans("messages.all")
-								}),
-								/* @__PURE__ */ jsx("option", {
-									value: "pending",
-									children: trans("messages.status_pending")
-								}),
-								/* @__PURE__ */ jsx("option", {
-									value: "replied",
-									children: trans("messages.status_replied")
-								})
-							]
-						})] }),
-						/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
-							className: "block text-xs font-medium text-secondary-950 mb-1",
-							children: trans("messages.filter_by_agent")
-						}), /* @__PURE__ */ jsxs(Select, {
-							value: agentFilter,
-							onChange: (e) => setAgentFilter(e.target.value),
-							className: "px-3 py-2 border border-secondary-200 rounded-lg text-sm bg-white",
-							children: [/* @__PURE__ */ jsx("option", {
-								value: "",
-								children: trans("messages.all_agents")
-							}), agents?.map((a) => /* @__PURE__ */ jsx("option", {
-								value: a.id,
-								children: a.name
-							}, a.id))]
-						})] }),
-						/* @__PURE__ */ jsx("button", {
+									children: trans("messages.all_agents")
+								}), agents?.map((a) => /* @__PURE__ */ jsx("option", {
+									value: a.id,
+									children: a.name
+								}, a.id))]
+							})]
+						}),
+						/* @__PURE__ */ jsxs("button", {
 							onClick: applyFilters,
-							className: "px-4 py-2 bg-primary-900 text-white rounded-lg text-sm font-medium",
-							children: trans("search")
+							disabled: isFiltering,
+							className: "w-full sm:w-auto px-5 py-2 bg-primary-900 hover:bg-primary-950 disabled:opacity-60 text-white rounded-lg text-sm font-medium transition-colors inline-flex items-center justify-center gap-2",
+							children: [isFiltering && /* @__PURE__ */ jsxs("svg", {
+								className: "animate-spin w-4 h-4 text-white",
+								fill: "none",
+								viewBox: "0 0 24 24",
+								children: [/* @__PURE__ */ jsx("circle", {
+									className: "opacity-25",
+									cx: "12",
+									cy: "12",
+									r: "10",
+									stroke: "currentColor",
+									strokeWidth: "4"
+								}), /* @__PURE__ */ jsx("path", {
+									className: "opacity-75",
+									fill: "currentColor",
+									d: "M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+								})]
+							}), /* @__PURE__ */ jsx("span", { children: trans("search") })]
 						})
 					]
 				}),
 				/* @__PURE__ */ jsx("div", {
-					className: "bg-white rounded-xl shadow-card overflow-x-auto",
+					className: "block md:hidden space-y-3",
+					children: data.length > 0 ? data.map((m) => /* @__PURE__ */ jsxs("div", {
+						onClick: () => setSelectedMessage(m),
+						className: "bg-white rounded-xl shadow-card p-4 border border-secondary-100 hover:border-secondary-300 transition-all cursor-pointer relative",
+						children: [
+							/* @__PURE__ */ jsxs("div", {
+								className: "flex items-start justify-between gap-2 mb-2",
+								children: [/* @__PURE__ */ jsxs("div", {
+									className: "min-w-0 flex-1",
+									children: [/* @__PURE__ */ jsx("p", {
+										className: "font-semibold text-secondary-950 text-sm truncate",
+										children: m.client_name
+									}), /* @__PURE__ */ jsx("span", {
+										className: "text-xs text-muted block truncate",
+										children: m.unit?.name || trans("admin.csv_general")
+									})]
+								}), /* @__PURE__ */ jsx("span", {
+									className: `inline-block px-2.5 py-0.5 text-xs rounded-full font-medium shrink-0 ${m.status === "replied" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`,
+									children: m.status === "replied" ? trans("messages.status_replied") : trans("messages.status_pending")
+								})]
+							}),
+							/* @__PURE__ */ jsx("p", {
+								className: "text-secondary-700 text-xs line-clamp-2 mb-3 bg-surface/60 rounded-lg p-2.5",
+								children: m.content
+							}),
+							/* @__PURE__ */ jsxs("div", {
+								className: "flex items-center justify-between text-xs text-muted pt-2 border-t border-secondary-50",
+								children: [/* @__PURE__ */ jsx("span", { children: m.created_at }), /* @__PURE__ */ jsxs("div", {
+									className: "flex items-center gap-2",
+									children: [m.status === "pending" && /* @__PURE__ */ jsx("button", {
+										type: "button",
+										onClick: (e) => {
+											e.stopPropagation();
+											markReplied(m.id);
+										},
+										className: "px-2.5 py-1 rounded bg-green-50 text-green-700 hover:bg-green-100 text-xs font-medium transition-colors",
+										children: trans("messages.mark_as_replied")
+									}), isAdmin && /* @__PURE__ */ jsx("button", {
+										type: "button",
+										onClick: (e) => {
+											e.stopPropagation();
+											handleDeleteClick(m.id);
+										},
+										className: "px-2 py-1 rounded bg-red-50 text-red-600 hover:bg-red-100 text-xs transition-colors",
+										children: trans("delete")
+									})]
+								})]
+							})
+						]
+					}, m.id)) : /* @__PURE__ */ jsx("div", {
+						className: "bg-white rounded-xl shadow-card p-8 text-center text-muted text-sm",
+						children: trans("messages.no_messages")
+					})
+				}),
+				/* @__PURE__ */ jsx("div", {
+					className: "hidden md:block bg-white rounded-xl shadow-card overflow-x-auto",
 					children: /* @__PURE__ */ jsxs("table", {
 						className: "w-full text-sm",
 						children: [/* @__PURE__ */ jsx("thead", { children: /* @__PURE__ */ jsxs("tr", {
@@ -7341,7 +7513,7 @@ function AdminMessagesIndex({ messages, agents, filters }) {
 									className: "px-4 py-3",
 									children: /* @__PURE__ */ jsx("span", {
 										className: "text-secondary-950 font-medium",
-										children: m.unit?.name || "—"
+										children: m.unit?.name || trans("admin.csv_general")
 									})
 								}),
 								/* @__PURE__ */ jsx("td", {
@@ -7353,7 +7525,7 @@ function AdminMessagesIndex({ messages, agents, filters }) {
 												className: "font-medium text-secondary-950",
 												children: m.client_name
 											}),
-											/* @__PURE__ */ jsx("p", {
+											m.client_phone && /* @__PURE__ */ jsx("p", {
 												className: "text-xs text-muted",
 												children: m.client_phone
 											}),
@@ -7374,7 +7546,7 @@ function AdminMessagesIndex({ messages, agents, filters }) {
 								/* @__PURE__ */ jsx("td", {
 									className: "px-4 py-3",
 									children: /* @__PURE__ */ jsx("span", {
-										className: `inline-block px-2 py-0.5 text-xs rounded-full font-medium ${m.status === "replied" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`,
+										className: `inline-block px-2.5 py-0.5 text-xs rounded-full font-medium ${m.status === "replied" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`,
 										children: m.status === "replied" ? trans("messages.status_replied") : trans("messages.status_pending")
 									})
 								}),
@@ -7388,16 +7560,18 @@ function AdminMessagesIndex({ messages, agents, filters }) {
 								}),
 								/* @__PURE__ */ jsx("td", {
 									className: "px-4 py-3",
-									children: /* @__PURE__ */ jsx("div", {
-										className: "flex gap-1",
-										children: m.status === "pending" && /* @__PURE__ */ jsx("button", {
-											onClick: (e) => {
-												e.stopPropagation();
-												markReplied(m.id);
-											},
-											className: "text-xs px-2 py-1 rounded bg-green-50 text-green-700 hover:bg-green-100 transition-colors",
+									children: /* @__PURE__ */ jsxs("div", {
+										className: "flex items-center gap-1.5",
+										onClick: (e) => e.stopPropagation(),
+										children: [m.status === "pending" && /* @__PURE__ */ jsx("button", {
+											onClick: () => markReplied(m.id),
+											className: "text-xs px-2.5 py-1 rounded bg-green-50 text-green-700 hover:bg-green-100 transition-colors font-medium",
 											children: trans("messages.mark_as_replied")
-										})
+										}), isAdmin && /* @__PURE__ */ jsx("button", {
+											onClick: () => handleDeleteClick(m.id),
+											className: "text-xs px-2.5 py-1 rounded bg-red-50 text-red-600 hover:bg-red-100 transition-colors",
+											children: trans("delete")
+										})]
 									})
 								})
 							]
@@ -7407,74 +7581,87 @@ function AdminMessagesIndex({ messages, agents, filters }) {
 							children: trans("messages.no_messages")
 						}) }) })]
 					})
+				}),
+				/* @__PURE__ */ jsx("div", {
+					className: "mt-6 flex justify-center",
+					children: /* @__PURE__ */ jsx(Pagination, { meta: messages })
 				})
 			]
 		}),
 		selectedMessage && /* @__PURE__ */ jsx("div", {
-			className: "fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4",
+			className: "fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs transition-opacity",
 			onClick: () => setSelectedMessage(null),
+			role: "dialog",
+			"aria-modal": "true",
+			"aria-labelledby": "message-modal-title",
 			children: /* @__PURE__ */ jsxs("div", {
-				className: "bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[80vh] overflow-y-auto p-6",
+				className: "bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto p-6 transition-all",
 				onClick: (e) => e.stopPropagation(),
 				children: [
 					/* @__PURE__ */ jsxs("div", {
-						className: "flex items-center justify-between mb-4",
+						className: "flex items-center justify-between mb-4 pb-3 border-b border-secondary-100",
 						children: [/* @__PURE__ */ jsx("h2", {
+							id: "message-modal-title",
 							className: "text-lg font-bold text-secondary-950",
 							children: trans("messages.message_details")
 						}), /* @__PURE__ */ jsx("button", {
 							onClick: () => setSelectedMessage(null),
-							className: "text-muted hover:text-secondary-950 text-xl leading-none",
-							children: "×"
+							"aria-label": trans("close"),
+							className: "w-8 h-8 rounded-lg flex items-center justify-center text-muted hover:text-secondary-950 hover:bg-surface transition-colors",
+							children: /* @__PURE__ */ jsx("span", {
+								className: "text-xl leading-none",
+								children: "×"
+							})
 						})]
 					}),
 					/* @__PURE__ */ jsxs("div", {
-						className: "space-y-3 text-sm",
+						className: "space-y-4 text-sm",
 						children: [
 							/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("span", {
-								className: "text-muted text-xs block",
+								className: "text-muted text-xs block mb-0.5",
 								children: trans("messages.client_name")
 							}), /* @__PURE__ */ jsx("p", {
-								className: "text-secondary-950 font-medium",
+								className: "text-secondary-950 font-semibold",
 								children: selectedMessage.client_name
 							})] }),
 							selectedMessage.client_phone && /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("span", {
-								className: "text-muted text-xs block",
+								className: "text-muted text-xs block mb-0.5",
 								children: trans("messages.client_phone")
 							}), /* @__PURE__ */ jsx("p", {
-								className: "text-secondary-950 font-medium",
+								className: "text-secondary-950 font-medium font-mono",
+								dir: "ltr",
 								children: selectedMessage.client_phone
 							})] }),
 							selectedMessage.client_email && /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("span", {
-								className: "text-muted text-xs block",
+								className: "text-muted text-xs block mb-0.5",
 								children: trans("messages.client_email")
 							}), /* @__PURE__ */ jsx("p", {
 								className: "text-secondary-950 font-medium",
 								children: selectedMessage.client_email
 							})] }),
-							selectedMessage.unit && /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("span", {
-								className: "text-muted text-xs block",
+							/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("span", {
+								className: "text-muted text-xs block mb-0.5",
 								children: trans("messages.unit")
 							}), /* @__PURE__ */ jsx("p", {
 								className: "text-secondary-950 font-medium",
-								children: selectedMessage.unit.name
+								children: selectedMessage.unit?.name || trans("admin.csv_general")
 							})] }),
 							selectedMessage.agent && /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("span", {
-								className: "text-muted text-xs block",
+								className: "text-muted text-xs block mb-0.5",
 								children: trans("messages.agent")
 							}), /* @__PURE__ */ jsx("p", {
 								className: "text-secondary-950 font-medium",
 								children: selectedMessage.agent.name
 							})] }),
 							/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("span", {
-								className: "text-muted text-xs block",
+								className: "text-muted text-xs block mb-1",
 								children: trans("messages.message_content")
-							}), /* @__PURE__ */ jsx("p", {
-								className: "text-secondary-700 bg-surface rounded-lg p-3 mt-1 whitespace-pre-wrap",
+							}), /* @__PURE__ */ jsx("div", {
+								className: "text-secondary-800 bg-surface rounded-xl p-3.5 whitespace-pre-wrap leading-relaxed border border-secondary-100/60",
 								children: selectedMessage.content
 							})] }),
 							/* @__PURE__ */ jsxs("div", {
-								className: "flex gap-4 text-xs text-muted",
+								className: "flex flex-wrap gap-4 text-xs text-muted pt-2",
 								children: [/* @__PURE__ */ jsxs("span", { children: [
 									trans("messages.sent_at"),
 									": ",
@@ -7488,7 +7675,7 @@ function AdminMessagesIndex({ messages, agents, filters }) {
 						]
 					}),
 					/* @__PURE__ */ jsxs("div", {
-						className: "flex gap-2 mt-6 pt-4 border-t border-secondary-100",
+						className: "flex items-center justify-end gap-2.5 mt-6 pt-4 border-t border-secondary-100",
 						children: [
 							selectedMessage.status === "pending" && /* @__PURE__ */ jsx("button", {
 								onClick: () => {
@@ -10757,86 +10944,6 @@ function AdminProjectForm({ project, areas, features, finishingTypes, managers }
 			})
 		]
 	})] });
-}
-//#endregion
-//#region resources/js/Components/UI/Pagination.jsx
-function Pagination({ meta, links: routeLinks, pageParam = "page" }) {
-	const pageContext = usePage();
-	const { locale } = pageContext.props;
-	const trans = useTrans(locale);
-	const isRtl = locale === "ar";
-	const pageMeta = meta?.meta || meta;
-	if (!pageMeta || typeof pageMeta.last_page !== "number" || pageMeta.last_page <= 1) return null;
-	const { current_page = 1, last_page = 1 } = pageMeta;
-	const preserveState = {
-		preserveState: true,
-		preserveScroll: true
-	};
-	const range = 2;
-	const pages = [];
-	const start = Math.max(1, current_page - range);
-	const end = Math.min(last_page, current_page + range);
-	for (let i = start; i <= end; i++) pages.push(i);
-	function buildUrl(page) {
-		if (typeof window !== "undefined") {
-			const params = new URLSearchParams(window.location.search);
-			params.set(pageParam, page);
-			return window.location.pathname + "?" + params.toString();
-		}
-		const [path, search] = (pageContext?.url || "/").split("?");
-		const params = new URLSearchParams(search || "");
-		params.set(pageParam, page);
-		return path + "?" + params.toString();
-	}
-	return /* @__PURE__ */ jsxs("nav", {
-		dir: isRtl ? "rtl" : "ltr",
-		className: "flex items-center justify-center gap-1.5 mt-8 flex-wrap",
-		"aria-label": isRtl ? "صفحات النتائج" : "Pagination",
-		children: [
-			current_page > 1 ? /* @__PURE__ */ jsx(Link, {
-				href: buildUrl(current_page - 1),
-				className: "min-w-[44px] min-h-[44px] px-3.5 flex items-center justify-center text-sm font-semibold text-secondary-700 hover:bg-surface-hover rounded-xl transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
-				...preserveState,
-				children: trans("previous")
-			}) : /* @__PURE__ */ jsx("span", {
-				className: "min-w-[44px] min-h-[44px] px-3.5 flex items-center justify-center text-sm font-semibold text-secondary-300 cursor-not-allowed",
-				children: trans("previous")
-			}),
-			start > 1 && /* @__PURE__ */ jsxs(Fragment, { children: [/* @__PURE__ */ jsx(Link, {
-				href: buildUrl(1),
-				className: "min-w-[44px] min-h-[44px] px-3.5 flex items-center justify-center text-sm font-semibold text-secondary-700 hover:bg-surface-hover rounded-xl transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
-				...preserveState,
-				children: "1"
-			}), start > 2 && /* @__PURE__ */ jsx("span", {
-				className: "min-w-[36px] min-h-[44px] px-1 flex items-center justify-center text-secondary-400 text-sm",
-				children: "..."
-			})] }),
-			pages.map((page) => /* @__PURE__ */ jsx(Link, {
-				href: buildUrl(page),
-				className: `min-w-[44px] min-h-[44px] px-3.5 flex items-center justify-center text-sm font-semibold rounded-xl transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${page === current_page ? "bg-primary-900 text-white shadow-sm" : "text-secondary-700 hover:bg-surface-hover"}`,
-				...preserveState,
-				children: page
-			}, page)),
-			end < last_page && /* @__PURE__ */ jsxs(Fragment, { children: [end < last_page - 1 && /* @__PURE__ */ jsx("span", {
-				className: "min-w-[36px] min-h-[44px] px-1 flex items-center justify-center text-secondary-400 text-sm",
-				children: "..."
-			}), /* @__PURE__ */ jsx(Link, {
-				href: buildUrl(last_page),
-				className: "min-w-[44px] min-h-[44px] px-3.5 flex items-center justify-center text-sm font-semibold text-secondary-700 hover:bg-surface-hover rounded-xl transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
-				...preserveState,
-				children: last_page
-			})] }),
-			current_page < last_page ? /* @__PURE__ */ jsx(Link, {
-				href: buildUrl(current_page + 1),
-				className: "min-w-[44px] min-h-[44px] px-3.5 flex items-center justify-center text-sm font-semibold text-secondary-700 hover:bg-surface-hover rounded-xl transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
-				...preserveState,
-				children: trans("next")
-			}) : /* @__PURE__ */ jsx("span", {
-				className: "min-w-[44px] min-h-[44px] px-3.5 flex items-center justify-center text-sm font-semibold text-secondary-300 cursor-not-allowed",
-				children: trans("next")
-			})
-		]
-	});
 }
 //#endregion
 //#region resources/js/Pages/Admin/Projects/Index.jsx

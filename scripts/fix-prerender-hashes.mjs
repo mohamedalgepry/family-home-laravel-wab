@@ -122,6 +122,39 @@ for (const page of updatedPages) {
 
 fs.writeFileSync(PAGES_PATH, JSON.stringify(updatedPages, null, 2), 'utf-8')
 console.log(`[fix-hashes] Done — updated ${totalReplaced} asset references across ${pages.length} page templates.`)
+
+const PRERENDER_DIR = path.join(ROOT, 'storage', 'app', 'prerendered')
+if (fs.existsSync(PRERENDER_DIR)) {
+    function walkDir(dir) {
+        let results = []
+        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+            const full = path.join(dir, entry.name)
+            if (entry.isDirectory()) results = results.concat(walkDir(full))
+            else if (entry.name.endsWith('.html')) results.push(full)
+        }
+        return results
+    }
+    const htmlFiles = walkDir(PRERENDER_DIR)
+    let filesUpdated = 0
+    for (const file of htmlFiles) {
+        let html = fs.readFileSync(file, 'utf-8')
+        let changed = false
+        for (const { rx, newFile } of replaceTable.values()) {
+            rx.lastIndex = 0
+            if (rx.test(html)) {
+                rx.lastIndex = 0
+                html = html.replace(rx, newFile)
+                changed = true
+            }
+        }
+        if (changed) {
+            fs.writeFileSync(file, html, 'utf-8')
+            filesUpdated++
+        }
+    }
+    console.log(`[fix-hashes] Updated asset hashes in ${filesUpdated} prerendered HTML files.`)
+}
+
 if (staleFound > 0) {
     console.error(`[fix-hashes] WARNING: ${staleFound} stale reference(s) could not be mapped — inspect output above.`)
     process.exit(1)

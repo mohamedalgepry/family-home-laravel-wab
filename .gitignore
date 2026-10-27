@@ -23,6 +23,8 @@ yarn-error.log
 *.tmp
 .scratch/
 /.scratch
+scratch/
+/scratch
 
 /.idea
 /.vscode

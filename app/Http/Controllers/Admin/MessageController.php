@@ -37,11 +37,17 @@ class MessageController extends Controller
             $query->where('agent_id', $filters['agent_id']);
         }
 
-        $messages = $query->orderByDesc('created_at')->paginate(15);
+        $messages = $query->orderByDesc('created_at')->paginate(15)->withQueryString();
 
-        $user->unreadNotifications()
-            ->where('type', NewMessageNotification::class)
-            ->update(['read_at' => now()]);
+        $visibleMessageIds = $messages->pluck('id')->all();
+        if (! empty($visibleMessageIds)) {
+            $user->unreadNotifications()
+                ->where('type', NewMessageNotification::class)
+                ->whereIn('data->message_id', $visibleMessageIds)
+                ->update(['read_at' => now()]);
+
+            app(\App\Domain\Users\Services\NotificationService::class)->clearUserCache($user);
+        }
 
         if ($user->isAdmin()) {
             $agents = User::where('role', 'agent')->select('id', 'name')->orderBy('name')->get();
@@ -81,8 +87,6 @@ class MessageController extends Controller
             $query->where('agent_id', $filters['agent_id']);
         }
 
-        $messages = $query->orderByDesc('created_at')->get();
-
         $filename = 'messages_' . date('Y-m-d_His') . '.csv';
 
         $headers = [
@@ -93,7 +97,7 @@ class MessageController extends Controller
             'Expires' => '0',
         ];
 
-        $callback = function () use ($messages) {
+        $callback = function () use ($query) {
             $file = fopen('php://output', 'w');
             fputs($file, "\xEF\xBB\xBF");
 
@@ -110,16 +114,30 @@ class MessageController extends Controller
                 __('admin.csv_replied_at'),
             ]);
 
-            foreach ($messages as $msg) {
+            $sanitize = function (?string $val): string {
+                if ($val === null || $val === '') {
+                    return '';
+                }
+                if (in_array($val[0], ['=', '+', '-', '@', "\t", "\r"], true)) {
+                    return "'" . $val;
+                }
+                return $val;
+            };
+
+            foreach ($query->orderByDesc('created_at')->cursor() as $msg) {
+                $unitLabel = $msg->unit ? ($msg->unit->name_ar ?: ($msg->unit->name ?: $msg->unit->name_en)) : __('admin.csv_general');
+                $agentLabel = $msg->agent?->name ?? __('admin.csv_unspecified');
+                $statusLabel = $msg->status === 'replied' ? __('admin.csv_status_replied') : __('admin.csv_status_pending');
+
                 fputcsv($file, [
                     $msg->id,
-                    $msg->name,
-                    $msg->phone ?? '',
-                    $msg->email ?? '',
-                    $msg->unit ? ($msg->unit->name_ar ?: ($msg->unit->name ?: $msg->unit->name_en)) : __('admin.csv_general'),
-                    $msg->agent?->name ?? __('admin.csv_unspecified'),
-                    $msg->status === 'replied' ? __('admin.csv_status_replied') : __('admin.csv_status_pending'),
-                    $msg->content,
+                    $sanitize($msg->client_name),
+                    $sanitize($msg->client_phone),
+                    $sanitize($msg->client_email),
+                    $sanitize($unitLabel),
+                    $sanitize($agentLabel),
+                    $sanitize($statusLabel),
+                    $sanitize($msg->content),
                     $msg->created_at?->format('Y-m-d H:i') ?? '',
                     $msg->replied_at?->format('Y-m-d H:i') ?? '',
                 ]);
@@ -150,6 +168,10 @@ class MessageController extends Controller
 
             return response()->json(['count' => $count]);
         } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to get unread messages count', [
+                'error' => $e->getMessage(),
+            ]);
+
             return response()->json(['count' => 0]);
         }
     }

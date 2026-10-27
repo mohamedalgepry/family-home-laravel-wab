@@ -14,6 +14,8 @@ class CleanOrphanedImagesCommand extends Command
                             {--include-projects : Also clean orphaned project images}
                             {--force : Force cleanup without confirmation prompt}';
 
+    protected $aliases = ['app:clean-orphaned-images'];
+
     protected $description = 'Scan storage and delete orphaned unit and project images that do not exist in the database';
 
     public function handle(): int

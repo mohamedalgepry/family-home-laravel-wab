@@ -5,11 +5,18 @@ namespace App\Domain\Listings\Notifications;
 use App\Domain\Listings\Models\Unit;
 use App\Domain\Users\Models\User;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 
-class UnitPendingApprovalNotification extends Notification
+class UnitPendingApprovalNotification extends Notification implements ShouldQueue
 {
     use Queueable;
+
+    public int $tries = 3;
+
+    public array $backoff = [10, 30, 60];
+
+    public int $timeout = 30;
 
     public function __construct(
         public Unit $unit,

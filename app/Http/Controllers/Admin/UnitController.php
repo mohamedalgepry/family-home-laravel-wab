@@ -31,17 +31,19 @@ class UnitController extends Controller
         private readonly StoreUploadedImagesAction $storeUploadedImagesAction,
     ) {}
 
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $this->authorize('viewAny', Unit::class);
 
-        $user = request()->user();
-        $filters = request()->only(['search', 'area_id', 'type_id', 'sort', 'direction', 'per_page']);
+        $user = $request->user();
+        $filters = $request->only(['search', 'area_id', 'type_id', 'sort', 'direction', 'per_page']);
 
         $units = $this->unitService->getPaginatedUnits($filters, $user);
 
-        $statsRow = Unit::query()
-            ->when($user && $user->role === 'agent', fn ($q) => $q->where('user_id', $user->id))
+        $statsQuery = Unit::query();
+        UserScopeQueryBuilder::applyListingsScope($statsQuery, $user);
+
+        $statsRow = $statsQuery
             ->selectRaw("
                 COUNT(*) as total,
                 COUNT(CASE WHEN is_active = 1 THEN 1 END) as active,
