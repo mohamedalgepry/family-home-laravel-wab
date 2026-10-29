@@ -74,6 +74,15 @@ class NotificationController extends Controller
         $this->authorize('toggleActive', $unit);
 
         if ($unit->is_active) {
+            // The unit is already published: acknowledge any stale pending-approval
+            // notification without toggling the active state off or deleting the card.
+            $this->notificationService->markEntityNotificationsAsRead(
+                $request->user(),
+                'unit_id',
+                $unit->id,
+                'unit_pending_approval',
+            );
+
             return $this->redirectAfterNotificationAction(
                 $request,
                 __('common.updated_successfully'),
