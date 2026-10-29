@@ -2,6 +2,8 @@
 
 namespace Tests;
 
+use App\Domain\Listings\Jobs\RegeneratePrerenderJob;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 
 abstract class TestCase extends BaseTestCase
