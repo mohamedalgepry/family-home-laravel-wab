@@ -75,7 +75,7 @@ test('6. priority points never become negative', function () {
 test('7. correct ledger entry is created in points_transactions', function () {
     $service = app(PointsService::class);
     $manager = createUser('Test Manager', 'manager');
-    $manager->update(['points_balance' => 200]);
+    $manager->forceFill(['points_balance' => 200])->save();
     $agent = createUser('Test Agent', 'agent', $manager->id);
     $unit = createTestUnit(['user_id' => $agent->id, 'priority_points' => 30, 'is_pinned' => false]);
 
@@ -92,7 +92,7 @@ test('7. correct ledger entry is created in points_transactions', function () {
 test('8. correct balance_after reflects manager current balance', function () {
     $service = app(PointsService::class);
     $manager = createUser('Manager Balance', 'manager');
-    $manager->update(['points_balance' => 350]);
+    $manager->forceFill(['points_balance' => 350])->save();
     $agent = createUser('Agent Balance', 'agent', $manager->id);
     $unit = createTestUnit(['user_id' => $agent->id, 'priority_points' => 40, 'is_pinned' => false]);
 
@@ -185,7 +185,7 @@ test('12. transaction failure rolls back changes cleanly', function () {
 test('13. multiple units belonging to the same manager are all deducted', function () {
     $service = app(PointsService::class);
     $manager = createUser('Multi Unit Manager', 'manager');
-    $manager->update(['points_balance' => 500]);
+    $manager->forceFill(['points_balance' => 500])->save();
     $agent = createUser('Multi Unit Agent', 'agent', $manager->id);
 
     $unit1 = createTestUnit(['user_id' => $agent->id, 'priority_points' => 20, 'is_pinned' => false]);

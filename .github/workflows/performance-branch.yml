@@ -80,6 +80,21 @@ jobs:
           php artisan config:clear
           php artisan migrate:fresh --seed --force
 
+      - name: Full production build (client + SSR + prerender)
+        env:
+          APP_ENV: testing
+          APP_KEY: base64:rxysbiBsMikNkXUj7FOLKez08Z4OBuf0QEFmzH4T//k=
+          APP_URL: https://familyhome-co.com
+          PRERENDER_BASE_URL: https://familyhome-co.com
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: family_testing
+          DB_USERNAME: root
+          DB_PASSWORD: ""
+          INERTIA_SSR_ENABLED: "true"
+        run: npm run build
+
       - name: PHP tests
         env:
           APP_ENV: testing
@@ -94,43 +109,3 @@ jobs:
 
       - name: ESLint
         run: npm run lint
-
-      - name: Client build
-        env:
-          APP_ENV: testing
-          APP_KEY: base64:rxysbiBsMikNkXUj7FOLKez08Z4OBuf0QEFmzH4T//k=
-          DB_CONNECTION: mysql
-          DB_HOST: 127.0.0.1
-          DB_PORT: 3306
-          DB_DATABASE: family_testing
-          DB_USERNAME: root
-          DB_PASSWORD: ""
-        run: npm run build:client
-
-      - name: SSR build
-        env:
-          APP_ENV: testing
-          APP_KEY: base64:rxysbiBsMikNkXUj7FOLKez08Z4OBuf0QEFmzH4T//k=
-          DB_CONNECTION: mysql
-          DB_HOST: 127.0.0.1
-          DB_PORT: 3306
-          DB_DATABASE: family_testing
-          DB_USERNAME: root
-          DB_PASSWORD: ""
-        run: npm run build:ssr
-
-      - name: Full prerender build
-        env:
-          APP_ENV: testing
-          APP_KEY: base64:rxysbiBsMikNkXUj7FOLKez08Z4OBuf0QEFmzH4T//k=
-          APP_URL: https://familyhome-co.com
-          DB_CONNECTION: mysql
-          DB_HOST: 127.0.0.1
-          DB_PORT: 3306
-          DB_DATABASE: family_testing
-          DB_USERNAME: root
-          DB_PASSWORD: ""
-          INERTIA_SSR_ENABLED: "true"
-        run: |
-          node scripts/fix-prerender-hashes.mjs
-          node scripts/prerender.js

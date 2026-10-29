@@ -2,7 +2,7 @@ name: CI & Playwright Tests
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main, master, 'fix/**' ]
     paths-ignore:
       - 'public/build/**'
   pull_request:
@@ -45,18 +45,12 @@ jobs:
     - name: Generate App Key
       run: php artisan key:generate
 
-    - name: Run PHP Tests
-      run: php artisan test
-
     - uses: actions/setup-node@v4
       with:
         node-version: lts/*
 
     - name: Install Node dependencies
       run: npm ci --force
-
-    - name: Run ESLint
-      run: npm run lint
 
     - name: Prepare database for full build and prerender
       env:
@@ -74,6 +68,7 @@ jobs:
         php artisan config:clear
         php artisan migrate:fresh --seed --force
 
+    # Build first, as requested; no tests run before the production build succeeds.
     - name: Build Assets (client + SSR + prerender)
       env:
         APP_ENV: testing
@@ -87,6 +82,12 @@ jobs:
         DB_USERNAME: root
         DB_PASSWORD: ""
       run: npm run build
+
+    - name: Run PHP Tests
+      run: php artisan test
+
+    - name: Run ESLint
+      run: npm run lint
 
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps
