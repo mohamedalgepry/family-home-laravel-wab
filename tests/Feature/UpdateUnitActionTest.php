@@ -105,3 +105,29 @@ test('updating an expired unit does not implicitly extend its expiry date', func
     expect((bool) $unit->is_active)->toBeTrue()
         ->and($unit->auto_delete_at->toDateString())->toBe($expiredAt->toDateString());
 });
+
+test('saving the admin edit form does not implicitly extend an expired unit', function () {
+    $admin = createUser('Admin '.uniqid(), 'admin');
+    $expiredAt = now()->subDays(3)->startOfDay();
+
+    $unit = createTestUnit([
+        'user_id' => $admin->id,
+        'is_active' => false,
+        'auto_delete_at' => $expiredAt,
+    ]);
+
+    $response = $this->actingAs($admin)->post("/admin/units/{$unit->id}", [
+        '_method' => 'PUT',
+        'name_ar' => 'وحدة بعد التعديل',
+        'name_en' => 'Updated Unit',
+        'type_id' => $unit->type_id,
+        'area_id' => $unit->area_id,
+        'transaction' => 'sale',
+        'price' => 100,
+    ]);
+
+    $response->assertRedirect(route('admin.units.index'));
+
+    $updated = App\Domain\Listings\Models\Unit::findOrFail($unit->id);
+    expect($updated->auto_delete_at->toDateString())->toBe($expiredAt->toDateString());
+});
