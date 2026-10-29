@@ -62,8 +62,6 @@ class UnitService
 
         $this->notifyPendingApproval($unit, $user);
 
-        // إضافة الوحدة فوراً لـ Sitemap
-
         return $unit;
     }
 
@@ -105,7 +103,6 @@ class UnitService
     public function deleteUnit(int $unitId): void
     {
         $unit = Unit::with('images')->findOrFail($unitId);
-
         $imagePaths = $unit->images->pluck('path')->toArray();
 
         DB::transaction(function () use ($unit, $unitId) {
@@ -114,9 +111,7 @@ class UnitService
             $this->clearListingsCache();
         });
 
-        // حذف الصور الأصلية والـ Thumbnails من الـ Storage
         $this->listingImageService->deleteImageFiles($imagePaths);
-
     }
 
     public function togglePin(int $unitId): Unit
@@ -147,26 +142,16 @@ class UnitService
         $wasActive = $unit->is_active;
         $unit->is_active = ! $wasActive;
 
-        // Auto-extend expiration if activating an expired or near-expired unit
         if (! $wasActive && $unit->is_active) {
             if (! $unit->auto_delete_at || $unit->auto_delete_at->isPast()) {
                 $days = (int) \App\Domain\Listings\Models\Setting::getValue('auto_delete_days', '30');
                 $days = $days > 0 ? $days : 30;
                 $unit->auto_delete_at = now()->addDays($days);
             }
-
-            // Remove any stale expiry warning notifications for this unit
-            app(\App\Domain\Users\Services\NotificationService::class)->removeEntityNotifications(
-                'unit_id',
-                $unit->id,
-                [\App\Domain\Listings\Notifications\UnitExpiryNotification::class]
-            );
         }
 
         $unit->save();
-
         $this->clearListingsCache();
-
         $unit = $unit->fresh();
 
         if (! $wasActive && $unit->is_active) {
@@ -196,15 +181,12 @@ class UnitService
     {
         $unit = Unit::findOrFail($unitId);
         $image = $unit->images()->findOrFail($imageId);
-
         $path = $image->path;
         $wasPrimary = $image->is_primary;
 
         $image->delete();
-        // حذف الصورة الأصلية والـ Thumbnail معاً
         $this->listingImageService->deleteImageFiles([$path]);
 
-        // إذا كانت الصورة المحذوفة هي الرئيسية، اجعل أول صورة متبقية هي الرئيسية
         if ($wasPrimary) {
             $first = $unit->images()->orderBy('sort_order')->first();
             if ($first) {
@@ -216,11 +198,7 @@ class UnitService
     public function setPrimaryImage(int $unitId, int $imageId): void
     {
         $unit = Unit::findOrFail($unitId);
-
-        // إلغاء الرئيسية من كل الصور
         $unit->images()->update(['is_primary' => false]);
-
-        // تعيين الصورة الجديدة كرئيسية
         $unit->images()->where('id', $imageId)->update(['is_primary' => true]);
     }
 }
