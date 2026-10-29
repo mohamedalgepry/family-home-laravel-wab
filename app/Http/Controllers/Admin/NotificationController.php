@@ -116,15 +116,12 @@ class NotificationController extends Controller
         $oldAutoDeleteAt = $unit->auto_delete_at;
         $newAutoDeleteAt = null;
 
-        // Concurrency-safe atomic update
         \Illuminate\Support\Facades\DB::transaction(function () use ($unit, $days, &$newAutoDeleteAt) {
             $lockedUnit = Unit::where('id', $unit->id)->lockForUpdate()->firstOrFail();
 
-            // Case 1: Active and not yet expired -> extend from current auto_delete_at
             if ($lockedUnit->is_active && $lockedUnit->auto_delete_at && $lockedUnit->auto_delete_at->isFuture()) {
                 $newAutoDeleteAt = $lockedUnit->auto_delete_at->copy()->addDays($days);
             } else {
-                // Case 2: Expired or in grace period -> extend from now() and reactivate
                 $newAutoDeleteAt = now()->addDays($days);
             }
 
@@ -133,7 +130,6 @@ class NotificationController extends Controller
             $lockedUnit->save();
         });
 
-        // Audit logging
         \Illuminate\Support\Facades\Log::info('Unit extended by admin', [
             'admin_id' => $request->user()->id,
             'unit_id' => $unit->id,
@@ -144,15 +140,8 @@ class NotificationController extends Controller
 
         $this->clearListingsCache();
 
-        // Clean up obsolete expiry notifications across all recipients
-        $this->notificationService->removeEntityNotifications(
-            'unit_id',
-            $unit->id,
-            [\App\Domain\Listings\Notifications\UnitExpiryNotification::class]
-        );
         $this->notificationService->markEntityNotificationsAsRead($request->user(), 'unit_id', $unit->id);
 
-        // Notify unit owner if exists and different from admin
         if ($unit->user && $unit->user_id !== $request->user()->id && $newAutoDeleteAt) {
             $unit->user->notify(new \App\Domain\Listings\Notifications\UnitExtendedNotification(
                 unit: $unit,
@@ -162,25 +151,12 @@ class NotificationController extends Controller
         }
 
         $unitName = $unit->name_ar ?: $unit->name;
-
         $message = __('admin.unit_extended', [
             'name' => $unitName,
             'days' => $days,
         ]);
 
-        if ($request->header('X-Inertia')) {
-            return redirect()->route('admin.notifications.index')->with('success', $message);
-        }
-
-        if ($request->expectsJson() || $request->ajax()) {
-            return response()->json([
-                'success' => true,
-                'days' => $days,
-                'message' => $message,
-            ]);
-        }
-
-        return redirect()->back()->with('success', $message);
+        return $this->redirectAfterNotificationAction($request, $message);
     }
 
     public function deleteUnit(Request $request, Unit $unit): RedirectResponse
@@ -188,9 +164,7 @@ class NotificationController extends Controller
         $this->authorize('delete', $unit);
 
         $unitName = $unit->name_ar ?: $unit->name;
-
         $this->unitService->deleteUnit($unit->id);
-
         $this->notificationService->markEntityNotificationsAsRead($request->user(), 'unit_id', $unit->id);
 
         return $this->redirectAfterNotificationAction(
@@ -202,7 +176,6 @@ class NotificationController extends Controller
     public function dismissNotification(Request $request, string $id): RedirectResponse
     {
         $this->notificationService->dismiss($request->user(), $id);
-
         return redirect()->back()->with('success', __('common.updated_successfully'));
     }
 
@@ -213,17 +186,10 @@ class NotificationController extends Controller
 
         try {
             $user = $request->user();
-
-            if (! $user) {
-                return response()->json(['notifications' => []]);
-            }
-
+            if (! $user) return response()->json(['notifications' => []]);
             return response()->json(['notifications' => $this->notificationService->recent($user)]);
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::warning('Failed to fetch recent notifications: ' . $e->getMessage(), [
-                'user_id' => $request->user()?->id,
-            ]);
-
+            \Illuminate\Support\Facades\Log::warning('Failed to fetch recent notifications: ' . $e->getMessage(), ['user_id' => $request->user()?->id]);
             return response()->json(['notifications' => []]);
         }
     }
@@ -235,17 +201,10 @@ class NotificationController extends Controller
 
         try {
             $user = $request->user();
-
-            if (! $user) {
-                return response()->json(['count' => 0]);
-            }
-
+            if (! $user) return response()->json(['count' => 0]);
             return response()->json(['count' => $this->notificationService->unreadCount($user)]);
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::warning('Failed to fetch unread notification count: ' . $e->getMessage(), [
-                'user_id' => $request->user()?->id,
-            ]);
-
+            \Illuminate\Support\Facades\Log::warning('Failed to fetch unread notification count: ' . $e->getMessage(), ['user_id' => $request->user()?->id]);
             return response()->json(['count' => 0]);
         }
     }
@@ -253,14 +212,12 @@ class NotificationController extends Controller
     public function destroy(Request $request, string $id): RedirectResponse
     {
         $this->notificationService->delete($request->user(), $id);
-
         return redirect()->back()->with('success', __('common.updated_successfully'));
     }
 
     public function clearAll(Request $request): RedirectResponse
     {
         $this->notificationService->clearAll($request->user());
-
         return redirect()->back()->with('success', __('common.updated_successfully'));
     }
 
@@ -270,16 +227,13 @@ class NotificationController extends Controller
             'is_active' => true,
             'auto_delete_at' => now()->addDays($this->extensionDays()),
         ]);
-
         $this->clearListingsCache();
-
         $this->notificationService->markEntityNotificationsAsRead($user, $entityColumn, $listing->id);
     }
 
     private function extensionDays(): int
     {
         $days = (int) Setting::getValue('auto_delete_days', '30');
-
         return $days > 0 ? $days : 30;
     }
 
@@ -297,7 +251,6 @@ class NotificationController extends Controller
         if ($request->header('X-Inertia')) {
             return redirect()->route('admin.notifications.index')->with('success', $message);
         }
-
         return redirect()->back()->with('success', $message);
     }
 }
