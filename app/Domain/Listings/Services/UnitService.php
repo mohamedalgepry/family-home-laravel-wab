@@ -148,6 +148,13 @@ class UnitService
                 $days = $days > 0 ? $days : 30;
                 $unit->auto_delete_at = now()->addDays($days);
             }
+
+            // Remove expiry-warning notifications only when the unit is explicitly activated.
+            app(\App\Domain\Users\Services\NotificationService::class)->removeEntityNotifications(
+                'unit_id',
+                $unit->id,
+                [\App\Domain\Listings\Notifications\UnitExpiryNotification::class]
+            );
         }
 
         $unit->save();
