@@ -107,7 +107,9 @@ export default function Dashboard({ stats, topProjects = [], topUnits = [], rece
 
     return (
         <AdminSidebar>
-            <Head title={trans('dashboard_title') + ' — ' + trans('app_name')} />
+            <Head title={trans('dashboard_title') + ' — ' + trans('app_name')}>
+                <meta head-key="robots" name="robots" content="noindex, nofollow" />
+            </Head>
             <div dir={isRtl ? 'rtl' : 'ltr'} className="p-4 sm:p-6 lg:p-8 space-y-8 max-w-7xl mx-auto">
                 
                 {/* Header Title */}

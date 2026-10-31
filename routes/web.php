@@ -97,7 +97,7 @@ Route::get('/locale/{lang}', [PageController::class, 'switchLocale'])->name('loc
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'create'])->name('login');
-    Route::post('/login', [LoginController::class, 'store']);
+    Route::post('/login', [LoginController::class, 'store'])->middleware('throttle:login');
     Route::get('/forgot-password', [LoginController::class, 'forgotPassword'])->name('password.request');
     Route::post('/forgot-password', [LoginController::class, 'sendResetLink'])->name('password.email');
     Route::get('/verify-otp', [LoginController::class, 'showVerifyOtpForm'])->name('password.otp');
@@ -155,7 +155,7 @@ Route::prefix('{locale}')->whereIn('locale', ['ar', 'en'])->middleware(SetLocale
 
     Route::middleware('guest')->group(function () {
         Route::get('/login', [LoginController::class, 'create']);
-        Route::post('/login', [LoginController::class, 'store']);
+        Route::post('/login', [LoginController::class, 'store'])->middleware('throttle:login');
         Route::get('/forgot-password', [LoginController::class, 'forgotPassword']);
         Route::post('/forgot-password', [LoginController::class, 'sendResetLink']);
         Route::get('/verify-otp', [LoginController::class, 'showVerifyOtpForm']);

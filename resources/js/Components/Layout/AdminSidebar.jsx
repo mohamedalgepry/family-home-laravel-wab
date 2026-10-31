@@ -221,6 +221,7 @@ export default function AdminSidebar({ children }) {
             onSuccess: () => {
                 setRecentNotifs(prev => prev.map(n => n.id === id ? { ...n, read_at: new Date().toISOString() } : n))
                 setLiveNotifCount(prev => Math.max(0, prev - 1))
+                prevNotifRef.current = Math.max(0, prevNotifRef.current - 1)
             },
         })
     }
@@ -251,6 +252,7 @@ export default function AdminSidebar({ children }) {
             onSuccess: () => {
                 setRecentNotifs(prev => prev.map(n => ({ ...n, read_at: new Date().toISOString() })))
                 setLiveNotifCount(0)
+                prevNotifRef.current = 0
             },
         })
     }
@@ -270,6 +272,7 @@ export default function AdminSidebar({ children }) {
             onSuccess: () => {
                 setRecentNotifs([])
                 setLiveNotifCount(0)
+                prevNotifRef.current = 0
             },
         })
     }
@@ -303,7 +306,11 @@ export default function AdminSidebar({ children }) {
             if (!notifRes.ok || !msgRes.ok) throw new Error('Unable to refresh counts')
             const notifData = await notifRes.json()
             const msgData = await msgRes.json()
-            return { notif: notifData.count, msg: msgData.count }
+            const notifCount = Number(notifData?.count)
+            const msgCount = Number(msgData?.count)
+            if (!Number.isFinite(notifCount) || !Number.isFinite(msgCount)) throw new Error('Invalid unread counts')
+
+            return { notif: notifCount, msg: msgCount }
         } catch {
             return null
         }
@@ -453,6 +460,7 @@ export default function AdminSidebar({ children }) {
         <div dir={isRtl ? 'rtl' : 'ltr'} className="min-h-screen bg-surface flex">
             <Head>
                 <meta head-key="author" name="author" content="mohamed algebry" />
+                <meta head-key="robots" name="robots" content="noindex, nofollow" />
             </Head>
             {/* Desktop Sidebar */}
             <aside className="w-64 bg-secondary-950 text-white shrink-0 hidden md:flex flex-col border-e border-secondary-800/60">

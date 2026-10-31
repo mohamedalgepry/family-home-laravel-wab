@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domain\Listings\Actions\StoreUploadedImagesAction;
 use App\Domain\Listings\Models\Area;
 use App\Domain\Listings\Services\ListingLookupService;
 use App\Domain\Listings\Services\ListingService;
@@ -21,6 +22,7 @@ class AreaController extends Controller
 {
     public function __construct(
         private readonly SitemapService $sitemapService,
+        private readonly StoreUploadedImagesAction $storeUploadedImagesAction,
     ) {}
 
     public function index(): Response
@@ -66,33 +68,38 @@ class AreaController extends Controller
 
         $uploadedPaths = [];
 
-        // Handle Image Path (Card Image)
+        // Handle Image Path (Card Image) — via StoreUploadedImagesAction for
+        // extension/MIME screening and dated storage paths.
         if ($request->hasFile('image_path')) {
-            $path = $request->file('image_path')->store('areas/cards', 'public');
-            $validated['image_path'] = $path;
-            $uploadedPaths[] = $path;
+            $paths = $this->storeUploadedImagesAction->execute([$request->file('image_path')], 'areas/cards');
+            if (! empty($paths)) {
+                $validated['image_path'] = $paths[0];
+                $uploadedPaths[] = $paths[0];
+            } else {
+                unset($validated['image_path']);
+            }
         } else {
             unset($validated['image_path']);
         }
 
         // Handle Hero Image
         if ($request->hasFile('hero_image')) {
-            $path = $request->file('hero_image')->store('areas/hero', 'public');
-            $validated['hero_image'] = $path;
-            $uploadedPaths[] = $path;
+            $paths = $this->storeUploadedImagesAction->execute([$request->file('hero_image')], 'areas/hero');
+            if (! empty($paths)) {
+                $validated['hero_image'] = $paths[0];
+                $uploadedPaths[] = $paths[0];
+            } else {
+                unset($validated['hero_image']);
+            }
         } else {
             unset($validated['hero_image']);
         }
 
         // Handle Gallery
         if ($request->hasFile('gallery')) {
-            $gallery = [];
-            foreach ($request->file('gallery') as $file) {
-                $path = $file->store('areas/gallery', 'public');
-                $gallery[] = $path;
-                $uploadedPaths[] = $path;
-            }
+            $gallery = $this->storeUploadedImagesAction->execute($request->file('gallery'), 'areas/gallery');
             $validated['gallery'] = $gallery;
+            array_push($uploadedPaths, ...$gallery);
         } else {
             unset($validated['gallery']);
         }
@@ -142,12 +149,16 @@ class AreaController extends Controller
 
         // Handle Image Path (Card Image)
         if ($request->hasFile('image_path')) {
-            if ($area->image_path && Storage::disk('public')->exists($area->image_path)) {
-                $this->deleteImageAndThumbnail($area->image_path);
+            $paths = $this->storeUploadedImagesAction->execute([$request->file('image_path')], 'areas/cards');
+            if (! empty($paths)) {
+                if ($area->image_path && Storage::disk('public')->exists($area->image_path)) {
+                    $this->deleteImageAndThumbnail($area->image_path);
+                }
+                $validated['image_path'] = $paths[0];
+                $newUploadedPaths[] = $paths[0];
+            } else {
+                unset($validated['image_path']);
             }
-            $path = $request->file('image_path')->store('areas/cards', 'public');
-            $validated['image_path'] = $path;
-            $newUploadedPaths[] = $path;
         } elseif (array_key_exists('image_path', $validated) && $validated['image_path'] === null) {
             // User explicitly cleared the image
             if ($area->image_path && Storage::disk('public')->exists($area->image_path)) {
@@ -160,12 +171,16 @@ class AreaController extends Controller
 
         // Handle Hero Image
         if ($request->hasFile('hero_image')) {
-            if ($area->hero_image && Storage::disk('public')->exists($area->hero_image)) {
-                $this->deleteImageAndThumbnail($area->hero_image);
+            $paths = $this->storeUploadedImagesAction->execute([$request->file('hero_image')], 'areas/hero');
+            if (! empty($paths)) {
+                if ($area->hero_image && Storage::disk('public')->exists($area->hero_image)) {
+                    $this->deleteImageAndThumbnail($area->hero_image);
+                }
+                $validated['hero_image'] = $paths[0];
+                $newUploadedPaths[] = $paths[0];
+            } else {
+                unset($validated['hero_image']);
             }
-            $path = $request->file('hero_image')->store('areas/hero', 'public');
-            $validated['hero_image'] = $path;
-            $newUploadedPaths[] = $path;
         } elseif (array_key_exists('hero_image', $validated) && $validated['hero_image'] === null) {
             if ($area->hero_image && Storage::disk('public')->exists($area->hero_image)) {
                 $this->deleteImageAndThumbnail($area->hero_image);
@@ -177,20 +192,20 @@ class AreaController extends Controller
 
         // Handle Gallery
         if ($request->hasFile('gallery')) {
-            if ($area->gallery) {
-                foreach ($area->gallery as $oldFile) {
-                    if (Storage::disk('public')->exists($oldFile)) {
-                        $this->deleteImageAndThumbnail($oldFile);
+            $gallery = $this->storeUploadedImagesAction->execute($request->file('gallery'), 'areas/gallery');
+            if (! empty($gallery)) {
+                if ($area->gallery) {
+                    foreach ($area->gallery as $oldFile) {
+                        if (Storage::disk('public')->exists($oldFile)) {
+                            $this->deleteImageAndThumbnail($oldFile);
+                        }
                     }
                 }
+                $validated['gallery'] = $gallery;
+                array_push($newUploadedPaths, ...$gallery);
+            } else {
+                unset($validated['gallery']);
             }
-            $gallery = [];
-            foreach ($request->file('gallery') as $file) {
-                $path = $file->store('areas/gallery', 'public');
-                $gallery[] = $path;
-                $newUploadedPaths[] = $path;
-            }
-            $validated['gallery'] = $gallery;
         } else {
             unset($validated['gallery']);
         }

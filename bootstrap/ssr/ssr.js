@@ -14,7 +14,7 @@ import { Extension } from "@tiptap/core";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { renderToString } from "react-dom/server";
 import http from "node:http";
-//#region \0rolldown/runtime.js
+// \0rolldown/runtime.js
 var __defProp = Object.defineProperty;
 var __exportAll = (all, no_symbols) => {
 	let target = {};
@@ -25,17 +25,16 @@ var __exportAll = (all, no_symbols) => {
 	if (!no_symbols) __defProp(target, Symbol.toStringTag, { value: "Module" });
 	return target;
 };
-//#endregion
-//#region resources/js/Utils/trans.js
+// resources/js/Utils/trans.js
 var dictionaries = {};
 async function loadLocale(locale) {
 	const lang = locale === "ar" ? "ar" : "en";
 	if (!dictionaries[lang]) try {
 		if (lang === "ar") {
-			const mod = await import("./assets/ar-ByrwEGVL.js");
+			const mod = await import("./assets/ar-hE4UU5lA.js");
 			dictionaries.ar = mod.default || mod;
 		} else {
-			const mod = await import("./assets/en-CUvko0Em.js");
+			const mod = await import("./assets/en-DllnHA5o.js");
 			dictionaries.en = mod.default || mod;
 		}
 	} catch (e) {
@@ -55,8 +54,7 @@ function useTrans(locale) {
 		return text;
 	};
 }
-//#endregion
-//#region resources/js/Utils/route.js
+// resources/js/Utils/route.js
 function localizedPath(path, locale) {
 	if (!path) return "/";
 	locale = locale || "ar";
@@ -70,8 +68,7 @@ function localizedPath(path, locale) {
 	if (normalizedPath === "/") return `/${locale}${queryString}`;
 	return `/${locale}${normalizedPath}${queryString}`;
 }
-//#endregion
-//#region resources/js/Utils/storage.js
+// resources/js/Utils/storage.js
 var memoryStorage = /* @__PURE__ */ new Map();
 var safeStorage = {
 	getItem(key) {
@@ -99,8 +96,7 @@ var safeStorage = {
 		memoryStorage.delete(key);
 	}
 };
-//#endregion
-//#region resources/js/Components/UI/InputField.jsx
+// resources/js/Components/UI/InputField.jsx
 function InputField({ id, name, label, type = "text", value, onChange, placeholder, required = false, autoComplete, dir }) {
 	const generatedId = useId();
 	const { errors } = usePage().props;
@@ -140,8 +136,7 @@ function InputField({ id, name, label, type = "text", value, onChange, placehold
 		]
 	});
 }
-//#endregion
-//#region resources/js/Components/UI/Button.jsx
+// resources/js/Components/UI/Button.jsx
 function Button({ children, type = "submit", variant = "primary", disabled = false, className = "", onClick }) {
 	return /* @__PURE__ */ jsx("button", {
 		type,
@@ -155,8 +150,7 @@ function Button({ children, type = "submit", variant = "primary", disabled = fal
 		children
 	});
 }
-//#endregion
-//#region resources/js/Components/UI/SkeletonRow.jsx
+// resources/js/Components/UI/SkeletonRow.jsx
 function SkeletonRow({ cols }) {
 	return /* @__PURE__ */ jsx("tr", {
 		className: "border-t border-secondary-100",
@@ -169,8 +163,7 @@ function SkeletonRow({ cols }) {
 		}, i))
 	});
 }
-//#endregion
-//#region resources/js/Components/UI/Select.jsx
+// resources/js/Components/UI/Select.jsx
 function Select({ value, onChange, children, className = "", disabled = false, required = false, id, name, defaultValue, "aria-label": ariaLabel, variant = "default" }) {
 	const { locale } = usePage().props || {};
 	const trans = useTrans(locale);
@@ -265,13 +258,10 @@ function Select({ value, onChange, children, className = "", disabled = false, r
 					triggerRef.current?.focus();
 				}
 				break;
-			case "Tab":
-				if (isOpen) {
-					setIsOpen(false);
-					setFocusedIndex(-1);
-				}
-				break;
-			default: break;
+			case "Tab": if (isOpen) {
+				setIsOpen(false);
+				setFocusedIndex(-1);
+			}
 		}
 	};
 	const activeDescendantId = isOpen && focusedIndex >= 0 && focusedIndex < filteredOptions.length ? `${listboxId}-opt-${focusedIndex}` : void 0;
@@ -369,8 +359,9 @@ function Select({ value, onChange, children, className = "", disabled = false, r
 					}) : filteredOptions.map((opt, idx) => {
 						const isSelected = String(opt.value) === String(currentValue);
 						const isKeyboardFocused = idx === focusedIndex;
+						const optionId = `${listboxId}-opt-${idx}`;
 						return /* @__PURE__ */ jsxs("button", {
-							id: `${listboxId}-opt-${idx}`,
+							id: optionId,
 							type: "button",
 							role: "option",
 							"aria-selected": isSelected,
@@ -402,8 +393,7 @@ function Select({ value, onChange, children, className = "", disabled = false, r
 		]
 	});
 }
-//#endregion
-//#region resources/js/Components/UI/LazyMapEmbed.jsx
+// resources/js/Components/UI/LazyMapEmbed.jsx
 function LazyMapEmbed({ latitude, longitude, locale = "ar", title = "Google Map Location", className = "" }) {
 	const [shouldLoad, setShouldLoad] = useState(false);
 	const containerRef = useRef(null);
@@ -458,8 +448,7 @@ function LazyMapEmbed({ latitude, longitude, locale = "ar", title = "Google Map 
 		})
 	});
 }
-//#endregion
-//#region resources/js/Components/UI/WhatsAppIcon.jsx
+// resources/js/Components/UI/WhatsAppIcon.jsx
 function WhatsAppIcon({ className = "w-5 h-5", "aria-hidden": ariaHidden = true, ...props }) {
 	return /* @__PURE__ */ jsx("svg", {
 		className,
@@ -470,8 +459,7 @@ function WhatsAppIcon({ className = "w-5 h-5", "aria-hidden": ariaHidden = true,
 		children: /* @__PURE__ */ jsx("path", { d: "M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0012.04 2zm.01 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 012.41 5.83c0 4.54-3.7 8.24-8.24 8.24-1.42 0-2.82-.37-4.06-1.07l-.29-.17-3.12.82.83-3.04-.19-.3a8.216 8.216 0 01-1.26-4.48c0-4.54 3.7-8.24 8.24-8.24zm4.52 11.66c-.25-.13-1.47-.72-1.7-.81-.23-.08-.39-.13-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.13-1.06-.39-2.03-1.25-.75-.67-1.26-1.5-1.41-1.75-.14-.25-.02-.39.11-.51.11-.11.25-.29.37-.44.13-.14.17-.25.25-.42.08-.17.04-.31-.02-.44s-.56-1.35-.77-1.85c-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1 0 1.24.9 2.44 1.03 2.61.13.17 1.77 2.7 4.29 3.79.6.26 1.07.41 1.44.53.6.19 1.15.16 1.59.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.14-1.18-.06-.1-.22-.16-.47-.29z" })
 	});
 }
-//#endregion
-//#region resources/js/Components/UI/ConfirmationModal.jsx
+// resources/js/Components/UI/ConfirmationModal.jsx
 function ConfirmationModal({ isOpen, title, message, confirmLabel, cancelLabel, variant = "danger", onConfirm, onCancel, isLoading = false }) {
 	useEffect(() => {
 		if (!isOpen) return;
@@ -579,8 +567,7 @@ function ConfirmationModal({ isOpen, title, message, confirmLabel, cancelLabel, 
 		})]
 	});
 }
-//#endregion
-//#region resources/js/Components/Layout/AdminSidebar.jsx
+// resources/js/Components/Layout/AdminSidebar.jsx
 var NAV_GROUPS = [
 	{
 		key: "nav_group_main",
@@ -845,6 +832,7 @@ function AdminSidebar({ children }) {
 					read_at: (/* @__PURE__ */ new Date()).toISOString()
 				} : n));
 				setLiveNotifCount((prev) => Math.max(0, prev - 1));
+				prevNotifRef.current = Math.max(0, prevNotifRef.current - 1);
 			}
 		});
 	}
@@ -867,6 +855,7 @@ function AdminSidebar({ children }) {
 					read_at: (/* @__PURE__ */ new Date()).toISOString()
 				})));
 				setLiveNotifCount(0);
+				prevNotifRef.current = 0;
 			}
 		});
 	}
@@ -884,6 +873,7 @@ function AdminSidebar({ children }) {
 			onSuccess: () => {
 				setRecentNotifs([]);
 				setLiveNotifCount(0);
+				prevNotifRef.current = 0;
 			}
 		});
 	}
@@ -910,9 +900,12 @@ function AdminSidebar({ children }) {
 			if (!notifRes.ok || !msgRes.ok) throw new Error("Unable to refresh counts");
 			const notifData = await notifRes.json();
 			const msgData = await msgRes.json();
+			const notifCount = Number(notifData?.count);
+			const msgCount = Number(msgData?.count);
+			if (!Number.isFinite(notifCount) || !Number.isFinite(msgCount)) throw new Error("Invalid unread counts");
 			return {
-				notif: notifData.count,
-				msg: msgData.count
+				notif: notifCount,
+				msg: msgCount
 			};
 		} catch {
 			return null;
@@ -1054,11 +1047,15 @@ function AdminSidebar({ children }) {
 		dir: isRtl ? "rtl" : "ltr",
 		className: "min-h-screen bg-surface flex",
 		children: [
-			/* @__PURE__ */ jsx(Head, { children: /* @__PURE__ */ jsx("meta", {
+			/* @__PURE__ */ jsxs(Head, { children: [/* @__PURE__ */ jsx("meta", {
 				"head-key": "author",
 				name: "author",
 				content: "mohamed algebry"
-			}) }),
+			}), /* @__PURE__ */ jsx("meta", {
+				"head-key": "robots",
+				name: "robots",
+				content: "noindex, nofollow"
+			})] }),
 			/* @__PURE__ */ jsxs("aside", {
 				className: "w-64 bg-secondary-950 text-white shrink-0 hidden md:flex flex-col border-e border-secondary-800/60",
 				children: [
@@ -1424,8 +1421,7 @@ function AdminSidebar({ children }) {
 		]
 	});
 }
-//#endregion
-//#region resources/js/Pages/Admin/About/Edit.jsx
+// resources/js/Pages/Admin/About/Edit.jsx
 var Edit_exports$2 = /* @__PURE__ */ __exportAll({ default: () => AdminAboutEdit });
 var CustomImage = Image$1.extend({ addAttributes() {
 	return {
@@ -1979,8 +1975,7 @@ function AdminAboutEdit({ about }) {
 		]
 	})] });
 }
-//#endregion
-//#region resources/js/Utils/image.js
+// resources/js/Utils/image.js
 var PLACEHOLDER$2 = "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 600\"%3E%3Crect fill=\"%23F0F0F0\" width=\"800\" height=\"600\"/%3E%3C/svg%3E";
 /**
 * Normalizes an image path to ensure proper /storage/ URL format without duplicate storage/storage prefixes.
@@ -2030,16 +2025,18 @@ async function compressImage(file, { maxWidth = 2048, maxHeight = 2048, quality 
 		img.onload = () => {
 			URL.revokeObjectURL(objectUrl);
 			let { width, height } = img;
-			if (width <= maxWidth && height <= maxHeight && file.size <= 400 * 1024) {
+			if (width <= maxWidth && height <= maxHeight && file.size <= 409600) {
 				resolve(file);
 				return;
 			}
-			if (width > maxWidth || height > maxHeight) if (width / height > maxWidth / maxHeight) {
-				height = Math.round(height * maxWidth / width);
-				width = maxWidth;
-			} else {
-				width = Math.round(width * maxHeight / height);
-				height = maxHeight;
+			if (width > maxWidth || height > maxHeight) {
+				if (width / height > maxWidth / maxHeight) {
+					height = Math.round(height * maxWidth / width);
+					width = maxWidth;
+				} else {
+					width = Math.round(width * maxHeight / height);
+					height = maxHeight;
+				}
 			}
 			const canvas = document.createElement("canvas");
 			canvas.width = width;
@@ -2074,8 +2071,7 @@ async function compressImage(file, { maxWidth = 2048, maxHeight = 2048, quality 
 		img.src = objectUrl;
 	});
 }
-//#endregion
-//#region resources/js/Pages/Admin/Areas/AreaForm.jsx
+// resources/js/Pages/Admin/Areas/AreaForm.jsx
 var AreaForm_exports = /* @__PURE__ */ __exportAll({ default: () => AreaForm });
 var MAX_KEYWORDS = 25;
 function AreaForm({ area, parents, mode = "create" }) {
@@ -3377,8 +3373,7 @@ function AreaForm({ area, parents, mode = "create" }) {
 		})]
 	});
 }
-//#endregion
-//#region resources/js/Pages/Admin/Areas/Create.jsx
+// resources/js/Pages/Admin/Areas/Create.jsx
 var Create_exports$1 = /* @__PURE__ */ __exportAll({ default: () => AdminAreasCreate });
 function AdminAreasCreate({ parents }) {
 	const { locale } = usePage().props;
@@ -3414,8 +3409,7 @@ function AdminAreasCreate({ parents }) {
 		})]
 	})] });
 }
-//#endregion
-//#region resources/js/Pages/Admin/Areas/Edit.jsx
+// resources/js/Pages/Admin/Areas/Edit.jsx
 var Edit_exports$1 = /* @__PURE__ */ __exportAll({ default: () => AdminAreasEdit });
 function AdminAreasEdit({ area, parents }) {
 	const { locale } = usePage().props;
@@ -3456,8 +3450,7 @@ function AdminAreasEdit({ area, parents }) {
 		})]
 	})] });
 }
-//#endregion
-//#region resources/js/Pages/Admin/Areas/Index.jsx
+// resources/js/Pages/Admin/Areas/Index.jsx
 var Index_exports$17 = /* @__PURE__ */ __exportAll({ default: () => AdminAreasIndex });
 function AdminAreasIndex({ areas, filters }) {
 	const { locale, flash } = usePage().props;
@@ -3803,8 +3796,7 @@ function AdminAreasIndex({ areas, filters }) {
 		]
 	})] });
 }
-//#endregion
-//#region resources/js/Utils/tiptapFontSize.js
+// resources/js/Utils/tiptapFontSize.js
 var FontSize = Extension.create({
 	name: "fontSize",
 	addOptions() {
@@ -3834,8 +3826,7 @@ var FontSize = Extension.create({
 		};
 	}
 });
-//#endregion
-//#region resources/js/Pages/Admin/Articles/Form.jsx
+// resources/js/Pages/Admin/Articles/Form.jsx
 var Form_exports$2 = /* @__PURE__ */ __exportAll({ default: () => AdminArticlesForm });
 var FONT_SIZES = [
 	"12px",
@@ -4972,8 +4963,7 @@ function AdminArticlesForm({ article, categories }) {
 		})]
 	})] });
 }
-//#endregion
-//#region resources/js/Pages/Admin/Articles/Index.jsx
+// resources/js/Pages/Admin/Articles/Index.jsx
 var Index_exports$16 = /* @__PURE__ */ __exportAll({ default: () => AdminArticlesIndex });
 function AdminArticlesIndex({ articles, categories, filters }) {
 	const { locale } = usePage().props;
@@ -5186,8 +5176,7 @@ function AdminArticlesIndex({ articles, categories, filters }) {
 		]
 	})] });
 }
-//#endregion
-//#region resources/js/Pages/Admin/Assistant/Knowledge.jsx
+// resources/js/Pages/Admin/Assistant/Knowledge.jsx
 var Knowledge_exports = /* @__PURE__ */ __exportAll({ default: () => AssistantKnowledgeIndex });
 function AssistantKnowledgeIndex({ items = [], stats = {}, filters = {} }) {
 	const { locale } = usePage().props;
@@ -5712,8 +5701,7 @@ function AssistantKnowledgeIndex({ items = [], stats = {}, filters = {} }) {
 		]
 	})] });
 }
-//#endregion
-//#region resources/js/Pages/Admin/AssistantLeads/Index.jsx
+// resources/js/Pages/Admin/AssistantLeads/Index.jsx
 var Index_exports$15 = /* @__PURE__ */ __exportAll({ default: () => AssistantLeadsIndex });
 function AssistantLeadsIndex({ leads }) {
 	const { locale, auth } = usePage().props;
@@ -6009,8 +5997,7 @@ function AssistantLeadsIndex({ leads }) {
 		})
 	] });
 }
-//#endregion
-//#region resources/js/Pages/Admin/Categories/Index.jsx
+// resources/js/Pages/Admin/Categories/Index.jsx
 var Index_exports$14 = /* @__PURE__ */ __exportAll({ default: () => AdminCategoriesIndex });
 function AdminCategoriesIndex({ categories }) {
 	const { locale } = usePage().props;
@@ -6216,8 +6203,7 @@ function AdminCategoriesIndex({ categories }) {
 		]
 	})] });
 }
-//#endregion
-//#region resources/js/Pages/Admin/Dashboard.jsx
+// resources/js/Pages/Admin/Dashboard.jsx
 var Dashboard_exports = /* @__PURE__ */ __exportAll({ default: () => Dashboard });
 function StatCard({ title, value, subtext, icon, color = "primary", badge }) {
 	const colorClasses = {
@@ -6341,7 +6327,14 @@ function Dashboard({ stats, topProjects = [], topUnits = [], recentUnits = [], r
 			month: "short"
 		});
 	}
-	return /* @__PURE__ */ jsxs(AdminSidebar, { children: [/* @__PURE__ */ jsx(Head, { title: trans("dashboard_title") + " — " + trans("app_name") }), /* @__PURE__ */ jsxs("div", {
+	return /* @__PURE__ */ jsxs(AdminSidebar, { children: [/* @__PURE__ */ jsx(Head, {
+		title: trans("dashboard_title") + " — " + trans("app_name"),
+		children: /* @__PURE__ */ jsx("meta", {
+			"head-key": "robots",
+			name: "robots",
+			content: "noindex, nofollow"
+		})
+	}), /* @__PURE__ */ jsxs("div", {
 		dir: isRtl ? "rtl" : "ltr",
 		className: "p-4 sm:p-6 lg:p-8 space-y-8 max-w-7xl mx-auto",
 		children: [
@@ -6781,8 +6774,7 @@ function Dashboard({ stats, topProjects = [], topUnits = [], recentUnits = [], r
 		]
 	})] });
 }
-//#endregion
-//#region resources/js/Pages/Admin/Features/Index.jsx
+// resources/js/Pages/Admin/Features/Index.jsx
 var Index_exports$13 = /* @__PURE__ */ __exportAll({ default: () => AdminFeaturesIndex });
 function AdminFeaturesIndex({ features }) {
 	const { locale, flash } = usePage().props;
@@ -6976,8 +6968,7 @@ function AdminFeaturesIndex({ features }) {
 		]
 	})] });
 }
-//#endregion
-//#region resources/js/Pages/Admin/FinishingTypes/Index.jsx
+// resources/js/Pages/Admin/FinishingTypes/Index.jsx
 var Index_exports$12 = /* @__PURE__ */ __exportAll({ default: () => AdminFinishingTypesIndex });
 function AdminFinishingTypesIndex({ finishingTypes }) {
 	const { locale, flash } = usePage().props;
@@ -7169,8 +7160,7 @@ function AdminFinishingTypesIndex({ finishingTypes }) {
 		]
 	})] });
 }
-//#endregion
-//#region resources/js/Components/UI/Pagination.jsx
+// resources/js/Components/UI/Pagination.jsx
 function Pagination({ meta, links: routeLinks, pageParam = "page" }) {
 	const pageContext = usePage();
 	const { locale } = pageContext.props;
@@ -7249,8 +7239,7 @@ function Pagination({ meta, links: routeLinks, pageParam = "page" }) {
 		]
 	});
 }
-//#endregion
-//#region resources/js/Pages/Admin/Messages/Index.jsx
+// resources/js/Pages/Admin/Messages/Index.jsx
 var Index_exports$11 = /* @__PURE__ */ __exportAll({ default: () => AdminMessagesIndex });
 function AdminMessagesIndex({ messages, agents, filters }) {
 	const { locale, auth } = usePage().props;
@@ -7715,8 +7704,7 @@ function AdminMessagesIndex({ messages, agents, filters }) {
 		})
 	] });
 }
-//#endregion
-//#region resources/js/Pages/Admin/Notifications/Index.jsx
+// resources/js/Pages/Admin/Notifications/Index.jsx
 var Index_exports$10 = /* @__PURE__ */ __exportAll({ default: () => NotificationsIndex });
 var TYPE_META = {
 	unit_expiry_warning: {
@@ -7863,6 +7851,7 @@ var ICON_PATHS$1 = {
 	sparkles: "M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z"
 };
 function TypeIcon({ type, className = "w-5 h-5" }) {
+	const meta = TYPE_META[type] || TYPE_DEFAULT;
 	return /* @__PURE__ */ jsx("svg", {
 		className,
 		fill: "none",
@@ -7872,7 +7861,7 @@ function TypeIcon({ type, className = "w-5 h-5" }) {
 		children: /* @__PURE__ */ jsx("path", {
 			strokeLinecap: "round",
 			strokeLinejoin: "round",
-			d: ICON_PATHS$1[(TYPE_META[type] || TYPE_DEFAULT).icon]
+			d: ICON_PATHS$1[meta.icon]
 		})
 	});
 }
@@ -7880,7 +7869,7 @@ function groupByDate(items, isRtl, trans) {
 	const now = /* @__PURE__ */ new Date();
 	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 	const yesterday = /* @__PURE__ */ new Date(today.getTime() - 864e5);
-	const weekAgo = /* @__PURE__ */ new Date(today.getTime() - 6 * 864e5);
+	const weekAgo = /* @__PURE__ */ new Date(today.getTime() - 5184e5);
 	const groups = {
 		today: [],
 		yesterday: [],
@@ -8744,8 +8733,7 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 		]
 	})] });
 }
-//#endregion
-//#region resources/js/Pages/Admin/Points/Index.jsx
+// resources/js/Pages/Admin/Points/Index.jsx
 var Index_exports$9 = /* @__PURE__ */ __exportAll({ default: () => PointsIndex });
 function PointsIndex({ managers, ledger, units, filters, pointsSettings }) {
 	const { locale, auth } = usePage().props;
@@ -9292,8 +9280,7 @@ function PointsIndex({ managers, ledger, units, filters, pointsSettings }) {
 		]
 	})] });
 }
-//#endregion
-//#region resources/js/Pages/Admin/Points/Ledger.jsx
+// resources/js/Pages/Admin/Points/Ledger.jsx
 var Ledger_exports = /* @__PURE__ */ __exportAll({ default: () => PointsLedger });
 var FILTER_MAP = {
 	type: "",
@@ -9505,8 +9492,7 @@ function PointsLedger({ transactions, managers, filters = FILTER_MAP }) {
 		]
 	});
 }
-//#endregion
-//#region resources/js/Pages/Admin/Profile/Edit.jsx
+// resources/js/Pages/Admin/Profile/Edit.jsx
 var Edit_exports = /* @__PURE__ */ __exportAll({ default: () => Edit });
 function Edit({ user }) {
 	const { auth, locale, flash, errors: pageErrors } = usePage().props;
@@ -9514,7 +9500,8 @@ function Edit({ user }) {
 	const isRtl = locale === "ar";
 	const fileInput = useRef(null);
 	const currentUser = user || auth?.user || {};
-	const [preview, setPreview] = useState(currentUser.avatar ? currentUser.avatar.startsWith("http") || currentUser.avatar.startsWith("/storage") ? currentUser.avatar : `/storage/${currentUser.avatar}` : null);
+	const initialAvatar = currentUser.avatar ? currentUser.avatar.startsWith("http") || currentUser.avatar.startsWith("/storage") ? currentUser.avatar : `/storage/${currentUser.avatar}` : null;
+	const [preview, setPreview] = useState(initialAvatar);
 	const [newEmail, setNewEmail] = useState(currentUser.email || "");
 	const [otpSent, setOtpSent] = useState(false);
 	const [otpCode, setOtpCode] = useState("");
@@ -9856,8 +9843,7 @@ function Edit({ user }) {
 		})]
 	});
 }
-//#endregion
-//#region resources/js/Pages/Admin/Projects/Form.jsx
+// resources/js/Pages/Admin/Projects/Form.jsx
 var Form_exports$1 = /* @__PURE__ */ __exportAll({ default: () => AdminProjectForm });
 var STEPS$1 = [
 	{
@@ -10947,8 +10933,7 @@ function AdminProjectForm({ project, areas, features, finishingTypes, managers }
 		]
 	})] });
 }
-//#endregion
-//#region resources/js/Pages/Admin/Projects/Index.jsx
+// resources/js/Pages/Admin/Projects/Index.jsx
 var Index_exports$8 = /* @__PURE__ */ __exportAll({ default: () => AdminProjectsIndex });
 function AdminProjectsIndex({ projects, stats, areas, filters }) {
 	const { locale, auth } = usePage().props;
@@ -11704,8 +11689,7 @@ function AdminProjectsIndex({ projects, stats, areas, filters }) {
 		]
 	})] });
 }
-//#endregion
-//#region resources/js/Pages/Admin/SeoPages/Index.jsx
+// resources/js/Pages/Admin/SeoPages/Index.jsx
 var Index_exports$7 = /* @__PURE__ */ __exportAll({ default: () => SeoPagesIndex });
 function SeoPagesIndex({ pages }) {
 	const { locale } = usePage().props;
@@ -11925,8 +11909,7 @@ function SeoPagesIndex({ pages }) {
 		})]
 	})] });
 }
-//#endregion
-//#region resources/js/Pages/Admin/Settings/Index.jsx
+// resources/js/Pages/Admin/Settings/Index.jsx
 var Index_exports$6 = /* @__PURE__ */ __exportAll({ default: () => AdminSettingsIndex });
 function AdminSettingsIndex({ settings }) {
 	const { locale, flash } = usePage().props;
@@ -12608,8 +12591,7 @@ function AdminSettingsIndex({ settings }) {
 		})
 	] });
 }
-//#endregion
-//#region resources/js/Pages/Admin/UnitTypes/Index.jsx
+// resources/js/Pages/Admin/UnitTypes/Index.jsx
 var Index_exports$5 = /* @__PURE__ */ __exportAll({ default: () => AdminUnitTypesIndex });
 function AdminUnitTypesIndex({ unitTypes }) {
 	const { locale, flash, errors } = usePage().props;
@@ -12851,8 +12833,7 @@ function AdminUnitTypesIndex({ unitTypes }) {
 		]
 	})] });
 }
-//#endregion
-//#region resources/js/Pages/Admin/Units/Form.jsx
+// resources/js/Pages/Admin/Units/Form.jsx
 var Form_exports = /* @__PURE__ */ __exportAll({ default: () => AdminUnitForm });
 var STEPS = [
 	{
@@ -12888,8 +12869,8 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 	const [newPreviews, setNewPreviews] = useState([]);
 	const primaryRef = useRef();
 	const moreRef = useRef();
-	const MAX_SIZE = 10 * 1024 * 1024;
-	const MAX_TOTAL = 40 * 1024 * 1024;
+	const MAX_SIZE = 10485760;
+	const MAX_TOTAL = 41943040;
 	const existingImages = unit?.images ?? [];
 	const { data, setData, post, processing } = useForm({
 		user_id: unit?.user_id || "",
@@ -14165,8 +14146,7 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 		]
 	})] });
 }
-//#endregion
-//#region resources/js/Pages/Admin/Units/Index.jsx
+// resources/js/Pages/Admin/Units/Index.jsx
 var Index_exports$4 = /* @__PURE__ */ __exportAll({ default: () => AdminUnitsIndex });
 function AdminUnitsIndex({ units, stats, areas, unitTypes, filters, autoDeleteDays = 30 }) {
 	const { locale, auth } = usePage().props;
@@ -14801,7 +14781,7 @@ function AdminUnitsIndex({ units, stats, areas, unitTypes, filters, autoDeleteDa
 															}),
 															unit.auto_delete_at && (() => {
 																const isExp = new Date(unit.auto_delete_at) <= /* @__PURE__ */ new Date();
-																const daysLeft = Math.ceil((new Date(unit.auto_delete_at) - /* @__PURE__ */ new Date()) / (1e3 * 60 * 60 * 24));
+																const daysLeft = Math.ceil((new Date(unit.auto_delete_at) - /* @__PURE__ */ new Date()) / 864e5);
 																if (isExp) return /* @__PURE__ */ jsx("span", {
 																	className: "px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-rose-50 text-rose-700 border border-rose-200",
 																	title: new Date(unit.auto_delete_at).toLocaleDateString(),
@@ -15515,8 +15495,7 @@ function AdminUnitsIndex({ units, stats, areas, unitTypes, filters, autoDeleteDa
 		]
 	})] });
 }
-//#endregion
-//#region resources/js/Pages/Admin/Users/Create.jsx
+// resources/js/Pages/Admin/Users/Create.jsx
 var Create_exports = /* @__PURE__ */ __exportAll({ default: () => AdminUsersCreate });
 function AdminUsersCreate({ managers }) {
 	const { locale } = usePage().props;
@@ -15726,8 +15705,7 @@ function AdminUsersCreate({ managers }) {
 		})]
 	})] });
 }
-//#endregion
-//#region resources/js/Pages/Admin/Users/Index.jsx
+// resources/js/Pages/Admin/Users/Index.jsx
 var Index_exports$3 = /* @__PURE__ */ __exportAll({ default: () => AdminUsersIndex });
 function AdminUsersIndex({ users, managers, filters }) {
 	const { locale, auth } = usePage().props;
@@ -17490,8 +17468,7 @@ function AdminUsersIndex({ users, managers, filters }) {
 		]
 	})] });
 }
-//#endregion
-//#region resources/js/Components/OptimizedImage.jsx
+// resources/js/Components/OptimizedImage.jsx
 function OptimizedImage({ src, alt = "", width, height, className = "", lazy = true, fallbackSrc = "/images/fallback.webp", role, srcSet, sizes = "(max-width: 640px) calc(100vw - 32px), (max-width: 1024px) 50vw, (max-width: 1536px) 33vw, 480px", ...props }) {
 	const [imgSrc, setImgSrc] = useState(src);
 	const [imgSrcSet, setImgSrcSet] = useState(srcSet);
@@ -17529,8 +17506,7 @@ function OptimizedImage({ src, alt = "", width, height, className = "", lazy = t
 		...props
 	});
 }
-//#endregion
-//#region resources/js/Components/Layout/Header.jsx
+// resources/js/Components/Layout/Header.jsx
 var NAV_ITEMS = [
 	{
 		key: "home",
@@ -17729,8 +17705,7 @@ function Header({ compareCount = 0 }) {
 		})]
 	});
 }
-//#endregion
-//#region resources/js/Contexts/CompareContext.jsx
+// resources/js/Contexts/CompareContext.jsx
 var COMPARE_KEY_PREFIX = "family_home_compare_list_";
 var MAX_COMPARE_ITEMS = 4;
 function getCompareKey(type) {
@@ -17829,8 +17804,7 @@ function useCompare(type = "unit") {
 		maxItems: ctx.maxItems
 	};
 }
-//#endregion
-//#region resources/js/Components/Features/CompareBar.jsx
+// resources/js/Components/Features/CompareBar.jsx
 function CompareBar() {
 	const { locale } = usePage().props;
 	const trans = useTrans(locale);
@@ -17903,9 +17877,8 @@ function CompareBar() {
 		})
 	});
 }
-//#endregion
-//#region resources/js/Components/Layout/Footer.jsx
-var HossamChatWidget = lazy(() => import("./assets/HossamChatWidget-CrAZn3fB.js"));
+// resources/js/Components/Layout/Footer.jsx
+var HossamChatWidget = lazy(() => import("./assets/HossamChatWidget-NyuMS7s5.js"));
 var QUICK_LINKS = [
 	{
 		key: "home",
@@ -18142,8 +18115,7 @@ function Footer() {
 		]
 	});
 }
-//#endregion
-//#region resources/js/Components/UI/SeoHead.jsx
+// resources/js/Components/UI/SeoHead.jsx
 function SeoHead({ title, description, keywords, ogImage, ogType = "website", canonical, jsonLd, hreflang, robots, geoRegion, geoPlacename, geoPosition, icbm }) {
 	const { locale, seo_page, appUrl, seo_meta, settings } = usePage().props;
 	const { url } = usePage();
@@ -18350,8 +18322,7 @@ function SeoHead({ title, description, keywords, ogImage, ogType = "website", ca
 		})
 	] });
 }
-//#endregion
-//#region resources/js/Pages/Public/About.jsx
+// resources/js/Pages/Public/About.jsx
 var About_exports = /* @__PURE__ */ __exportAll({ default: () => About });
 function About({ page }) {
 	const { locale } = usePage().props;
@@ -18419,8 +18390,7 @@ function About({ page }) {
 		]
 	});
 }
-//#endregion
-//#region resources/js/Utils/contact.js
+// resources/js/Utils/contact.js
 /**
 * Normalize a phone number for WhatsApp's international wa.me format.
 * Egyptian local mobile numbers such as 01012345678 become 201012345678.
@@ -18459,8 +18429,7 @@ function getAgentContacts(agent, settings = {}) {
 		rawPhone: finalPhone
 	};
 }
-//#endregion
-//#region resources/js/Components/UI/UnitCard.jsx
+// resources/js/Components/UI/UnitCard.jsx
 function SkeletonCard$2() {
 	return /* @__PURE__ */ jsxs("div", {
 		className: "bg-white rounded-2xl shadow-card overflow-hidden border border-secondary-100/50",
@@ -18680,8 +18649,7 @@ function UnitCard({ unit, loading = false, priority = false }) {
 	});
 }
 var UnitCard_default = memo(UnitCard);
-//#endregion
-//#region resources/js/Components/UI/ProjectCard.jsx
+// resources/js/Components/UI/ProjectCard.jsx
 function SkeletonCard$1() {
 	return /* @__PURE__ */ jsxs("div", {
 		className: "bg-white rounded-2xl shadow-card overflow-hidden border border-secondary-100 animate-pulse",
@@ -18883,8 +18851,7 @@ function ProjectCard({ project, loading = false, priority = false }) {
 	});
 }
 var ProjectCard_default = memo(ProjectCard);
-//#endregion
-//#region resources/js/Pages/Public/Agents/Show.jsx
+// resources/js/Pages/Public/Agents/Show.jsx
 var Show_exports$4 = /* @__PURE__ */ __exportAll({ default: () => Show });
 function Show({ agent, units, projects, stats = {}, availableAreas = [], filters = {}, locale }) {
 	const pageProps = usePage().props;
@@ -19080,7 +19047,7 @@ function Show({ agent, units, projects, stats = {}, availableAreas = [], filters
 														href: whatsappUrl,
 														target: "_blank",
 														rel: "noopener noreferrer",
-														className: "px-5 py-3 rounded-xl bg-[#25D366] text-white font-bold text-sm shadow-lg hover:brightness-95 transition-all inline-flex items-center gap-2",
+														className: "px-5 py-3 rounded-xl bg-[#16a34a] hover:bg-[#15803d] text-white font-bold text-sm shadow-lg transition-all inline-flex items-center gap-2",
 														children: [/* @__PURE__ */ jsx(WhatsAppIcon, { className: "w-5 h-5 fill-current" }), isRtl ? "واتساب" : "WhatsApp"]
 													}),
 													/* @__PURE__ */ jsx("button", {
@@ -19301,7 +19268,7 @@ function Show({ agent, units, projects, stats = {}, availableAreas = [], filters
 										href: whatsappUrl,
 										target: "_blank",
 										rel: "noopener noreferrer",
-										className: "px-6 py-3 rounded-xl bg-[#25D366] text-white font-bold inline-flex items-center gap-2",
+										className: "px-6 py-3 rounded-xl bg-[#16a34a] hover:bg-[#15803d] text-white font-bold inline-flex items-center gap-2",
 										children: [/* @__PURE__ */ jsx(WhatsAppIcon, { className: "w-5 h-5 fill-current" }), "WhatsApp"]
 									})]
 								})]
@@ -19385,8 +19352,7 @@ function EmptyState({ icon, title, text }) {
 		]
 	});
 }
-//#endregion
-//#region resources/js/Components/UI/SearchBar.jsx
+// resources/js/Components/UI/SearchBar.jsx
 var EMPTY_FILTERS = {
 	area_id: "",
 	type_id: "",
@@ -20129,8 +20095,7 @@ function SearchBar({ areas: rawAreas = [], unitTypes: rawUnitTypes = [], feature
 		]
 	});
 }
-//#endregion
-//#region resources/js/Components/UI/IconByName.jsx
+// resources/js/Components/UI/IconByName.jsx
 /**
 * Renders a SAFE, static SVG icon from an allowlisted icon NAME.
 *
@@ -20173,6 +20138,7 @@ var DEFAULT_NAME = "default";
 */
 function IconByName({ iconName, className = "w-6 h-6", strokeWidth = 1.8 }) {
 	const key = Array.isArray(iconName) ? iconName[0] : iconName;
+	const paths = ICON_PATHS[typeof key === "string" ? key : ""] || ICON_PATHS[DEFAULT_NAME];
 	return /* @__PURE__ */ jsx("svg", {
 		viewBox: "0 0 24 24",
 		className,
@@ -20182,11 +20148,10 @@ function IconByName({ iconName, className = "w-6 h-6", strokeWidth = 1.8 }) {
 		strokeLinecap: "round",
 		strokeLinejoin: "round",
 		"aria-hidden": "true",
-		children: (ICON_PATHS[typeof key === "string" ? key : ""] || ICON_PATHS[DEFAULT_NAME]).map((d, i) => /* @__PURE__ */ jsx("path", { d }, i))
+		children: paths.map((d, i) => /* @__PURE__ */ jsx("path", { d }, i))
 	});
 }
-//#endregion
-//#region resources/js/Pages/Public/Areas/Show.jsx
+// resources/js/Pages/Public/Areas/Show.jsx
 var Show_exports$3 = /* @__PURE__ */ __exportAll({ default: () => AreaShow });
 function AreaShow({ area, relatedAreas, units, projects, seo, areas, unitTypes, features, finishingTypes }) {
 	const { locale, appUrl } = usePage().props;
@@ -20707,8 +20672,7 @@ function AreaShow({ area, relatedAreas, units, projects, seo, areas, unitTypes, 
 		]
 	});
 }
-//#endregion
-//#region resources/js/Components/UI/ArticleCard.jsx
+// resources/js/Components/UI/ArticleCard.jsx
 var PLACEHOLDER$1 = "/images/fallback.webp";
 function SkeletonCard() {
 	return /* @__PURE__ */ jsxs("div", {
@@ -20741,8 +20705,9 @@ function ArticleCard({ article, loading = false }) {
 		month: "short",
 		day: "numeric"
 	}) : "";
+	const articleSlug = isRtl && article.slug_ar ? article.slug_ar : article.slug_en || article.slug || article.id;
 	return /* @__PURE__ */ jsxs(Link, {
-		href: localizedPath(`/articles/${isRtl && article.slug_ar ? article.slug_ar : article.slug_en || article.slug || article.id}`, locale),
+		href: localizedPath(`/articles/${articleSlug}`, locale),
 		className: "group bg-white rounded-2xl border border-secondary-200/80 shadow-card hover:shadow-lg hover:-translate-y-1 transition-[transform,box-shadow] duration-300 flex flex-col h-full overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary-500",
 		children: [/* @__PURE__ */ jsxs("div", {
 			className: "relative aspect-[16/10] w-full overflow-hidden bg-secondary-100",
@@ -20796,8 +20761,7 @@ function ArticleCard({ article, loading = false }) {
 	});
 }
 var ArticleCard_default = memo(ArticleCard);
-//#endregion
-//#region resources/js/Pages/Public/Articles/Index.jsx
+// resources/js/Pages/Public/Articles/Index.jsx
 var Index_exports$2 = /* @__PURE__ */ __exportAll({ default: () => ArticlesIndex });
 function ArticlesIndex({ articles, categories, currentCategory }) {
 	const { locale } = usePage().props;
@@ -20899,8 +20863,7 @@ function ArticlesIndex({ articles, categories, currentCategory }) {
 		]
 	});
 }
-//#endregion
-//#region resources/js/Pages/Public/Articles/Show.jsx
+// resources/js/Pages/Public/Articles/Show.jsx
 /**
 * THESIS: The Article Display page is a pure, distraction-free editorial view.
 *         All non-essential marketing popups and sidebar widgets are removed to focus 100% on reading comfort.
@@ -21343,8 +21306,9 @@ function ArticleShow({ article, relatedArticles, suggestedUnits }) {
 										children: suggestedUnits.map((unit) => {
 											const unitImg = unit?.images?.find((img) => img.is_primary) || unit?.images?.[0];
 											const unitImgUrl = unitImg?.url || (unitImg?.path ? unitImg.path.startsWith("http") || unitImg.path.startsWith("/") ? unitImg.path : `/storage/${unitImg.path}` : null);
+											const unitSlug = isRtl && unit.slug_ar ? unit.slug_ar : unit.slug_en || unit.slug || unit.id;
 											return /* @__PURE__ */ jsx("li", { children: /* @__PURE__ */ jsxs(Link, {
-												href: localizedPath(`/units/${isRtl && unit.slug_ar ? unit.slug_ar : unit.slug_en || unit.slug || unit.id}`, locale),
+												href: localizedPath(`/units/${unitSlug}`, locale),
 												className: "group flex gap-3 items-center",
 												children: [unitImgUrl && /* @__PURE__ */ jsx("div", {
 													className: "shrink-0 w-16 h-16 rounded-xl overflow-hidden bg-secondary-100 border border-secondary-200/50 shadow-xs",
@@ -21403,8 +21367,9 @@ function ArticleShow({ article, relatedArticles, suggestedUnits }) {
 										children: relatedArticles.slice(0, 4).map((related) => {
 											const relatedImg = related?.images?.find((img) => img.position === "header") || related?.images?.[0];
 											const relatedImgUrl = relatedImg?.url || (relatedImg?.path ? relatedImg.path.startsWith("http") || relatedImg.path.startsWith("/") ? relatedImg.path : `/storage/${relatedImg.path}` : null);
+											const relatedSlug = isRtl && related.slug_ar ? related.slug_ar : related.slug_en || related.slug || related.id;
 											return /* @__PURE__ */ jsx("li", { children: /* @__PURE__ */ jsxs(Link, {
-												href: localizedPath(`/articles/${isRtl && related.slug_ar ? related.slug_ar : related.slug_en || related.slug || related.id}`, locale),
+												href: localizedPath(`/articles/${relatedSlug}`, locale),
 												className: "group flex gap-3 items-center",
 												children: [relatedImgUrl && /* @__PURE__ */ jsx("div", {
 													className: "shrink-0 w-16 h-16 rounded-xl overflow-hidden bg-secondary-100 border border-secondary-200/50 shadow-xs",
@@ -21476,8 +21441,7 @@ function ArticleShow({ article, relatedArticles, suggestedUnits }) {
 		]
 	});
 }
-//#endregion
-//#region resources/js/Components/Features/CompareSearch.jsx
+// resources/js/Components/Features/CompareSearch.jsx
 function CompareSearch({ type, currentIds }) {
 	const { locale } = usePage().props;
 	const trans = useTrans(locale);
@@ -21592,8 +21556,7 @@ function CompareSearch({ type, currentIds }) {
 		]
 	});
 }
-//#endregion
-//#region resources/js/Pages/Public/Comparison.jsx
+// resources/js/Pages/Public/Comparison.jsx
 var Comparison_exports = /* @__PURE__ */ __exportAll({ default: () => Comparison });
 var PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 400 300\"%3E%3Crect fill=\"%23F0F0F0\" width=\"400\" height=\"300\"/%3E%3C/svg%3E";
 function getItemImage(item) {
@@ -22160,8 +22123,7 @@ function Comparison({ items, type, max_items }) {
 		]
 	});
 }
-//#endregion
-//#region resources/js/Pages/Public/Contact.jsx
+// resources/js/Pages/Public/Contact.jsx
 var Contact_exports = /* @__PURE__ */ __exportAll({ default: () => Contact });
 function Contact() {
 	const { locale, flash } = usePage().props;
@@ -22296,7 +22258,7 @@ function Contact() {
 										(clientErrors.client_name || errors.client_name) && /* @__PURE__ */ jsx("p", {
 											id: "client_name_err",
 											role: "alert",
-											className: "text-xs text-red-600 font-medium mt-1.5",
+											className: "text-xs text-error font-medium mt-1.5",
 											children: clientErrors.client_name || errors.client_name
 										})
 									]
@@ -22328,7 +22290,7 @@ function Contact() {
 										(clientErrors.client_phone || errors.client_phone) && /* @__PURE__ */ jsx("p", {
 											id: "client_phone_err",
 											role: "alert",
-											className: "text-xs text-red-600 font-medium mt-1.5",
+											className: "text-xs text-error font-medium mt-1.5",
 											children: clientErrors.client_phone || errors.client_phone
 										})
 									] }), /* @__PURE__ */ jsxs("div", { children: [
@@ -22356,7 +22318,7 @@ function Contact() {
 										(clientErrors.client_email || errors.client_email) && /* @__PURE__ */ jsx("p", {
 											id: "client_email_err",
 											role: "alert",
-											className: "text-xs text-red-600 font-medium mt-1.5",
+											className: "text-xs text-error font-medium mt-1.5",
 											children: clientErrors.client_email || errors.client_email
 										})
 									] })]
@@ -22388,7 +22350,7 @@ function Contact() {
 										(clientErrors.content || errors.content) && /* @__PURE__ */ jsx("p", {
 											id: "content_err",
 											role: "alert",
-											className: "text-xs text-red-600 font-medium mt-1.5",
+											className: "text-xs text-error font-medium mt-1.5",
 											children: clientErrors.content || errors.content
 										})
 									]
@@ -22424,8 +22386,7 @@ function Contact() {
 		]
 	});
 }
-//#endregion
-//#region resources/js/Pages/Public/Home.jsx
+// resources/js/Pages/Public/Home.jsx
 var Home_exports = /* @__PURE__ */ __exportAll({ default: () => Home });
 var HERO_BG = "/images/hero.webp";
 var HERO_BG_MOBILE = "/images/hero-mobile.webp";
@@ -22743,8 +22704,7 @@ function Home({ featuredUnits, latestUnits, latestProjects, popularSearches, are
 		]
 	});
 }
-//#endregion
-//#region resources/js/Pages/Public/Projects/Index.jsx
+// resources/js/Pages/Public/Projects/Index.jsx
 var Index_exports$1 = /* @__PURE__ */ __exportAll({ default: () => ProjectsIndex });
 function ProjectsIndex({ projects, filters, areas, features, finishingTypes, seo_meta }) {
 	const { locale } = usePage().props;
@@ -23056,8 +23016,7 @@ function ProjectsIndex({ projects, filters, areas, features, finishingTypes, seo
 		]
 	});
 }
-//#endregion
-//#region resources/js/Components/UI/PaymentTerms.jsx
+// resources/js/Components/UI/PaymentTerms.jsx
 function PaymentTerms({ item }) {
 	const { locale } = usePage().props;
 	const trans = useTrans(locale);
@@ -23091,8 +23050,7 @@ function PaymentTerms({ item }) {
 		})]
 	});
 }
-//#endregion
-//#region resources/js/Components/UI/VideoPlayer.jsx
+// resources/js/Components/UI/VideoPlayer.jsx
 function VideoPlayer({ embedUrl, title = "Video Tour", className = "" }) {
 	const [isPlaying, setIsPlaying] = useState(false);
 	if (!embedUrl) return null;
@@ -23134,8 +23092,7 @@ function VideoPlayer({ embedUrl, title = "Video Tour", className = "" }) {
 		})
 	});
 }
-//#endregion
-//#region resources/js/Utils/youtube.js
+// resources/js/Utils/youtube.js
 function getYouTubeEmbedUrl(url) {
 	if (!url || typeof url !== "string") return null;
 	const trimmed = url.trim();
@@ -23150,8 +23107,7 @@ function getYouTubeEmbedUrl(url) {
 	}
 	return null;
 }
-//#endregion
-//#region resources/js/Utils/location.js
+// resources/js/Utils/location.js
 /**
 * Validates whether an entity has valid, non-zero geographic coordinates.
 * 
@@ -23164,8 +23120,7 @@ function hasValidCoords(item) {
 	const lng = parseFloat(item.longitude);
 	return Boolean(item.latitude && item.longitude && lat !== 0 && lng !== 0 && isFinite(lat) && isFinite(lng));
 }
-//#endregion
-//#region resources/js/Pages/Public/Projects/Show.jsx
+// resources/js/Pages/Public/Projects/Show.jsx
 var Show_exports$1 = /* @__PURE__ */ __exportAll({ default: () => ProjectShow });
 function ProjectShow({ project, projectUnits, similarProjects, relatedArticles, seo_meta }) {
 	const page = usePage();
@@ -24137,8 +24092,7 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles, 
 		]
 	});
 }
-//#endregion
-//#region resources/js/Pages/Public/Units/Deals.jsx
+// resources/js/Pages/Public/Units/Deals.jsx
 var Deals_exports = /* @__PURE__ */ __exportAll({ default: () => UnitsDeals });
 function UnitsDeals({ units, filters, areas, unitTypes, features, finishingTypes, seo_meta }) {
 	const { locale } = usePage().props;
@@ -24244,8 +24198,7 @@ function UnitsDeals({ units, filters, areas, unitTypes, features, finishingTypes
 		]
 	});
 }
-//#endregion
-//#region resources/js/Pages/Public/Units/Index.jsx
+// resources/js/Pages/Public/Units/Index.jsx
 var Index_exports = /* @__PURE__ */ __exportAll({ default: () => UnitsIndex });
 function UnitsIndex({ units, filters, areas, unitTypes, features, finishingTypes, seo_meta }) {
 	const { locale } = usePage().props;
@@ -24351,8 +24304,7 @@ function UnitsIndex({ units, filters, areas, unitTypes, features, finishingTypes
 		]
 	});
 }
-//#endregion
-//#region resources/js/Pages/Public/Units/Show.jsx
+// resources/js/Pages/Public/Units/Show.jsx
 var Show_exports = /* @__PURE__ */ __exportAll({ default: () => UnitShow });
 function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles, seo_meta }) {
 	const page = usePage();
@@ -25753,8 +25705,7 @@ function UnitContactForm({ idPrefix, isRtl, sentSuccess, flash, trans, data, set
 		]
 	});
 }
-//#endregion
-//#region resources/js/Components/Layout/AuthLayout.jsx
+// resources/js/Components/Layout/AuthLayout.jsx
 function AuthLayout({ children, title, subtitle }) {
 	const { locale, settings } = usePage().props;
 	const trans = useTrans(locale);
@@ -25849,8 +25800,7 @@ function AuthLayout({ children, title, subtitle }) {
 		]
 	});
 }
-//#endregion
-//#region resources/js/Pages/Shared/ForgotPassword.jsx
+// resources/js/Pages/Shared/ForgotPassword.jsx
 var ForgotPassword_exports = /* @__PURE__ */ __exportAll({ default: () => ForgotPassword });
 function ForgotPassword() {
 	const { locale, flash, status: pageStatus } = usePage().props;
@@ -25962,8 +25912,7 @@ function ForgotPassword() {
 		]
 	});
 }
-//#endregion
-//#region resources/js/Pages/Shared/Login.jsx
+// resources/js/Pages/Shared/Login.jsx
 var Login_exports = /* @__PURE__ */ __exportAll({ default: () => Login });
 function Login() {
 	const { locale } = usePage().props;
@@ -26155,8 +26104,7 @@ function Login() {
 		})
 	});
 }
-//#endregion
-//#region resources/js/Pages/Shared/Profile.jsx
+// resources/js/Pages/Shared/Profile.jsx
 var Profile_exports = /* @__PURE__ */ __exportAll({ default: () => Profile });
 function Profile() {
 	const { locale, auth } = usePage().props;
@@ -26330,8 +26278,7 @@ function Profile() {
 		})
 	});
 }
-//#endregion
-//#region resources/js/Pages/Shared/ResetPassword.jsx
+// resources/js/Pages/Shared/ResetPassword.jsx
 var ResetPassword_exports = /* @__PURE__ */ __exportAll({ default: () => ResetPassword });
 function ResetPassword({ token, email, secondsRemaining = 60, error: propError }) {
 	const { locale, flash, status: pageStatus } = usePage().props;
@@ -26616,8 +26563,7 @@ function ResetPassword({ token, email, secondsRemaining = 60, error: propError }
 		]
 	});
 }
-//#endregion
-//#region resources/js/Pages/Shared/VerifyOtp.jsx
+// resources/js/Pages/Shared/VerifyOtp.jsx
 var VerifyOtp_exports = /* @__PURE__ */ __exportAll({ default: () => VerifyOtp });
 function VerifyOtp() {
 	const { locale, flash, status: pageStatus, email: propEmail } = usePage().props;
@@ -26740,8 +26686,7 @@ function VerifyOtp() {
 		]
 	});
 }
-//#endregion
-//#region resources/js/Pages/Shared/Welcome.jsx
+// resources/js/Pages/Shared/Welcome.jsx
 var Welcome_exports = /* @__PURE__ */ __exportAll({ default: () => Welcome });
 function Welcome({ auth, laravelVersion, phpVersion }) {
 	const { locale } = usePage().props;
@@ -26780,8 +26725,7 @@ function Welcome({ auth, laravelVersion, phpVersion }) {
 		})
 	})] });
 }
-//#endregion
-//#region resources/js/ssr.jsx
+// resources/js/ssr.jsx
 async function renderPage(page) {
 	await loadLocale(page.props?.locale);
 	return createInertiaApp({
@@ -26887,5 +26831,4 @@ http.createServer(async (req, res) => {
 }).listen(PORT, "127.0.0.1", () => {
 	if (process.env.NODE_ENV !== "production") console.log(`Custom SSR server listening on port ${PORT}...`);
 });
-//#endregion
 export { useTrans as t };

@@ -123,7 +123,7 @@ export default function Contact() {
                                 }`}
                             />
                             {(clientErrors.client_name || errors.client_name) && (
-                                <p id="client_name_err" role="alert" className="text-xs text-red-600 font-medium mt-1.5">{clientErrors.client_name || errors.client_name}</p>
+                                <p id="client_name_err" role="alert" className="text-xs text-error font-medium mt-1.5">{clientErrors.client_name || errors.client_name}</p>
                             )}
                         </div>
 
@@ -148,7 +148,7 @@ export default function Contact() {
                                     }`}
                                 />
                                 {(clientErrors.client_phone || errors.client_phone) && (
-                                    <p id="client_phone_err" role="alert" className="text-xs text-red-600 font-medium mt-1.5">{clientErrors.client_phone || errors.client_phone}</p>
+                                    <p id="client_phone_err" role="alert" className="text-xs text-error font-medium mt-1.5">{clientErrors.client_phone || errors.client_phone}</p>
                                 )}
                             </div>
                             <div>
@@ -171,7 +171,7 @@ export default function Contact() {
                                     }`}
                                 />
                                 {(clientErrors.client_email || errors.client_email) && (
-                                    <p id="client_email_err" role="alert" className="text-xs text-red-600 font-medium mt-1.5">{clientErrors.client_email || errors.client_email}</p>
+                                    <p id="client_email_err" role="alert" className="text-xs text-error font-medium mt-1.5">{clientErrors.client_email || errors.client_email}</p>
                                 )}
                             </div>
                         </div>
@@ -196,7 +196,7 @@ export default function Contact() {
                                 }`}
                             />
                             {(clientErrors.content || errors.content) && (
-                                <p id="content_err" role="alert" className="text-xs text-red-600 font-medium mt-1.5">{clientErrors.content || errors.content}</p>
+                                <p id="content_err" role="alert" className="text-xs text-error font-medium mt-1.5">{clientErrors.content || errors.content}</p>
                             )}
                         </div>
 

@@ -168,7 +168,7 @@ export default function Show({ agent, units, projects, stats = {}, availableArea
                                         </a>
                                     )}
                                     {whatsappUrl && (
-                                        <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="px-5 py-3 rounded-xl bg-[#25D366] text-white font-bold text-sm shadow-lg hover:brightness-95 transition-all inline-flex items-center gap-2">
+                                        <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="px-5 py-3 rounded-xl bg-[#16a34a] hover:bg-[#15803d] text-white font-bold text-sm shadow-lg transition-all inline-flex items-center gap-2">
                                             <WhatsAppIcon className="w-5 h-5 fill-current" />
                                             {isRtl ? 'واتساب' : 'WhatsApp'}
                                         </a>
@@ -291,7 +291,7 @@ export default function Show({ agent, units, projects, stats = {}, availableArea
                             </div>
                             <div className="flex flex-wrap gap-3">
                                 {phoneUrl && <a href={phoneUrl} className="px-6 py-3 rounded-xl bg-white text-secondary-950 font-bold">{isRtl ? 'اتصال' : 'Call'}</a>}
-                                {whatsappUrl && <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="px-6 py-3 rounded-xl bg-[#25D366] text-white font-bold inline-flex items-center gap-2"><WhatsAppIcon className="w-5 h-5 fill-current" />WhatsApp</a>}
+                                {whatsappUrl && <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="px-6 py-3 rounded-xl bg-[#16a34a] hover:bg-[#15803d] text-white font-bold inline-flex items-center gap-2"><WhatsAppIcon className="w-5 h-5 fill-current" />WhatsApp</a>}
                             </div>
                         </div>
                     </section>

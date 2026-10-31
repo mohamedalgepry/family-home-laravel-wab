@@ -16,6 +16,17 @@ class Setting extends Model
 
     protected $keyType = 'string';
 
+    protected static function booted(): void
+    {
+        static::saved(function () {
+            \Illuminate\Support\Facades\Cache::forget('settings_all');
+        });
+
+        static::deleted(function () {
+            \Illuminate\Support\Facades\Cache::forget('settings_all');
+        });
+    }
+
     public static function getValue(string $key, mixed $default = null): mixed
     {
         $setting = self::find($key);

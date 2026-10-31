@@ -3,28 +3,28 @@
   "resources/js/Components/Features/CompareBar.jsx": [],
   "resources/js/Components/Features/CompareSearch.jsx": [],
   "resources/js/Components/HossamChat/ChatComposer.jsx": [
-    "/build/assets/HossamChatWidget-CrAZn3fB.js"
+    "/build/assets/HossamChatWidget-NyuMS7s5.js"
   ],
   "resources/js/Components/HossamChat/ChatHeader.jsx": [
-    "/build/assets/HossamChatWidget-CrAZn3fB.js"
+    "/build/assets/HossamChatWidget-NyuMS7s5.js"
   ],
   "resources/js/Components/HossamChat/HossamChatWidget.jsx": [
-    "/build/assets/HossamChatWidget-CrAZn3fB.js"
+    "/build/assets/HossamChatWidget-NyuMS7s5.js"
   ],
   "resources/js/Components/HossamChat/MessageBubble.jsx": [
-    "/build/assets/HossamChatWidget-CrAZn3fB.js"
+    "/build/assets/HossamChatWidget-NyuMS7s5.js"
   ],
   "resources/js/Components/HossamChat/MessageList.jsx": [
-    "/build/assets/HossamChatWidget-CrAZn3fB.js"
+    "/build/assets/HossamChatWidget-NyuMS7s5.js"
   ],
   "resources/js/Components/HossamChat/QuickReplies.jsx": [
-    "/build/assets/HossamChatWidget-CrAZn3fB.js"
+    "/build/assets/HossamChatWidget-NyuMS7s5.js"
   ],
   "resources/js/Components/HossamChat/hooks/useChatApi.js": [
-    "/build/assets/HossamChatWidget-CrAZn3fB.js"
+    "/build/assets/HossamChatWidget-NyuMS7s5.js"
   ],
   "resources/js/Components/HossamChat/hooks/useChatSession.js": [
-    "/build/assets/HossamChatWidget-CrAZn3fB.js"
+    "/build/assets/HossamChatWidget-NyuMS7s5.js"
   ],
   "resources/js/Components/Layout/AdminSidebar.jsx": [],
   "resources/js/Components/Layout/AuthLayout.jsx": [],
@@ -99,10 +99,10 @@
   "resources/js/Utils/contact.js": [],
   "resources/js/Utils/image.js": [],
   "resources/js/Utils/locales/ar.js": [
-    "/build/assets/ar-ByrwEGVL.js"
+    "/build/assets/ar-hE4UU5lA.js"
   ],
   "resources/js/Utils/locales/en.js": [
-    "/build/assets/en-CUvko0Em.js"
+    "/build/assets/en-DllnHA5o.js"
   ],
   "resources/js/Utils/location.js": [],
   "resources/js/Utils/route.js": [],

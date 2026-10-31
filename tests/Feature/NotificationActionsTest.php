@@ -4,6 +4,7 @@ use App\Domain\Listings\Models\Unit;
 use App\Domain\Listings\Notifications\UnitExpiryNotification;
 use App\Domain\Listings\Notifications\UnitPendingApprovalNotification;
 use App\Domain\Users\Models\User;
+use App\Domain\Users\Notifications\NewMessageNotification;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Str;
 
@@ -84,4 +85,79 @@ test('extending from an expiry notification changes expiry and keeps notificatio
         ->toBe($oldExpiry->copy()->addDays(7)->toDateString())
         ->and(DatabaseNotification::whereKey($notification->id)->exists())->toBeTrue()
         ->and($notification->fresh()->read_at)->not->toBeNull();
+});
+
+test('marking a notification as read clears the cached unread counter', function () {
+    $admin = createUser('Notif Read Admin '.uniqid(), 'admin');
+    $notification = createNotificationForAction($admin, NewMessageNotification::class, [
+        'type' => 'new_message',
+        'message_id' => 1,
+        'unit_id' => null,
+    ]);
+
+    $this->actingAs($admin)
+        ->getJson('/admin/notifications/unread-count')
+        ->assertOk()
+        ->assertJson(['count' => 1]);
+
+    $this->actingAs($admin)
+        ->post("/admin/notifications/{$notification->id}/read")
+        ->assertRedirect();
+
+    // The second read must not be served from the counter cached above.
+    $this->actingAs($admin)
+        ->getJson('/admin/notifications/unread-count')
+        ->assertOk()
+        ->assertJson(['count' => 0]);
+
+    expect($notification->fresh()->read_at)->not->toBeNull();
+});
+
+test('mark all as read zeroes the counter and the cached value', function () {
+    $admin = createUser('Notif ReadAll Admin '.uniqid(), 'admin');
+    createNotificationForAction($admin, NewMessageNotification::class, ['type' => 'new_message', 'message_id' => 1]);
+    createNotificationForAction($admin, NewMessageNotification::class, ['type' => 'new_message', 'message_id' => 2]);
+
+    $this->actingAs($admin)
+        ->getJson('/admin/notifications/unread-count')
+        ->assertOk()
+        ->assertJson(['count' => 2]);
+
+    $this->actingAs($admin)->post('/admin/notifications/read-all')->assertRedirect();
+
+    $this->actingAs($admin)
+        ->getJson('/admin/notifications/unread-count')
+        ->assertOk()
+        ->assertJson(['count' => 0]);
+
+    expect($admin->unreadNotifications()->count())->toBe(0);
+    expect($admin->notifications()->count())->toBe(2);
+});
+
+test('clear all deletes notifications and resets cached counters and recent list', function () {
+    $admin = createUser('Notif Clear Admin '.uniqid(), 'admin');
+    createNotificationForAction($admin, NewMessageNotification::class, ['type' => 'new_message', 'message_id' => 1]);
+    createNotificationForAction($admin, NewMessageNotification::class, ['type' => 'new_message', 'message_id' => 2]);
+
+    $this->actingAs($admin)
+        ->getJson('/admin/notifications/recent')
+        ->assertOk()
+        ->assertJsonCount(2, 'notifications');
+
+    $this->actingAs($admin)
+        ->getJson('/admin/notifications/unread-count')
+        ->assertJson(['count' => 2]);
+
+    $this->actingAs($admin)->delete('/admin/notifications/all/clear')->assertRedirect();
+
+    expect(DatabaseNotification::where('notifiable_id', $admin->id)->count())->toBe(0);
+
+    $this->actingAs($admin)
+        ->getJson('/admin/notifications/recent')
+        ->assertOk()
+        ->assertJsonCount(0, 'notifications');
+
+    $this->actingAs($admin)
+        ->getJson('/admin/notifications/unread-count')
+        ->assertJson(['count' => 0]);
 });

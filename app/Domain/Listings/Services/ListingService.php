@@ -186,9 +186,18 @@ class ListingService
     public function clearCache(): void
     {
         try {
-            Cache::lock('listing_cache_version_lock', 5)->get(function () {
+            $bumped = Cache::lock('listing_cache_version_lock', 5)->get(function () {
                 Cache::increment(self::CACHE_VERSION_KEY);
+
+                return true;
             });
+
+            // A busy lock means another writer is already bumping the version,
+            // but the version must still move forward on every write so no reader
+            // keeps serving stale listings under the previous version key.
+            if ($bumped === false) {
+                Cache::increment(self::CACHE_VERSION_KEY);
+            }
         } catch (\Throwable) {
             Cache::increment(self::CACHE_VERSION_KEY);
         }
