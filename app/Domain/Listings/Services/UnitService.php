@@ -8,7 +8,10 @@ use App\Domain\Listings\Actions\CreateUnitAction;
 use App\Domain\Listings\Actions\DeleteUnitAction;
 use App\Domain\Listings\Actions\UpdateUnitAction;
 use App\Domain\Listings\DTOs\CreateUnitData;
+use App\Domain\Listings\Models\Area;
+use App\Domain\Listings\Models\Setting;
 use App\Domain\Listings\Models\Unit;
+use App\Domain\Listings\Models\UnitType;
 use App\Domain\Listings\Notifications\UnitApprovedNotification;
 use App\Domain\Listings\Notifications\UnitPendingApprovalNotification;
 use App\Domain\Users\Models\User;
@@ -44,6 +47,36 @@ class UnitService
         }
 
         return $query->paginate(ListingQueryBuilder::perPage($filters));
+    }
+
+    /**
+     * Lookups, counters and pagination for the admin units index.
+     */
+    public function getAdminIndexData(array $filters, User $user): array
+    {
+        $statsQuery = Unit::query();
+        UserScopeQueryBuilder::applyListingsScope($statsQuery, $user);
+        $statsRow = $statsQuery
+            ->selectRaw("
+                COUNT(*) as total,
+                COUNT(CASE WHEN is_active = 1 THEN 1 END) as active,
+                COUNT(CASE WHEN is_deal = 1 THEN 1 END) as deals,
+                COUNT(CASE WHEN is_pinned = 1 THEN 1 END) as pinned
+            ")
+            ->first();
+
+        return [
+            'units' => $this->getPaginatedUnits($filters, $user),
+            'stats' => [
+                'total' => (int) ($statsRow?->total ?? 0),
+                'active' => (int) ($statsRow?->active ?? 0),
+                'deals' => (int) ($statsRow?->deals ?? 0),
+                'pinned' => (int) ($statsRow?->pinned ?? 0),
+            ],
+            'areas' => Area::select('id', 'name_ar', 'name_en')->orderBy('name_ar')->get(),
+            'unitTypes' => UnitType::select('id', 'name_ar', 'name_en')->orderBy('name_ar')->get(),
+            'autoDeleteDays' => (int) Setting::getValue('auto_delete_days', '30'),
+        ];
     }
 
     public function createUnit(CreateUnitData $data, User $user, array $imagePaths = [], int $primaryImageIndex = 0): Unit

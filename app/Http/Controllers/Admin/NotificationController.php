@@ -5,12 +5,12 @@ namespace App\Http\Controllers\Admin;
 use App\Domain\Listings\Models\Project;
 use App\Domain\Listings\Models\Setting;
 use App\Domain\Listings\Models\Unit;
-use App\Domain\Listings\Services\ListingService;
-use App\Domain\Listings\Services\UnitService;
-use App\Domain\Users\Models\User;
+use App\Domain\Listings\Actions\ApprovePendingProjectAction;
+use App\Domain\Listings\Actions\ApprovePendingUnitAction;
+use App\Domain\Listings\Actions\ExtendProjectListingAction;
+use App\Domain\Listings\Actions\ExtendUnitListingAction;
 use App\Domain\Users\Services\NotificationService;
 use App\Http\Controllers\Controller;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,7 +21,6 @@ class NotificationController extends Controller
 {
     public function __construct(
         private readonly NotificationService $notificationService,
-        private readonly UnitService $unitService,
     ) {}
 
     public function index(Request $request): Response
@@ -49,19 +48,11 @@ class NotificationController extends Controller
         return redirect()->back()->with('success', __('common.updated_successfully'));
     }
 
-    public function approveProject(Request $request, Project $project): RedirectResponse
+    public function approveProject(Request $request, Project $project, ApprovePendingProjectAction $approveAction): RedirectResponse
     {
         abort_unless($request->user()->isAdmin(), 403);
 
-        $project->update(['is_active' => true]);
-        $this->clearListingsCache();
-
-        $this->notificationService->markEntityNotificationsAsRead(
-            $request->user(),
-            'project_id',
-            $project->id,
-            'new_project_created',
-        );
+        $approveAction->execute($project, $request->user());
 
         return $this->redirectAfterNotificationAction(
             $request,
@@ -69,103 +60,45 @@ class NotificationController extends Controller
         );
     }
 
-    public function approveUnit(Request $request, Unit $unit): RedirectResponse
+    public function approveUnit(Request $request, Unit $unit, ApprovePendingUnitAction $approveAction): RedirectResponse
     {
         $this->authorize('toggleActive', $unit);
 
-        if ($unit->is_active) {
-            // The unit is already published: acknowledge any stale pending-approval
-            // notification without toggling the active state off or deleting the card.
-            $this->notificationService->markEntityNotificationsAsRead(
-                $request->user(),
-                'unit_id',
-                $unit->id,
-                'unit_pending_approval',
-            );
-
-            return $this->redirectAfterNotificationAction(
-                $request,
-                __('common.updated_successfully'),
-            );
-        }
-
-        $this->unitService->toggleActive($unit->id, $request->user());
-
-        $this->notificationService->markEntityNotificationsAsRead(
-            $request->user(),
-            'unit_id',
-            $unit->id,
-            'unit_pending_approval',
-        );
+        $activated = $approveAction->execute($unit, $request->user());
 
         return $this->redirectAfterNotificationAction(
             $request,
-            __('admin.activation_success'),
+            $activated ? __('admin.activation_success') : __('common.updated_successfully'),
         );
     }
 
-    public function extendProject(Request $request, Project $project): RedirectResponse
+    public function extendProject(Request $request, Project $project, ExtendProjectListingAction $extendAction): RedirectResponse
     {
         abort_unless($request->user()->isAdmin(), 403);
 
-        $this->extendListing($request->user(), $project, 'project_id');
+        $days = $extendAction->execute($project, $request->user());
 
         return $this->redirectAfterNotificationAction(
             $request,
             __('admin.project_extended', [
                 'name' => $project->name,
-                'days' => $this->extensionDays(),
+                'days' => $days,
             ]),
         );
     }
 
-    public function extendUnit(\App\Http\Requests\Admin\ExtendUnitRequest $request, Unit $unit): RedirectResponse|JsonResponse
+    public function extendUnit(\App\Http\Requests\Admin\ExtendUnitRequest $request, Unit $unit, ExtendUnitListingAction $extendAction): RedirectResponse|JsonResponse
     {
         $days = $request->getResolvedDays();
-        $oldAutoDeleteAt = $unit->auto_delete_at;
-        $newAutoDeleteAt = null;
 
-        \Illuminate\Support\Facades\DB::transaction(function () use ($unit, $days, &$newAutoDeleteAt) {
-            $lockedUnit = Unit::where('id', $unit->id)->lockForUpdate()->firstOrFail();
-
-            if ($lockedUnit->is_active && $lockedUnit->auto_delete_at && $lockedUnit->auto_delete_at->isFuture()) {
-                $newAutoDeleteAt = $lockedUnit->auto_delete_at->copy()->addDays($days);
-            } else {
-                $newAutoDeleteAt = now()->addDays($days);
-            }
-
-            $lockedUnit->is_active = true;
-            $lockedUnit->auto_delete_at = $newAutoDeleteAt;
-            $lockedUnit->save();
-        });
-
-        \Illuminate\Support\Facades\Log::info('Unit extended by admin', [
-            'admin_id' => $request->user()->id,
-            'unit_id' => $unit->id,
-            'old_auto_delete_at' => $oldAutoDeleteAt?->toIso8601String(),
-            'new_auto_delete_at' => $newAutoDeleteAt?->toIso8601String(),
-            'extension_days' => $days,
-        ]);
-
-        $this->clearListingsCache();
-
-        $this->notificationService->markEntityNotificationsAsRead($request->user(), 'unit_id', $unit->id);
-
-        if ($unit->user && $unit->user_id !== $request->user()->id && $newAutoDeleteAt) {
-            $unit->user->notify(new \App\Domain\Listings\Notifications\UnitExtendedNotification(
-                unit: $unit,
-                days: $days,
-                newExpiresAt: $newAutoDeleteAt,
-            ));
-        }
+        $extendAction->execute($unit, $days, $request->user());
 
         $unitName = $unit->name_ar ?: $unit->name;
-        $message = __('admin.unit_extended', [
+
+        return $this->redirectAfterNotificationAction($request, __('admin.unit_extended', [
             'name' => $unitName,
             'days' => $days,
-        ]);
-
-        return $this->redirectAfterNotificationAction($request, $message);
+        ]));
     }
 
     public function deleteUnit(Request $request, Unit $unit): RedirectResponse
@@ -230,30 +163,8 @@ class NotificationController extends Controller
         return redirect()->back()->with('success', __('common.updated_successfully'));
     }
 
-    private function extendListing(User $user, Model $listing, string $entityColumn): void
-    {
-        $listing->update([
-            'is_active' => true,
-            'auto_delete_at' => now()->addDays($this->extensionDays()),
-        ]);
-        $this->clearListingsCache();
-        $this->notificationService->markEntityNotificationsAsRead($user, $entityColumn, $listing->id);
-    }
 
-    private function extensionDays(): int
-    {
-        $days = (int) Setting::getValue('auto_delete_days', '30');
-        return $days > 0 ? $days : 30;
-    }
 
-    private function clearListingsCache(): void
-    {
-        try {
-            app(ListingService::class)->clearCache();
-        } catch (\Throwable $e) {
-            \Log::warning('NotificationController: cache clear failed', ['error' => $e->getMessage()]);
-        }
-    }
 
     private function redirectAfterNotificationAction(Request $request, string $message): RedirectResponse
     {

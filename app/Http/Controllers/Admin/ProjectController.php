@@ -2,16 +2,13 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Domain\Common\QueryBuilders\UserScopeQueryBuilder;
+use App\Domain\Listings\Actions\ProjectFormDataAction;
 use App\Domain\Listings\Actions\StoreUploadedImagesAction;
 use App\Domain\Listings\DTOs\CreateProjectData;
 use App\Domain\Listings\Jobs\NotifyNewProjectJob;
 use App\Domain\Listings\Models\Area;
-use App\Domain\Listings\Models\Feature;
-use App\Domain\Listings\Models\FinishingType;
 use App\Domain\Listings\Models\Project;
 use App\Domain\Listings\Services\ProjectService;
-use App\Domain\Users\Models\User;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreProjectRequest;
 use App\Http\Requests\Admin\UpdateProjectRequest;
@@ -39,23 +36,7 @@ class ProjectController extends Controller
             user: $user,
         );
 
-        $projectStatsQuery = Project::query();
-        UserScopeQueryBuilder::applyOwnershipScope($projectStatsQuery, $user);
-        $projectStats = $projectStatsQuery
-            ->selectRaw("
-                COUNT(*) as total,
-                COUNT(CASE WHEN is_active = 1 THEN 1 END) as active
-            ")
-            ->first();
-
-        $unitsQuery = \App\Domain\Listings\Models\Unit::whereNotNull('project_id');
-        UserScopeQueryBuilder::applyListingsScope($unitsQuery, $user);
-
-        $stats = [
-            'total' => (int) ($projectStats?->total ?? 0),
-            'active' => (int) ($projectStats?->active ?? 0),
-            'total_units' => $unitsQuery->count(),
-        ];
+        $stats = $this->projectService->getAdminStats($user);
 
         $areas = Area::select('id', 'name_ar', 'name_en')->orderBy('name_ar')->get();
 
@@ -67,36 +48,26 @@ class ProjectController extends Controller
         ]);
     }
 
-    public function create(): Response
+    public function create(ProjectFormDataAction $formDataAction): Response
     {
         $this->authorize('create', Project::class);
 
-        $formData = $this->getFormData();
+        $formData = $formDataAction->execute();
         $formData['project'] = null;
 
         return Inertia::render('Admin/Projects/Form', $formData);
     }
 
-    public function edit(Project $project): Response
+    public function edit(Project $project, ProjectFormDataAction $formDataAction): Response
     {
         $this->authorize('update', $project);
 
         $project->load(['area', 'images', 'features']);
 
-        $formData = $this->getFormData();
+        $formData = $formDataAction->execute();
         $formData['project'] = $project;
 
         return Inertia::render('Admin/Projects/Form', $formData);
-    }
-
-    private function getFormData(): array
-    {
-        return [
-            'areas' => Area::select('id', 'name_ar', 'name_en')->orderBy('name_ar')->get(),
-            'features' => Feature::select('id', 'name_ar', 'name_en')->get(),
-            'finishingTypes' => FinishingType::select('id', 'name_ar', 'name_en')->get(),
-            'managers' => User::whereIn('role', ['admin', 'manager'])->select('id', 'name', 'role')->orderBy('name')->get(),
-        ];
     }
 
     public function store(StoreProjectRequest $request): RedirectResponse

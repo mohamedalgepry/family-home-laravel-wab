@@ -2,16 +2,11 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Domain\Common\QueryBuilders\UserScopeQueryBuilder;
 use App\Domain\Listings\Actions\StoreUploadedImagesAction;
+use App\Domain\Listings\Actions\UnitFormDataAction;
 use App\Domain\Listings\DTOs\CreateUnitData;
-use App\Domain\Listings\Models\Area;
-use App\Domain\Listings\Models\Feature;
-use App\Domain\Listings\Models\FinishingType;
-use App\Domain\Listings\Models\Project;
 use App\Domain\Listings\Models\Unit;
 use App\Domain\Listings\Models\UnitImage;
-use App\Domain\Listings\Models\UnitType;
 use App\Domain\Listings\Services\UnitService;
 use App\Domain\Points\Actions\AdjustUnitPointsAction;
 use App\Domain\Users\Models\User;
@@ -35,79 +30,33 @@ class UnitController extends Controller
     {
         $this->authorize('viewAny', Unit::class);
 
-        $user = $request->user();
         $filters = $request->only(['search', 'area_id', 'type_id', 'sort', 'direction', 'per_page']);
 
-        $units = $this->unitService->getPaginatedUnits($filters, $user);
-
-        $statsQuery = Unit::query();
-        UserScopeQueryBuilder::applyListingsScope($statsQuery, $user);
-
-        $statsRow = $statsQuery
-            ->selectRaw("
-                COUNT(*) as total,
-                COUNT(CASE WHEN is_active = 1 THEN 1 END) as active,
-                COUNT(CASE WHEN is_deal = 1 THEN 1 END) as deals,
-                COUNT(CASE WHEN is_pinned = 1 THEN 1 END) as pinned
-            ")
-            ->first();
-
-        $stats = [
-            'total' => (int) ($statsRow?->total ?? 0),
-            'active' => (int) ($statsRow?->active ?? 0),
-            'deals' => (int) ($statsRow?->deals ?? 0),
-            'pinned' => (int) ($statsRow?->pinned ?? 0),
-        ];
-
-        $areas = Area::select('id', 'name_ar', 'name_en')->orderBy('name_ar')->get();
-        $unitTypes = UnitType::select('id', 'name_ar', 'name_en')->orderBy('name_ar')->get();
-
-        return Inertia::render('Admin/Units/Index', [
-            'units' => $units,
-            'stats' => $stats,
-            'areas' => $areas,
-            'unitTypes' => $unitTypes,
+        return Inertia::render('Admin/Units/Index', $this->unitService->getAdminIndexData($filters, $request->user()) + [
             'filters' => $filters,
-            'autoDeleteDays' => (int) \App\Domain\Listings\Models\Setting::getValue('auto_delete_days', '30'),
         ]);
     }
 
-    public function create(): Response
+    public function create(UnitFormDataAction $formDataAction): Response
     {
         $this->authorize('create', Unit::class);
 
-        $formData = $this->getFormData(request()->user());
+        $formData = $formDataAction->execute(request()->user());
         $formData['unit'] = null;
 
         return Inertia::render('Admin/Units/Form', $formData);
     }
 
-    public function edit(Unit $unit): Response
+    public function edit(Unit $unit, UnitFormDataAction $formDataAction): Response
     {
         $this->authorize('update', $unit);
 
         $unit->load(['type', 'area', 'images', 'features']);
 
-        $formData = $this->getFormData(request()->user());
+        $formData = $formDataAction->execute(request()->user());
         $formData['unit'] = $unit;
 
         return Inertia::render('Admin/Units/Form', $formData);
-    }
-
-    private function getFormData($user): array
-    {
-        $projects = Project::select('id', 'name_ar', 'name_en');
-
-        UserScopeQueryBuilder::applyOwnershipScope($projects, $user);
-
-        return [
-            'areas' => Area::select('id', 'name_ar', 'name_en')->orderBy('name_ar')->get(),
-            'unitTypes' => UnitType::select('id', 'name_ar', 'name_en')->orderBy('name_ar')->get(),
-            'projects' => $projects->orderBy('name_en')->get(),
-            'features' => Feature::select('id', 'name_ar', 'name_en')->get(),
-            'finishingTypes' => FinishingType::select('id', 'name_ar', 'name_en')->get(),
-            'managers' => User::whereIn('role', ['admin', 'manager', 'agent'])->select('id', 'name', 'role')->orderBy('name')->get(),
-        ];
     }
 
     public function store(StoreUnitRequest $request): RedirectResponse
@@ -200,54 +149,21 @@ class UnitController extends Controller
     {
         $this->authorize('togglePin', $unit);
 
-        $updated = $this->unitService->togglePin($unit->id);
-
-        if ($request->wantsJson() || $request->ajax()) {
-            return response()->json([
-                'success' => true,
-                'is_pinned' => (bool) $updated->is_pinned,
-                'message' => __('admin.pin_success'),
-            ]);
-        }
-
-        return redirect()->back()
-            ->with('success', __('admin.pin_success'));
+        return $this->respondWithFlag($request, $this->unitService->togglePin($unit->id), 'is_pinned', __('admin.pin_success'));
     }
 
     public function toggleDeal(Unit $unit, Request $request)
     {
         $this->authorize('toggleDeal', $unit);
 
-        $updated = $this->unitService->toggleDeal($unit->id);
-
-        if ($request->wantsJson() || $request->ajax()) {
-            return response()->json([
-                'success' => true,
-                'is_deal' => (bool) $updated->is_deal,
-                'message' => __('admin.deal_success'),
-            ]);
-        }
-
-        return redirect()->back()
-            ->with('success', __('admin.deal_success'));
+        return $this->respondWithFlag($request, $this->unitService->toggleDeal($unit->id), 'is_deal', __('admin.deal_success'));
     }
 
     public function toggleActive(Unit $unit, Request $request)
     {
         $this->authorize('toggleActive', $unit);
 
-        $updated = $this->unitService->toggleActive($unit->id, $request->user());
-
-        if ($request->wantsJson() || $request->ajax()) {
-            return response()->json([
-                'success' => true,
-                'is_active' => (bool) $updated->is_active,
-                'message' => __('admin.activation_success'),
-            ]);
-        }
-
-        return redirect()->back()
-            ->with('success', __('admin.activation_success'));
+        return $this->respondWithFlag($request, $this->unitService->toggleActive($unit->id, $request->user()), 'is_active', __('admin.activation_success'));
     }
 
     public function adjustPoints(Unit $unit, AdjustPointsRequest $request, AdjustUnitPointsAction $action)
@@ -264,5 +180,21 @@ class UnitController extends Controller
 
         return redirect()->back()
             ->with('success', __('admin.points_adjusted_successfully'));
+    }
+
+    /**
+     * Shared JSON/redirect response for boolean flag toggles.
+     */
+    private function respondWithFlag(Request $request, object $updated, string $flag, string $message)
+    {
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                $flag => (bool) $updated->{$flag},
+                'message' => $message,
+            ]);
+        }
+
+        return redirect()->back()->with('success', $message);
     }
 }

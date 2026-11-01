@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domain\Users\Actions\ChangeUserRoleAction;
+use App\Domain\Users\Actions\CreateUserAction;
 use App\Domain\Users\Models\User;
-use App\Domain\Users\Notifications\SendWelcomeNotification;
 use App\Domain\Users\Services\UserService;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AssignAgentsRequest;
@@ -65,25 +66,11 @@ class UserController extends Controller
         ]);
     }
 
-    public function store(StoreUserRequest $request): RedirectResponse
+    public function store(StoreUserRequest $request, CreateUserAction $createUserAction): RedirectResponse
     {
         $this->authorize('create', User::class);
 
-        $data = $request->validated();
-        $plainPassword = $data['password'];
-
-        $user = User::make([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => Hash::make($plainPassword),
-            'manager_id' => $data['role'] === 'agent' ? (! empty($data['manager_id']) ? $data['manager_id'] : $request->user()->id) : null,
-        ]);
-
-        $user->role = $data['role'];
-        $user->is_active = true;
-        $user->save();
-
-        $user->notify(new SendWelcomeNotification($plainPassword, app()->getLocale()));
+        $user = $createUserAction->execute($request->validated(), $request->user());
 
         return redirect()->route('admin.users.index')
             ->with('success', __('users.user_created', ['name' => $user->name]));
@@ -108,7 +95,7 @@ class UserController extends Controller
             ->with('success', __('users.status_updated'));
     }
 
-    public function changeRole(User $user, ChangeUserRoleRequest $request): RedirectResponse
+    public function changeRole(User $user, ChangeUserRoleRequest $request, ChangeUserRoleAction $changeUserRoleAction): RedirectResponse
     {
         $this->authorize('update', $user);
 
@@ -118,26 +105,11 @@ class UserController extends Controller
         }
 
         $data = $request->validated();
-        $newRole = $data['role'];
 
-        if ($newRole === 'agent') {
-            $manager = User::query()
-                ->whereKey($data['manager_id'])
-                ->where('role', 'manager')
-                ->first();
-
-            if (! $manager) {
-                return redirect()->route('admin.users.index')
-                    ->with('error', __('users.invalid_manager'));
-            }
-
-            $user->manager_id = $manager->id;
-        } else {
-            $user->manager_id = null;
+        if (! $changeUserRoleAction->execute($user, $data['role'], isset($data['manager_id']) ? (int) $data['manager_id'] : null)) {
+            return redirect()->route('admin.users.index')
+                ->with('error', __('users.invalid_manager'));
         }
-
-        $user->role = $newRole;
-        $user->save();
 
         return redirect()->route('admin.users.index')
             ->with('success', __('users.role_updated'));

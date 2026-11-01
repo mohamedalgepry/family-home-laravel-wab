@@ -9,6 +9,7 @@ use App\Domain\Listings\Actions\DeleteProjectAction;
 use App\Domain\Listings\Actions\UpdateProjectAction;
 use App\Domain\Listings\DTOs\CreateProjectData;
 use App\Domain\Listings\Models\Project;
+use App\Domain\Listings\Models\Unit;
 use App\Domain\Users\Models\User;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
@@ -33,6 +34,30 @@ class ProjectService
         ListingQueryBuilder::applySort($query, $filters, ['created_at', 'name', 'units_count'], 'created_at');
 
         return $query->paginate(ListingQueryBuilder::perPage($filters));
+    }
+
+    /**
+     * Aggregated counters for the admin projects index, scoped to the viewer.
+     */
+    public function getAdminStats(User $user): array
+    {
+        $projectsQuery = Project::query();
+        UserScopeQueryBuilder::applyOwnershipScope($projectsQuery, $user);
+        $projectStats = $projectsQuery
+            ->selectRaw("
+                COUNT(*) as total,
+                COUNT(CASE WHEN is_active = 1 THEN 1 END) as active
+            ")
+            ->first();
+
+        $unitsQuery = Unit::whereNotNull('project_id');
+        UserScopeQueryBuilder::applyListingsScope($unitsQuery, $user);
+
+        return [
+            'total' => (int) ($projectStats?->total ?? 0),
+            'active' => (int) ($projectStats?->active ?? 0),
+            'total_units' => $unitsQuery->count(),
+        ];
     }
 
     public function createProject(CreateProjectData $data, int $userId, array $imagePaths = []): Project

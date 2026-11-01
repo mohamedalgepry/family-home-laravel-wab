@@ -175,9 +175,14 @@ class PointsService
                     }
 
                     if (! empty($validUnitIds)) {
-                        Unit::whereIn('id', $validUnitIds)->update([
-                            'priority_points' => DB::raw("GREATEST(0, priority_points - {$value})")
-                        ]);
+                        // Bound parameters only: no value is interpolated into the SQL text.
+                        $unitIds = array_map('intval', array_values($validUnitIds));
+                        $placeholders = implode(',', array_fill(0, count($unitIds), '?'));
+
+                        DB::update(
+                            "UPDATE units SET priority_points = GREATEST(0, priority_points - ?), updated_at = ? WHERE id IN ({$placeholders})",
+                            [$value, $now, ...$unitIds],
+                        );
                     }
 
                     if (! empty($transactions)) {

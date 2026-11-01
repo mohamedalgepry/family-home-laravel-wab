@@ -200,3 +200,17 @@ it('stores uploaded images under the given folder', function () {
     $files = Storage::disk('public')->allFiles('units/'.now()->format('Y/m'));
     expect($files)->not->toBeEmpty();
 });
+
+it('rejects an area image larger than the system 5MB limit', function () {
+    Storage::fake('public');
+
+    $this->actingAs($this->admin)
+        ->post('/admin/areas', [
+            'name_ar' => 'منطقة صورة كبيرة',
+            'name_en' => 'Oversized Image Area',
+            'image_path' => UploadedFile::fake()->image('big.jpg', 1200, 800)->size(6000),
+        ])
+        ->assertSessionHasErrors(['image_path']);
+
+    expect(Area::where('name_en', 'Oversized Image Area')->exists())->toBeFalse();
+});
