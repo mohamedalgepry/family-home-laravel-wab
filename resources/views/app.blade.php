@@ -60,6 +60,9 @@
       })();
     </script>
 
+    <!-- Ahrefs Analytics -->
+    <script src="https://analytics.ahrefs.com/analytics.js" data-key="Qd7tytbFBjxZcdtU5nANDw" async></script>
+
     @php
         $siteLogo = app(\App\Domain\Listings\Services\SettingsService::class)->get('site_logo');
         $faviconUrl = $siteLogo ? asset('storage/' . $siteLogo) : asset('icon-64.webp');

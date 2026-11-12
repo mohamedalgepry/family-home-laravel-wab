@@ -9,75 +9,83 @@ export default function ChatHeader({
     onClose,
 }) {
     return (
-        <header className="bg-white border-b concierge-rule shrink-0 concierge-safe-top">
-            <div className="px-4 sm:px-5 pt-4 pb-3 flex items-start justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                    {/* Advisor avatar — 3D Robot Head */}
+        <header className="bg-white/95 backdrop-blur-sm border-b border-slate-100 shrink-0 concierge-safe-top transition-colors">
+            <div className="px-4 py-3 flex items-center justify-between gap-3">
+                {/* Agent Identity */}
+                <div className="flex items-center gap-2.5 min-w-0">
                     <div className="relative shrink-0">
-                        <div className="w-11 h-11 rounded-2xl bg-[#1A1A1A] text-white flex items-center justify-center shadow-sm overflow-hidden p-1 border border-white/10">
+                        <div className="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center overflow-hidden p-1 ring-2 ring-slate-100 shadow-xs">
                             <img
                                 src="/images/ai-agent-head.webp"
                                 alt={trans('assistant_name')}
-                                className="w-full h-full object-contain drop-shadow-[0_2px_8px_rgba(37,99,235,0.35)]"
+                                className="w-full h-full object-contain"
                             />
                         </div>
-                        <span className="absolute -bottom-0.5 -end-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full shadow-sm" aria-hidden="true"></span>
+                        <span
+                            className="absolute bottom-0 end-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"
+                            title={isRtl ? 'متصل الآن' : 'Online'}
+                            aria-hidden="true"
+                        />
                     </div>
                     <div className="min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                            <h3 className="font-black text-[15px] leading-none text-slate-950 tracking-tight">
+                        <div className="flex items-center gap-1.5">
+                            <h3 className="font-bold text-[14px] leading-tight text-slate-900 tracking-tight">
                                 {trans('assistant_name')}
                             </h3>
-                            <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-[0.08em] text-[#8B0000] bg-[#FFF5F5] border border-[#FFE3E3] px-1.5 py-0.5 rounded">
-                                <span className="w-1 h-1 rounded-full bg-[#CC0000]"></span>
-                                Concierge
+                            <span className="inline-flex items-center text-[10px] font-semibold text-primary-900 bg-primary-50 px-1.5 py-0.5 rounded-full border border-primary-100/80">
+                                {isRtl ? 'مستشار ذكي' : 'AI Agent'}
                             </span>
                         </div>
-                        <p className="text-[11px] text-slate-500 font-medium leading-tight mt-1 truncate">
-                            {trans('assistant_title')}
+                        <p className="text-[11px] text-slate-500 font-normal leading-tight mt-0.5 truncate">
+                            {isRtl ? 'جاهز لمساعدتك في أي استفسار عقاري' : 'Ready to help with your real estate inquiries'}
                         </p>
                     </div>
                 </div>
 
-                {/* Header actions */}
-                <div className="flex items-center gap-0.5 shrink-0">
+                {/* Header Actions */}
+                <div className="flex items-center gap-1 shrink-0">
+                    {/* Clear Chat */}
+                    <button
+                        type="button"
+                        onClick={resetChat}
+                        className="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors"
+                        title={trans('assistant_clear')}
+                        aria-label={trans('assistant_clear')}
+                    >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                        </svg>
+                    </button>
+
+                    {/* Minimize / Fullscreen */}
                     <button
                         type="button"
                         onClick={() => setIsFullscreen(prev => !prev)}
-                        className="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-900 flex items-center justify-center transition-colors"
+                        className="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors"
                         title={isFullscreen ? (isRtl ? 'تصغير' : 'Minimize') : (isRtl ? 'ملء الشاشة' : 'Fullscreen')}
                         aria-label={isFullscreen ? (isRtl ? 'تصغير' : 'Minimize') : (isRtl ? 'ملء الشاشة' : 'Fullscreen')}
                     >
                         {isFullscreen ? (
-                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 9V4H4v5M15 9V4h5v5M9 15v5H4v-5M15 15v5h5v-5" />
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 9V4.5M9 9H4.5M9 9 3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5 5.25 5.25" />
                             </svg>
                         ) : (
-                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4h4M20 8V4h-4M4 16v4h4M20 16v4h-4" />
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
                             </svg>
                         )}
                     </button>
-                    <button
-                        type="button"
-                        onClick={resetChat}
-                        className="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-900 flex items-center justify-center transition-colors"
-                        title={trans('assistant_clear')}
-                        aria-label={trans('assistant_clear')}
-                    >
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                    </button>
+
+                    {/* Close */}
                     <button
                         type="button"
                         onClick={onClose}
-                        className="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-900 flex items-center justify-center transition-colors"
+                        className="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors"
                         title={trans('assistant_close')}
                         aria-label={trans('assistant_close')}
                     >
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M6 18L18 6" />
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
                         </svg>
                     </button>
                 </div>
