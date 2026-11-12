@@ -284,8 +284,8 @@ Route::prefix('admin')->middleware(['auth', 'role:admin,manager,agent'])->group(
         Route::get('/unread-count', [NotificationController::class, 'unreadCount'])->name('unread-count');
         Route::post('/read-all', [NotificationController::class, 'markAllAsRead'])->name('read-all');
         Route::post('/{id}/read', [NotificationController::class, 'markAsRead'])->name('read');
-        Route::delete('/{id}', [NotificationController::class, 'destroy'])->name('destroy');
         Route::delete('/all/clear', [NotificationController::class, 'clearAll'])->name('clear-all');
+        Route::delete('/{id}', [NotificationController::class, 'destroy'])->name('destroy');
     });
 
     Route::post('/projects/{project}/approve', [NotificationController::class, 'approveProject'])->middleware('role:admin')->name('admin.projects.approve');

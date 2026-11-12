@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Domain\Listings\Models\Project;
 use App\Domain\Listings\Models\Setting;
 use App\Domain\Listings\Models\Unit;
+use App\Domain\Listings\Services\UnitService;
 use App\Domain\Listings\Actions\ApprovePendingProjectAction;
 use App\Domain\Listings\Actions\ApprovePendingUnitAction;
 use App\Domain\Listings\Actions\ExtendProjectListingAction;
@@ -21,6 +22,7 @@ class NotificationController extends Controller
 {
     public function __construct(
         private readonly NotificationService $notificationService,
+        private readonly UnitService $unitService,
     ) {}
 
     public function index(Request $request): Response
@@ -34,9 +36,13 @@ class NotificationController extends Controller
         ]);
     }
 
-    public function markAsRead(Request $request, string $id): RedirectResponse
+    public function markAsRead(Request $request, string $id): RedirectResponse|JsonResponse
     {
         $this->notificationService->markAsRead($request->user(), $id);
+
+        if (! $request->header('X-Inertia') && ($request->expectsJson() || $request->ajax())) {
+            return response()->json(['success' => true]);
+        }
 
         return redirect()->back()->with('success', __('common.updated_successfully'));
     }
@@ -107,7 +113,7 @@ class NotificationController extends Controller
 
         $unitName = $unit->name_ar ?: $unit->name;
         $this->unitService->deleteUnit($unit->id);
-        $this->notificationService->markEntityNotificationsAsRead($request->user(), 'unit_id', $unit->id);
+        $this->notificationService->markEntityNotificationsAsReadForAll('unit_id', $unit->id);
 
         return $this->redirectAfterNotificationAction(
             $request,

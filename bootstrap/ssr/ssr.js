@@ -14,7 +14,7 @@ import { Extension } from "@tiptap/core";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { renderToString } from "react-dom/server";
 import http from "node:http";
-// \0rolldown/runtime.js
+//#region \0rolldown/runtime.js
 var __defProp = Object.defineProperty;
 var __exportAll = (all, no_symbols) => {
 	let target = {};
@@ -25,16 +25,17 @@ var __exportAll = (all, no_symbols) => {
 	if (!no_symbols) __defProp(target, Symbol.toStringTag, { value: "Module" });
 	return target;
 };
-// resources/js/Utils/trans.js
+//#endregion
+//#region resources/js/Utils/trans.js
 var dictionaries = {};
 async function loadLocale(locale) {
 	const lang = locale === "ar" ? "ar" : "en";
 	if (!dictionaries[lang]) try {
 		if (lang === "ar") {
-			const mod = await import("./assets/ar-hE4UU5lA.js");
+			const mod = await import("./assets/ar-ByrwEGVL.js");
 			dictionaries.ar = mod.default || mod;
 		} else {
-			const mod = await import("./assets/en-DllnHA5o.js");
+			const mod = await import("./assets/en-CUvko0Em.js");
 			dictionaries.en = mod.default || mod;
 		}
 	} catch (e) {
@@ -54,7 +55,8 @@ function useTrans(locale) {
 		return text;
 	};
 }
-// resources/js/Utils/route.js
+//#endregion
+//#region resources/js/Utils/route.js
 function localizedPath(path, locale) {
 	if (!path) return "/";
 	locale = locale || "ar";
@@ -68,7 +70,77 @@ function localizedPath(path, locale) {
 	if (normalizedPath === "/") return `/${locale}${queryString}`;
 	return `/${locale}${normalizedPath}${queryString}`;
 }
-// resources/js/Utils/storage.js
+//#endregion
+//#region resources/js/Utils/notificationActions.js
+var UNIT_SCOPED = /* @__PURE__ */ new Set([
+	"unit_expiry_warning",
+	"unit_expired",
+	"unit_pending_approval",
+	"unit_approved",
+	"unit_extended",
+	"unit_permanently_deleted",
+	"new_message"
+]);
+var POST_ACTIONS = /* @__PURE__ */ new Set([
+	"approve_unit",
+	"approve_project",
+	"extend_unit",
+	"extend_project",
+	"delete_unit"
+]);
+function action(key, method, url, external = false) {
+	return {
+		key,
+		method,
+		url,
+		external
+	};
+}
+/**
+* Used when a cached payload has no server-built `actions`.
+* Keep this aligned with NotificationActionResolver.
+*/
+function fallbackNotificationActions(item, { isAdmin = false, isManager = false } = {}) {
+	const type = item?.type || "";
+	const deleted = type === "unit_permanently_deleted" || type === "project_permanently_deleted";
+	const unitExists = Boolean(item?.unit_id) && item?.unit_exists !== false && !deleted;
+	const projectExists = Boolean(item?.project_id) && item?.project_exists !== false && type !== "project_permanently_deleted";
+	const unitActive = item?.unit_is_active === true || item?.unit_is_active === 1;
+	const projectActive = item?.project_is_active === true || item?.project_is_active === 1;
+	const unitScoped = UNIT_SCOPED.has(type);
+	const actions = [];
+	if (type === "unit_pending_approval" && unitExists && !unitActive && (isAdmin || isManager)) actions.push(action("approve_unit", "post", `/admin/units/${item.unit_id}/approve`));
+	if ((type === "project_pending_approval" || type === "new_project_created" && item?.project_is_active === false) && projectExists && !projectActive && isAdmin) actions.push(action("approve_project", "post", `/admin/projects/${item.project_id}/approve`));
+	const isExtended = item?.is_extended === true;
+	if ((type === "unit_expiry_warning" || type === "unit_expired") && unitExists && !isExtended && (isAdmin || isManager)) {
+		actions.push(action("extend_unit", "modal", null));
+		if (isAdmin) actions.push(action("delete_unit", "delete", `/admin/units/${item.unit_id}/force`));
+	}
+	if (type === "project_expiry_warning" && projectExists && !isExtended && isAdmin) actions.push(action("extend_project", "post", `/admin/projects/${item.project_id}/extend`));
+	if (type === "new_message") actions.push(action("messages", "get", "/admin/messages"));
+	if (type === "new_assistant_lead" || item?.lead_id && type !== "new_message") actions.push(action("lead", "get", item?.action_url || "/admin/assistant-leads"));
+	if (unitExists) actions.push(action("edit_unit", "get", `/admin/units/${item.unit_id}/edit`));
+	if (projectExists && !unitScoped && !deleted) actions.push(action("edit_project", "get", `/admin/projects/${item.project_id}/edit`));
+	if (unitExists && item?.unit_slug && unitActive) actions.push(action("view_unit", "get", `/units/${item.unit_slug}`, true));
+	if (projectExists && item?.project_slug && projectActive && !unitScoped) actions.push(action("view_project", "get", `/projects/${item.project_slug}`, true));
+	return actions;
+}
+function notificationPrimaryUrl(item) {
+	if (typeof item?.primary_url === "string" && item.primary_url.startsWith("/")) return item.primary_url;
+	const actions = Array.isArray(item?.actions) ? item.actions : fallbackNotificationActions(item, {
+		isAdmin: true,
+		isManager: true
+	});
+	const byKey = Object.fromEntries(actions.map((entry) => [entry.key, entry]));
+	if (byKey.messages) return "/admin/messages";
+	if (byKey.lead?.url) return byKey.lead.url;
+	if ([...POST_ACTIONS].some((key) => byKey[key])) return "/admin/notifications";
+	if (byKey.edit_unit?.url) return byKey.edit_unit.url;
+	if (byKey.edit_project?.url) return byKey.edit_project.url;
+	return "/admin/notifications";
+}
+//#endregion
+//#region resources/js/Utils/storage.js
 var memoryStorage = /* @__PURE__ */ new Map();
 var safeStorage = {
 	getItem(key) {
@@ -96,7 +168,8 @@ var safeStorage = {
 		memoryStorage.delete(key);
 	}
 };
-// resources/js/Components/UI/InputField.jsx
+//#endregion
+//#region resources/js/Components/UI/InputField.jsx
 function InputField({ id, name, label, type = "text", value, onChange, placeholder, required = false, autoComplete, dir }) {
 	const generatedId = useId();
 	const { errors } = usePage().props;
@@ -136,7 +209,8 @@ function InputField({ id, name, label, type = "text", value, onChange, placehold
 		]
 	});
 }
-// resources/js/Components/UI/Button.jsx
+//#endregion
+//#region resources/js/Components/UI/Button.jsx
 function Button({ children, type = "submit", variant = "primary", disabled = false, className = "", onClick }) {
 	return /* @__PURE__ */ jsx("button", {
 		type,
@@ -150,7 +224,8 @@ function Button({ children, type = "submit", variant = "primary", disabled = fal
 		children
 	});
 }
-// resources/js/Components/UI/SkeletonRow.jsx
+//#endregion
+//#region resources/js/Components/UI/SkeletonRow.jsx
 function SkeletonRow({ cols }) {
 	return /* @__PURE__ */ jsx("tr", {
 		className: "border-t border-secondary-100",
@@ -163,7 +238,8 @@ function SkeletonRow({ cols }) {
 		}, i))
 	});
 }
-// resources/js/Components/UI/Select.jsx
+//#endregion
+//#region resources/js/Components/UI/Select.jsx
 function Select({ value, onChange, children, className = "", disabled = false, required = false, id, name, defaultValue, "aria-label": ariaLabel, variant = "default" }) {
 	const { locale } = usePage().props || {};
 	const trans = useTrans(locale);
@@ -258,10 +334,13 @@ function Select({ value, onChange, children, className = "", disabled = false, r
 					triggerRef.current?.focus();
 				}
 				break;
-			case "Tab": if (isOpen) {
-				setIsOpen(false);
-				setFocusedIndex(-1);
-			}
+			case "Tab":
+				if (isOpen) {
+					setIsOpen(false);
+					setFocusedIndex(-1);
+				}
+				break;
+			default: break;
 		}
 	};
 	const activeDescendantId = isOpen && focusedIndex >= 0 && focusedIndex < filteredOptions.length ? `${listboxId}-opt-${focusedIndex}` : void 0;
@@ -359,9 +438,8 @@ function Select({ value, onChange, children, className = "", disabled = false, r
 					}) : filteredOptions.map((opt, idx) => {
 						const isSelected = String(opt.value) === String(currentValue);
 						const isKeyboardFocused = idx === focusedIndex;
-						const optionId = `${listboxId}-opt-${idx}`;
 						return /* @__PURE__ */ jsxs("button", {
-							id: optionId,
+							id: `${listboxId}-opt-${idx}`,
 							type: "button",
 							role: "option",
 							"aria-selected": isSelected,
@@ -393,7 +471,8 @@ function Select({ value, onChange, children, className = "", disabled = false, r
 		]
 	});
 }
-// resources/js/Components/UI/LazyMapEmbed.jsx
+//#endregion
+//#region resources/js/Components/UI/LazyMapEmbed.jsx
 function LazyMapEmbed({ latitude, longitude, locale = "ar", title = "Google Map Location", className = "" }) {
 	const [shouldLoad, setShouldLoad] = useState(false);
 	const containerRef = useRef(null);
@@ -448,7 +527,8 @@ function LazyMapEmbed({ latitude, longitude, locale = "ar", title = "Google Map 
 		})
 	});
 }
-// resources/js/Components/UI/WhatsAppIcon.jsx
+//#endregion
+//#region resources/js/Components/UI/WhatsAppIcon.jsx
 function WhatsAppIcon({ className = "w-5 h-5", "aria-hidden": ariaHidden = true, ...props }) {
 	return /* @__PURE__ */ jsx("svg", {
 		className,
@@ -459,7 +539,8 @@ function WhatsAppIcon({ className = "w-5 h-5", "aria-hidden": ariaHidden = true,
 		children: /* @__PURE__ */ jsx("path", { d: "M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0012.04 2zm.01 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 012.41 5.83c0 4.54-3.7 8.24-8.24 8.24-1.42 0-2.82-.37-4.06-1.07l-.29-.17-3.12.82.83-3.04-.19-.3a8.216 8.216 0 01-1.26-4.48c0-4.54 3.7-8.24 8.24-8.24zm4.52 11.66c-.25-.13-1.47-.72-1.7-.81-.23-.08-.39-.13-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.13-1.06-.39-2.03-1.25-.75-.67-1.26-1.5-1.41-1.75-.14-.25-.02-.39.11-.51.11-.11.25-.29.37-.44.13-.14.17-.25.25-.42.08-.17.04-.31-.02-.44s-.56-1.35-.77-1.85c-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1 0 1.24.9 2.44 1.03 2.61.13.17 1.77 2.7 4.29 3.79.6.26 1.07.41 1.44.53.6.19 1.15.16 1.59.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.14-1.18-.06-.1-.22-.16-.47-.29z" })
 	});
 }
-// resources/js/Components/UI/ConfirmationModal.jsx
+//#endregion
+//#region resources/js/Components/UI/ConfirmationModal.jsx
 function ConfirmationModal({ isOpen, title, message, confirmLabel, cancelLabel, variant = "danger", onConfirm, onCancel, isLoading = false }) {
 	useEffect(() => {
 		if (!isOpen) return;
@@ -567,7 +648,8 @@ function ConfirmationModal({ isOpen, title, message, confirmLabel, cancelLabel, 
 		})]
 	});
 }
-// resources/js/Components/Layout/AdminSidebar.jsx
+//#endregion
+//#region resources/js/Components/Layout/AdminSidebar.jsx
 var NAV_GROUPS = [
 	{
 		key: "nav_group_main",
@@ -823,28 +905,29 @@ function AdminSidebar({ children }) {
 		if (!notifsFetchedRef.current || recentNotifs.length === 0) fetchRecentNotifs(true);
 		else fetchRecentNotifs(false);
 	}
-	function markNotifRead(id) {
-		router.post(`/admin/notifications/${id}/read`, {}, {
+	function handleNotifItemClick(n) {
+		setNotifOpen(false);
+		const targetUrl = notificationPrimaryUrl(n);
+		const navigate = () => {
+			if (typeof window !== "undefined" && window.location.pathname === targetUrl) return;
+			router.visit(targetUrl);
+		};
+		if (!n.read_at) router.post(`/admin/notifications/${n.id}/read`, {}, {
 			preserveScroll: true,
 			onSuccess: () => {
-				setRecentNotifs((prev) => prev.map((n) => n.id === id ? {
-					...n,
+				setRecentNotifs((prev) => prev.map((x) => x.id === n.id ? {
+					...x,
 					read_at: (/* @__PURE__ */ new Date()).toISOString()
-				} : n));
+				} : x));
 				setLiveNotifCount((prev) => Math.max(0, prev - 1));
 				prevNotifRef.current = Math.max(0, prevNotifRef.current - 1);
+				navigate();
+			},
+			onError: () => {
+				navigate();
 			}
 		});
-	}
-	function handleNotifItemClick(n) {
-		if (!n.read_at) markNotifRead(n.id);
-		setNotifOpen(false);
-		const type = n.type || "";
-		if (type === "new_assistant_lead" || n.lead_id) router.visit("/admin/assistant-leads");
-		else if (type === "new_message" || n.message_id) router.visit("/admin/messages");
-		else if (n.unit_id) router.visit(`/admin/units/${n.unit_id}/edit`);
-		else if (n.project_id) router.visit(`/admin/projects/${n.project_id}/edit`);
-		else router.visit("/admin/notifications");
+		else navigate();
 	}
 	function markAllNotifsRead() {
 		router.post("/admin/notifications/read-all", {}, {
@@ -1421,7 +1504,8 @@ function AdminSidebar({ children }) {
 		]
 	});
 }
-// resources/js/Pages/Admin/About/Edit.jsx
+//#endregion
+//#region resources/js/Pages/Admin/About/Edit.jsx
 var Edit_exports$2 = /* @__PURE__ */ __exportAll({ default: () => AdminAboutEdit });
 var CustomImage = Image$1.extend({ addAttributes() {
 	return {
@@ -1975,7 +2059,8 @@ function AdminAboutEdit({ about }) {
 		]
 	})] });
 }
-// resources/js/Utils/image.js
+//#endregion
+//#region resources/js/Utils/image.js
 var PLACEHOLDER$2 = "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 600\"%3E%3Crect fill=\"%23F0F0F0\" width=\"800\" height=\"600\"/%3E%3C/svg%3E";
 /**
 * Normalizes an image path to ensure proper /storage/ URL format without duplicate storage/storage prefixes.
@@ -2025,18 +2110,16 @@ async function compressImage(file, { maxWidth = 2048, maxHeight = 2048, quality 
 		img.onload = () => {
 			URL.revokeObjectURL(objectUrl);
 			let { width, height } = img;
-			if (width <= maxWidth && height <= maxHeight && file.size <= 409600) {
+			if (width <= maxWidth && height <= maxHeight && file.size <= 400 * 1024) {
 				resolve(file);
 				return;
 			}
-			if (width > maxWidth || height > maxHeight) {
-				if (width / height > maxWidth / maxHeight) {
-					height = Math.round(height * maxWidth / width);
-					width = maxWidth;
-				} else {
-					width = Math.round(width * maxHeight / height);
-					height = maxHeight;
-				}
+			if (width > maxWidth || height > maxHeight) if (width / height > maxWidth / maxHeight) {
+				height = Math.round(height * maxWidth / width);
+				width = maxWidth;
+			} else {
+				width = Math.round(width * maxHeight / height);
+				height = maxHeight;
 			}
 			const canvas = document.createElement("canvas");
 			canvas.width = width;
@@ -2071,7 +2154,8 @@ async function compressImage(file, { maxWidth = 2048, maxHeight = 2048, quality 
 		img.src = objectUrl;
 	});
 }
-// resources/js/Pages/Admin/Areas/AreaForm.jsx
+//#endregion
+//#region resources/js/Pages/Admin/Areas/AreaForm.jsx
 var AreaForm_exports = /* @__PURE__ */ __exportAll({ default: () => AreaForm });
 var MAX_KEYWORDS = 25;
 function AreaForm({ area, parents, mode = "create" }) {
@@ -3373,7 +3457,8 @@ function AreaForm({ area, parents, mode = "create" }) {
 		})]
 	});
 }
-// resources/js/Pages/Admin/Areas/Create.jsx
+//#endregion
+//#region resources/js/Pages/Admin/Areas/Create.jsx
 var Create_exports$1 = /* @__PURE__ */ __exportAll({ default: () => AdminAreasCreate });
 function AdminAreasCreate({ parents }) {
 	const { locale } = usePage().props;
@@ -3409,7 +3494,8 @@ function AdminAreasCreate({ parents }) {
 		})]
 	})] });
 }
-// resources/js/Pages/Admin/Areas/Edit.jsx
+//#endregion
+//#region resources/js/Pages/Admin/Areas/Edit.jsx
 var Edit_exports$1 = /* @__PURE__ */ __exportAll({ default: () => AdminAreasEdit });
 function AdminAreasEdit({ area, parents }) {
 	const { locale } = usePage().props;
@@ -3450,7 +3536,8 @@ function AdminAreasEdit({ area, parents }) {
 		})]
 	})] });
 }
-// resources/js/Pages/Admin/Areas/Index.jsx
+//#endregion
+//#region resources/js/Pages/Admin/Areas/Index.jsx
 var Index_exports$17 = /* @__PURE__ */ __exportAll({ default: () => AdminAreasIndex });
 function AdminAreasIndex({ areas, filters }) {
 	const { locale, flash } = usePage().props;
@@ -3796,7 +3883,8 @@ function AdminAreasIndex({ areas, filters }) {
 		]
 	})] });
 }
-// resources/js/Utils/tiptapFontSize.js
+//#endregion
+//#region resources/js/Utils/tiptapFontSize.js
 var FontSize = Extension.create({
 	name: "fontSize",
 	addOptions() {
@@ -3826,7 +3914,8 @@ var FontSize = Extension.create({
 		};
 	}
 });
-// resources/js/Pages/Admin/Articles/Form.jsx
+//#endregion
+//#region resources/js/Pages/Admin/Articles/Form.jsx
 var Form_exports$2 = /* @__PURE__ */ __exportAll({ default: () => AdminArticlesForm });
 var FONT_SIZES = [
 	"12px",
@@ -4963,7 +5052,8 @@ function AdminArticlesForm({ article, categories }) {
 		})]
 	})] });
 }
-// resources/js/Pages/Admin/Articles/Index.jsx
+//#endregion
+//#region resources/js/Pages/Admin/Articles/Index.jsx
 var Index_exports$16 = /* @__PURE__ */ __exportAll({ default: () => AdminArticlesIndex });
 function AdminArticlesIndex({ articles, categories, filters }) {
 	const { locale } = usePage().props;
@@ -5176,7 +5266,8 @@ function AdminArticlesIndex({ articles, categories, filters }) {
 		]
 	})] });
 }
-// resources/js/Pages/Admin/Assistant/Knowledge.jsx
+//#endregion
+//#region resources/js/Pages/Admin/Assistant/Knowledge.jsx
 var Knowledge_exports = /* @__PURE__ */ __exportAll({ default: () => AssistantKnowledgeIndex });
 function AssistantKnowledgeIndex({ items = [], stats = {}, filters = {} }) {
 	const { locale } = usePage().props;
@@ -5701,7 +5792,8 @@ function AssistantKnowledgeIndex({ items = [], stats = {}, filters = {} }) {
 		]
 	})] });
 }
-// resources/js/Pages/Admin/AssistantLeads/Index.jsx
+//#endregion
+//#region resources/js/Pages/Admin/AssistantLeads/Index.jsx
 var Index_exports$15 = /* @__PURE__ */ __exportAll({ default: () => AssistantLeadsIndex });
 function AssistantLeadsIndex({ leads }) {
 	const { locale, auth } = usePage().props;
@@ -5997,7 +6089,8 @@ function AssistantLeadsIndex({ leads }) {
 		})
 	] });
 }
-// resources/js/Pages/Admin/Categories/Index.jsx
+//#endregion
+//#region resources/js/Pages/Admin/Categories/Index.jsx
 var Index_exports$14 = /* @__PURE__ */ __exportAll({ default: () => AdminCategoriesIndex });
 function AdminCategoriesIndex({ categories }) {
 	const { locale } = usePage().props;
@@ -6203,7 +6296,8 @@ function AdminCategoriesIndex({ categories }) {
 		]
 	})] });
 }
-// resources/js/Pages/Admin/Dashboard.jsx
+//#endregion
+//#region resources/js/Pages/Admin/Dashboard.jsx
 var Dashboard_exports = /* @__PURE__ */ __exportAll({ default: () => Dashboard });
 function StatCard({ title, value, subtext, icon, color = "primary", badge }) {
 	const colorClasses = {
@@ -6774,7 +6868,8 @@ function Dashboard({ stats, topProjects = [], topUnits = [], recentUnits = [], r
 		]
 	})] });
 }
-// resources/js/Pages/Admin/Features/Index.jsx
+//#endregion
+//#region resources/js/Pages/Admin/Features/Index.jsx
 var Index_exports$13 = /* @__PURE__ */ __exportAll({ default: () => AdminFeaturesIndex });
 function AdminFeaturesIndex({ features }) {
 	const { locale, flash } = usePage().props;
@@ -6968,7 +7063,8 @@ function AdminFeaturesIndex({ features }) {
 		]
 	})] });
 }
-// resources/js/Pages/Admin/FinishingTypes/Index.jsx
+//#endregion
+//#region resources/js/Pages/Admin/FinishingTypes/Index.jsx
 var Index_exports$12 = /* @__PURE__ */ __exportAll({ default: () => AdminFinishingTypesIndex });
 function AdminFinishingTypesIndex({ finishingTypes }) {
 	const { locale, flash } = usePage().props;
@@ -7160,7 +7256,8 @@ function AdminFinishingTypesIndex({ finishingTypes }) {
 		]
 	})] });
 }
-// resources/js/Components/UI/Pagination.jsx
+//#endregion
+//#region resources/js/Components/UI/Pagination.jsx
 function Pagination({ meta, links: routeLinks, pageParam = "page" }) {
 	const pageContext = usePage();
 	const { locale } = pageContext.props;
@@ -7239,7 +7336,8 @@ function Pagination({ meta, links: routeLinks, pageParam = "page" }) {
 		]
 	});
 }
-// resources/js/Pages/Admin/Messages/Index.jsx
+//#endregion
+//#region resources/js/Pages/Admin/Messages/Index.jsx
 var Index_exports$11 = /* @__PURE__ */ __exportAll({ default: () => AdminMessagesIndex });
 function AdminMessagesIndex({ messages, agents, filters }) {
 	const { locale, auth } = usePage().props;
@@ -7704,7 +7802,8 @@ function AdminMessagesIndex({ messages, agents, filters }) {
 		})
 	] });
 }
-// resources/js/Pages/Admin/Notifications/Index.jsx
+//#endregion
+//#region resources/js/Pages/Admin/Notifications/Index.jsx
 var Index_exports$10 = /* @__PURE__ */ __exportAll({ default: () => NotificationsIndex });
 var TYPE_META = {
 	unit_expiry_warning: {
@@ -7760,6 +7859,17 @@ var TYPE_META = {
 		label: {
 			ar: "تنبيه انتهاء مشروع",
 			en: "Project Expiry Warning"
+		}
+	},
+	project_pending_approval: {
+		icon: "clock",
+		gradient: "from-amber-500 to-orange-500",
+		bg: "bg-amber-50",
+		border: "border-amber-200",
+		text: "text-amber-800",
+		label: {
+			ar: "مشروع بانتظار الموافقة",
+			en: "Project Pending Approval"
 		}
 	},
 	project_permanently_deleted: {
@@ -7851,7 +7961,6 @@ var ICON_PATHS$1 = {
 	sparkles: "M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z"
 };
 function TypeIcon({ type, className = "w-5 h-5" }) {
-	const meta = TYPE_META[type] || TYPE_DEFAULT;
 	return /* @__PURE__ */ jsx("svg", {
 		className,
 		fill: "none",
@@ -7861,7 +7970,7 @@ function TypeIcon({ type, className = "w-5 h-5" }) {
 		children: /* @__PURE__ */ jsx("path", {
 			strokeLinecap: "round",
 			strokeLinejoin: "round",
-			d: ICON_PATHS$1[meta.icon]
+			d: ICON_PATHS$1[(TYPE_META[type] || TYPE_DEFAULT).icon]
 		})
 	});
 }
@@ -7869,7 +7978,7 @@ function groupByDate(items, isRtl, trans) {
 	const now = /* @__PURE__ */ new Date();
 	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 	const yesterday = /* @__PURE__ */ new Date(today.getTime() - 864e5);
-	const weekAgo = /* @__PURE__ */ new Date(today.getTime() - 5184e5);
+	const weekAgo = /* @__PURE__ */ new Date(today.getTime() - 6 * 864e5);
 	const groups = {
 		today: [],
 		yesterday: [],
@@ -7935,10 +8044,10 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 		router.post(`/admin/notifications/${id}/read`, {}, { preserveScroll: true });
 	}
 	function handleDeleteOne(id) {
-		router.delete(`/admin/notifications/${id}`, {}, { preserveScroll: true });
+		router.delete(`/admin/notifications/${id}`, { preserveScroll: true });
 	}
 	function handleDeleteAll() {
-		router.delete("/admin/notifications/all/clear", {}, { preserveScroll: true });
+		router.delete("/admin/notifications/all/clear", { preserveScroll: true });
 		setConfirmClearAll(false);
 	}
 	function handleExtendProject(projectId) {
@@ -7979,7 +8088,7 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 		router.post(`/admin/units/${unitId}/approve`, {}, { preserveScroll: true });
 	}
 	function handleDeleteUnit(unitId) {
-		router.delete(`/admin/units/${unitId}/force`, {}, { preserveScroll: true });
+		router.delete(`/admin/units/${unitId}/force`, { preserveScroll: true });
 		setConfirmDeleteId(null);
 	}
 	function getMeta(type) {
@@ -8148,13 +8257,33 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 					children: group.items.map((item) => {
 						const meta = getMeta(item.type);
 						const isUnread = !item.read_at;
+						const isNewMessage = item.type === "new_message";
+						const isAssistantLead = item.type === "new_assistant_lead" || Boolean(item.lead_id);
+						const title = isRtl ? item.title || meta.label.ar : item.title_en || item.title || meta.label.en;
+						const body = isRtl ? item.message || "" : item.message_en || item.message || "";
+						const isNewProject = item.type === "new_project_created" || item.type === "project_pending_approval";
+						const isUnitPendingApproval = item.type === "unit_pending_approval";
 						const isUnitExpiry = item.type === "unit_expiry_warning";
 						const isUnitExpired = item.type === "unit_expired";
 						const isProjectExpiry = item.type === "project_expiry_warning";
-						const isNewMessage = item.type === "new_message";
-						const isNewProject = item.type === "new_project_created";
-						const isUnitPendingApproval = item.type === "unit_pending_approval";
-						const isAssistantLead = item.type === "new_assistant_lead" || Boolean(item.lead_id);
+						const unitActive = item.unit_is_active === true || item.unit_is_active === 1;
+						const projectActive = item.project_is_active === true || item.project_is_active === 1;
+						const unitExists = Boolean(item.unit_id) && item.unit_exists !== false;
+						const projectExists = Boolean(item.project_id) && item.project_exists !== false;
+						const isDeleted = item.type === "unit_permanently_deleted" || item.type === "project_permanently_deleted";
+						const isUnitScoped = [
+							"unit_expiry_warning",
+							"unit_expired",
+							"unit_pending_approval",
+							"unit_approved",
+							"unit_extended",
+							"unit_permanently_deleted",
+							"new_message"
+						].includes(item.type);
+						const approveUnitDone = isUnitPendingApproval && unitActive;
+						const approveProjDone = isNewProject && projectActive;
+						const extendUnitDone = (isUnitExpiry || isUnitExpired) && (item.is_extended === true || item.extended === true);
+						const extendProjDone = isProjectExpiry && (item.is_extended === true || item.extended === true);
 						return /* @__PURE__ */ jsxs("div", {
 							className: `relative bg-white rounded-2xl shadow-card border transition-all duration-200 hover:shadow-md ${isUnread ? "border-primary-900/30 bg-gradient-to-r from-primary-50/40 to-transparent" : "border-secondary-100 hover:border-secondary-300"}`,
 							children: [isUnread && /* @__PURE__ */ jsx("div", { className: "absolute start-0 top-3 bottom-3 w-1 bg-primary-900 rounded-full" }), /* @__PURE__ */ jsx("div", {
@@ -8189,7 +8318,7 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 													children: [
 														/* @__PURE__ */ jsx("h3", {
 															className: `text-sm ${isUnread ? "font-bold text-secondary-950" : "font-semibold text-secondary-800"}`,
-															children: isRtl ? item.title || meta.label.ar : item.title_en || meta.label.en
+															children: title
 														}),
 														isUnread && /* @__PURE__ */ jsx("span", {
 															className: "bg-primary-900/10 text-primary-900 text-[10px] font-bold px-1.5 py-0.5 rounded-md",
@@ -8218,7 +8347,7 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 											}),
 											/* @__PURE__ */ jsx("p", {
 												className: "text-xs text-secondary-600 leading-relaxed mb-3",
-												children: item.message
+												children: body
 											}),
 											(item.unit_name || item.project_name || isNewMessage || isAssistantLead) && /* @__PURE__ */ jsxs("div", {
 												className: `${meta.bg} border ${meta.border} rounded-xl p-3 mb-3 text-xs space-y-1.5`,
@@ -8366,17 +8495,59 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 														className: "px-3 py-1.5 bg-primary-900/10 hover:bg-primary-900/20 text-primary-900 text-xs font-semibold rounded-lg transition-colors",
 														children: trans("mark_read")
 													}),
-													isUnread && isNewProject && item.project_id && isAdmin && /* @__PURE__ */ jsx("button", {
+													isNewProject && item.project_id && isAdmin && (approveProjDone ? /* @__PURE__ */ jsxs("span", {
+														className: "inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg",
+														children: [/* @__PURE__ */ jsx("svg", {
+															className: "w-3 h-3",
+															fill: "none",
+															viewBox: "0 0 24 24",
+															stroke: "currentColor",
+															strokeWidth: 2,
+															children: /* @__PURE__ */ jsx("path", {
+																strokeLinecap: "round",
+																strokeLinejoin: "round",
+																d: "M5 13l4 4L19 7"
+															})
+														}), isRtl ? "تمت الموافقة" : "Approved"]
+													}) : /* @__PURE__ */ jsx("button", {
 														onClick: () => handleApproveProject(item.project_id),
 														className: "px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition-colors",
 														children: isRtl ? "موافقة ونشر" : "Approve & publish"
-													}),
-													isUnread && isUnitPendingApproval && item.unit_id && (isAdmin || isManager) && /* @__PURE__ */ jsx("button", {
+													})),
+													isUnitPendingApproval && item.unit_id && (isAdmin || isManager) && (approveUnitDone ? /* @__PURE__ */ jsxs("span", {
+														className: "inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg",
+														children: [/* @__PURE__ */ jsx("svg", {
+															className: "w-3 h-3",
+															fill: "none",
+															viewBox: "0 0 24 24",
+															stroke: "currentColor",
+															strokeWidth: 2,
+															children: /* @__PURE__ */ jsx("path", {
+																strokeLinecap: "round",
+																strokeLinejoin: "round",
+																d: "M5 13l4 4L19 7"
+															})
+														}), isRtl ? "تمت الموافقة" : "Approved"]
+													}) : /* @__PURE__ */ jsx("button", {
 														onClick: () => handleApproveUnit(item.unit_id),
 														className: "px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition-colors",
 														children: isRtl ? "موافقة ونشر" : "Approve & publish"
-													}),
-													(isUnitExpiry || isUnitExpired) && item.unit_id && (isAdmin || isManager) && (isUnread ? /* @__PURE__ */ jsxs("button", {
+													})),
+													(isUnitExpiry || isUnitExpired) && item.unit_id && (isAdmin || isManager) && (extendUnitDone ? /* @__PURE__ */ jsxs("span", {
+														className: "inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg",
+														children: [/* @__PURE__ */ jsx("svg", {
+															className: "w-3 h-3",
+															fill: "none",
+															viewBox: "0 0 24 24",
+															stroke: "currentColor",
+															strokeWidth: 2,
+															children: /* @__PURE__ */ jsx("path", {
+																strokeLinecap: "round",
+																strokeLinejoin: "round",
+																d: "M5 13l4 4L19 7"
+															})
+														}), isRtl ? "تمت المعالجة / التمديد" : "Resolved / Extended"]
+													}) : /* @__PURE__ */ jsxs("button", {
 														onClick: () => openExtendModal(item.unit_id, item.unit_name || item.title),
 														className: "px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1 shadow-xs",
 														children: [/* @__PURE__ */ jsx("svg", {
@@ -8391,7 +8562,8 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 																d: "M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
 															})
 														}), trans("extend")]
-													}) : /* @__PURE__ */ jsxs("span", {
+													})),
+													isProjectExpiry && item.project_id && isAdmin && (extendProjDone ? /* @__PURE__ */ jsxs("span", {
 														className: "inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg",
 														children: [/* @__PURE__ */ jsx("svg", {
 															className: "w-3 h-3",
@@ -8404,9 +8576,8 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 																strokeLinejoin: "round",
 																d: "M5 13l4 4L19 7"
 															})
-														}), isRtl ? "تمت المعالجة / التمديد" : "Resolved / Extended"]
-													})),
-													isProjectExpiry && item.project_id && isAdmin && (isUnread ? /* @__PURE__ */ jsxs("button", {
+														}), isRtl ? "تم التمديد" : "Extended"]
+													}) : /* @__PURE__ */ jsxs("button", {
 														onClick: () => handleExtendProject(item.project_id),
 														className: "px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1 shadow-xs",
 														children: [/* @__PURE__ */ jsx("svg", {
@@ -8421,20 +8592,6 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 																d: "M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
 															})
 														}), trans("extend")]
-													}) : /* @__PURE__ */ jsxs("span", {
-														className: "inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg",
-														children: [/* @__PURE__ */ jsx("svg", {
-															className: "w-3 h-3",
-															fill: "none",
-															viewBox: "0 0 24 24",
-															stroke: "currentColor",
-															strokeWidth: 2,
-															children: /* @__PURE__ */ jsx("path", {
-																strokeLinecap: "round",
-																strokeLinejoin: "round",
-																d: "M5 13l4 4L19 7"
-															})
-														}), isRtl ? "تم التمديد" : "Extended"]
 													})),
 													(isUnitExpiry || isUnitExpired) && item.unit_id && isAdmin && (confirmDeleteId === item.id ? /* @__PURE__ */ jsxs("div", {
 														className: "flex items-center gap-1",
@@ -8499,7 +8656,7 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 															})]
 														}), isRtl ? "عرض تفاصيل العميل" : "View Lead Details"]
 													}),
-													item.unit_id && /* @__PURE__ */ jsxs(Link, {
+													unitExists && !isDeleted && /* @__PURE__ */ jsxs(Link, {
 														href: `/admin/units/${item.unit_id}/edit`,
 														className: "px-3 py-1.5 bg-secondary-800 hover:bg-secondary-900 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1",
 														children: [/* @__PURE__ */ jsx("svg", {
@@ -8515,7 +8672,7 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 															})
 														}), isRtl ? "تعديل الوحدة" : "Edit Unit"]
 													}),
-													item.project_id && /* @__PURE__ */ jsxs(Link, {
+													projectExists && !isUnitScoped && !isDeleted && /* @__PURE__ */ jsxs(Link, {
 														href: `/admin/projects/${item.project_id}/edit`,
 														className: "px-3 py-1.5 bg-secondary-800 hover:bg-secondary-900 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1",
 														children: [/* @__PURE__ */ jsx("svg", {
@@ -8531,7 +8688,7 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 															})
 														}), isRtl ? "تعديل المشروع" : "Edit Project"]
 													}),
-													item.unit_slug && /* @__PURE__ */ jsxs(Link, {
+													unitExists && unitActive && item.unit_slug && /* @__PURE__ */ jsxs(Link, {
 														href: localizedPath(`/units/${item.unit_slug}`, locale),
 														target: "_blank",
 														className: "px-3 py-1.5 text-secondary-500 hover:bg-secondary-100 text-xs font-medium rounded-lg transition-colors flex items-center gap-1",
@@ -8548,7 +8705,7 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 															})
 														}), trans("view")]
 													}),
-													item.project_slug && /* @__PURE__ */ jsxs(Link, {
+													projectExists && projectActive && item.project_slug && !isUnitScoped && /* @__PURE__ */ jsxs(Link, {
 														href: localizedPath(`/projects/${item.project_slug}`, locale),
 														target: "_blank",
 														className: "px-3 py-1.5 text-secondary-500 hover:bg-secondary-100 text-xs font-medium rounded-lg transition-colors flex items-center gap-1",
@@ -8733,7 +8890,8 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 		]
 	})] });
 }
-// resources/js/Pages/Admin/Points/Index.jsx
+//#endregion
+//#region resources/js/Pages/Admin/Points/Index.jsx
 var Index_exports$9 = /* @__PURE__ */ __exportAll({ default: () => PointsIndex });
 function PointsIndex({ managers, ledger, units, filters, pointsSettings }) {
 	const { locale, auth } = usePage().props;
@@ -9280,7 +9438,8 @@ function PointsIndex({ managers, ledger, units, filters, pointsSettings }) {
 		]
 	})] });
 }
-// resources/js/Pages/Admin/Points/Ledger.jsx
+//#endregion
+//#region resources/js/Pages/Admin/Points/Ledger.jsx
 var Ledger_exports = /* @__PURE__ */ __exportAll({ default: () => PointsLedger });
 var FILTER_MAP = {
 	type: "",
@@ -9492,7 +9651,8 @@ function PointsLedger({ transactions, managers, filters = FILTER_MAP }) {
 		]
 	});
 }
-// resources/js/Pages/Admin/Profile/Edit.jsx
+//#endregion
+//#region resources/js/Pages/Admin/Profile/Edit.jsx
 var Edit_exports = /* @__PURE__ */ __exportAll({ default: () => Edit });
 function Edit({ user }) {
 	const { auth, locale, flash, errors: pageErrors } = usePage().props;
@@ -9500,8 +9660,7 @@ function Edit({ user }) {
 	const isRtl = locale === "ar";
 	const fileInput = useRef(null);
 	const currentUser = user || auth?.user || {};
-	const initialAvatar = currentUser.avatar ? currentUser.avatar.startsWith("http") || currentUser.avatar.startsWith("/storage") ? currentUser.avatar : `/storage/${currentUser.avatar}` : null;
-	const [preview, setPreview] = useState(initialAvatar);
+	const [preview, setPreview] = useState(currentUser.avatar ? currentUser.avatar.startsWith("http") || currentUser.avatar.startsWith("/storage") ? currentUser.avatar : `/storage/${currentUser.avatar}` : null);
 	const [newEmail, setNewEmail] = useState(currentUser.email || "");
 	const [otpSent, setOtpSent] = useState(false);
 	const [otpCode, setOtpCode] = useState("");
@@ -9843,7 +10002,8 @@ function Edit({ user }) {
 		})]
 	});
 }
-// resources/js/Pages/Admin/Projects/Form.jsx
+//#endregion
+//#region resources/js/Pages/Admin/Projects/Form.jsx
 var Form_exports$1 = /* @__PURE__ */ __exportAll({ default: () => AdminProjectForm });
 var STEPS$1 = [
 	{
@@ -10933,7 +11093,8 @@ function AdminProjectForm({ project, areas, features, finishingTypes, managers }
 		]
 	})] });
 }
-// resources/js/Pages/Admin/Projects/Index.jsx
+//#endregion
+//#region resources/js/Pages/Admin/Projects/Index.jsx
 var Index_exports$8 = /* @__PURE__ */ __exportAll({ default: () => AdminProjectsIndex });
 function AdminProjectsIndex({ projects, stats, areas, filters }) {
 	const { locale, auth } = usePage().props;
@@ -11689,7 +11850,8 @@ function AdminProjectsIndex({ projects, stats, areas, filters }) {
 		]
 	})] });
 }
-// resources/js/Pages/Admin/SeoPages/Index.jsx
+//#endregion
+//#region resources/js/Pages/Admin/SeoPages/Index.jsx
 var Index_exports$7 = /* @__PURE__ */ __exportAll({ default: () => SeoPagesIndex });
 function SeoPagesIndex({ pages }) {
 	const { locale } = usePage().props;
@@ -11909,7 +12071,8 @@ function SeoPagesIndex({ pages }) {
 		})]
 	})] });
 }
-// resources/js/Pages/Admin/Settings/Index.jsx
+//#endregion
+//#region resources/js/Pages/Admin/Settings/Index.jsx
 var Index_exports$6 = /* @__PURE__ */ __exportAll({ default: () => AdminSettingsIndex });
 function AdminSettingsIndex({ settings }) {
 	const { locale, flash } = usePage().props;
@@ -12591,7 +12754,8 @@ function AdminSettingsIndex({ settings }) {
 		})
 	] });
 }
-// resources/js/Pages/Admin/UnitTypes/Index.jsx
+//#endregion
+//#region resources/js/Pages/Admin/UnitTypes/Index.jsx
 var Index_exports$5 = /* @__PURE__ */ __exportAll({ default: () => AdminUnitTypesIndex });
 function AdminUnitTypesIndex({ unitTypes }) {
 	const { locale, flash, errors } = usePage().props;
@@ -12833,7 +12997,8 @@ function AdminUnitTypesIndex({ unitTypes }) {
 		]
 	})] });
 }
-// resources/js/Pages/Admin/Units/Form.jsx
+//#endregion
+//#region resources/js/Pages/Admin/Units/Form.jsx
 var Form_exports = /* @__PURE__ */ __exportAll({ default: () => AdminUnitForm });
 var STEPS = [
 	{
@@ -12869,8 +13034,8 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 	const [newPreviews, setNewPreviews] = useState([]);
 	const primaryRef = useRef();
 	const moreRef = useRef();
-	const MAX_SIZE = 10485760;
-	const MAX_TOTAL = 41943040;
+	const MAX_SIZE = 10 * 1024 * 1024;
+	const MAX_TOTAL = 40 * 1024 * 1024;
 	const existingImages = unit?.images ?? [];
 	const { data, setData, post, processing } = useForm({
 		user_id: unit?.user_id || "",
@@ -14146,7 +14311,8 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 		]
 	})] });
 }
-// resources/js/Pages/Admin/Units/Index.jsx
+//#endregion
+//#region resources/js/Pages/Admin/Units/Index.jsx
 var Index_exports$4 = /* @__PURE__ */ __exportAll({ default: () => AdminUnitsIndex });
 function AdminUnitsIndex({ units, stats, areas, unitTypes, filters, autoDeleteDays = 30 }) {
 	const { locale, auth } = usePage().props;
@@ -14781,7 +14947,7 @@ function AdminUnitsIndex({ units, stats, areas, unitTypes, filters, autoDeleteDa
 															}),
 															unit.auto_delete_at && (() => {
 																const isExp = new Date(unit.auto_delete_at) <= /* @__PURE__ */ new Date();
-																const daysLeft = Math.ceil((new Date(unit.auto_delete_at) - /* @__PURE__ */ new Date()) / 864e5);
+																const daysLeft = Math.ceil((new Date(unit.auto_delete_at) - /* @__PURE__ */ new Date()) / (1e3 * 60 * 60 * 24));
 																if (isExp) return /* @__PURE__ */ jsx("span", {
 																	className: "px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-rose-50 text-rose-700 border border-rose-200",
 																	title: new Date(unit.auto_delete_at).toLocaleDateString(),
@@ -15495,7 +15661,8 @@ function AdminUnitsIndex({ units, stats, areas, unitTypes, filters, autoDeleteDa
 		]
 	})] });
 }
-// resources/js/Pages/Admin/Users/Create.jsx
+//#endregion
+//#region resources/js/Pages/Admin/Users/Create.jsx
 var Create_exports = /* @__PURE__ */ __exportAll({ default: () => AdminUsersCreate });
 function AdminUsersCreate({ managers }) {
 	const { locale } = usePage().props;
@@ -15705,7 +15872,8 @@ function AdminUsersCreate({ managers }) {
 		})]
 	})] });
 }
-// resources/js/Pages/Admin/Users/Index.jsx
+//#endregion
+//#region resources/js/Pages/Admin/Users/Index.jsx
 var Index_exports$3 = /* @__PURE__ */ __exportAll({ default: () => AdminUsersIndex });
 function AdminUsersIndex({ users, managers, filters }) {
 	const { locale, auth } = usePage().props;
@@ -17468,7 +17636,8 @@ function AdminUsersIndex({ users, managers, filters }) {
 		]
 	})] });
 }
-// resources/js/Components/OptimizedImage.jsx
+//#endregion
+//#region resources/js/Components/OptimizedImage.jsx
 function OptimizedImage({ src, alt = "", width, height, className = "", lazy = true, fallbackSrc = "/images/fallback.webp", role, srcSet, sizes = "(max-width: 640px) calc(100vw - 32px), (max-width: 1024px) 50vw, (max-width: 1536px) 33vw, 480px", ...props }) {
 	const [imgSrc, setImgSrc] = useState(src);
 	const [imgSrcSet, setImgSrcSet] = useState(srcSet);
@@ -17506,7 +17675,8 @@ function OptimizedImage({ src, alt = "", width, height, className = "", lazy = t
 		...props
 	});
 }
-// resources/js/Components/Layout/Header.jsx
+//#endregion
+//#region resources/js/Components/Layout/Header.jsx
 var NAV_ITEMS = [
 	{
 		key: "home",
@@ -17705,7 +17875,8 @@ function Header({ compareCount = 0 }) {
 		})]
 	});
 }
-// resources/js/Contexts/CompareContext.jsx
+//#endregion
+//#region resources/js/Contexts/CompareContext.jsx
 var COMPARE_KEY_PREFIX = "family_home_compare_list_";
 var MAX_COMPARE_ITEMS = 4;
 function getCompareKey(type) {
@@ -17804,7 +17975,8 @@ function useCompare(type = "unit") {
 		maxItems: ctx.maxItems
 	};
 }
-// resources/js/Components/Features/CompareBar.jsx
+//#endregion
+//#region resources/js/Components/Features/CompareBar.jsx
 function CompareBar() {
 	const { locale } = usePage().props;
 	const trans = useTrans(locale);
@@ -17877,8 +18049,9 @@ function CompareBar() {
 		})
 	});
 }
-// resources/js/Components/Layout/Footer.jsx
-var HossamChatWidget = lazy(() => import("./assets/HossamChatWidget-NyuMS7s5.js"));
+//#endregion
+//#region resources/js/Components/Layout/Footer.jsx
+var HossamChatWidget = lazy(() => import("./assets/HossamChatWidget-CrAZn3fB.js"));
 var QUICK_LINKS = [
 	{
 		key: "home",
@@ -18115,7 +18288,8 @@ function Footer() {
 		]
 	});
 }
-// resources/js/Components/UI/SeoHead.jsx
+//#endregion
+//#region resources/js/Components/UI/SeoHead.jsx
 function SeoHead({ title, description, keywords, ogImage, ogType = "website", canonical, jsonLd, hreflang, robots, geoRegion, geoPlacename, geoPosition, icbm }) {
 	const { locale, seo_page, appUrl, seo_meta, settings } = usePage().props;
 	const { url } = usePage();
@@ -18322,7 +18496,8 @@ function SeoHead({ title, description, keywords, ogImage, ogType = "website", ca
 		})
 	] });
 }
-// resources/js/Pages/Public/About.jsx
+//#endregion
+//#region resources/js/Pages/Public/About.jsx
 var About_exports = /* @__PURE__ */ __exportAll({ default: () => About });
 function About({ page }) {
 	const { locale } = usePage().props;
@@ -18390,7 +18565,8 @@ function About({ page }) {
 		]
 	});
 }
-// resources/js/Utils/contact.js
+//#endregion
+//#region resources/js/Utils/contact.js
 /**
 * Normalize a phone number for WhatsApp's international wa.me format.
 * Egyptian local mobile numbers such as 01012345678 become 201012345678.
@@ -18429,7 +18605,8 @@ function getAgentContacts(agent, settings = {}) {
 		rawPhone: finalPhone
 	};
 }
-// resources/js/Components/UI/UnitCard.jsx
+//#endregion
+//#region resources/js/Components/UI/UnitCard.jsx
 function SkeletonCard$2() {
 	return /* @__PURE__ */ jsxs("div", {
 		className: "bg-white rounded-2xl shadow-card overflow-hidden border border-secondary-100/50",
@@ -18649,7 +18826,8 @@ function UnitCard({ unit, loading = false, priority = false }) {
 	});
 }
 var UnitCard_default = memo(UnitCard);
-// resources/js/Components/UI/ProjectCard.jsx
+//#endregion
+//#region resources/js/Components/UI/ProjectCard.jsx
 function SkeletonCard$1() {
 	return /* @__PURE__ */ jsxs("div", {
 		className: "bg-white rounded-2xl shadow-card overflow-hidden border border-secondary-100 animate-pulse",
@@ -18851,7 +19029,8 @@ function ProjectCard({ project, loading = false, priority = false }) {
 	});
 }
 var ProjectCard_default = memo(ProjectCard);
-// resources/js/Pages/Public/Agents/Show.jsx
+//#endregion
+//#region resources/js/Pages/Public/Agents/Show.jsx
 var Show_exports$4 = /* @__PURE__ */ __exportAll({ default: () => Show });
 function Show({ agent, units, projects, stats = {}, availableAreas = [], filters = {}, locale }) {
 	const pageProps = usePage().props;
@@ -19352,7 +19531,8 @@ function EmptyState({ icon, title, text }) {
 		]
 	});
 }
-// resources/js/Components/UI/SearchBar.jsx
+//#endregion
+//#region resources/js/Components/UI/SearchBar.jsx
 var EMPTY_FILTERS = {
 	area_id: "",
 	type_id: "",
@@ -20095,7 +20275,8 @@ function SearchBar({ areas: rawAreas = [], unitTypes: rawUnitTypes = [], feature
 		]
 	});
 }
-// resources/js/Components/UI/IconByName.jsx
+//#endregion
+//#region resources/js/Components/UI/IconByName.jsx
 /**
 * Renders a SAFE, static SVG icon from an allowlisted icon NAME.
 *
@@ -20138,7 +20319,6 @@ var DEFAULT_NAME = "default";
 */
 function IconByName({ iconName, className = "w-6 h-6", strokeWidth = 1.8 }) {
 	const key = Array.isArray(iconName) ? iconName[0] : iconName;
-	const paths = ICON_PATHS[typeof key === "string" ? key : ""] || ICON_PATHS[DEFAULT_NAME];
 	return /* @__PURE__ */ jsx("svg", {
 		viewBox: "0 0 24 24",
 		className,
@@ -20148,10 +20328,11 @@ function IconByName({ iconName, className = "w-6 h-6", strokeWidth = 1.8 }) {
 		strokeLinecap: "round",
 		strokeLinejoin: "round",
 		"aria-hidden": "true",
-		children: paths.map((d, i) => /* @__PURE__ */ jsx("path", { d }, i))
+		children: (ICON_PATHS[typeof key === "string" ? key : ""] || ICON_PATHS[DEFAULT_NAME]).map((d, i) => /* @__PURE__ */ jsx("path", { d }, i))
 	});
 }
-// resources/js/Pages/Public/Areas/Show.jsx
+//#endregion
+//#region resources/js/Pages/Public/Areas/Show.jsx
 var Show_exports$3 = /* @__PURE__ */ __exportAll({ default: () => AreaShow });
 function AreaShow({ area, relatedAreas, units, projects, seo, areas, unitTypes, features, finishingTypes }) {
 	const { locale, appUrl } = usePage().props;
@@ -20672,7 +20853,8 @@ function AreaShow({ area, relatedAreas, units, projects, seo, areas, unitTypes, 
 		]
 	});
 }
-// resources/js/Components/UI/ArticleCard.jsx
+//#endregion
+//#region resources/js/Components/UI/ArticleCard.jsx
 var PLACEHOLDER$1 = "/images/fallback.webp";
 function SkeletonCard() {
 	return /* @__PURE__ */ jsxs("div", {
@@ -20705,9 +20887,8 @@ function ArticleCard({ article, loading = false }) {
 		month: "short",
 		day: "numeric"
 	}) : "";
-	const articleSlug = isRtl && article.slug_ar ? article.slug_ar : article.slug_en || article.slug || article.id;
 	return /* @__PURE__ */ jsxs(Link, {
-		href: localizedPath(`/articles/${articleSlug}`, locale),
+		href: localizedPath(`/articles/${isRtl && article.slug_ar ? article.slug_ar : article.slug_en || article.slug || article.id}`, locale),
 		className: "group bg-white rounded-2xl border border-secondary-200/80 shadow-card hover:shadow-lg hover:-translate-y-1 transition-[transform,box-shadow] duration-300 flex flex-col h-full overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary-500",
 		children: [/* @__PURE__ */ jsxs("div", {
 			className: "relative aspect-[16/10] w-full overflow-hidden bg-secondary-100",
@@ -20761,7 +20942,8 @@ function ArticleCard({ article, loading = false }) {
 	});
 }
 var ArticleCard_default = memo(ArticleCard);
-// resources/js/Pages/Public/Articles/Index.jsx
+//#endregion
+//#region resources/js/Pages/Public/Articles/Index.jsx
 var Index_exports$2 = /* @__PURE__ */ __exportAll({ default: () => ArticlesIndex });
 function ArticlesIndex({ articles, categories, currentCategory }) {
 	const { locale } = usePage().props;
@@ -20863,7 +21045,8 @@ function ArticlesIndex({ articles, categories, currentCategory }) {
 		]
 	});
 }
-// resources/js/Pages/Public/Articles/Show.jsx
+//#endregion
+//#region resources/js/Pages/Public/Articles/Show.jsx
 /**
 * THESIS: The Article Display page is a pure, distraction-free editorial view.
 *         All non-essential marketing popups and sidebar widgets are removed to focus 100% on reading comfort.
@@ -21306,9 +21489,8 @@ function ArticleShow({ article, relatedArticles, suggestedUnits }) {
 										children: suggestedUnits.map((unit) => {
 											const unitImg = unit?.images?.find((img) => img.is_primary) || unit?.images?.[0];
 											const unitImgUrl = unitImg?.url || (unitImg?.path ? unitImg.path.startsWith("http") || unitImg.path.startsWith("/") ? unitImg.path : `/storage/${unitImg.path}` : null);
-											const unitSlug = isRtl && unit.slug_ar ? unit.slug_ar : unit.slug_en || unit.slug || unit.id;
 											return /* @__PURE__ */ jsx("li", { children: /* @__PURE__ */ jsxs(Link, {
-												href: localizedPath(`/units/${unitSlug}`, locale),
+												href: localizedPath(`/units/${isRtl && unit.slug_ar ? unit.slug_ar : unit.slug_en || unit.slug || unit.id}`, locale),
 												className: "group flex gap-3 items-center",
 												children: [unitImgUrl && /* @__PURE__ */ jsx("div", {
 													className: "shrink-0 w-16 h-16 rounded-xl overflow-hidden bg-secondary-100 border border-secondary-200/50 shadow-xs",
@@ -21367,9 +21549,8 @@ function ArticleShow({ article, relatedArticles, suggestedUnits }) {
 										children: relatedArticles.slice(0, 4).map((related) => {
 											const relatedImg = related?.images?.find((img) => img.position === "header") || related?.images?.[0];
 											const relatedImgUrl = relatedImg?.url || (relatedImg?.path ? relatedImg.path.startsWith("http") || relatedImg.path.startsWith("/") ? relatedImg.path : `/storage/${relatedImg.path}` : null);
-											const relatedSlug = isRtl && related.slug_ar ? related.slug_ar : related.slug_en || related.slug || related.id;
 											return /* @__PURE__ */ jsx("li", { children: /* @__PURE__ */ jsxs(Link, {
-												href: localizedPath(`/articles/${relatedSlug}`, locale),
+												href: localizedPath(`/articles/${isRtl && related.slug_ar ? related.slug_ar : related.slug_en || related.slug || related.id}`, locale),
 												className: "group flex gap-3 items-center",
 												children: [relatedImgUrl && /* @__PURE__ */ jsx("div", {
 													className: "shrink-0 w-16 h-16 rounded-xl overflow-hidden bg-secondary-100 border border-secondary-200/50 shadow-xs",
@@ -21441,7 +21622,8 @@ function ArticleShow({ article, relatedArticles, suggestedUnits }) {
 		]
 	});
 }
-// resources/js/Components/Features/CompareSearch.jsx
+//#endregion
+//#region resources/js/Components/Features/CompareSearch.jsx
 function CompareSearch({ type, currentIds }) {
 	const { locale } = usePage().props;
 	const trans = useTrans(locale);
@@ -21556,7 +21738,8 @@ function CompareSearch({ type, currentIds }) {
 		]
 	});
 }
-// resources/js/Pages/Public/Comparison.jsx
+//#endregion
+//#region resources/js/Pages/Public/Comparison.jsx
 var Comparison_exports = /* @__PURE__ */ __exportAll({ default: () => Comparison });
 var PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 400 300\"%3E%3Crect fill=\"%23F0F0F0\" width=\"400\" height=\"300\"/%3E%3C/svg%3E";
 function getItemImage(item) {
@@ -22123,7 +22306,8 @@ function Comparison({ items, type, max_items }) {
 		]
 	});
 }
-// resources/js/Pages/Public/Contact.jsx
+//#endregion
+//#region resources/js/Pages/Public/Contact.jsx
 var Contact_exports = /* @__PURE__ */ __exportAll({ default: () => Contact });
 function Contact() {
 	const { locale, flash } = usePage().props;
@@ -22386,7 +22570,8 @@ function Contact() {
 		]
 	});
 }
-// resources/js/Pages/Public/Home.jsx
+//#endregion
+//#region resources/js/Pages/Public/Home.jsx
 var Home_exports = /* @__PURE__ */ __exportAll({ default: () => Home });
 var HERO_BG = "/images/hero.webp";
 var HERO_BG_MOBILE = "/images/hero-mobile.webp";
@@ -22704,7 +22889,8 @@ function Home({ featuredUnits, latestUnits, latestProjects, popularSearches, are
 		]
 	});
 }
-// resources/js/Pages/Public/Projects/Index.jsx
+//#endregion
+//#region resources/js/Pages/Public/Projects/Index.jsx
 var Index_exports$1 = /* @__PURE__ */ __exportAll({ default: () => ProjectsIndex });
 function ProjectsIndex({ projects, filters, areas, features, finishingTypes, seo_meta }) {
 	const { locale } = usePage().props;
@@ -23016,7 +23202,8 @@ function ProjectsIndex({ projects, filters, areas, features, finishingTypes, seo
 		]
 	});
 }
-// resources/js/Components/UI/PaymentTerms.jsx
+//#endregion
+//#region resources/js/Components/UI/PaymentTerms.jsx
 function PaymentTerms({ item }) {
 	const { locale } = usePage().props;
 	const trans = useTrans(locale);
@@ -23050,7 +23237,8 @@ function PaymentTerms({ item }) {
 		})]
 	});
 }
-// resources/js/Components/UI/VideoPlayer.jsx
+//#endregion
+//#region resources/js/Components/UI/VideoPlayer.jsx
 function VideoPlayer({ embedUrl, title = "Video Tour", className = "" }) {
 	const [isPlaying, setIsPlaying] = useState(false);
 	if (!embedUrl) return null;
@@ -23092,7 +23280,8 @@ function VideoPlayer({ embedUrl, title = "Video Tour", className = "" }) {
 		})
 	});
 }
-// resources/js/Utils/youtube.js
+//#endregion
+//#region resources/js/Utils/youtube.js
 function getYouTubeEmbedUrl(url) {
 	if (!url || typeof url !== "string") return null;
 	const trimmed = url.trim();
@@ -23107,7 +23296,8 @@ function getYouTubeEmbedUrl(url) {
 	}
 	return null;
 }
-// resources/js/Utils/location.js
+//#endregion
+//#region resources/js/Utils/location.js
 /**
 * Validates whether an entity has valid, non-zero geographic coordinates.
 * 
@@ -23120,7 +23310,8 @@ function hasValidCoords(item) {
 	const lng = parseFloat(item.longitude);
 	return Boolean(item.latitude && item.longitude && lat !== 0 && lng !== 0 && isFinite(lat) && isFinite(lng));
 }
-// resources/js/Pages/Public/Projects/Show.jsx
+//#endregion
+//#region resources/js/Pages/Public/Projects/Show.jsx
 var Show_exports$1 = /* @__PURE__ */ __exportAll({ default: () => ProjectShow });
 function ProjectShow({ project, projectUnits, similarProjects, relatedArticles, seo_meta }) {
 	const page = usePage();
@@ -24092,7 +24283,8 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles, 
 		]
 	});
 }
-// resources/js/Pages/Public/Units/Deals.jsx
+//#endregion
+//#region resources/js/Pages/Public/Units/Deals.jsx
 var Deals_exports = /* @__PURE__ */ __exportAll({ default: () => UnitsDeals });
 function UnitsDeals({ units, filters, areas, unitTypes, features, finishingTypes, seo_meta }) {
 	const { locale } = usePage().props;
@@ -24198,7 +24390,8 @@ function UnitsDeals({ units, filters, areas, unitTypes, features, finishingTypes
 		]
 	});
 }
-// resources/js/Pages/Public/Units/Index.jsx
+//#endregion
+//#region resources/js/Pages/Public/Units/Index.jsx
 var Index_exports = /* @__PURE__ */ __exportAll({ default: () => UnitsIndex });
 function UnitsIndex({ units, filters, areas, unitTypes, features, finishingTypes, seo_meta }) {
 	const { locale } = usePage().props;
@@ -24304,7 +24497,8 @@ function UnitsIndex({ units, filters, areas, unitTypes, features, finishingTypes
 		]
 	});
 }
-// resources/js/Pages/Public/Units/Show.jsx
+//#endregion
+//#region resources/js/Pages/Public/Units/Show.jsx
 var Show_exports = /* @__PURE__ */ __exportAll({ default: () => UnitShow });
 function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles, seo_meta }) {
 	const page = usePage();
@@ -25705,7 +25899,8 @@ function UnitContactForm({ idPrefix, isRtl, sentSuccess, flash, trans, data, set
 		]
 	});
 }
-// resources/js/Components/Layout/AuthLayout.jsx
+//#endregion
+//#region resources/js/Components/Layout/AuthLayout.jsx
 function AuthLayout({ children, title, subtitle }) {
 	const { locale, settings } = usePage().props;
 	const trans = useTrans(locale);
@@ -25800,7 +25995,8 @@ function AuthLayout({ children, title, subtitle }) {
 		]
 	});
 }
-// resources/js/Pages/Shared/ForgotPassword.jsx
+//#endregion
+//#region resources/js/Pages/Shared/ForgotPassword.jsx
 var ForgotPassword_exports = /* @__PURE__ */ __exportAll({ default: () => ForgotPassword });
 function ForgotPassword() {
 	const { locale, flash, status: pageStatus } = usePage().props;
@@ -25912,7 +26108,8 @@ function ForgotPassword() {
 		]
 	});
 }
-// resources/js/Pages/Shared/Login.jsx
+//#endregion
+//#region resources/js/Pages/Shared/Login.jsx
 var Login_exports = /* @__PURE__ */ __exportAll({ default: () => Login });
 function Login() {
 	const { locale } = usePage().props;
@@ -26104,7 +26301,8 @@ function Login() {
 		})
 	});
 }
-// resources/js/Pages/Shared/Profile.jsx
+//#endregion
+//#region resources/js/Pages/Shared/Profile.jsx
 var Profile_exports = /* @__PURE__ */ __exportAll({ default: () => Profile });
 function Profile() {
 	const { locale, auth } = usePage().props;
@@ -26278,7 +26476,8 @@ function Profile() {
 		})
 	});
 }
-// resources/js/Pages/Shared/ResetPassword.jsx
+//#endregion
+//#region resources/js/Pages/Shared/ResetPassword.jsx
 var ResetPassword_exports = /* @__PURE__ */ __exportAll({ default: () => ResetPassword });
 function ResetPassword({ token, email, secondsRemaining = 60, error: propError }) {
 	const { locale, flash, status: pageStatus } = usePage().props;
@@ -26563,7 +26762,8 @@ function ResetPassword({ token, email, secondsRemaining = 60, error: propError }
 		]
 	});
 }
-// resources/js/Pages/Shared/VerifyOtp.jsx
+//#endregion
+//#region resources/js/Pages/Shared/VerifyOtp.jsx
 var VerifyOtp_exports = /* @__PURE__ */ __exportAll({ default: () => VerifyOtp });
 function VerifyOtp() {
 	const { locale, flash, status: pageStatus, email: propEmail } = usePage().props;
@@ -26686,7 +26886,8 @@ function VerifyOtp() {
 		]
 	});
 }
-// resources/js/Pages/Shared/Welcome.jsx
+//#endregion
+//#region resources/js/Pages/Shared/Welcome.jsx
 var Welcome_exports = /* @__PURE__ */ __exportAll({ default: () => Welcome });
 function Welcome({ auth, laravelVersion, phpVersion }) {
 	const { locale } = usePage().props;
@@ -26725,7 +26926,8 @@ function Welcome({ auth, laravelVersion, phpVersion }) {
 		})
 	})] });
 }
-// resources/js/ssr.jsx
+//#endregion
+//#region resources/js/ssr.jsx
 async function renderPage(page) {
 	await loadLocale(page.props?.locale);
 	return createInertiaApp({
@@ -26831,4 +27033,5 @@ http.createServer(async (req, res) => {
 }).listen(PORT, "127.0.0.1", () => {
 	if (process.env.NODE_ENV !== "production") console.log(`Custom SSR server listening on port ${PORT}...`);
 });
+//#endregion
 export { useTrans as t };

@@ -1,6 +1,7 @@
 import { usePage, router, Head, Link } from '@inertiajs/react'
 import { useTrans } from '../../../Utils/trans'
 import { localizedPath } from '../../../Utils/route'
+import { notificationActions } from '../../../Utils/notificationActions'
 import { useState, useEffect, useMemo } from 'react'
 import AdminSidebar from '../../../Components/Layout/AdminSidebar'
 
@@ -10,6 +11,7 @@ const TYPE_META = {
     unit_extended: { icon: 'clock', gradient: 'from-emerald-500 to-teal-500', bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-800', label: { ar: 'تم تمديد مدة الوحدة', en: 'Unit Extended' } },
     unit_permanently_deleted: { icon: 'trash', gradient: 'from-rose-600 to-red-700', bg: 'bg-rose-50', border: 'border-rose-200', text: 'text-rose-800', label: { ar: 'حذف نهائي لوحدة', en: 'Unit Permanently Deleted' } },
     project_expiry_warning: { icon: 'clock', gradient: 'from-amber-500 to-orange-500', bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-800', label: { ar: 'تنبيه انتهاء مشروع', en: 'Project Expiry Warning' } },
+    project_pending_approval: { icon: 'clock', gradient: 'from-amber-500 to-orange-500', bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-800', label: { ar: 'مشروع بانتظار الموافقة', en: 'Project Pending Approval' } },
     project_permanently_deleted: { icon: 'trash', gradient: 'from-rose-600 to-red-700', bg: 'bg-rose-50', border: 'border-rose-200', text: 'text-rose-800', label: { ar: 'حذف نهائي لمشروع', en: 'Project Permanently Deleted' } },
     new_project_created: { icon: 'plus', gradient: 'from-emerald-500 to-green-500', bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-800', label: { ar: 'مشروع جديد', en: 'New Project' } },
     new_message: { icon: 'message', gradient: 'from-blue-500 to-indigo-500', bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-800', label: { ar: 'رسالة جديدة', en: 'New Message' } },
@@ -111,12 +113,11 @@ export default function NotificationsIndex({ notifications, unreadCount, autoDel
     }
 
     function handleDeleteOne(id) {
-        router.delete(`/admin/notifications/${id}`, {}, { preserveScroll: true })
+        router.delete(`/admin/notifications/${id}`, { preserveScroll: true })
     }
 
     function handleDeleteAll() {
-        // حذف جميع الإشعارات - لا نحتاج preserveState هنا لأن الصفحة ستتحدث بالكامل
-        router.delete('/admin/notifications/all/clear', {}, { preserveScroll: true })
+        router.delete('/admin/notifications/all/clear', { preserveScroll: true })
         setConfirmClearAll(false)
     }
 
@@ -166,7 +167,7 @@ export default function NotificationsIndex({ notifications, unreadCount, autoDel
     }
 
     function handleDeleteUnit(unitId) {
-        router.delete(`/admin/units/${unitId}/force`, {}, { preserveScroll: true })
+        router.delete(`/admin/units/${unitId}/force`, { preserveScroll: true })
         setConfirmDeleteId(null)
     }
 
@@ -312,13 +313,38 @@ export default function NotificationsIndex({ notifications, unreadCount, autoDel
                                     {group.items.map(item => {
                                         const meta = getMeta(item.type)
                                         const isUnread = !item.read_at
-                                        const isUnitExpiry = item.type === 'unit_expiry_warning'
-                                        const isUnitExpired = item.type === 'unit_expired'
-                                        const isProjectExpiry = item.type === 'project_expiry_warning'
                                         const isNewMessage = item.type === 'new_message'
-                                        const isNewProject = item.type === 'new_project_created'
-                                        const isUnitPendingApproval = item.type === 'unit_pending_approval'
                                         const isAssistantLead = item.type === 'new_assistant_lead' || Boolean(item.lead_id)
+                                        const title = isRtl ? (item.title || meta.label.ar) : (item.title_en || item.title || meta.label.en)
+                                        const body = isRtl ? (item.message || '') : (item.message_en || item.message || '')
+
+                                        // --- type helpers ---
+                                        const isNewProject      = item.type === 'new_project_created' || item.type === 'project_pending_approval'
+                                        const isUnitPendingApproval = item.type === 'unit_pending_approval'
+                                        const isUnitExpiry      = item.type === 'unit_expiry_warning'
+                                        const isUnitExpired     = item.type === 'unit_expired'
+                                        const isProjectExpiry   = item.type === 'project_expiry_warning'
+
+                                        // --- action-done flags (independent of read status) ---
+                                        const unitActive        = item.unit_is_active === true || item.unit_is_active === 1
+                                        const projectActive     = item.project_is_active === true || item.project_is_active === 1
+                                        const unitExists        = Boolean(item.unit_id) && item.unit_exists !== false
+                                        const projectExists     = Boolean(item.project_id) && item.project_exists !== false
+                                        const isDeleted         = item.type === 'unit_permanently_deleted' || item.type === 'project_permanently_deleted'
+                                        const isUnitScoped      = [
+                                            'unit_expiry_warning',
+                                            'unit_expired',
+                                            'unit_pending_approval',
+                                            'unit_approved',
+                                            'unit_extended',
+                                            'unit_permanently_deleted',
+                                            'new_message',
+                                        ].includes(item.type)
+
+                                        const approveUnitDone   = isUnitPendingApproval  && unitActive
+                                        const approveProjDone   = isNewProject            && projectActive
+                                        const extendUnitDone    = (isUnitExpiry || isUnitExpired) && (item.is_extended === true || item.extended === true)
+                                        const extendProjDone    = isProjectExpiry         && (item.is_extended === true || item.extended === true)
 
                                         return (
                                             <div
@@ -358,7 +384,7 @@ export default function NotificationsIndex({ notifications, unreadCount, autoDel
                                                             <div className="flex items-start justify-between gap-2 mb-1">
                                                                 <div className="flex items-center flex-wrap gap-2">
                                                                     <h3 className={`text-sm ${isUnread ? 'font-bold text-secondary-950' : 'font-semibold text-secondary-800'}`}>
-                                                                        {isRtl ? item.title || meta.label.ar : item.title_en || meta.label.en}
+                                                                        {title}
                                                                     </h3>
                                                                     {isUnread && (
                                                                         <span className="bg-primary-900/10 text-primary-900 text-[10px] font-bold px-1.5 py-0.5 rounded-md">
@@ -379,7 +405,7 @@ export default function NotificationsIndex({ notifications, unreadCount, autoDel
 
                                                             {/* Message */}
                                                             <p className="text-xs text-secondary-600 leading-relaxed mb-3">
-                                                                {item.message}
+                                                                {body}
                                                             </p>
 
                                                             {/* Details Panel */}
@@ -481,26 +507,51 @@ export default function NotificationsIndex({ notifications, unreadCount, autoDel
                                                                     </button>
                                                                 )}
 
-                                                                {isUnread && isNewProject && item.project_id && isAdmin && (
-                                                                    <button
-                                                                        onClick={() => handleApproveProject(item.project_id)}
-                                                                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition-colors"
-                                                                    >
-                                                                        {isRtl ? 'موافقة ونشر' : 'Approve & publish'}
-                                                                    </button>
+                                                                {isNewProject && item.project_id && isAdmin && (
+                                                                    approveProjDone ? (
+                                                                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg">
+                                                                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                                            </svg>
+                                                                            {isRtl ? 'تمت الموافقة' : 'Approved'}
+                                                                        </span>
+                                                                    ) : (
+                                                                        <button
+                                                                            onClick={() => handleApproveProject(item.project_id)}
+                                                                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition-colors"
+                                                                        >
+                                                                            {isRtl ? 'موافقة ونشر' : 'Approve & publish'}
+                                                                        </button>
+                                                                    )
                                                                 )}
 
-                                                                {isUnread && isUnitPendingApproval && item.unit_id && (isAdmin || isManager) && (
-                                                                    <button
-                                                                        onClick={() => handleApproveUnit(item.unit_id)}
-                                                                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition-colors"
-                                                                    >
-                                                                        {isRtl ? 'موافقة ونشر' : 'Approve & publish'}
-                                                                    </button>
+                                                                {isUnitPendingApproval && item.unit_id && (isAdmin || isManager) && (
+                                                                    approveUnitDone ? (
+                                                                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg">
+                                                                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                                            </svg>
+                                                                            {isRtl ? 'تمت الموافقة' : 'Approved'}
+                                                                        </span>
+                                                                    ) : (
+                                                                        <button
+                                                                            onClick={() => handleApproveUnit(item.unit_id)}
+                                                                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition-colors"
+                                                                        >
+                                                                            {isRtl ? 'موافقة ونشر' : 'Approve & publish'}
+                                                                        </button>
+                                                                    )
                                                                 )}
 
                                                                 {(isUnitExpiry || isUnitExpired) && item.unit_id && (isAdmin || isManager) && (
-                                                                    isUnread ? (
+                                                                    extendUnitDone ? (
+                                                                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg">
+                                                                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                                            </svg>
+                                                                            {isRtl ? 'تمت المعالجة / التمديد' : 'Resolved / Extended'}
+                                                                        </span>
+                                                                    ) : (
                                                                         <button
                                                                             onClick={() => openExtendModal(item.unit_id, item.unit_name || item.title)}
                                                                             className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1 shadow-xs"
@@ -510,18 +561,18 @@ export default function NotificationsIndex({ notifications, unreadCount, autoDel
                                                                             </svg>
                                                                             {trans('extend')}
                                                                         </button>
-                                                                    ) : (
-                                                                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg">
-                                                                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                                                            </svg>
-                                                                            {isRtl ? 'تمت المعالجة / التمديد' : 'Resolved / Extended'}
-                                                                        </span>
                                                                     )
                                                                 )}
 
                                                                 {isProjectExpiry && item.project_id && isAdmin && (
-                                                                    isUnread ? (
+                                                                    extendProjDone ? (
+                                                                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg">
+                                                                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                                            </svg>
+                                                                            {isRtl ? 'تم التمديد' : 'Extended'}
+                                                                        </span>
+                                                                    ) : (
                                                                         <button
                                                                             onClick={() => handleExtendProject(item.project_id)}
                                                                             className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1 shadow-xs"
@@ -531,13 +582,6 @@ export default function NotificationsIndex({ notifications, unreadCount, autoDel
                                                                             </svg>
                                                                             {trans('extend')}
                                                                         </button>
-                                                                    ) : (
-                                                                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg">
-                                                                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                                                            </svg>
-                                                                            {isRtl ? 'تم التمديد' : 'Extended'}
-                                                                        </span>
                                                                     )
                                                                 )}
 
@@ -595,7 +639,7 @@ export default function NotificationsIndex({ notifications, unreadCount, autoDel
                                                                     </Link>
                                                                 )}
 
-                                                                {item.unit_id && (
+                                                                {unitExists && !isDeleted && (
                                                                     <Link
                                                                         href={`/admin/units/${item.unit_id}/edit`}
                                                                         className="px-3 py-1.5 bg-secondary-800 hover:bg-secondary-900 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1"
@@ -607,7 +651,7 @@ export default function NotificationsIndex({ notifications, unreadCount, autoDel
                                                                     </Link>
                                                                 )}
 
-                                                                {item.project_id && (
+                                                                {projectExists && !isUnitScoped && !isDeleted && (
                                                                     <Link
                                                                         href={`/admin/projects/${item.project_id}/edit`}
                                                                         className="px-3 py-1.5 bg-secondary-800 hover:bg-secondary-900 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1"
@@ -619,7 +663,7 @@ export default function NotificationsIndex({ notifications, unreadCount, autoDel
                                                                     </Link>
                                                                 )}
 
-                                                                {item.unit_slug && (
+                                                                {unitExists && unitActive && item.unit_slug && (
                                                                     <Link
                                                                         href={localizedPath(`/units/${item.unit_slug}`, locale)}
                                                                         target="_blank"
@@ -632,7 +676,7 @@ export default function NotificationsIndex({ notifications, unreadCount, autoDel
                                                                     </Link>
                                                                 )}
 
-                                                                {item.project_slug && (
+                                                                {projectExists && projectActive && item.project_slug && !isUnitScoped && (
                                                                     <Link
                                                                         href={localizedPath(`/projects/${item.project_slug}`, locale)}
                                                                         target="_blank"

@@ -23,11 +23,10 @@ class ApprovePendingProjectAction
 
         $this->clearListingCache();
 
-        $this->notificationService->markEntityNotificationsAsRead(
-            $admin,
+        $this->notificationService->markEntityNotificationsAsReadForAll(
             'project_id',
             $project->id,
-            'new_project_created',
+            ['new_project_created', 'project_pending_approval'],
         );
     }
 

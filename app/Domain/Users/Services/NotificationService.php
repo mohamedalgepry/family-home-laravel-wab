@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Cache;
 
 class NotificationService
 {
+    public function __construct(private readonly NotificationActionResolver $actionResolver) {}
+
     public function paginated(User $user): LengthAwarePaginator
     {
         $page = (int) request('page', 1);
@@ -18,10 +20,13 @@ class NotificationService
             "notifications_page_{$page}",
             60,
             function () use ($user) {
-                return $user->notifications()
+                $paginator = $user->notifications()
                     ->paginate(20)
-                    ->withQueryString()
-                    ->through(fn (DatabaseNotification $notification) => $this->present($notification));
+                    ->withQueryString();
+
+                $paginator->setCollection($this->presentMany($paginator->getCollection(), $user));
+
+                return $paginator;
             }
         );
     }
@@ -33,13 +38,13 @@ class NotificationService
             "recent_notifications_{$limit}",
             30,
             function () use ($user, $limit) {
-                return $user->notifications()
+                $notifications = $user->notifications()
                     ->orderByDesc('created_at')
                     ->orderByDesc('id')
                     ->take($limit)
-                    ->get()
-                    ->map(fn (DatabaseNotification $n) => $this->present($n))
-                    ->toArray();
+                    ->get();
+
+                return $this->presentMany($notifications, $user)->values()->all();
             }
         );
     }
@@ -54,69 +59,143 @@ class NotificationService
         );
     }
 
-    public function present(DatabaseNotification $notification): array
+    public function present(DatabaseNotification $notification, ?User $viewer = null): array
     {
-        $data = $notification->data;
-        $data['id'] = $notification->id;
-        $data['read_at'] = $notification->read_at?->toIso8601String();
-        $data['created_at_human'] = $notification->created_at->diffForHumans();
+        $viewer ??= $notification->notifiable;
 
-        // Enrich with unit primary image and agent name when unit_id exists
-        if (! empty($data['unit_id'])) {
-            $this->enrichWithUnitData($data);
+        if (! $viewer instanceof User) {
+            $data = $notification->data;
+            $data['id'] = $notification->id;
+            $data['read_at'] = $notification->read_at?->toIso8601String();
+            $data['created_at'] = $notification->created_at?->toIso8601String();
+            $data['created_at_human'] = $notification->created_at?->diffForHumans();
+            $data['actions'] = [];
+            $data['primary_url'] = '/admin/notifications';
+
+            return $data;
         }
 
-        return $data;
+        return $this->presentMany(collect([$notification]), $viewer)->first();
     }
 
     /**
-     * Enrich notification data with unit's primary image and uploader (agent) name.
+     * @param  \Illuminate\Support\Collection<int, DatabaseNotification>  $notifications
+     * @return \Illuminate\Support\Collection<int, array<string, mixed>>
      */
-    private function enrichWithUnitData(array &$data): void
+    public function presentMany($notifications, User $viewer)
     {
-        $unitId = $data['unit_id'];
+        $unitIds = [];
+        $projectIds = [];
 
-        // Get primary image thumb URL (cached per unit to avoid repeated queries)
-        if (! isset($data['unit_image'])) {
-            $data['unit_image'] = Cache::remember(
-                "unit_{$unitId}_primary_thumb",
-                300,
-                function () use ($unitId) {
-                    $image = \App\Domain\Listings\Models\UnitImage::where('unit_id', $unitId)
-                        ->where('is_primary', true)
-                        ->first();
-
-                    if (! $image) {
-                        // Fallback to first image
-                        $image = \App\Domain\Listings\Models\UnitImage::where('unit_id', $unitId)
-                            ->orderBy('sort_order')
-                            ->first();
-                    }
-
-                    return $image?->thumb_url;
-                }
-            );
+        foreach ($notifications as $notification) {
+            $data = $notification->data;
+            if (! empty($data['unit_id'])) {
+                $unitIds[] = (int) $data['unit_id'];
+            }
+            if (! empty($data['project_id'])) {
+                $projectIds[] = (int) $data['project_id'];
+            }
         }
 
-        // Get agent (uploader) name
-        if (! isset($data['agent_name'])) {
-            $data['agent_name'] = Cache::remember(
-                "unit_{$unitId}_agent_name",
-                300,
-                function () use ($unitId) {
-                    $unit = \App\Domain\Listings\Models\Unit::select('user_id')
-                        ->where('id', $unitId)
-                        ->first();
+        $units = $unitIds === []
+            ? collect()
+            : \App\Domain\Listings\Models\Unit::query()
+                ->with([
+                    'user:id,name',
+                    'images' => fn ($query) => $query
+                        ->select(['id', 'unit_id', 'path', 'is_primary', 'sort_order'])
+                        ->orderByDesc('is_primary')
+                        ->orderBy('sort_order'),
+                ])
+                ->whereIn('id', array_unique($unitIds))
+                ->get()
+                ->keyBy('id');
 
-                    if ($unit?->user_id) {
-                        return \App\Domain\Users\Models\User::where('id', $unit->user_id)
-                            ->value('name');
-                    }
+        $projects = $projectIds === []
+            ? collect()
+            : \App\Domain\Listings\Models\Project::query()
+                ->whereIn('id', array_unique($projectIds))
+                ->get(['id', 'user_id', 'is_active', 'slug', 'auto_delete_at'])
+                ->keyBy('id');
 
-                    return null;
+        return $notifications->map(function (DatabaseNotification $notification) use ($viewer, $units, $projects) {
+            $data = $notification->data;
+            $data['id'] = $notification->id;
+            $data['read_at'] = $notification->read_at?->toIso8601String();
+            $data['created_at'] = $notification->created_at?->toIso8601String();
+            $data['created_at_human'] = $notification->created_at?->diffForHumans();
+
+            $unit = ! empty($data['unit_id']) ? $units->get((int) $data['unit_id']) : null;
+            $project = ! empty($data['project_id']) ? $projects->get((int) $data['project_id']) : null;
+
+            if (! empty($data['unit_id'])) {
+                $data['unit_exists'] = $unit !== null;
+                $data['unit_is_active'] = $unit ? (bool) $unit->is_active : false;
+                if ($unit && empty($data['unit_slug'])) {
+                    $data['unit_slug'] = $unit->slug;
                 }
-            );
-        }
+                if ($unit && empty($data['unit_image'])) {
+                    $data['unit_image'] = $unit->images->first()?->thumb_url;
+                }
+                if ($unit && empty($data['agent_name'])) {
+                    $data['agent_name'] = $unit->user?->name;
+                }
+            }
+
+            if (! empty($data['project_id'])) {
+                $data['project_exists'] = $project !== null;
+                $data['project_is_active'] = $project ? (bool) $project->is_active : false;
+                if ($project && empty($data['project_slug'])) {
+                    $data['project_slug'] = $project->slug;
+                }
+            }
+
+            $isUnitExtended = false;
+            if ($unit && $unit->auto_delete_at && ! empty($data['expires_at'])) {
+                try {
+                    $origExpires = \Carbon\Carbon::parse($data['expires_at']);
+                    $isUnitExtended = $unit->auto_delete_at->isAfter($origExpires->addMinutes(5));
+                } catch (\Throwable) {}
+            }
+
+            $isProjectExtended = false;
+            if ($project && $project->auto_delete_at && ! empty($data['expires_at'])) {
+                try {
+                    $origExpires = \Carbon\Carbon::parse($data['expires_at']);
+                    $isProjectExtended = $project->auto_delete_at->isAfter($origExpires->addMinutes(5));
+                } catch (\Throwable) {}
+            }
+
+            $data['is_extended'] = $isUnitExtended || $isProjectExtended;
+
+            $resolved = $this->actionResolver->resolve([
+                'type' => $data['type'] ?? '',
+                'unit_id' => $data['unit_id'] ?? null,
+                'unit_exists' => $unit !== null,
+                'unit_is_active' => $unit ? (bool) $unit->is_active : false,
+                'unit_slug' => $data['unit_slug'] ?? null,
+                'project_id' => $data['project_id'] ?? null,
+                'project_exists' => $project !== null,
+                'project_is_active' => $project ? (bool) $project->is_active : false,
+                'project_slug' => $data['project_slug'] ?? null,
+                'lead_id' => $data['lead_id'] ?? null,
+                'message_id' => $data['message_id'] ?? null,
+                'action_url' => $data['action_url'] ?? null,
+                'is_extended' => $data['is_extended'],
+                'can_approve_unit' => $unit && $viewer->can('toggleActive', $unit),
+                'can_extend_unit' => $unit && $viewer->can('extendExpiry', $unit),
+                'can_delete_unit' => $unit && $viewer->can('delete', $unit),
+                'can_edit_unit' => $unit && $viewer->can('update', $unit),
+                'can_approve_project' => $project && $viewer->isAdmin(),
+                'can_extend_project' => $project && $viewer->isAdmin(),
+                'can_edit_project' => $project && $viewer->can('update', $project),
+            ]);
+
+            $data['actions'] = $resolved['actions'];
+            $data['primary_url'] = $resolved['primary_url'];
+
+            return $data;
+        })->values();
     }
 
     public function markAsRead(User $user, string $notificationId): bool
@@ -184,6 +263,28 @@ class NotificationService
         $query->update(['read_at' => now()]);
 
         $this->clearUserCache($user);
+    }
+
+    /**
+     * يعلّم إشعار الكيان كمقروء عند كل المستلمين، لأن الموافقة أو التمديد يخص الحالة نفسها.
+     *
+     * @param  list<string>  $dataTypes
+     */
+    public function markEntityNotificationsAsReadForAll(string $entityColumn, int $entityId, array $dataTypes = []): void
+    {
+        $matching = DatabaseNotification::query()->where("data->{$entityColumn}", $entityId);
+
+        if ($dataTypes !== []) {
+            $matching->whereIn('data->type', $dataTypes);
+        }
+
+        $userIds = (clone $matching)->distinct()->pluck('notifiable_id');
+
+        (clone $matching)->whereNull('read_at')->update(['read_at' => now()]);
+
+        foreach ($userIds as $userId) {
+            $this->clearCacheForUserId((int) $userId);
+        }
     }
 
     /**

@@ -26,11 +26,10 @@ class ApprovePendingUnitAction
         if ($unit->is_active) {
             // Already published: acknowledge the stale pending-approval notification
             // without toggling the active state off or deleting the card.
-            $this->notificationService->markEntityNotificationsAsRead(
-                $admin,
+            $this->notificationService->markEntityNotificationsAsReadForAll(
                 'unit_id',
                 $unit->id,
-                'unit_pending_approval',
+                ['unit_pending_approval'],
             );
 
             return false;
@@ -38,11 +37,10 @@ class ApprovePendingUnitAction
 
         $this->unitService->toggleActive($unit->id, $admin);
 
-        $this->notificationService->markEntityNotificationsAsRead(
-            $admin,
+        $this->notificationService->markEntityNotificationsAsReadForAll(
             'unit_id',
             $unit->id,
-            'unit_pending_approval',
+            ['unit_pending_approval'],
         );
 
         return true;

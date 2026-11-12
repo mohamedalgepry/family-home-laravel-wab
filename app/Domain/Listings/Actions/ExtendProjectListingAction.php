@@ -4,6 +4,7 @@ namespace App\Domain\Listings\Actions;
 
 use App\Domain\Listings\Models\Project;
 use App\Domain\Listings\Models\Setting;
+use App\Domain\Listings\Notifications\ProjectExpiryWarningNotification;
 use App\Domain\Listings\Services\ListingService;
 use App\Domain\Users\Models\User;
 use App\Domain\Users\Services\NotificationService;
@@ -32,7 +33,11 @@ class ExtendProjectListingAction
 
         $this->clearListingCache();
 
-        $this->notificationService->markEntityNotificationsAsRead($admin, 'project_id', $project->id);
+        $this->notificationService->markEntityNotificationsAsReadForAll(
+            'project_id',
+            $project->id,
+            ['project_expiry_warning'],
+        );
 
         return $days;
     }

@@ -1,6 +1,7 @@
 import { usePage, Link, router, Head } from '@inertiajs/react'
 import { useTrans } from '../../Utils/trans'
 import { localizedPath } from '../../Utils/route'
+import { notificationPrimaryUrl } from '../../Utils/notificationActions'
 import { useState, useEffect, useRef } from 'react'
 import { safeStorage } from '../../Utils/storage'
 import { ConfirmationModal } from '../UI'
@@ -227,22 +228,34 @@ export default function AdminSidebar({ children }) {
     }
 
     function handleNotifItemClick(n) {
-        if (!n.read_at) {
-            markNotifRead(n.id)
-        }
         setNotifOpen(false)
 
-        const type = n.type || ''
-        if (type === 'new_assistant_lead' || n.lead_id) {
-            router.visit('/admin/assistant-leads')
-        } else if (type === 'new_message' || n.message_id) {
-            router.visit('/admin/messages')
-        } else if (n.unit_id) {
-            router.visit(`/admin/units/${n.unit_id}/edit`)
-        } else if (n.project_id) {
-            router.visit(`/admin/projects/${n.project_id}/edit`)
+        const targetUrl = notificationPrimaryUrl(n)
+
+        const navigate = () => {
+            if (typeof window !== 'undefined' && window.location.pathname === targetUrl) {
+                return
+            }
+            router.visit(targetUrl)
+        }
+
+        if (!n.read_at) {
+            // Mark as read first, then navigate on success to avoid racing two Inertia requests
+            router.post(`/admin/notifications/${n.id}/read`, {}, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setRecentNotifs(prev => prev.map(x => x.id === n.id ? { ...x, read_at: new Date().toISOString() } : x))
+                    setLiveNotifCount(prev => Math.max(0, prev - 1))
+                    prevNotifRef.current = Math.max(0, prevNotifRef.current - 1)
+                    navigate()
+                },
+                onError: () => {
+                    // Navigate anyway even if marking read fails
+                    navigate()
+                },
+            })
         } else {
-            router.visit('/admin/notifications')
+            navigate()
         }
     }
 
@@ -276,7 +289,6 @@ export default function AdminSidebar({ children }) {
             },
         })
     }
-
     useEffect(() => {
         setLiveNotifCount(initialCount || 0)
         prevNotifRef.current = initialCount || 0

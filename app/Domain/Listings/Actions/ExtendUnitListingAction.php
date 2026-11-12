@@ -3,6 +3,7 @@
 namespace App\Domain\Listings\Actions;
 
 use App\Domain\Listings\Models\Unit;
+use App\Domain\Listings\Notifications\UnitExpiryNotification;
 use App\Domain\Listings\Notifications\UnitExtendedNotification;
 use App\Domain\Listings\Services\ListingService;
 use App\Domain\Users\Models\User;
@@ -50,7 +51,11 @@ class ExtendUnitListingAction
 
         $this->clearListingCache();
 
-        $this->notificationService->markEntityNotificationsAsRead($admin, 'unit_id', $unit->id);
+        $this->notificationService->markEntityNotificationsAsReadForAll(
+            'unit_id',
+            $unit->id,
+            ['unit_expiry_warning', 'unit_expired'],
+        );
 
         if ($unit->user && $unit->user_id !== $admin->id && $newAutoDeleteAt) {
             $unit->user->notify(new UnitExtendedNotification(
