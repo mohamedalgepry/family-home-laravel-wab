@@ -2,6 +2,7 @@
 
 namespace App\Domain\Users\Services;
 
+use App\Domain\Assistant\Notifications\NewAssistantLeadNotification;
 use App\Domain\Users\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Notifications\DatabaseNotification;
@@ -20,7 +21,7 @@ class NotificationService
             "notifications_page_{$page}",
             60,
             function () use ($user) {
-                $paginator = $user->notifications()
+                $paginator = $this->visibleNotifications($user)
                     ->paginate(20)
                     ->withQueryString();
 
@@ -38,7 +39,7 @@ class NotificationService
             "recent_notifications_{$limit}",
             30,
             function () use ($user, $limit) {
-                $notifications = $user->notifications()
+                $notifications = $this->visibleNotifications($user)
                     ->orderByDesc('created_at')
                     ->orderByDesc('id')
                     ->take($limit)
@@ -55,7 +56,7 @@ class NotificationService
             $user,
             'unread_count',
             30,
-            fn () => $user->unreadNotifications()->count()
+            fn () => $this->visibleNotifications($user)->whereNull('read_at')->count()
         );
     }
 
@@ -181,6 +182,7 @@ class NotificationService
                 'lead_id' => $data['lead_id'] ?? null,
                 'message_id' => $data['message_id'] ?? null,
                 'action_url' => $data['action_url'] ?? null,
+                'can_view_lead' => $viewer->isAdmin(),
                 'is_extended' => $data['is_extended'],
                 'can_approve_unit' => $unit && $viewer->can('toggleActive', $unit),
                 'can_extend_unit' => $unit && $viewer->can('extendExpiry', $unit),
@@ -200,7 +202,7 @@ class NotificationService
 
     public function markAsRead(User $user, string $notificationId): bool
     {
-        $notification = $user->notifications()->where('id', $notificationId)->first();
+        $notification = $this->visibleNotifications($user)->where('id', $notificationId)->first();
 
         if (! $notification || $notification->read_at) {
             return false;
@@ -214,13 +216,13 @@ class NotificationService
 
     public function markAllAsRead(User $user): void
     {
-        $user->unreadNotifications()->update(['read_at' => now()]);
+        $this->visibleNotifications($user)->whereNull('read_at')->update(['read_at' => now()]);
         $this->clearUserCache($user);
     }
 
     public function dismiss(User $user, string $notificationId): bool
     {
-        $notification = $user->notifications()->where('id', $notificationId)->first();
+        $notification = $this->visibleNotifications($user)->where('id', $notificationId)->first();
 
         if (! $notification) {
             return false;
@@ -234,7 +236,7 @@ class NotificationService
 
     public function delete(User $user, string $notificationId): bool
     {
-        $deleted = $user->notifications()->where('id', $notificationId)->delete();
+        $deleted = $this->visibleNotifications($user)->where('id', $notificationId)->delete();
 
         if ($deleted) {
             $this->clearUserCache($user);
@@ -245,7 +247,7 @@ class NotificationService
 
     public function clearAll(User $user): void
     {
-        $user->notifications()->delete();
+        $this->visibleNotifications($user)->delete();
         $this->clearUserCache($user);
     }
 
@@ -310,10 +312,10 @@ class NotificationService
     public function clearUserCache(User $user): void
     {
         $this->clearCacheForUserId($user->id);
-        Cache::forget("user_{$user->id}_unread_count");
-        Cache::forget("user_{$user->id}_recent_notifications_5");
+        Cache::forget("user_{$user->id}_notifications_v2_unread_count");
+        Cache::forget("user_{$user->id}_notifications_v2_recent_notifications_5");
         for ($page = 1; $page <= 30; $page++) {
-            Cache::forget("user_{$user->id}_notifications_page_{$page}");
+            Cache::forget("user_{$user->id}_notifications_v2_notifications_page_{$page}");
         }
     }
 
@@ -328,7 +330,7 @@ class NotificationService
     {
         $versionKey = "user_{$user->id}_notifications_cache_version";
         $version = Cache::get($versionKey, 1);
-        $cacheKey = "user_{$user->id}_{$key}";
+        $cacheKey = "user_{$user->id}_notifications_v2_{$key}";
         $cached = Cache::get($cacheKey);
 
         if (is_array($cached) && ($cached['version'] ?? null) === $version && array_key_exists('value', $cached)) {
@@ -339,5 +341,16 @@ class NotificationService
         Cache::put($cacheKey, ['version' => $version, 'value' => $value], $seconds);
 
         return $value;
+    }
+
+    private function visibleNotifications(User $user)
+    {
+        $query = $user->notifications();
+
+        if (! $user->isAdmin()) {
+            $query->where('type', '!=', NewAssistantLeadNotification::class);
+        }
+
+        return $query;
     }
 }

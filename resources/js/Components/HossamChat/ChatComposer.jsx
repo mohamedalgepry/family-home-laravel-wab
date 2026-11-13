@@ -32,9 +32,9 @@ export default function ChatComposer({
     return (
         <form
             onSubmit={handleSubmit}
-            className="p-3 bg-white border-t border-slate-100 shrink-0 concierge-safe-bottom"
+            className="p-3 bg-white border-t border-slate-200 shrink-0 concierge-safe-bottom"
         >
-            <div className="flex items-end gap-1.5 bg-slate-50 border border-slate-200/90 rounded-2xl px-3 py-1.5 focus-within:border-slate-400 focus-within:bg-white focus-within:ring-2 focus-within:ring-slate-100 transition-all">
+            <div className="flex items-end gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 focus-within:border-slate-400 focus-within:bg-white focus-within:ring-2 focus-within:ring-slate-100 transition-colors">
                 <textarea
                     ref={inputRef}
                     value={inputMessage}
@@ -54,9 +54,9 @@ export default function ChatComposer({
                 <button
                     type="submit"
                     disabled={!canSend}
-                    className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all shrink-0 mb-0.5 ${
+                    className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors shrink-0 mb-0.5 ${
                         canSend
-                            ? 'bg-primary-900 hover:bg-primary-950 text-white shadow-xs scale-100 active:scale-95'
+                            ? 'bg-slate-800 hover:bg-slate-700 text-white'
                             : 'bg-slate-200 text-slate-400 cursor-not-allowed opacity-60'
                     }`}
                     aria-label={isRtl ? 'إرسال' : 'Send'}

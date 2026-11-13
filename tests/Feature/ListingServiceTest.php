@@ -114,3 +114,17 @@ it('keeps slugs unique when names collide', function () {
     expect($second->slug)->toBe('first-copy-1')
         ->and(Unit::where('slug', 'like', 'first-copy%')->count())->toBe(2);
 });
+
+it('applies public sort codes and ignores unknown ones', function () {
+    $cheap = createUnit('cheap-unit', ['price' => 100]);
+    $expensive = createUnit('expensive-unit', ['price' => 9999]);
+    $samePrice = createUnit('same-price-unit', ['price' => 100]);
+
+    $ascending = $this->service->getUnitsByFilters(['sort' => 'price_asc'], 10);
+    $descending = $this->service->getUnitsByFilters(['sort' => 'price_desc'], 10);
+
+    expect($ascending->pluck('id')->all())->toBe([$cheap->id, $samePrice->id, $this->unit->id, $expensive->id])
+        ->and($descending->pluck('id')->all())->toBe([$expensive->id, $this->unit->id, $cheap->id, $samePrice->id])
+        ->and($this->service->getUnitsByFilters(['sort' => 'not-a-real-code'], 10)->pluck('id')->all())
+        ->toHaveCount(4);
+});

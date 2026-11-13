@@ -2,7 +2,7 @@
 
 نظام إدارة وتسويق عقاري متكامل مبني باستخدام إطار العمل **Laravel 13**، يتبع المعمارية الموجهة بالمجالات (**Domain-Driven Design — DDD**)، ومدمج مع واجهة **React 19** عبر **Inertia.js v3** مع دعم مسبق للتخزير الاستاتيكي المسبق (SSR / Static Prerendering). تم تصميم المنصة لتوفير أداء عالٍ جداً وخفيف على البيئات المحدودة (Shared Hosting — Hostinger) مع تقديم تجربة مستخدم كاملة الدعم ثنائي الاتجاه (RTL/LTR).
 
-> ✅ **حالة الفحص والاختبارات المعتمدة:** 117 Passed / 117 Tests (350 Assertions — Pest v4) | مفحوص أمنياً وخالٍ من جميع الثغرات المرصودة | مؤشر أداء PageSpeed وصل إلى 81+ على الهواتف.
+> ✅ **حالة الاختبارات:** 355 اختباراً ناجحاً (2010 تأكيدات — Pest v4 على PHP 8.5).
 
 ---
 
@@ -37,7 +37,7 @@
 | **Queue** | `database` queue driver |
 | **الخط** | Cairo (محلي بصيغة `.woff2` من `/fonts/cairo/` مع Preload عالي الأولوية لصفر طلبات خارجية) |
 | **SEO** | Google Tag Manager (gtag.js G-43HZ7C3CK2) + Google Search Console + Schema.org (JSON-LD) |
-| **الاختبارات** | Pest v4 (117 اختباراً تغطي كافة مجالات النظام) |
+| **الاختبارات** | Pest v4 + PHPUnit 12 (355 اختباراً ناجحاً — 2010 تأكيدات) |
 
 ---
 
@@ -212,12 +212,18 @@ composer dump-autoload -o --no-dev
 ## نظام الاختبارات وضبط الجودة
 
 ```bash
-# تشغيل كافة الاختبارات الـ 117
+# تشغيل كافة الاختبارات (355 اختباراً)
 php artisan test
 
 # تشغيل اختبار مخصص
 php artisan test --filter=UnitCreationTest
 ```
+
+## توثيق المراجعة والتحسينات
+
+- [سجل التحسينات الأخيرة](docs/recent-improvements-ar.md)
+- [تقرير متابعة الإصلاحات](review-plans/13-follow-up-fix-status.md)
+- [التقرير المجمع لمراجعة الموقع](review-plans/SITE_REVIEW_MASTER_REPORT.md)
 
 ---
 

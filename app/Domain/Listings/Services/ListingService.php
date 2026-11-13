@@ -18,6 +18,19 @@ class ListingService
 
     public const CACHE_VERSION_KEY = 'listing_cache_version_v3';
 
+    /**
+     * Public sort codes mapped to [column, direction].
+     * The columns are validated again by ListingQueryBuilder::applySort()'s allowlist.
+     */
+    private const UNIT_SORT_MAP = [
+        'newest' => ['created_at', 'desc'],
+        'price_asc' => ['price', 'asc'],
+        'price_desc' => ['price', 'desc'],
+        'size_desc' => ['area_sqm', 'desc'],
+    ];
+
+    private const UNIT_SORTABLE = ['created_at', 'price', 'area_sqm'];
+
     public function version(): int
     {
         return Cache::rememberForever(self::CACHE_VERSION_KEY, fn () => 2);
@@ -67,7 +80,11 @@ class ListingService
             $query = $this->unitBaseQuery();
             $this->applyUnitFilters($query, $filters);
 
-            return $query->orderByFeatured()->paginate($perPage);
+            if (! $this->applyUnitSort($query, $filters)) {
+                $query->orderByFeatured();
+            }
+
+            return $query->paginate($perPage);
         });
     }
 
@@ -131,6 +148,34 @@ class ListingService
 
         $this->applyFeaturesFilter($query, $filters);
         ListingQueryBuilder::applySearch($query, $filters, ['name_en', 'name_ar', 'description_en', 'description_ar', 'slug', 'slug_ar', 'slug_en', 'keywords_ar', 'keywords_en'], 'units', 2);
+    }
+
+    /**
+     * Applies a public sort code (newest, price_asc, price_desc, size_desc).
+     * Returns false when no valid code was supplied so the caller keeps the featured order.
+     */
+    private function applyUnitSort(Builder $query, array $filters): bool
+    {
+        $code = $filters['sort'] ?? null;
+
+        // Guard against array input (e.g. sort[]=...) so the lookup can never raise a TypeError.
+        if (! is_string($code) || ! isset(self::UNIT_SORT_MAP[$code])) {
+            return false;
+        }
+
+        [$column, $direction] = self::UNIT_SORT_MAP[$code];
+
+        $applied = ListingQueryBuilder::applySort(
+            $query,
+            ['sort' => $column, 'direction' => $direction],
+            self::UNIT_SORTABLE,
+        );
+
+        if ($applied) {
+            $query->orderBy('id');
+        }
+
+        return $applied;
     }
 
     private function applyFeaturesFilter($query, array $filters): void

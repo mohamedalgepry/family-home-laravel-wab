@@ -37,7 +37,9 @@ for (const entry of Object.values(manifest)) {
 // A segment is hash-like if it contains a digit OR has mixed case.
 // Real words ('react', 'runtime', 'vendor') are all-lowercase → not hash-like.
 function isHashLike(seg) {
-    return /\d/.test(seg) || (/[A-Z]/.test(seg) && /[a-z]/.test(seg))
+    return /\d/.test(seg)
+        || (/[A-Z]/.test(seg) && /[a-z]/.test(seg))
+        || (seg.length >= 3 && /^[A-Z]+$/.test(seg))
 }
 
 function stableName(basename) {

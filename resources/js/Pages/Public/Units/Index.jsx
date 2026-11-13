@@ -7,6 +7,16 @@ import UnitCard from '../../../Components/UI/UnitCard'
 import Pagination from '../../../Components/UI/Pagination'
 import SeoHead from '../../../Components/UI/SeoHead'
 
+const FILTER_KEYS = ['area_id', 'type_id', 'transaction', 'price_min', 'price_max', 'size_min', 'size_max', 'search', 'payment_method', 'finishing_type_id', 'features']
+
+const SORT_OPTIONS = [
+    { value: '', labelKey: 'sort_featured' },
+    { value: 'newest', labelKey: 'sort_newest' },
+    { value: 'price_asc', labelKey: 'sort_price_low' },
+    { value: 'price_desc', labelKey: 'sort_price_high' },
+    { value: 'size_desc', labelKey: 'sort_size_high' },
+]
+
 export default function UnitsIndex({ units, filters, areas, unitTypes, features, finishingTypes, seo_meta }) {
     const { locale } = usePage().props
     const trans = useTrans(locale)
@@ -14,9 +24,27 @@ export default function UnitsIndex({ units, filters, areas, unitTypes, features,
 
     const isLoading = !units
     const hasUnits = units?.data?.length > 0
+    // PHP serialises an empty filter list as [], and [].sort is Array.prototype.sort.
+    const activeFilters = Array.isArray(filters) ? {} : (filters || {})
+    const activeSort = SORT_OPTIONS.some(option => option.value === activeFilters.sort) ? activeFilters.sort : ''
 
     function handleSearch(params) {
         router.get(`/${locale}/units`, params, { preserveState: true })
+    }
+
+    const unitTotal = units?.meta?.total || units?.total || units?.data?.length || 0
+
+    function handleSort(sort) {
+        const params = {}
+        FILTER_KEYS.forEach(key => {
+            const value = activeFilters[key]
+            if (value === '' || value === null || value === undefined) return
+            if (Array.isArray(value) && value.length === 0) return
+            params[key] = value
+        })
+        if (sort) params.sort = sort
+
+        router.get(`/${locale}/units`, params, { preserveState: true, preserveScroll: true })
     }
 
     return (
@@ -71,6 +99,24 @@ export default function UnitsIndex({ units, filters, areas, unitTypes, features,
                         </div>
                     ) : hasUnits ? (
                         <div className="flex flex-col gap-8">
+                            <div className="flex items-center justify-between gap-3 flex-wrap">
+                                <p className="text-sm font-medium text-secondary-500">
+                                    {locale === 'ar' ? `عرض ${unitTotal} وحدة` : `Showing ${unitTotal} units`}
+                                </p>
+                                <label className="flex items-center gap-2 text-sm font-semibold text-secondary-700">
+                                    <span>{trans('sort_by')}</span>
+                                    <select
+                                        value={activeSort}
+                                        onChange={event => handleSort(event.target.value)}
+                                        aria-label={trans('sort_by')}
+                                        className="rounded-xl border border-secondary-200 bg-white px-3 py-2 text-sm font-semibold text-secondary-800 focus:outline-none focus:ring-2 focus:ring-primary-900"
+                                    >
+                                        {SORT_OPTIONS.map(option => (
+                                            <option key={option.value || 'featured'} value={option.value}>{trans(option.labelKey)}</option>
+                                        ))}
+                                    </select>
+                                </label>
+                            </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                 {units.data.map((unit, i) => (
                                     <UnitCard key={unit.id} unit={unit} priority={i === 0} />

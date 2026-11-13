@@ -76,12 +76,12 @@ class NotificationServiceOptimizationTest extends TestCase
         // Fetch page 1
         request()->merge(['page' => 1]);
         $page1 = $service->paginated($user);
-        $this->assertTrue(Cache::has("user_{$user->id}_notifications_page_1"));
+        $this->assertTrue(Cache::has("user_{$user->id}_notifications_v2_notifications_page_1"));
 
         // Fetch page 2
         request()->merge(['page' => 2]);
         $page2 = $service->paginated($user);
-        $this->assertTrue(Cache::has("user_{$user->id}_notifications_page_2"));
+        $this->assertTrue(Cache::has("user_{$user->id}_notifications_v2_notifications_page_2"));
 
         // Verify page 1 and page 2 are different
         $this->assertCount(20, $page1->items());
@@ -89,8 +89,8 @@ class NotificationServiceOptimizationTest extends TestCase
 
         // Invalidate cache
         $service->clearUserCache($user);
-        $this->assertFalse(Cache::has("user_{$user->id}_notifications_page_1"));
-        $this->assertFalse(Cache::has("user_{$user->id}_notifications_page_2"));
+        $this->assertFalse(Cache::has("user_{$user->id}_notifications_v2_notifications_page_1"));
+        $this->assertFalse(Cache::has("user_{$user->id}_notifications_v2_notifications_page_2"));
     }
 
     public function test_remove_entity_notifications_deletes_using_json_path(): void

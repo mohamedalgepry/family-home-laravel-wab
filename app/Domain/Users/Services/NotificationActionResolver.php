@@ -63,7 +63,8 @@ class NotificationActionResolver
             $actions[] = $this->action('messages', 'get', '/admin/messages');
         }
 
-        if ($type === 'new_assistant_lead' || (! empty($context['lead_id']) && $type !== 'new_message')) {
+        if (($type === 'new_assistant_lead' || (! empty($context['lead_id']) && $type !== 'new_message'))
+            && ! empty($context['can_view_lead'])) {
             $leadUrl = $this->safeAdminPath($context['action_url'] ?? null) ?? '/admin/assistant-leads';
             $actions[] = $this->action('lead', 'get', $leadUrl);
         }
@@ -109,6 +110,12 @@ class NotificationActionResolver
 
         if (isset($byKey['lead'])) {
             return (string) $byKey['lead']['url'];
+        }
+
+        if (($context['type'] ?? '') === 'new_assistant_lead' || ! empty($context['lead_id'])) {
+            return ! empty($context['can_view_lead'])
+                ? ($this->safeAdminPath($context['action_url'] ?? null) ?? '/admin/assistant-leads')
+                : '/admin/notifications';
         }
 
         foreach (['approve_unit', 'approve_project', 'extend_unit', 'extend_project', 'delete_unit'] as $key) {

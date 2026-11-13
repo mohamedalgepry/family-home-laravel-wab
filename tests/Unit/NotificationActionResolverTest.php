@@ -122,9 +122,22 @@ it('opens assistant leads and ignores external action urls', function () {
         'type' => 'new_assistant_lead',
         'lead_id' => 11,
         'action_url' => 'https://evil.example/admin/assistant-leads',
+        'can_view_lead' => true,
     ]);
 
     expect(keys($result))->toBe(['lead'])
         ->and($result['actions'][0]['url'])->toBe('/admin/assistant-leads')
         ->and($result['primary_url'])->toBe('/admin/assistant-leads');
+});
+
+it('does not expose assistant leads or their page to users without permission', function () {
+    $result = resolver()->resolve([
+        'type' => 'new_assistant_lead',
+        'lead_id' => 11,
+        'action_url' => '/admin/assistant-leads',
+        'can_view_lead' => false,
+    ]);
+
+    expect($result['actions'])->toBe([])
+        ->and($result['primary_url'])->toBe('/admin/notifications');
 });

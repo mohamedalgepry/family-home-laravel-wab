@@ -132,14 +132,10 @@ class NotificationController extends Controller
         $request->headers->remove('X-Inertia');
         $request->headers->remove('X-Inertia-Version');
 
-        try {
-            $user = $request->user();
-            if (! $user) return response()->json(['notifications' => []]);
-            return response()->json(['notifications' => $this->notificationService->recent($user)]);
-        } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::warning('Failed to fetch recent notifications: ' . $e->getMessage(), ['user_id' => $request->user()?->id]);
-            return response()->json(['notifications' => []]);
-        }
+        $user = $request->user();
+        abort_unless($user, 401);
+
+        return response()->json(['notifications' => $this->notificationService->recent($user)]);
     }
 
     public function unreadCount(Request $request): JsonResponse
@@ -147,14 +143,10 @@ class NotificationController extends Controller
         $request->headers->remove('X-Inertia');
         $request->headers->remove('X-Inertia-Version');
 
-        try {
-            $user = $request->user();
-            if (! $user) return response()->json(['count' => 0]);
-            return response()->json(['count' => $this->notificationService->unreadCount($user)]);
-        } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::warning('Failed to fetch unread notification count: ' . $e->getMessage(), ['user_id' => $request->user()?->id]);
-            return response()->json(['count' => 0]);
-        }
+        $user = $request->user();
+        abort_unless($user, 401);
+
+        return response()->json(['count' => $this->notificationService->unreadCount($user)]);
     }
 
     public function destroy(Request $request, string $id): RedirectResponse

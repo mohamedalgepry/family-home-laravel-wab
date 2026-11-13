@@ -4,6 +4,8 @@ import { useTrans } from '../../Utils/trans'
 import { localizedPath } from '../../Utils/route'
 import CompareBar from '../Features/CompareBar'
 import { WhatsAppIcon } from '../UI'
+import ChatLauncherButton from '../HossamChat/ChatLauncherButton'
+import { useCompare } from '../../Hooks/useCompare'
 
 const HossamChatWidget = lazy(() => import('../HossamChat/HossamChatWidget'))
 
@@ -34,9 +36,12 @@ const SOCIAL_ICONS = {
 
 export default function Footer() {
     const { locale, settings } = usePage().props
+    const { compareList: unitCompareList } = useCompare('unit')
+    const { compareList: projectCompareList } = useCompare('project')
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
     const [chatMounted, setChatMounted] = useState(false)
+    const hasCompareItems = unitCompareList.length > 0 || projectCompareList.length > 0
 
     const socialLinks = [
         { key: 'social_facebook', url: settings?.social_facebook, label: trans('social_facebook') },
@@ -171,29 +176,13 @@ export default function Footer() {
                     <HossamChatWidget autoOpen />
                 </Suspense>
             ) : (
-                <button
-                    type="button"
-                    onClick={() => setChatMounted(true)}
-                    className="group fixed z-50 end-4 bottom-6 sm:bottom-8 sm:end-8 w-14 h-14 sm:w-15 sm:h-15 rounded-full bg-slate-900 text-white flex items-center justify-center transition-all duration-200 ease-out shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 outline-none focus:ring-4 focus:ring-primary-500/25 print:hidden"
-                    aria-label={trans('assistant_name')}
-                    title={trans('assistant_name')}
-                >
-                    {/* Status Glowing Dot */}
-                    <span className="absolute top-1 end-1 flex h-3 w-3 z-20">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
-                        <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 border-2 border-slate-900 shadow-2xs"></span>
-                    </span>
-
-                    {/* Hossam Avatar Head */}
-                    <div className="relative z-10 w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center overflow-hidden rounded-full p-0.5">
-                        <img
-                            src="/images/ai-agent-head.webp"
-                            alt={trans('assistant_name')}
-                            draggable="false"
-                            className="w-full h-full object-contain transition-transform duration-200 group-hover:scale-105"
-                        />
-                    </div>
-                </button>
+                <div className={`fixed z-50 end-4 ${hasCompareItems ? 'bottom-[100px]' : 'bottom-6'} sm:bottom-8 sm:end-8`}>
+                    <ChatLauncherButton
+                        title={trans('assistant_launcher_title')}
+                        description={trans('assistant_launcher_description')}
+                        onClick={() => setChatMounted(true)}
+                    />
+                </div>
             )}
         </footer>
     )

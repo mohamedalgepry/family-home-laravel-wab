@@ -16,7 +16,9 @@ class CreateMessageAction
     {
         return DB::transaction(function () use ($data) {
             $unit = $data->unit_id ? Unit::find($data->unit_id) : null;
-            $agentId = $unit ? $unit->user_id : User::where('role', 'admin')->first()?->id;
+            $owner = $unit?->user;
+            $admin = $unit ? null : User::where('role', 'admin')->first();
+            $agentId = $unit ? $unit->user_id : $admin?->id;
 
             $message = Message::create([
                 'unit_id' => $unit?->id,
@@ -28,11 +30,12 @@ class CreateMessageAction
                 'status' => 'pending',
             ]);
 
-            if ($agentId) {
-                $agent = User::find($agentId);
-                if ($agent) {
-                    $agent->notify(new NewMessageNotification($message));
-                }
+            $recipients = $unit
+                ? collect([$owner, $owner?->manager])
+                : collect([$admin]);
+
+            foreach ($recipients->filter()->unique('id') as $recipient) {
+                $recipient->notify(new NewMessageNotification($message));
             }
 
             return $message;

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { usePage } from '@inertiajs/react'
 import { useTrans } from '../../Utils/trans'
+import { useCompare } from '../../Hooks/useCompare'
 
 import { useChatSession } from './hooks/useChatSession'
 import { useChatApi } from './hooks/useChatApi'
@@ -8,6 +9,7 @@ import ChatHeader from './ChatHeader'
 import MessageList from './MessageList'
 import { QuickQuestionsChips } from './QuickReplies'
 import ChatComposer from './ChatComposer'
+import ChatLauncherButton from './ChatLauncherButton'
 
 export default function HossamChatWidget({ autoOpen = false }) {
     const pageObj = usePage() || {}
@@ -17,6 +19,9 @@ export default function HossamChatWidget({ autoOpen = false }) {
     const locale = pageProps.locale || (typeof document !== 'undefined' ? document.documentElement.lang : 'ar') || 'ar'
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
+    const { compareList: unitCompareList } = useCompare('unit')
+    const { compareList: projectCompareList } = useCompare('project')
+    const hasCompareItems = unitCompareList.length > 0 || projectCompareList.length > 0
 
     const isAdmin = typeof window !== 'undefined' && window.location.pathname.includes('/admin')
 
@@ -31,6 +36,7 @@ export default function HossamChatWidget({ autoOpen = false }) {
         if (typeof window === 'undefined') return isTargetPage
         return isTargetPage && window.innerWidth < 768
     })
+    const needsBottomClearance = hasFixedBottomBar || hasCompareItems
 
     useEffect(() => {
         const updateBottomBarStatus = () => {
@@ -47,7 +53,7 @@ export default function HossamChatWidget({ autoOpen = false }) {
             window.removeEventListener('resize', updateBottomBarStatus)
             window.removeEventListener('orientationchange', updateBottomBarStatus)
         }
-    }, [component, url, isTargetPage])
+    }, [component, url, isTargetPage, hasCompareItems])
 
     /* ---------- session & persistence ---------- */
     const {
@@ -55,10 +61,7 @@ export default function HossamChatWidget({ autoOpen = false }) {
         setIsOpen,
         isFullscreen,
         setIsFullscreen,
-        hasUnread,
         setHasUnread,
-        isHovered,
-        setIsHovered,
         feedback,
         setReaction,
         proactivePill,
@@ -168,8 +171,8 @@ export default function HossamChatWidget({ autoOpen = false }) {
         <div
             dir={isRtl ? 'rtl' : 'ltr'}
             className={`fixed z-50 end-4 sm:bottom-8 sm:end-8 print:hidden font-sans transition-all duration-300 ${
-                hasFixedBottomBar
-                    ? 'bottom-[88px]'
+                needsBottomClearance
+                    ? 'bottom-[100px]'
                     : 'bottom-6'
             }`}
         >
@@ -181,11 +184,11 @@ export default function HossamChatWidget({ autoOpen = false }) {
                         <div
                             className={`absolute bottom-full mb-3 ${
                                 isRtl ? 'end-0' : 'start-0'
-                            } w-72 sm:w-80 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl p-3.5 shadow-xl transition-all duration-300 z-50`}
+                            } w-72 sm:w-80 bg-white border border-slate-200 rounded-xl p-3.5 shadow-lg z-50`}
                         >
                             <div className="flex items-start justify-between gap-2">
                                 <div className="flex items-center gap-2">
-                                    <span className="w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center p-0.5 shrink-0 shadow-2xs">
+                                    <span className="w-6 h-6 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center p-0.5 shrink-0">
                                         <img
                                             src="/images/ai-agent-head.webp"
                                             alt=""
@@ -202,7 +205,7 @@ export default function HossamChatWidget({ autoOpen = false }) {
                                         e.stopPropagation()
                                         setProactivePill(null)
                                     }}
-                                    className="text-slate-400 hover:text-slate-600 text-xs p-1"
+                                    className="text-slate-500 hover:text-slate-800 text-xs p-1"
                                     aria-label="Close"
                                 >
                                     ✕
@@ -218,7 +221,7 @@ export default function HossamChatWidget({ autoOpen = false }) {
                                         setIsOpen(true)
                                         setProactivePill(null)
                                     }}
-                                    className="px-3 py-1 bg-slate-900 hover:bg-primary-900 text-white text-[11px] font-bold rounded-lg transition-colors shadow-2xs"
+                                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-[11px] font-semibold rounded-lg transition-colors"
                                 >
                                     {trans('assistant_proactive_cta')}
                                 </button>
@@ -226,50 +229,13 @@ export default function HossamChatWidget({ autoOpen = false }) {
                         </div>
                     )}
 
-                    {/* Hover Tooltip (Desktop) */}
-                    <div
-                        className={`hidden sm:flex absolute ${
-                            isRtl ? 'end-full me-3' : 'start-full ms-3'
-                        } items-center gap-2 bg-slate-900/90 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-lg whitespace-nowrap transition-all duration-200 pointer-events-none ${
-                            isHovered ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-2'
-                        }`}
-                    >
-                        <span>{trans('assistant_name')}</span>
-                        <span className="text-white/40">•</span>
-                        <span className="text-white/80 font-normal">{trans('assistant_title')}</span>
-                    </div>
-
-                    <button
+                    <ChatLauncherButton
                         ref={fabButtonRef}
-                        type="button"
                         onClick={() => setIsOpen(true)}
-                        onMouseEnter={() => setIsHovered(true)}
-                        onMouseLeave={() => setIsHovered(false)}
-                        className={`group relative w-14 h-14 sm:w-15 sm:h-15 rounded-full bg-slate-900 text-white flex items-center justify-center transition-all duration-200 ease-out shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 outline-none focus:ring-4 focus:ring-primary-500/25 ${
-                            hasUnread ? 'concierge-pulse' : ''
-                        }`}
-                        aria-label={trans('assistant_name')}
-                        aria-expanded={isOpen}
-                        aria-controls="hossam-concierge-dialog"
-                        title={trans('assistant_name')}
-                    >
-                        {/* Status Glowing Dot */}
-                        <span className="absolute top-1 end-1 flex h-3 w-3 z-20">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
-                            <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 border-2 border-slate-900 shadow-2xs"></span>
-                        </span>
-
-                        {/* Hossam Avatar Head */}
-                        <div className="relative z-10 w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center overflow-hidden rounded-full p-0.5">
-                            <img
-                                src="/images/ai-agent-head.webp"
-                                alt=""
-                                aria-hidden="true"
-                                draggable="false"
-                                className="w-full h-full object-contain transition-transform duration-200 group-hover:scale-105"
-                            />
-                        </div>
-                    </button>
+                        title={trans('assistant_launcher_title')}
+                        description={trans('assistant_launcher_description')}
+                        expanded={isOpen}
+                    />
                 </div>
             )}
 
@@ -277,10 +243,10 @@ export default function HossamChatWidget({ autoOpen = false }) {
             {isOpen && (
                 <div
                     id="hossam-concierge-dialog"
-                    className={`concierge-open flex flex-col bg-white overflow-hidden border border-slate-200/90 shadow-2xl transition-all ${
+                    className={`concierge-open flex flex-col bg-white overflow-hidden border border-slate-200 shadow-[0_12px_36px_rgba(15,23,42,0.16)] ${
                         isFullscreen
-                            ? 'fixed inset-0 w-screen h-[100dvh] rounded-none sm:inset-4 sm:w-[calc(100vw-32px)] sm:h-[calc(100dvh-32px)] sm:max-w-[460px] sm:ml-auto sm:rounded-3xl'
-                            : `w-[calc(100vw-24px)] sm:w-[410px] h-[580px] ${hasFixedBottomBar ? 'max-h-[calc(100dvh-104px)]' : 'max-h-[82vh]'} rounded-2xl sm:rounded-3xl`
+                            ? 'fixed inset-0 w-auto h-[100dvh] rounded-none sm:inset-4 sm:w-[calc(100vw-32px)] sm:h-[calc(100dvh-32px)] sm:max-w-[460px] sm:ml-auto sm:rounded-3xl'
+                            : `w-[calc(100vw-24px)] sm:w-[410px] h-[580px] ${needsBottomClearance ? 'max-h-[calc(100dvh-116px)]' : 'max-h-[82vh]'} rounded-2xl sm:rounded-3xl`
                     }`}
                     role="dialog"
                     aria-modal="true"

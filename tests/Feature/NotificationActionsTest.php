@@ -3,7 +3,9 @@
 use App\Domain\Listings\Models\Unit;
 use App\Domain\Listings\Notifications\UnitExpiryNotification;
 use App\Domain\Listings\Notifications\UnitPendingApprovalNotification;
+use App\Domain\Assistant\Notifications\NewAssistantLeadNotification;
 use App\Domain\Users\Models\User;
+use App\Domain\Users\Services\NotificationService;
 use App\Domain\Users\Notifications\NewMessageNotification;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Str;
@@ -21,6 +23,28 @@ function createNotificationForAction(User $recipient, string $class, array $data
         'updated_at' => now(),
     ]);
 }
+
+test('assistant lead details are visible only to admins and do not inflate manager unread counts', function () {
+    $admin = createUser('Lead Admin '.uniqid(), 'admin');
+    $manager = createUser('Lead Manager '.uniqid(), 'manager');
+
+    createNotificationForAction($admin, NewAssistantLeadNotification::class, [
+        'type' => 'new_assistant_lead',
+        'lead_id' => 101,
+        'client_phone' => '01012345678',
+    ]);
+    createNotificationForAction($manager, NewAssistantLeadNotification::class, [
+        'type' => 'new_assistant_lead',
+        'lead_id' => 101,
+        'client_phone' => '01012345678',
+    ]);
+
+    $service = app(NotificationService::class);
+
+    expect($service->recent($admin))->toHaveCount(1)
+        ->and($service->recent($manager))->toBe([])
+        ->and($service->unreadCount($manager))->toBe(0);
+});
 
 test('approving a pending unit publishes it and keeps the notification as read', function () {
     $admin = createUser('Admin '.uniqid(), 'admin');
@@ -111,6 +135,24 @@ test('marking a notification as read clears the cached unread counter', function
         ->assertJson(['count' => 0]);
 
     expect($notification->fresh()->read_at)->not->toBeNull();
+});
+
+test('manager clear all preserves hidden assistant lead notifications', function () {
+    $manager = createUser('Notif Clear Manager '.uniqid(), 'manager');
+    $leadNotification = createNotificationForAction($manager, NewAssistantLeadNotification::class, [
+        'type' => 'new_assistant_lead',
+        'lead_id' => 102,
+        'client_phone' => '01012345678',
+    ]);
+    $messageNotification = createNotificationForAction($manager, NewMessageNotification::class, [
+        'type' => 'new_message',
+        'message_id' => 12,
+    ]);
+
+    app(NotificationService::class)->clearAll($manager);
+
+    expect(DatabaseNotification::whereKey($messageNotification->id)->exists())->toBeFalse()
+        ->and(DatabaseNotification::whereKey($leadNotification->id)->exists())->toBeTrue();
 });
 
 test('mark all as read zeroes the counter and the cached value', function () {

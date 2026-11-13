@@ -180,7 +180,7 @@ class AiAssistantController
             }
 
             if ($shouldNotify) {
-                $admins = User::whereIn('role', ['admin', 'manager'])
+                $admins = User::where('role', 'admin')
                     ->where('is_active', true)
                     ->get();
 

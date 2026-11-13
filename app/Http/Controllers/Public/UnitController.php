@@ -21,7 +21,7 @@ use Inertia\Response;
 
 class UnitController
 {
-    private const FILTERABLE = ['area_id', 'type_id', 'transaction', 'price_min', 'price_max', 'size_min', 'size_max', 'rooms', 'bathrooms', 'search', 'payment_method', 'finishing_type_id', 'features'];
+    private const FILTERABLE = ['area_id', 'type_id', 'transaction', 'price_min', 'price_max', 'size_min', 'size_max', 'rooms', 'bathrooms', 'search', 'payment_method', 'finishing_type_id', 'features', 'sort'];
 
     public function __construct(
         private readonly ListingService $listingService,

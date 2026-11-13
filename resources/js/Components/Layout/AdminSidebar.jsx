@@ -132,6 +132,8 @@ export default function AdminSidebar({ children }) {
     const [notifOpen, setNotifOpen] = useState(false)
     const [recentNotifs, setRecentNotifs] = useState([])
     const [loadingNotifs, setLoadingNotifs] = useState(false)
+    const [notifLoadError, setNotifLoadError] = useState(false)
+    const [countsLoadError, setCountsLoadError] = useState(false)
     const [confirmClearNotifs, setConfirmClearNotifs] = useState(false)
     const [isClearingNotifs, setIsClearingNotifs] = useState(false)
     const notifRef = useRef(null)
@@ -193,8 +195,13 @@ export default function AdminSidebar({ children }) {
             const data = await res.json()
             setRecentNotifs(data.notifications || [])
             notifsFetchedRef.current = true
-        } catch { }
-        if (showLoading) setLoadingNotifs(false)
+            setNotifLoadError(false)
+        } catch (error) {
+            console.error('Failed to load recent notifications:', error)
+            setNotifLoadError(true)
+        } finally {
+            if (showLoading) setLoadingNotifs(false)
+        }
     }
 
     // Prefetch notifications in background on mount so clicking the bell is instant
@@ -230,7 +237,10 @@ export default function AdminSidebar({ children }) {
     function handleNotifItemClick(n) {
         setNotifOpen(false)
 
-        const targetUrl = notificationPrimaryUrl(n)
+        const targetUrl = notificationPrimaryUrl(n, {
+            isAdmin: role === 'admin',
+            isManager: role === 'manager',
+        })
 
         const navigate = () => {
             if (typeof window !== 'undefined' && window.location.pathname === targetUrl) {
@@ -322,8 +332,11 @@ export default function AdminSidebar({ children }) {
             const msgCount = Number(msgData?.count)
             if (!Number.isFinite(notifCount) || !Number.isFinite(msgCount)) throw new Error('Invalid unread counts')
 
+            setCountsLoadError(false)
             return { notif: notifCount, msg: msgCount }
-        } catch {
+        } catch (error) {
+            console.error('Failed to refresh notification and message counts:', error)
+            setCountsLoadError(true)
             return null
         }
     }
@@ -627,12 +640,30 @@ export default function AdminSidebar({ children }) {
                                             )}
                                         </div>
 
+                                        {notifLoadError && (
+                                            <div role="alert" aria-live="polite" className="p-3 text-xs text-red-700 bg-red-50 border-b border-red-100">
+                                                {isRtl ? 'تعذر تحميل الإشعارات. أعد المحاولة.' : 'Could not load notifications. Please retry.'}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => fetchRecentNotifs(true)}
+                                                    className="font-semibold underline ms-1"
+                                                >
+                                                    {isRtl ? 'إعادة المحاولة' : 'Retry'}
+                                                </button>
+                                            </div>
+                                        )}
+                                        {countsLoadError && (
+                                            <div role="alert" aria-live="polite" className="p-3 text-xs text-red-700 bg-red-50 border-b border-red-100">
+                                                {isRtl ? 'تعذر تحديث عدّاد الإشعارات والرسائل.' : 'Could not refresh notification and message counts.'}
+                                            </div>
+                                        )}
+
                                         <div className="max-h-80 overflow-y-auto">
                                             {loadingNotifs ? (
                                                 <div className="p-6 text-center text-sm text-muted">{trans('common.loading')}</div>
-                                            ) : recentNotifs.length === 0 ? (
+                                            ) : recentNotifs.length === 0 && !notifLoadError ? (
                                                 <div className="p-6 text-center text-sm text-muted">{isRtl ? 'لا توجد إشعارات' : 'No notifications'}</div>
-                                            ) : (
+                                            ) : recentNotifs.length > 0 ? (
                                                 recentNotifs.map(n => {
                                                     const isUnread = !n.read_at
                                                     const type = n.type || ''
@@ -678,7 +709,7 @@ export default function AdminSidebar({ children }) {
                                                         </button>
                                                     )
                                                 })
-                                            )}
+                                            ) : null}
                                         </div>
 
                                         <Link

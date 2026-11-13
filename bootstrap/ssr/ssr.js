@@ -14,7 +14,7 @@ import { Extension } from "@tiptap/core";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { renderToString } from "react-dom/server";
 import http from "node:http";
-//#region \0rolldown/runtime.js
+// \0rolldown/runtime.js
 var __defProp = Object.defineProperty;
 var __exportAll = (all, no_symbols) => {
 	let target = {};
@@ -25,17 +25,16 @@ var __exportAll = (all, no_symbols) => {
 	if (!no_symbols) __defProp(target, Symbol.toStringTag, { value: "Module" });
 	return target;
 };
-//#endregion
-//#region resources/js/Utils/trans.js
+// resources/js/Utils/trans.js
 var dictionaries = {};
 async function loadLocale(locale) {
 	const lang = locale === "ar" ? "ar" : "en";
 	if (!dictionaries[lang]) try {
 		if (lang === "ar") {
-			const mod = await import("./assets/ar-ByrwEGVL.js");
+			const mod = await import("./assets/ar-CgA7hed9.js");
 			dictionaries.ar = mod.default || mod;
 		} else {
-			const mod = await import("./assets/en-CUvko0Em.js");
+			const mod = await import("./assets/en-Ss-N441s.js");
 			dictionaries.en = mod.default || mod;
 		}
 	} catch (e) {
@@ -55,8 +54,7 @@ function useTrans(locale) {
 		return text;
 	};
 }
-//#endregion
-//#region resources/js/Utils/route.js
+// resources/js/Utils/route.js
 function localizedPath(path, locale) {
 	if (!path) return "/";
 	locale = locale || "ar";
@@ -70,8 +68,7 @@ function localizedPath(path, locale) {
 	if (normalizedPath === "/") return `/${locale}${queryString}`;
 	return `/${locale}${normalizedPath}${queryString}`;
 }
-//#endregion
-//#region resources/js/Utils/notificationActions.js
+// resources/js/Utils/notificationActions.js
 var UNIT_SCOPED = /* @__PURE__ */ new Set([
 	"unit_expiry_warning",
 	"unit_expired",
@@ -100,7 +97,7 @@ function action(key, method, url, external = false) {
 * Used when a cached payload has no server-built `actions`.
 * Keep this aligned with NotificationActionResolver.
 */
-function fallbackNotificationActions(item, { isAdmin = false, isManager = false } = {}) {
+function fallbackNotificationActions(item, { isAdmin = false } = {}) {
 	const type = item?.type || "";
 	const deleted = type === "unit_permanently_deleted" || type === "project_permanently_deleted";
 	const unitExists = Boolean(item?.unit_id) && item?.unit_exists !== false && !deleted;
@@ -109,28 +106,28 @@ function fallbackNotificationActions(item, { isAdmin = false, isManager = false 
 	const projectActive = item?.project_is_active === true || item?.project_is_active === 1;
 	const unitScoped = UNIT_SCOPED.has(type);
 	const actions = [];
-	if (type === "unit_pending_approval" && unitExists && !unitActive && (isAdmin || isManager)) actions.push(action("approve_unit", "post", `/admin/units/${item.unit_id}/approve`));
+	if (type === "unit_pending_approval" && unitExists && !unitActive && isAdmin) actions.push(action("approve_unit", "post", `/admin/units/${item.unit_id}/approve`));
 	if ((type === "project_pending_approval" || type === "new_project_created" && item?.project_is_active === false) && projectExists && !projectActive && isAdmin) actions.push(action("approve_project", "post", `/admin/projects/${item.project_id}/approve`));
 	const isExtended = item?.is_extended === true;
-	if ((type === "unit_expiry_warning" || type === "unit_expired") && unitExists && !isExtended && (isAdmin || isManager)) {
+	if ((type === "unit_expiry_warning" || type === "unit_expired") && unitExists && !isExtended && isAdmin) {
 		actions.push(action("extend_unit", "modal", null));
-		if (isAdmin) actions.push(action("delete_unit", "delete", `/admin/units/${item.unit_id}/force`));
+		actions.push(action("delete_unit", "delete", `/admin/units/${item.unit_id}/force`));
 	}
 	if (type === "project_expiry_warning" && projectExists && !isExtended && isAdmin) actions.push(action("extend_project", "post", `/admin/projects/${item.project_id}/extend`));
 	if (type === "new_message") actions.push(action("messages", "get", "/admin/messages"));
-	if (type === "new_assistant_lead" || item?.lead_id && type !== "new_message") actions.push(action("lead", "get", item?.action_url || "/admin/assistant-leads"));
-	if (unitExists) actions.push(action("edit_unit", "get", `/admin/units/${item.unit_id}/edit`));
-	if (projectExists && !unitScoped && !deleted) actions.push(action("edit_project", "get", `/admin/projects/${item.project_id}/edit`));
+	if (isAdmin && (type === "new_assistant_lead" || item?.lead_id && type !== "new_message")) actions.push(action("lead", "get", item?.action_url || "/admin/assistant-leads"));
+	if (unitExists && isAdmin) actions.push(action("edit_unit", "get", `/admin/units/${item.unit_id}/edit`));
+	if (projectExists && !unitScoped && !deleted && isAdmin) actions.push(action("edit_project", "get", `/admin/projects/${item.project_id}/edit`));
 	if (unitExists && item?.unit_slug && unitActive) actions.push(action("view_unit", "get", `/units/${item.unit_slug}`, true));
 	if (projectExists && item?.project_slug && projectActive && !unitScoped) actions.push(action("view_project", "get", `/projects/${item.project_slug}`, true));
 	return actions;
 }
-function notificationPrimaryUrl(item) {
+function notificationActions(item, roles) {
+	return Array.isArray(item?.actions) ? item.actions : fallbackNotificationActions(item, roles);
+}
+function notificationPrimaryUrl(item, roles = {}) {
 	if (typeof item?.primary_url === "string" && item.primary_url.startsWith("/")) return item.primary_url;
-	const actions = Array.isArray(item?.actions) ? item.actions : fallbackNotificationActions(item, {
-		isAdmin: true,
-		isManager: true
-	});
+	const actions = Array.isArray(item?.actions) ? item.actions : fallbackNotificationActions(item, roles);
 	const byKey = Object.fromEntries(actions.map((entry) => [entry.key, entry]));
 	if (byKey.messages) return "/admin/messages";
 	if (byKey.lead?.url) return byKey.lead.url;
@@ -139,8 +136,7 @@ function notificationPrimaryUrl(item) {
 	if (byKey.edit_project?.url) return byKey.edit_project.url;
 	return "/admin/notifications";
 }
-//#endregion
-//#region resources/js/Utils/storage.js
+// resources/js/Utils/storage.js
 var memoryStorage = /* @__PURE__ */ new Map();
 var safeStorage = {
 	getItem(key) {
@@ -168,8 +164,7 @@ var safeStorage = {
 		memoryStorage.delete(key);
 	}
 };
-//#endregion
-//#region resources/js/Components/UI/InputField.jsx
+// resources/js/Components/UI/InputField.jsx
 function InputField({ id, name, label, type = "text", value, onChange, placeholder, required = false, autoComplete, dir }) {
 	const generatedId = useId();
 	const { errors } = usePage().props;
@@ -209,8 +204,7 @@ function InputField({ id, name, label, type = "text", value, onChange, placehold
 		]
 	});
 }
-//#endregion
-//#region resources/js/Components/UI/Button.jsx
+// resources/js/Components/UI/Button.jsx
 function Button({ children, type = "submit", variant = "primary", disabled = false, className = "", onClick }) {
 	return /* @__PURE__ */ jsx("button", {
 		type,
@@ -224,8 +218,7 @@ function Button({ children, type = "submit", variant = "primary", disabled = fal
 		children
 	});
 }
-//#endregion
-//#region resources/js/Components/UI/SkeletonRow.jsx
+// resources/js/Components/UI/SkeletonRow.jsx
 function SkeletonRow({ cols }) {
 	return /* @__PURE__ */ jsx("tr", {
 		className: "border-t border-secondary-100",
@@ -238,8 +231,7 @@ function SkeletonRow({ cols }) {
 		}, i))
 	});
 }
-//#endregion
-//#region resources/js/Components/UI/Select.jsx
+// resources/js/Components/UI/Select.jsx
 function Select({ value, onChange, children, className = "", disabled = false, required = false, id, name, defaultValue, "aria-label": ariaLabel, variant = "default" }) {
 	const { locale } = usePage().props || {};
 	const trans = useTrans(locale);
@@ -334,13 +326,10 @@ function Select({ value, onChange, children, className = "", disabled = false, r
 					triggerRef.current?.focus();
 				}
 				break;
-			case "Tab":
-				if (isOpen) {
-					setIsOpen(false);
-					setFocusedIndex(-1);
-				}
-				break;
-			default: break;
+			case "Tab": if (isOpen) {
+				setIsOpen(false);
+				setFocusedIndex(-1);
+			}
 		}
 	};
 	const activeDescendantId = isOpen && focusedIndex >= 0 && focusedIndex < filteredOptions.length ? `${listboxId}-opt-${focusedIndex}` : void 0;
@@ -438,8 +427,9 @@ function Select({ value, onChange, children, className = "", disabled = false, r
 					}) : filteredOptions.map((opt, idx) => {
 						const isSelected = String(opt.value) === String(currentValue);
 						const isKeyboardFocused = idx === focusedIndex;
+						const optionId = `${listboxId}-opt-${idx}`;
 						return /* @__PURE__ */ jsxs("button", {
-							id: `${listboxId}-opt-${idx}`,
+							id: optionId,
 							type: "button",
 							role: "option",
 							"aria-selected": isSelected,
@@ -471,8 +461,7 @@ function Select({ value, onChange, children, className = "", disabled = false, r
 		]
 	});
 }
-//#endregion
-//#region resources/js/Components/UI/LazyMapEmbed.jsx
+// resources/js/Components/UI/LazyMapEmbed.jsx
 function LazyMapEmbed({ latitude, longitude, locale = "ar", title = "Google Map Location", className = "" }) {
 	const [shouldLoad, setShouldLoad] = useState(false);
 	const containerRef = useRef(null);
@@ -527,8 +516,7 @@ function LazyMapEmbed({ latitude, longitude, locale = "ar", title = "Google Map 
 		})
 	});
 }
-//#endregion
-//#region resources/js/Components/UI/WhatsAppIcon.jsx
+// resources/js/Components/UI/WhatsAppIcon.jsx
 function WhatsAppIcon({ className = "w-5 h-5", "aria-hidden": ariaHidden = true, ...props }) {
 	return /* @__PURE__ */ jsx("svg", {
 		className,
@@ -539,8 +527,7 @@ function WhatsAppIcon({ className = "w-5 h-5", "aria-hidden": ariaHidden = true,
 		children: /* @__PURE__ */ jsx("path", { d: "M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0012.04 2zm.01 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 012.41 5.83c0 4.54-3.7 8.24-8.24 8.24-1.42 0-2.82-.37-4.06-1.07l-.29-.17-3.12.82.83-3.04-.19-.3a8.216 8.216 0 01-1.26-4.48c0-4.54 3.7-8.24 8.24-8.24zm4.52 11.66c-.25-.13-1.47-.72-1.7-.81-.23-.08-.39-.13-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.13-1.06-.39-2.03-1.25-.75-.67-1.26-1.5-1.41-1.75-.14-.25-.02-.39.11-.51.11-.11.25-.29.37-.44.13-.14.17-.25.25-.42.08-.17.04-.31-.02-.44s-.56-1.35-.77-1.85c-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1 0 1.24.9 2.44 1.03 2.61.13.17 1.77 2.7 4.29 3.79.6.26 1.07.41 1.44.53.6.19 1.15.16 1.59.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.14-1.18-.06-.1-.22-.16-.47-.29z" })
 	});
 }
-//#endregion
-//#region resources/js/Components/UI/ConfirmationModal.jsx
+// resources/js/Components/UI/ConfirmationModal.jsx
 function ConfirmationModal({ isOpen, title, message, confirmLabel, cancelLabel, variant = "danger", onConfirm, onCancel, isLoading = false }) {
 	useEffect(() => {
 		if (!isOpen) return;
@@ -648,8 +635,7 @@ function ConfirmationModal({ isOpen, title, message, confirmLabel, cancelLabel, 
 		})]
 	});
 }
-//#endregion
-//#region resources/js/Components/Layout/AdminSidebar.jsx
+// resources/js/Components/Layout/AdminSidebar.jsx
 var NAV_GROUPS = [
 	{
 		key: "nav_group_main",
@@ -838,6 +824,8 @@ function AdminSidebar({ children }) {
 	const [notifOpen, setNotifOpen] = useState(false);
 	const [recentNotifs, setRecentNotifs] = useState([]);
 	const [loadingNotifs, setLoadingNotifs] = useState(false);
+	const [notifLoadError, setNotifLoadError] = useState(false);
+	const [countsLoadError, setCountsLoadError] = useState(false);
 	const [confirmClearNotifs, setConfirmClearNotifs] = useState(false);
 	const [isClearingNotifs, setIsClearingNotifs] = useState(false);
 	const notifRef = useRef(null);
@@ -890,8 +878,13 @@ function AdminSidebar({ children }) {
 			const data = await res.json();
 			setRecentNotifs(data.notifications || []);
 			notifsFetchedRef.current = true;
-		} catch {}
-		if (showLoading) setLoadingNotifs(false);
+			setNotifLoadError(false);
+		} catch (error) {
+			console.error("Failed to load recent notifications:", error);
+			setNotifLoadError(true);
+		} finally {
+			if (showLoading) setLoadingNotifs(false);
+		}
 	}
 	useEffect(() => {
 		if (auth?.user) fetchRecentNotifs(false);
@@ -907,7 +900,10 @@ function AdminSidebar({ children }) {
 	}
 	function handleNotifItemClick(n) {
 		setNotifOpen(false);
-		const targetUrl = notificationPrimaryUrl(n);
+		const targetUrl = notificationPrimaryUrl(n, {
+			isAdmin: role === "admin",
+			isManager: role === "manager"
+		});
 		const navigate = () => {
 			if (typeof window !== "undefined" && window.location.pathname === targetUrl) return;
 			router.visit(targetUrl);
@@ -986,11 +982,14 @@ function AdminSidebar({ children }) {
 			const notifCount = Number(notifData?.count);
 			const msgCount = Number(msgData?.count);
 			if (!Number.isFinite(notifCount) || !Number.isFinite(msgCount)) throw new Error("Invalid unread counts");
+			setCountsLoadError(false);
 			return {
 				notif: notifCount,
 				msg: msgCount
 			};
-		} catch {
+		} catch (error) {
+			console.error("Failed to refresh notification and message counts:", error);
+			setCountsLoadError(true);
 			return null;
 		}
 	}
@@ -1356,15 +1355,32 @@ function AdminSidebar({ children }) {
 														})]
 													})]
 												}),
+												notifLoadError && /* @__PURE__ */ jsxs("div", {
+													role: "alert",
+													"aria-live": "polite",
+													className: "p-3 text-xs text-red-700 bg-red-50 border-b border-red-100",
+													children: [isRtl ? "تعذر تحميل الإشعارات. أعد المحاولة." : "Could not load notifications. Please retry.", /* @__PURE__ */ jsx("button", {
+														type: "button",
+														onClick: () => fetchRecentNotifs(true),
+														className: "font-semibold underline ms-1",
+														children: isRtl ? "إعادة المحاولة" : "Retry"
+													})]
+												}),
+												countsLoadError && /* @__PURE__ */ jsx("div", {
+													role: "alert",
+													"aria-live": "polite",
+													className: "p-3 text-xs text-red-700 bg-red-50 border-b border-red-100",
+													children: isRtl ? "تعذر تحديث عدّاد الإشعارات والرسائل." : "Could not refresh notification and message counts."
+												}),
 												/* @__PURE__ */ jsx("div", {
 													className: "max-h-80 overflow-y-auto",
 													children: loadingNotifs ? /* @__PURE__ */ jsx("div", {
 														className: "p-6 text-center text-sm text-muted",
 														children: trans("common.loading")
-													}) : recentNotifs.length === 0 ? /* @__PURE__ */ jsx("div", {
+													}) : recentNotifs.length === 0 && !notifLoadError ? /* @__PURE__ */ jsx("div", {
 														className: "p-6 text-center text-sm text-muted",
 														children: isRtl ? "لا توجد إشعارات" : "No notifications"
-													}) : recentNotifs.map((n) => {
+													}) : recentNotifs.length > 0 ? recentNotifs.map((n) => {
 														const isUnread = !n.read_at;
 														const type = n.type || "";
 														let iconColor = "bg-secondary-100 text-secondary-600";
@@ -1412,7 +1428,7 @@ function AdminSidebar({ children }) {
 																isUnread && /* @__PURE__ */ jsx("span", { className: "w-2 h-2 rounded-full bg-primary-900 shrink-0 mt-1.5" })
 															]
 														}, n.id);
-													})
+													}) : null
 												}),
 												/* @__PURE__ */ jsx(Link, {
 													href: "/admin/notifications",
@@ -1504,8 +1520,7 @@ function AdminSidebar({ children }) {
 		]
 	});
 }
-//#endregion
-//#region resources/js/Pages/Admin/About/Edit.jsx
+// resources/js/Pages/Admin/About/Edit.jsx
 var Edit_exports$2 = /* @__PURE__ */ __exportAll({ default: () => AdminAboutEdit });
 var CustomImage = Image$1.extend({ addAttributes() {
 	return {
@@ -2059,8 +2074,7 @@ function AdminAboutEdit({ about }) {
 		]
 	})] });
 }
-//#endregion
-//#region resources/js/Utils/image.js
+// resources/js/Utils/image.js
 var PLACEHOLDER$2 = "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 600\"%3E%3Crect fill=\"%23F0F0F0\" width=\"800\" height=\"600\"/%3E%3C/svg%3E";
 /**
 * Normalizes an image path to ensure proper /storage/ URL format without duplicate storage/storage prefixes.
@@ -2110,16 +2124,18 @@ async function compressImage(file, { maxWidth = 2048, maxHeight = 2048, quality 
 		img.onload = () => {
 			URL.revokeObjectURL(objectUrl);
 			let { width, height } = img;
-			if (width <= maxWidth && height <= maxHeight && file.size <= 400 * 1024) {
+			if (width <= maxWidth && height <= maxHeight && file.size <= 409600) {
 				resolve(file);
 				return;
 			}
-			if (width > maxWidth || height > maxHeight) if (width / height > maxWidth / maxHeight) {
-				height = Math.round(height * maxWidth / width);
-				width = maxWidth;
-			} else {
-				width = Math.round(width * maxHeight / height);
-				height = maxHeight;
+			if (width > maxWidth || height > maxHeight) {
+				if (width / height > maxWidth / maxHeight) {
+					height = Math.round(height * maxWidth / width);
+					width = maxWidth;
+				} else {
+					width = Math.round(width * maxHeight / height);
+					height = maxHeight;
+				}
 			}
 			const canvas = document.createElement("canvas");
 			canvas.width = width;
@@ -2154,8 +2170,7 @@ async function compressImage(file, { maxWidth = 2048, maxHeight = 2048, quality 
 		img.src = objectUrl;
 	});
 }
-//#endregion
-//#region resources/js/Pages/Admin/Areas/AreaForm.jsx
+// resources/js/Pages/Admin/Areas/AreaForm.jsx
 var AreaForm_exports = /* @__PURE__ */ __exportAll({ default: () => AreaForm });
 var MAX_KEYWORDS = 25;
 function AreaForm({ area, parents, mode = "create" }) {
@@ -3457,8 +3472,7 @@ function AreaForm({ area, parents, mode = "create" }) {
 		})]
 	});
 }
-//#endregion
-//#region resources/js/Pages/Admin/Areas/Create.jsx
+// resources/js/Pages/Admin/Areas/Create.jsx
 var Create_exports$1 = /* @__PURE__ */ __exportAll({ default: () => AdminAreasCreate });
 function AdminAreasCreate({ parents }) {
 	const { locale } = usePage().props;
@@ -3494,8 +3508,7 @@ function AdminAreasCreate({ parents }) {
 		})]
 	})] });
 }
-//#endregion
-//#region resources/js/Pages/Admin/Areas/Edit.jsx
+// resources/js/Pages/Admin/Areas/Edit.jsx
 var Edit_exports$1 = /* @__PURE__ */ __exportAll({ default: () => AdminAreasEdit });
 function AdminAreasEdit({ area, parents }) {
 	const { locale } = usePage().props;
@@ -3536,8 +3549,7 @@ function AdminAreasEdit({ area, parents }) {
 		})]
 	})] });
 }
-//#endregion
-//#region resources/js/Pages/Admin/Areas/Index.jsx
+// resources/js/Pages/Admin/Areas/Index.jsx
 var Index_exports$17 = /* @__PURE__ */ __exportAll({ default: () => AdminAreasIndex });
 function AdminAreasIndex({ areas, filters }) {
 	const { locale, flash } = usePage().props;
@@ -3883,8 +3895,7 @@ function AdminAreasIndex({ areas, filters }) {
 		]
 	})] });
 }
-//#endregion
-//#region resources/js/Utils/tiptapFontSize.js
+// resources/js/Utils/tiptapFontSize.js
 var FontSize = Extension.create({
 	name: "fontSize",
 	addOptions() {
@@ -3914,8 +3925,7 @@ var FontSize = Extension.create({
 		};
 	}
 });
-//#endregion
-//#region resources/js/Pages/Admin/Articles/Form.jsx
+// resources/js/Pages/Admin/Articles/Form.jsx
 var Form_exports$2 = /* @__PURE__ */ __exportAll({ default: () => AdminArticlesForm });
 var FONT_SIZES = [
 	"12px",
@@ -5052,8 +5062,7 @@ function AdminArticlesForm({ article, categories }) {
 		})]
 	})] });
 }
-//#endregion
-//#region resources/js/Pages/Admin/Articles/Index.jsx
+// resources/js/Pages/Admin/Articles/Index.jsx
 var Index_exports$16 = /* @__PURE__ */ __exportAll({ default: () => AdminArticlesIndex });
 function AdminArticlesIndex({ articles, categories, filters }) {
 	const { locale } = usePage().props;
@@ -5266,8 +5275,7 @@ function AdminArticlesIndex({ articles, categories, filters }) {
 		]
 	})] });
 }
-//#endregion
-//#region resources/js/Pages/Admin/Assistant/Knowledge.jsx
+// resources/js/Pages/Admin/Assistant/Knowledge.jsx
 var Knowledge_exports = /* @__PURE__ */ __exportAll({ default: () => AssistantKnowledgeIndex });
 function AssistantKnowledgeIndex({ items = [], stats = {}, filters = {} }) {
 	const { locale } = usePage().props;
@@ -5792,8 +5800,7 @@ function AssistantKnowledgeIndex({ items = [], stats = {}, filters = {} }) {
 		]
 	})] });
 }
-//#endregion
-//#region resources/js/Pages/Admin/AssistantLeads/Index.jsx
+// resources/js/Pages/Admin/AssistantLeads/Index.jsx
 var Index_exports$15 = /* @__PURE__ */ __exportAll({ default: () => AssistantLeadsIndex });
 function AssistantLeadsIndex({ leads }) {
 	const { locale, auth } = usePage().props;
@@ -6089,8 +6096,7 @@ function AssistantLeadsIndex({ leads }) {
 		})
 	] });
 }
-//#endregion
-//#region resources/js/Pages/Admin/Categories/Index.jsx
+// resources/js/Pages/Admin/Categories/Index.jsx
 var Index_exports$14 = /* @__PURE__ */ __exportAll({ default: () => AdminCategoriesIndex });
 function AdminCategoriesIndex({ categories }) {
 	const { locale } = usePage().props;
@@ -6296,8 +6302,7 @@ function AdminCategoriesIndex({ categories }) {
 		]
 	})] });
 }
-//#endregion
-//#region resources/js/Pages/Admin/Dashboard.jsx
+// resources/js/Pages/Admin/Dashboard.jsx
 var Dashboard_exports = /* @__PURE__ */ __exportAll({ default: () => Dashboard });
 function StatCard({ title, value, subtext, icon, color = "primary", badge }) {
 	const colorClasses = {
@@ -6868,8 +6873,7 @@ function Dashboard({ stats, topProjects = [], topUnits = [], recentUnits = [], r
 		]
 	})] });
 }
-//#endregion
-//#region resources/js/Pages/Admin/Features/Index.jsx
+// resources/js/Pages/Admin/Features/Index.jsx
 var Index_exports$13 = /* @__PURE__ */ __exportAll({ default: () => AdminFeaturesIndex });
 function AdminFeaturesIndex({ features }) {
 	const { locale, flash } = usePage().props;
@@ -7063,8 +7067,7 @@ function AdminFeaturesIndex({ features }) {
 		]
 	})] });
 }
-//#endregion
-//#region resources/js/Pages/Admin/FinishingTypes/Index.jsx
+// resources/js/Pages/Admin/FinishingTypes/Index.jsx
 var Index_exports$12 = /* @__PURE__ */ __exportAll({ default: () => AdminFinishingTypesIndex });
 function AdminFinishingTypesIndex({ finishingTypes }) {
 	const { locale, flash } = usePage().props;
@@ -7256,8 +7259,7 @@ function AdminFinishingTypesIndex({ finishingTypes }) {
 		]
 	})] });
 }
-//#endregion
-//#region resources/js/Components/UI/Pagination.jsx
+// resources/js/Components/UI/Pagination.jsx
 function Pagination({ meta, links: routeLinks, pageParam = "page" }) {
 	const pageContext = usePage();
 	const { locale } = pageContext.props;
@@ -7336,8 +7338,7 @@ function Pagination({ meta, links: routeLinks, pageParam = "page" }) {
 		]
 	});
 }
-//#endregion
-//#region resources/js/Pages/Admin/Messages/Index.jsx
+// resources/js/Pages/Admin/Messages/Index.jsx
 var Index_exports$11 = /* @__PURE__ */ __exportAll({ default: () => AdminMessagesIndex });
 function AdminMessagesIndex({ messages, agents, filters }) {
 	const { locale, auth } = usePage().props;
@@ -7802,8 +7803,7 @@ function AdminMessagesIndex({ messages, agents, filters }) {
 		})
 	] });
 }
-//#endregion
-//#region resources/js/Pages/Admin/Notifications/Index.jsx
+// resources/js/Pages/Admin/Notifications/Index.jsx
 var Index_exports$10 = /* @__PURE__ */ __exportAll({ default: () => NotificationsIndex });
 var TYPE_META = {
 	unit_expiry_warning: {
@@ -7961,6 +7961,7 @@ var ICON_PATHS$1 = {
 	sparkles: "M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z"
 };
 function TypeIcon({ type, className = "w-5 h-5" }) {
+	const meta = TYPE_META[type] || TYPE_DEFAULT;
 	return /* @__PURE__ */ jsx("svg", {
 		className,
 		fill: "none",
@@ -7970,7 +7971,7 @@ function TypeIcon({ type, className = "w-5 h-5" }) {
 		children: /* @__PURE__ */ jsx("path", {
 			strokeLinecap: "round",
 			strokeLinejoin: "round",
-			d: ICON_PATHS$1[(TYPE_META[type] || TYPE_DEFAULT).icon]
+			d: ICON_PATHS$1[meta.icon]
 		})
 	});
 }
@@ -7978,7 +7979,7 @@ function groupByDate(items, isRtl, trans) {
 	const now = /* @__PURE__ */ new Date();
 	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 	const yesterday = /* @__PURE__ */ new Date(today.getTime() - 864e5);
-	const weekAgo = /* @__PURE__ */ new Date(today.getTime() - 6 * 864e5);
+	const weekAgo = /* @__PURE__ */ new Date(today.getTime() - 5184e5);
 	const groups = {
 		today: [],
 		yesterday: [],
@@ -8261,6 +8262,12 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 						const isAssistantLead = item.type === "new_assistant_lead" || Boolean(item.lead_id);
 						const title = isRtl ? item.title || meta.label.ar : item.title_en || item.title || meta.label.en;
 						const body = isRtl ? item.message || "" : item.message_en || item.message || "";
+						const resolvedActions = notificationActions(item, {
+							isAdmin,
+							isManager
+						});
+						const hasAction = (key) => resolvedActions.some((action) => action.key === key);
+						const actionUrl = (key) => resolvedActions.find((action) => action.key === key)?.url;
 						const isNewProject = item.type === "new_project_created" || item.type === "project_pending_approval";
 						const isUnitPendingApproval = item.type === "unit_pending_approval";
 						const isUnitExpiry = item.type === "unit_expiry_warning";
@@ -8270,16 +8277,6 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 						const projectActive = item.project_is_active === true || item.project_is_active === 1;
 						const unitExists = Boolean(item.unit_id) && item.unit_exists !== false;
 						const projectExists = Boolean(item.project_id) && item.project_exists !== false;
-						const isDeleted = item.type === "unit_permanently_deleted" || item.type === "project_permanently_deleted";
-						const isUnitScoped = [
-							"unit_expiry_warning",
-							"unit_expired",
-							"unit_pending_approval",
-							"unit_approved",
-							"unit_extended",
-							"unit_permanently_deleted",
-							"new_message"
-						].includes(item.type);
 						const approveUnitDone = isUnitPendingApproval && unitActive;
 						const approveProjDone = isNewProject && projectActive;
 						const extendUnitDone = (isUnitExpiry || isUnitExpired) && (item.is_extended === true || item.extended === true);
@@ -8495,7 +8492,7 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 														className: "px-3 py-1.5 bg-primary-900/10 hover:bg-primary-900/20 text-primary-900 text-xs font-semibold rounded-lg transition-colors",
 														children: trans("mark_read")
 													}),
-													isNewProject && item.project_id && isAdmin && (approveProjDone ? /* @__PURE__ */ jsxs("span", {
+													isNewProject && projectExists && isAdmin && (approveProjDone ? /* @__PURE__ */ jsxs("span", {
 														className: "inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg",
 														children: [/* @__PURE__ */ jsx("svg", {
 															className: "w-3 h-3",
@@ -8509,12 +8506,12 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 																d: "M5 13l4 4L19 7"
 															})
 														}), isRtl ? "تمت الموافقة" : "Approved"]
-													}) : /* @__PURE__ */ jsx("button", {
+													}) : hasAction("approve_project") ? /* @__PURE__ */ jsx("button", {
 														onClick: () => handleApproveProject(item.project_id),
 														className: "px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition-colors",
 														children: isRtl ? "موافقة ونشر" : "Approve & publish"
-													})),
-													isUnitPendingApproval && item.unit_id && (isAdmin || isManager) && (approveUnitDone ? /* @__PURE__ */ jsxs("span", {
+													}) : null),
+													isUnitPendingApproval && unitExists && (isAdmin || isManager) && (approveUnitDone ? /* @__PURE__ */ jsxs("span", {
 														className: "inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg",
 														children: [/* @__PURE__ */ jsx("svg", {
 															className: "w-3 h-3",
@@ -8528,12 +8525,12 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 																d: "M5 13l4 4L19 7"
 															})
 														}), isRtl ? "تمت الموافقة" : "Approved"]
-													}) : /* @__PURE__ */ jsx("button", {
+													}) : hasAction("approve_unit") ? /* @__PURE__ */ jsx("button", {
 														onClick: () => handleApproveUnit(item.unit_id),
 														className: "px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition-colors",
 														children: isRtl ? "موافقة ونشر" : "Approve & publish"
-													})),
-													(isUnitExpiry || isUnitExpired) && item.unit_id && (isAdmin || isManager) && (extendUnitDone ? /* @__PURE__ */ jsxs("span", {
+													}) : null),
+													(isUnitExpiry || isUnitExpired) && unitExists && (hasAction("extend_unit") || extendUnitDone) && (extendUnitDone ? /* @__PURE__ */ jsxs("span", {
 														className: "inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg",
 														children: [/* @__PURE__ */ jsx("svg", {
 															className: "w-3 h-3",
@@ -8563,7 +8560,7 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 															})
 														}), trans("extend")]
 													})),
-													isProjectExpiry && item.project_id && isAdmin && (extendProjDone ? /* @__PURE__ */ jsxs("span", {
+													isProjectExpiry && projectExists && (hasAction("extend_project") || extendProjDone) && (extendProjDone ? /* @__PURE__ */ jsxs("span", {
 														className: "inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg",
 														children: [/* @__PURE__ */ jsx("svg", {
 															className: "w-3 h-3",
@@ -8593,7 +8590,7 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 															})
 														}), trans("extend")]
 													})),
-													(isUnitExpiry || isUnitExpired) && item.unit_id && isAdmin && (confirmDeleteId === item.id ? /* @__PURE__ */ jsxs("div", {
+													(isUnitExpiry || isUnitExpired) && hasAction("delete_unit") && (confirmDeleteId === item.id ? /* @__PURE__ */ jsxs("div", {
 														className: "flex items-center gap-1",
 														children: [/* @__PURE__ */ jsx("button", {
 															onClick: () => handleDeleteUnit(item.unit_id),
@@ -8620,8 +8617,8 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 															})
 														}), trans("delete")]
 													})),
-													isNewMessage && /* @__PURE__ */ jsxs(Link, {
-														href: "/admin/messages",
+													hasAction("messages") && /* @__PURE__ */ jsxs(Link, {
+														href: actionUrl("messages"),
 														className: "px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1",
 														children: [/* @__PURE__ */ jsx("svg", {
 															className: "w-3.5 h-3.5",
@@ -8636,8 +8633,8 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 															})
 														}), isRtl ? "عرض الرسائل" : "View Messages"]
 													}),
-													(isAssistantLead || item.lead_id) && /* @__PURE__ */ jsxs(Link, {
-														href: "/admin/assistant-leads",
+													hasAction("lead") && /* @__PURE__ */ jsxs(Link, {
+														href: actionUrl("lead"),
 														className: "px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1 shadow-xs",
 														children: [/* @__PURE__ */ jsxs("svg", {
 															className: "w-3.5 h-3.5",
@@ -8656,8 +8653,8 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 															})]
 														}), isRtl ? "عرض تفاصيل العميل" : "View Lead Details"]
 													}),
-													unitExists && !isDeleted && /* @__PURE__ */ jsxs(Link, {
-														href: `/admin/units/${item.unit_id}/edit`,
+													hasAction("edit_unit") && /* @__PURE__ */ jsxs(Link, {
+														href: actionUrl("edit_unit"),
 														className: "px-3 py-1.5 bg-secondary-800 hover:bg-secondary-900 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1",
 														children: [/* @__PURE__ */ jsx("svg", {
 															className: "w-3.5 h-3.5",
@@ -8672,8 +8669,8 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 															})
 														}), isRtl ? "تعديل الوحدة" : "Edit Unit"]
 													}),
-													projectExists && !isUnitScoped && !isDeleted && /* @__PURE__ */ jsxs(Link, {
-														href: `/admin/projects/${item.project_id}/edit`,
+													hasAction("edit_project") && /* @__PURE__ */ jsxs(Link, {
+														href: actionUrl("edit_project"),
 														className: "px-3 py-1.5 bg-secondary-800 hover:bg-secondary-900 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1",
 														children: [/* @__PURE__ */ jsx("svg", {
 															className: "w-3.5 h-3.5",
@@ -8688,9 +8685,10 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 															})
 														}), isRtl ? "تعديل المشروع" : "Edit Project"]
 													}),
-													unitExists && unitActive && item.unit_slug && /* @__PURE__ */ jsxs(Link, {
-														href: localizedPath(`/units/${item.unit_slug}`, locale),
+													hasAction("view_unit") && /* @__PURE__ */ jsxs(Link, {
+														href: localizedPath(actionUrl("view_unit"), locale),
 														target: "_blank",
+														rel: "noopener noreferrer",
 														className: "px-3 py-1.5 text-secondary-500 hover:bg-secondary-100 text-xs font-medium rounded-lg transition-colors flex items-center gap-1",
 														children: [/* @__PURE__ */ jsx("svg", {
 															className: "w-3.5 h-3.5",
@@ -8705,9 +8703,10 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 															})
 														}), trans("view")]
 													}),
-													projectExists && projectActive && item.project_slug && !isUnitScoped && /* @__PURE__ */ jsxs(Link, {
-														href: localizedPath(`/projects/${item.project_slug}`, locale),
+													hasAction("view_project") && /* @__PURE__ */ jsxs(Link, {
+														href: localizedPath(actionUrl("view_project"), locale),
 														target: "_blank",
+														rel: "noopener noreferrer",
 														className: "px-3 py-1.5 text-secondary-500 hover:bg-secondary-100 text-xs font-medium rounded-lg transition-colors flex items-center gap-1",
 														children: [/* @__PURE__ */ jsx("svg", {
 															className: "w-3.5 h-3.5",
@@ -8890,8 +8889,7 @@ function NotificationsIndex({ notifications, unreadCount, autoDeleteDays = 30 })
 		]
 	})] });
 }
-//#endregion
-//#region resources/js/Pages/Admin/Points/Index.jsx
+// resources/js/Pages/Admin/Points/Index.jsx
 var Index_exports$9 = /* @__PURE__ */ __exportAll({ default: () => PointsIndex });
 function PointsIndex({ managers, ledger, units, filters, pointsSettings }) {
 	const { locale, auth } = usePage().props;
@@ -9438,8 +9436,7 @@ function PointsIndex({ managers, ledger, units, filters, pointsSettings }) {
 		]
 	})] });
 }
-//#endregion
-//#region resources/js/Pages/Admin/Points/Ledger.jsx
+// resources/js/Pages/Admin/Points/Ledger.jsx
 var Ledger_exports = /* @__PURE__ */ __exportAll({ default: () => PointsLedger });
 var FILTER_MAP = {
 	type: "",
@@ -9651,8 +9648,7 @@ function PointsLedger({ transactions, managers, filters = FILTER_MAP }) {
 		]
 	});
 }
-//#endregion
-//#region resources/js/Pages/Admin/Profile/Edit.jsx
+// resources/js/Pages/Admin/Profile/Edit.jsx
 var Edit_exports = /* @__PURE__ */ __exportAll({ default: () => Edit });
 function Edit({ user }) {
 	const { auth, locale, flash, errors: pageErrors } = usePage().props;
@@ -9660,7 +9656,8 @@ function Edit({ user }) {
 	const isRtl = locale === "ar";
 	const fileInput = useRef(null);
 	const currentUser = user || auth?.user || {};
-	const [preview, setPreview] = useState(currentUser.avatar ? currentUser.avatar.startsWith("http") || currentUser.avatar.startsWith("/storage") ? currentUser.avatar : `/storage/${currentUser.avatar}` : null);
+	const initialAvatar = currentUser.avatar ? currentUser.avatar.startsWith("http") || currentUser.avatar.startsWith("/storage") ? currentUser.avatar : `/storage/${currentUser.avatar}` : null;
+	const [preview, setPreview] = useState(initialAvatar);
 	const [newEmail, setNewEmail] = useState(currentUser.email || "");
 	const [otpSent, setOtpSent] = useState(false);
 	const [otpCode, setOtpCode] = useState("");
@@ -10002,8 +9999,7 @@ function Edit({ user }) {
 		})]
 	});
 }
-//#endregion
-//#region resources/js/Pages/Admin/Projects/Form.jsx
+// resources/js/Pages/Admin/Projects/Form.jsx
 var Form_exports$1 = /* @__PURE__ */ __exportAll({ default: () => AdminProjectForm });
 var STEPS$1 = [
 	{
@@ -11093,8 +11089,7 @@ function AdminProjectForm({ project, areas, features, finishingTypes, managers }
 		]
 	})] });
 }
-//#endregion
-//#region resources/js/Pages/Admin/Projects/Index.jsx
+// resources/js/Pages/Admin/Projects/Index.jsx
 var Index_exports$8 = /* @__PURE__ */ __exportAll({ default: () => AdminProjectsIndex });
 function AdminProjectsIndex({ projects, stats, areas, filters }) {
 	const { locale, auth } = usePage().props;
@@ -11850,8 +11845,7 @@ function AdminProjectsIndex({ projects, stats, areas, filters }) {
 		]
 	})] });
 }
-//#endregion
-//#region resources/js/Pages/Admin/SeoPages/Index.jsx
+// resources/js/Pages/Admin/SeoPages/Index.jsx
 var Index_exports$7 = /* @__PURE__ */ __exportAll({ default: () => SeoPagesIndex });
 function SeoPagesIndex({ pages }) {
 	const { locale } = usePage().props;
@@ -12071,8 +12065,7 @@ function SeoPagesIndex({ pages }) {
 		})]
 	})] });
 }
-//#endregion
-//#region resources/js/Pages/Admin/Settings/Index.jsx
+// resources/js/Pages/Admin/Settings/Index.jsx
 var Index_exports$6 = /* @__PURE__ */ __exportAll({ default: () => AdminSettingsIndex });
 function AdminSettingsIndex({ settings }) {
 	const { locale, flash } = usePage().props;
@@ -12754,8 +12747,7 @@ function AdminSettingsIndex({ settings }) {
 		})
 	] });
 }
-//#endregion
-//#region resources/js/Pages/Admin/UnitTypes/Index.jsx
+// resources/js/Pages/Admin/UnitTypes/Index.jsx
 var Index_exports$5 = /* @__PURE__ */ __exportAll({ default: () => AdminUnitTypesIndex });
 function AdminUnitTypesIndex({ unitTypes }) {
 	const { locale, flash, errors } = usePage().props;
@@ -12997,8 +12989,7 @@ function AdminUnitTypesIndex({ unitTypes }) {
 		]
 	})] });
 }
-//#endregion
-//#region resources/js/Pages/Admin/Units/Form.jsx
+// resources/js/Pages/Admin/Units/Form.jsx
 var Form_exports = /* @__PURE__ */ __exportAll({ default: () => AdminUnitForm });
 var STEPS = [
 	{
@@ -13034,8 +13025,8 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 	const [newPreviews, setNewPreviews] = useState([]);
 	const primaryRef = useRef();
 	const moreRef = useRef();
-	const MAX_SIZE = 10 * 1024 * 1024;
-	const MAX_TOTAL = 40 * 1024 * 1024;
+	const MAX_SIZE = 10485760;
+	const MAX_TOTAL = 41943040;
 	const existingImages = unit?.images ?? [];
 	const { data, setData, post, processing } = useForm({
 		user_id: unit?.user_id || "",
@@ -14311,8 +14302,7 @@ function AdminUnitForm({ unit, areas, unitTypes, projects, features, finishingTy
 		]
 	})] });
 }
-//#endregion
-//#region resources/js/Pages/Admin/Units/Index.jsx
+// resources/js/Pages/Admin/Units/Index.jsx
 var Index_exports$4 = /* @__PURE__ */ __exportAll({ default: () => AdminUnitsIndex });
 function AdminUnitsIndex({ units, stats, areas, unitTypes, filters, autoDeleteDays = 30 }) {
 	const { locale, auth } = usePage().props;
@@ -14947,7 +14937,7 @@ function AdminUnitsIndex({ units, stats, areas, unitTypes, filters, autoDeleteDa
 															}),
 															unit.auto_delete_at && (() => {
 																const isExp = new Date(unit.auto_delete_at) <= /* @__PURE__ */ new Date();
-																const daysLeft = Math.ceil((new Date(unit.auto_delete_at) - /* @__PURE__ */ new Date()) / (1e3 * 60 * 60 * 24));
+																const daysLeft = Math.ceil((new Date(unit.auto_delete_at) - /* @__PURE__ */ new Date()) / 864e5);
 																if (isExp) return /* @__PURE__ */ jsx("span", {
 																	className: "px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-rose-50 text-rose-700 border border-rose-200",
 																	title: new Date(unit.auto_delete_at).toLocaleDateString(),
@@ -15661,8 +15651,7 @@ function AdminUnitsIndex({ units, stats, areas, unitTypes, filters, autoDeleteDa
 		]
 	})] });
 }
-//#endregion
-//#region resources/js/Pages/Admin/Users/Create.jsx
+// resources/js/Pages/Admin/Users/Create.jsx
 var Create_exports = /* @__PURE__ */ __exportAll({ default: () => AdminUsersCreate });
 function AdminUsersCreate({ managers }) {
 	const { locale } = usePage().props;
@@ -15872,8 +15861,7 @@ function AdminUsersCreate({ managers }) {
 		})]
 	})] });
 }
-//#endregion
-//#region resources/js/Pages/Admin/Users/Index.jsx
+// resources/js/Pages/Admin/Users/Index.jsx
 var Index_exports$3 = /* @__PURE__ */ __exportAll({ default: () => AdminUsersIndex });
 function AdminUsersIndex({ users, managers, filters }) {
 	const { locale, auth } = usePage().props;
@@ -17636,8 +17624,7 @@ function AdminUsersIndex({ users, managers, filters }) {
 		]
 	})] });
 }
-//#endregion
-//#region resources/js/Components/OptimizedImage.jsx
+// resources/js/Components/OptimizedImage.jsx
 function OptimizedImage({ src, alt = "", width, height, className = "", lazy = true, fallbackSrc = "/images/fallback.webp", role, srcSet, sizes = "(max-width: 640px) calc(100vw - 32px), (max-width: 1024px) 50vw, (max-width: 1536px) 33vw, 480px", ...props }) {
 	const [imgSrc, setImgSrc] = useState(src);
 	const [imgSrcSet, setImgSrcSet] = useState(srcSet);
@@ -17675,8 +17662,7 @@ function OptimizedImage({ src, alt = "", width, height, className = "", lazy = t
 		...props
 	});
 }
-//#endregion
-//#region resources/js/Components/Layout/Header.jsx
+// resources/js/Components/Layout/Header.jsx
 var NAV_ITEMS = [
 	{
 		key: "home",
@@ -17875,8 +17861,7 @@ function Header({ compareCount = 0 }) {
 		})]
 	});
 }
-//#endregion
-//#region resources/js/Contexts/CompareContext.jsx
+// resources/js/Contexts/CompareContext.jsx
 var COMPARE_KEY_PREFIX = "family_home_compare_list_";
 var MAX_COMPARE_ITEMS = 4;
 function getCompareKey(type) {
@@ -17975,8 +17960,7 @@ function useCompare(type = "unit") {
 		maxItems: ctx.maxItems
 	};
 }
-//#endregion
-//#region resources/js/Components/Features/CompareBar.jsx
+// resources/js/Components/Features/CompareBar.jsx
 function CompareBar() {
 	const { locale } = usePage().props;
 	const trans = useTrans(locale);
@@ -18049,9 +18033,42 @@ function CompareBar() {
 		})
 	});
 }
-//#endregion
-//#region resources/js/Components/Layout/Footer.jsx
-var HossamChatWidget = lazy(() => import("./assets/HossamChatWidget-CrAZn3fB.js"));
+// resources/js/Components/HossamChat/ChatLauncherButton.jsx
+function ChatLauncherButton({ title, description, onClick, expanded = false, ref }) {
+	return /* @__PURE__ */ jsxs("button", {
+		type: "button",
+		ref,
+		onClick,
+		className: "group relative flex min-h-16 w-56 max-w-[calc(100vw-2rem)] items-center gap-3 rounded-full border border-slate-200 bg-white px-2.5 py-2 text-start text-slate-800 shadow-[0_6px_20px_rgba(15,23,42,0.12)] transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 print:hidden",
+		"aria-label": `${title}. ${description}`,
+		"aria-expanded": expanded,
+		title: `${title}. ${description}`,
+		children: [/* @__PURE__ */ jsxs("span", {
+			className: "relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-100 p-1",
+			children: [/* @__PURE__ */ jsx("img", {
+				src: "/images/ai-agent-head.webp",
+				alt: "",
+				"aria-hidden": "true",
+				draggable: "false",
+				className: "h-full w-full object-contain"
+			}), /* @__PURE__ */ jsx("span", {
+				"aria-hidden": "true",
+				className: "absolute -end-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500"
+			})]
+		}), /* @__PURE__ */ jsxs("span", {
+			className: "flex min-w-0 flex-col gap-0.5",
+			children: [/* @__PURE__ */ jsx("span", {
+				className: "text-sm font-semibold leading-tight",
+				children: title
+			}), /* @__PURE__ */ jsx("span", {
+				className: "truncate text-[11px] leading-tight text-slate-500",
+				children: description
+			})]
+		})]
+	});
+}
+// resources/js/Components/Layout/Footer.jsx
+var HossamChatWidget = lazy(() => import("./assets/HossamChatWidget-Cxi4Zxia.js"));
 var QUICK_LINKS = [
 	{
 		key: "home",
@@ -18090,9 +18107,12 @@ var SOCIAL_ICONS = {
 };
 function Footer() {
 	const { locale, settings } = usePage().props;
+	const { compareList: unitCompareList } = useCompare("unit");
+	const { compareList: projectCompareList } = useCompare("project");
 	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
 	const [chatMounted, setChatMounted] = useState(false);
+	const hasCompareItems = unitCompareList.length > 0 || projectCompareList.length > 0;
 	const socialLinks = [
 		{
 			key: "social_facebook",
@@ -18266,30 +18286,18 @@ function Footer() {
 			chatMounted ? /* @__PURE__ */ jsx(Suspense, {
 				fallback: null,
 				children: /* @__PURE__ */ jsx(HossamChatWidget, { autoOpen: true })
-			}) : /* @__PURE__ */ jsxs("button", {
-				type: "button",
-				onClick: () => setChatMounted(true),
-				className: "group fixed z-50 end-4 bottom-6 sm:bottom-8 sm:end-8 w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#1A1A1A] text-white flex items-center justify-center shadow-[0_10px_30px_rgba(0,0,0,0.20)] hover:shadow-[0_14px_40px_rgba(0,0,0,0.30)] focus:outline-none focus:ring-4 focus:ring-[#CC0000]/30 print:hidden transition-all duration-300",
-				"aria-label": trans("assistant_name"),
-				title: trans("assistant_name"),
-				children: [/* @__PURE__ */ jsxs("span", {
-					className: "absolute top-1.5 end-1.5 flex h-3 w-3 z-20",
-					children: [/* @__PURE__ */ jsx("span", { className: "animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" }), /* @__PURE__ */ jsx("span", { className: "relative inline-flex rounded-full h-3 w-3 bg-emerald-500 border-2 border-[#1A1A1A] shadow-sm" })]
-				}), /* @__PURE__ */ jsx("div", {
-					className: "concierge-fab-icon relative z-10 w-14 h-14 sm:w-[72px] sm:h-[72px] flex items-center justify-center overflow-hidden rounded-full transition-transform duration-300 ease-out animate-[bounce_3.5s_ease-in-out_infinite] group-hover:scale-110 group-hover:-rotate-3",
-					children: /* @__PURE__ */ jsx("img", {
-						src: "/images/ai-agent-head.webp",
-						alt: trans("assistant_name"),
-						draggable: "false",
-						className: "pointer-events-none w-full h-full object-contain drop-shadow-[0_6px_14px_rgba(37,99,235,0.45)]"
-					})
-				})]
+			}) : /* @__PURE__ */ jsx("div", {
+				className: `fixed z-50 end-4 ${hasCompareItems ? "bottom-[100px]" : "bottom-6"} sm:bottom-8 sm:end-8`,
+				children: /* @__PURE__ */ jsx(ChatLauncherButton, {
+					title: trans("assistant_launcher_title"),
+					description: trans("assistant_launcher_description"),
+					onClick: () => setChatMounted(true)
+				})
 			})
 		]
 	});
 }
-//#endregion
-//#region resources/js/Components/UI/SeoHead.jsx
+// resources/js/Components/UI/SeoHead.jsx
 function SeoHead({ title, description, keywords, ogImage, ogType = "website", canonical, jsonLd, hreflang, robots, geoRegion, geoPlacename, geoPosition, icbm }) {
 	const { locale, seo_page, appUrl, seo_meta, settings } = usePage().props;
 	const { url } = usePage();
@@ -18496,8 +18504,7 @@ function SeoHead({ title, description, keywords, ogImage, ogType = "website", ca
 		})
 	] });
 }
-//#endregion
-//#region resources/js/Pages/Public/About.jsx
+// resources/js/Pages/Public/About.jsx
 var About_exports = /* @__PURE__ */ __exportAll({ default: () => About });
 function About({ page }) {
 	const { locale } = usePage().props;
@@ -18565,8 +18572,7 @@ function About({ page }) {
 		]
 	});
 }
-//#endregion
-//#region resources/js/Utils/contact.js
+// resources/js/Utils/contact.js
 /**
 * Normalize a phone number for WhatsApp's international wa.me format.
 * Egyptian local mobile numbers such as 01012345678 become 201012345678.
@@ -18605,8 +18611,7 @@ function getAgentContacts(agent, settings = {}) {
 		rawPhone: finalPhone
 	};
 }
-//#endregion
-//#region resources/js/Components/UI/UnitCard.jsx
+// resources/js/Components/UI/UnitCard.jsx
 function SkeletonCard$2() {
 	return /* @__PURE__ */ jsxs("div", {
 		className: "bg-white rounded-2xl shadow-card overflow-hidden border border-secondary-100/50",
@@ -18826,8 +18831,7 @@ function UnitCard({ unit, loading = false, priority = false }) {
 	});
 }
 var UnitCard_default = memo(UnitCard);
-//#endregion
-//#region resources/js/Components/UI/ProjectCard.jsx
+// resources/js/Components/UI/ProjectCard.jsx
 function SkeletonCard$1() {
 	return /* @__PURE__ */ jsxs("div", {
 		className: "bg-white rounded-2xl shadow-card overflow-hidden border border-secondary-100 animate-pulse",
@@ -19029,8 +19033,7 @@ function ProjectCard({ project, loading = false, priority = false }) {
 	});
 }
 var ProjectCard_default = memo(ProjectCard);
-//#endregion
-//#region resources/js/Pages/Public/Agents/Show.jsx
+// resources/js/Pages/Public/Agents/Show.jsx
 var Show_exports$4 = /* @__PURE__ */ __exportAll({ default: () => Show });
 function Show({ agent, units, projects, stats = {}, availableAreas = [], filters = {}, locale }) {
 	const pageProps = usePage().props;
@@ -19531,8 +19534,7 @@ function EmptyState({ icon, title, text }) {
 		]
 	});
 }
-//#endregion
-//#region resources/js/Components/UI/SearchBar.jsx
+// resources/js/Components/UI/SearchBar.jsx
 var EMPTY_FILTERS = {
 	area_id: "",
 	type_id: "",
@@ -19561,8 +19563,10 @@ function SearchBar({ areas: rawAreas = [], unitTypes: rawUnitTypes = [], feature
 	});
 	const [isSearching, setIsSearching] = useState(false);
 	const [showAdvanced, setShowAdvanced] = useState(false);
+	const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 	const [mobileShowAdvanced, setMobileShowAdvanced] = useState(false);
 	const searchRef = useRef(null);
+	const mobileDialogRef = useRef(null);
 	useEffect(() => {
 		setLocal((prev) => ({
 			...prev,
@@ -19586,6 +19590,7 @@ function SearchBar({ areas: rawAreas = [], unitTypes: rawUnitTypes = [], feature
 		const handleKeyDown = (event) => {
 			if (event.key === "Escape") {
 				setShowAdvanced(false);
+				setMobileFiltersOpen(false);
 				setMobileShowAdvanced(false);
 				searchRef.current?.blur();
 			}
@@ -19593,6 +19598,38 @@ function SearchBar({ areas: rawAreas = [], unitTypes: rawUnitTypes = [], feature
 		window.addEventListener("keydown", handleKeyDown);
 		return () => window.removeEventListener("keydown", handleKeyDown);
 	}, []);
+	useEffect(() => {
+		if (!mobileFiltersOpen) return;
+		const dialog = mobileDialogRef.current;
+		if (!dialog) return;
+		const previouslyFocused = document.activeElement;
+		const previousOverflow = document.body.style.overflow;
+		const focusableSelector = "a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex=\"-1\"])";
+		document.body.style.overflow = "hidden";
+		dialog.querySelector("[data-dialog-close]")?.focus();
+		const handleTabKey = (event) => {
+			if (event.key !== "Tab") return;
+			const focusable = Array.from(dialog.querySelectorAll(focusableSelector)).filter((element) => element.getClientRects().length > 0);
+			const first = focusable[0];
+			const last = focusable[focusable.length - 1];
+			if (!first) {
+				event.preventDefault();
+				dialog.focus();
+			} else if (event.shiftKey && (document.activeElement === first || !dialog.contains(document.activeElement))) {
+				event.preventDefault();
+				last.focus();
+			} else if (!event.shiftKey && (document.activeElement === last || !dialog.contains(document.activeElement))) {
+				event.preventDefault();
+				first.focus();
+			}
+		};
+		dialog.addEventListener("keydown", handleTabKey);
+		return () => {
+			dialog.removeEventListener("keydown", handleTabKey);
+			document.body.style.overflow = previousOverflow;
+			previouslyFocused?.focus?.();
+		};
+	}, [mobileFiltersOpen]);
 	const update = (key, value) => setLocal((prev) => ({
 		...prev,
 		[key]: value
@@ -19608,6 +19645,7 @@ function SearchBar({ areas: rawAreas = [], unitTypes: rawUnitTypes = [], feature
 			}
 			if (value !== "" && value !== null && value !== void 0) params[key] = value;
 		});
+		if (typeof filters.sort === "string" && filters.sort) params.sort = filters.sort;
 		if (onSearch) {
 			onSearch(params);
 			setTimeout(() => setIsSearching(false), 300);
@@ -19997,7 +20035,7 @@ function SearchBar({ areas: rawAreas = [], unitTypes: rawUnitTypes = [], feature
 						})]
 					}), /* @__PURE__ */ jsx("button", {
 						type: "button",
-						onClick: () => setShowAdvanced(true),
+						onClick: () => setMobileFiltersOpen(true),
 						"aria-label": locale === "ar" ? "جميع الفلاتر" : "All Filters",
 						className: "w-11 h-11 rounded-full bg-surface text-primary-900 flex items-center justify-center shrink-0 border border-secondary-200",
 						children: /* @__PURE__ */ jsx("svg", {
@@ -20013,24 +20051,29 @@ function SearchBar({ areas: rawAreas = [], unitTypes: rawUnitTypes = [], feature
 							})
 						})
 					})]
-				}), showAdvanced && /* @__PURE__ */ jsxs("div", {
+				}), mobileFiltersOpen && /* @__PURE__ */ jsxs("div", {
 					className: "fixed inset-0 z-[100] flex flex-col justify-end overflow-hidden",
-					role: "dialog",
-					"aria-modal": "true",
 					children: [/* @__PURE__ */ jsx("div", {
 						className: "absolute inset-0 bg-secondary-950/40 backdrop-blur-sm",
-						onClick: () => setShowAdvanced(false)
+						onClick: () => setMobileFiltersOpen(false)
 					}), /* @__PURE__ */ jsxs("div", {
+						ref: mobileDialogRef,
 						className: "relative bg-white rounded-t-[2rem] w-full h-[92dvh] flex flex-col shadow-2xl animate-slideUp",
+						role: "dialog",
+						"aria-modal": "true",
+						"aria-labelledby": "mobile-filters-title",
+						tabIndex: "-1",
 						children: [
 							/* @__PURE__ */ jsxs("div", {
 								className: "p-4 border-b border-secondary-100 flex items-center justify-between",
 								children: [/* @__PURE__ */ jsx("h3", {
+									id: "mobile-filters-title",
 									className: "text-lg font-black text-secondary-950",
 									children: locale === "ar" ? "البحث والتصفية" : "Search & Filters"
 								}), /* @__PURE__ */ jsx("button", {
 									type: "button",
-									onClick: () => setShowAdvanced(false),
+									"data-dialog-close": true,
+									onClick: () => setMobileFiltersOpen(false),
 									className: "w-11 h-11 rounded-full bg-surface flex items-center justify-center",
 									"aria-label": trans("close") || "Close",
 									children: /* @__PURE__ */ jsx("svg", {
@@ -20142,6 +20185,8 @@ function SearchBar({ areas: rawAreas = [], unitTypes: rawUnitTypes = [], feature
 									/* @__PURE__ */ jsxs("button", {
 										type: "button",
 										onClick: () => setMobileShowAdvanced((prev) => !prev),
+										"aria-expanded": mobileShowAdvanced,
+										"aria-controls": "mobile-advanced-filters",
 										className: "w-full py-3 px-4 rounded-xl bg-surface text-sm font-bold text-secondary-900 flex items-center justify-between",
 										children: [/* @__PURE__ */ jsx("span", { children: locale === "ar" ? "فلاتر متقدمة" : "Advanced Filters" }), /* @__PURE__ */ jsx("span", {
 											className: mobileShowAdvanced ? "rotate-180" : "",
@@ -20149,6 +20194,7 @@ function SearchBar({ areas: rawAreas = [], unitTypes: rawUnitTypes = [], feature
 										})]
 									}),
 									mobileShowAdvanced && /* @__PURE__ */ jsxs("div", {
+										id: "mobile-advanced-filters",
 										className: "space-y-4 rounded-2xl border border-secondary-200 p-4",
 										children: [
 											/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
@@ -20163,26 +20209,36 @@ function SearchBar({ areas: rawAreas = [], unitTypes: rawUnitTypes = [], feature
 												onChange: (e) => update("price_min", e.target.value),
 												className: "field-input h-12"
 											})] }),
-											/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+											/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("span", {
 												className: "field-label",
 												children: locale === "ar" ? "المساحة" : "Size"
 											}), /* @__PURE__ */ jsxs("div", {
 												className: "grid grid-cols-2 gap-3",
-												children: [/* @__PURE__ */ jsx("input", {
+												children: [/* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+													className: "sr-only",
+													htmlFor: "m-size-min",
+													children: locale === "ar" ? "المساحة من" : "Minimum size"
+												}), /* @__PURE__ */ jsx("input", {
+													id: "m-size-min",
 													type: "number",
 													min: "0",
 													value: local.size_min,
 													onChange: (e) => update("size_min", e.target.value),
 													placeholder: locale === "ar" ? "من" : "Min",
 													className: "field-input h-12"
+												})] }), /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+													className: "sr-only",
+													htmlFor: "m-size-max",
+													children: locale === "ar" ? "المساحة إلى" : "Maximum size"
 												}), /* @__PURE__ */ jsx("input", {
+													id: "m-size-max",
 													type: "number",
 													min: "0",
 													value: local.size_max,
 													onChange: (e) => update("size_max", e.target.value),
 													placeholder: locale === "ar" ? "إلى" : "Max",
 													className: "field-input h-12"
-												})]
+												})] })]
 											})] }),
 											/* @__PURE__ */ jsxs("div", {
 												className: "grid grid-cols-2 gap-3",
@@ -20231,7 +20287,7 @@ function SearchBar({ areas: rawAreas = [], unitTypes: rawUnitTypes = [], feature
 													}, `m-f-${item.id}`))]
 												})] })]
 											}),
-											features?.length > 0 && /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("label", {
+											features?.length > 0 && /* @__PURE__ */ jsxs("div", { children: [/* @__PURE__ */ jsx("span", {
 												className: "field-label",
 												children: trans("features") || "Features"
 											}), /* @__PURE__ */ jsx("div", {
@@ -20240,6 +20296,7 @@ function SearchBar({ areas: rawAreas = [], unitTypes: rawUnitTypes = [], feature
 													const checked = local.features?.map(String).includes(String(feature.id));
 													return /* @__PURE__ */ jsx("button", {
 														type: "button",
+														"aria-pressed": checked,
 														onClick: () => toggleFeature(feature.id),
 														className: `px-3 py-2 rounded-full text-sm border ${checked ? "bg-primary-900 border-primary-900 text-white" : "bg-white border-secondary-200 text-secondary-700"}`,
 														children: typeName(feature)
@@ -20260,7 +20317,7 @@ function SearchBar({ areas: rawAreas = [], unitTypes: rawUnitTypes = [], feature
 								}), /* @__PURE__ */ jsx("button", {
 									type: "button",
 									onClick: (event) => {
-										setShowAdvanced(false);
+										setMobileFiltersOpen(false);
 										submit(event);
 									},
 									className: "flex-1 h-12 rounded-xl bg-primary-900 text-white font-bold",
@@ -20275,8 +20332,7 @@ function SearchBar({ areas: rawAreas = [], unitTypes: rawUnitTypes = [], feature
 		]
 	});
 }
-//#endregion
-//#region resources/js/Components/UI/IconByName.jsx
+// resources/js/Components/UI/IconByName.jsx
 /**
 * Renders a SAFE, static SVG icon from an allowlisted icon NAME.
 *
@@ -20319,6 +20375,7 @@ var DEFAULT_NAME = "default";
 */
 function IconByName({ iconName, className = "w-6 h-6", strokeWidth = 1.8 }) {
 	const key = Array.isArray(iconName) ? iconName[0] : iconName;
+	const paths = ICON_PATHS[typeof key === "string" ? key : ""] || ICON_PATHS[DEFAULT_NAME];
 	return /* @__PURE__ */ jsx("svg", {
 		viewBox: "0 0 24 24",
 		className,
@@ -20328,11 +20385,10 @@ function IconByName({ iconName, className = "w-6 h-6", strokeWidth = 1.8 }) {
 		strokeLinecap: "round",
 		strokeLinejoin: "round",
 		"aria-hidden": "true",
-		children: (ICON_PATHS[typeof key === "string" ? key : ""] || ICON_PATHS[DEFAULT_NAME]).map((d, i) => /* @__PURE__ */ jsx("path", { d }, i))
+		children: paths.map((d, i) => /* @__PURE__ */ jsx("path", { d }, i))
 	});
 }
-//#endregion
-//#region resources/js/Pages/Public/Areas/Show.jsx
+// resources/js/Pages/Public/Areas/Show.jsx
 var Show_exports$3 = /* @__PURE__ */ __exportAll({ default: () => AreaShow });
 function AreaShow({ area, relatedAreas, units, projects, seo, areas, unitTypes, features, finishingTypes }) {
 	const { locale, appUrl } = usePage().props;
@@ -20853,8 +20909,7 @@ function AreaShow({ area, relatedAreas, units, projects, seo, areas, unitTypes, 
 		]
 	});
 }
-//#endregion
-//#region resources/js/Components/UI/ArticleCard.jsx
+// resources/js/Components/UI/ArticleCard.jsx
 var PLACEHOLDER$1 = "/images/fallback.webp";
 function SkeletonCard() {
 	return /* @__PURE__ */ jsxs("div", {
@@ -20887,8 +20942,9 @@ function ArticleCard({ article, loading = false }) {
 		month: "short",
 		day: "numeric"
 	}) : "";
+	const articleSlug = isRtl && article.slug_ar ? article.slug_ar : article.slug_en || article.slug || article.id;
 	return /* @__PURE__ */ jsxs(Link, {
-		href: localizedPath(`/articles/${isRtl && article.slug_ar ? article.slug_ar : article.slug_en || article.slug || article.id}`, locale),
+		href: localizedPath(`/articles/${articleSlug}`, locale),
 		className: "group bg-white rounded-2xl border border-secondary-200/80 shadow-card hover:shadow-lg hover:-translate-y-1 transition-[transform,box-shadow] duration-300 flex flex-col h-full overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary-500",
 		children: [/* @__PURE__ */ jsxs("div", {
 			className: "relative aspect-[16/10] w-full overflow-hidden bg-secondary-100",
@@ -20942,8 +20998,7 @@ function ArticleCard({ article, loading = false }) {
 	});
 }
 var ArticleCard_default = memo(ArticleCard);
-//#endregion
-//#region resources/js/Pages/Public/Articles/Index.jsx
+// resources/js/Pages/Public/Articles/Index.jsx
 var Index_exports$2 = /* @__PURE__ */ __exportAll({ default: () => ArticlesIndex });
 function ArticlesIndex({ articles, categories, currentCategory }) {
 	const { locale } = usePage().props;
@@ -21045,8 +21100,7 @@ function ArticlesIndex({ articles, categories, currentCategory }) {
 		]
 	});
 }
-//#endregion
-//#region resources/js/Pages/Public/Articles/Show.jsx
+// resources/js/Pages/Public/Articles/Show.jsx
 /**
 * THESIS: The Article Display page is a pure, distraction-free editorial view.
 *         All non-essential marketing popups and sidebar widgets are removed to focus 100% on reading comfort.
@@ -21354,7 +21408,7 @@ function ArticleShow({ article, relatedArticles, suggestedUnits }) {
 									})
 								}),
 								/* @__PURE__ */ jsx("div", {
-									className: "prose prose-base sm:prose-lg max-w-none text-secondary-800 leading-loose font-sans\r\n                            prose-headings:font-black prose-headings:text-secondary-950 prose-headings:mt-12 prose-headings:mb-4 prose-headings:tracking-tight\r\n                            prose-p:text-secondary-800 prose-p:leading-loose prose-p:mb-6 prose-p:font-medium\r\n                            prose-img:rounded-3xl prose-img:my-8 prose-img:w-full prose-img:object-cover prose-img:shadow-sm\r\n                            prose-blockquote:bg-primary-50/70 prose-blockquote:p-6 prose-blockquote:rounded-3xl prose-blockquote:text-secondary-950 prose-blockquote:font-semibold prose-blockquote:not-italic prose-blockquote:border border-primary-100\r\n                            prose-a:text-primary-900 prose-a:font-bold prose-a:underline hover:prose-a:text-primary-950",
+									className: "prose prose-base sm:prose-lg max-w-none text-secondary-800 leading-loose font-sans\n                            prose-headings:font-black prose-headings:text-secondary-950 prose-headings:mt-12 prose-headings:mb-4 prose-headings:tracking-tight\n                            prose-p:text-secondary-800 prose-p:leading-loose prose-p:mb-6 prose-p:font-medium\n                            prose-img:rounded-3xl prose-img:my-8 prose-img:w-full prose-img:object-cover prose-img:shadow-sm\n                            prose-blockquote:bg-primary-50/70 prose-blockquote:p-6 prose-blockquote:rounded-3xl prose-blockquote:text-secondary-950 prose-blockquote:font-semibold prose-blockquote:not-italic prose-blockquote:border border-primary-100\n                            prose-a:text-primary-900 prose-a:font-bold prose-a:underline hover:prose-a:text-primary-950",
 									dangerouslySetInnerHTML: { __html: normalizedContent }
 								}),
 								unusedMiddleImages.length > 0 && /* @__PURE__ */ jsx("div", {
@@ -21489,8 +21543,9 @@ function ArticleShow({ article, relatedArticles, suggestedUnits }) {
 										children: suggestedUnits.map((unit) => {
 											const unitImg = unit?.images?.find((img) => img.is_primary) || unit?.images?.[0];
 											const unitImgUrl = unitImg?.url || (unitImg?.path ? unitImg.path.startsWith("http") || unitImg.path.startsWith("/") ? unitImg.path : `/storage/${unitImg.path}` : null);
+											const unitSlug = isRtl && unit.slug_ar ? unit.slug_ar : unit.slug_en || unit.slug || unit.id;
 											return /* @__PURE__ */ jsx("li", { children: /* @__PURE__ */ jsxs(Link, {
-												href: localizedPath(`/units/${isRtl && unit.slug_ar ? unit.slug_ar : unit.slug_en || unit.slug || unit.id}`, locale),
+												href: localizedPath(`/units/${unitSlug}`, locale),
 												className: "group flex gap-3 items-center",
 												children: [unitImgUrl && /* @__PURE__ */ jsx("div", {
 													className: "shrink-0 w-16 h-16 rounded-xl overflow-hidden bg-secondary-100 border border-secondary-200/50 shadow-xs",
@@ -21549,8 +21604,9 @@ function ArticleShow({ article, relatedArticles, suggestedUnits }) {
 										children: relatedArticles.slice(0, 4).map((related) => {
 											const relatedImg = related?.images?.find((img) => img.position === "header") || related?.images?.[0];
 											const relatedImgUrl = relatedImg?.url || (relatedImg?.path ? relatedImg.path.startsWith("http") || relatedImg.path.startsWith("/") ? relatedImg.path : `/storage/${relatedImg.path}` : null);
+											const relatedSlug = isRtl && related.slug_ar ? related.slug_ar : related.slug_en || related.slug || related.id;
 											return /* @__PURE__ */ jsx("li", { children: /* @__PURE__ */ jsxs(Link, {
-												href: localizedPath(`/articles/${isRtl && related.slug_ar ? related.slug_ar : related.slug_en || related.slug || related.id}`, locale),
+												href: localizedPath(`/articles/${relatedSlug}`, locale),
 												className: "group flex gap-3 items-center",
 												children: [relatedImgUrl && /* @__PURE__ */ jsx("div", {
 													className: "shrink-0 w-16 h-16 rounded-xl overflow-hidden bg-secondary-100 border border-secondary-200/50 shadow-xs",
@@ -21622,8 +21678,7 @@ function ArticleShow({ article, relatedArticles, suggestedUnits }) {
 		]
 	});
 }
-//#endregion
-//#region resources/js/Components/Features/CompareSearch.jsx
+// resources/js/Components/Features/CompareSearch.jsx
 function CompareSearch({ type, currentIds }) {
 	const { locale } = usePage().props;
 	const trans = useTrans(locale);
@@ -21738,8 +21793,7 @@ function CompareSearch({ type, currentIds }) {
 		]
 	});
 }
-//#endregion
-//#region resources/js/Pages/Public/Comparison.jsx
+// resources/js/Pages/Public/Comparison.jsx
 var Comparison_exports = /* @__PURE__ */ __exportAll({ default: () => Comparison });
 var PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 400 300\"%3E%3Crect fill=\"%23F0F0F0\" width=\"400\" height=\"300\"/%3E%3C/svg%3E";
 function getItemImage(item) {
@@ -22306,8 +22360,7 @@ function Comparison({ items, type, max_items }) {
 		]
 	});
 }
-//#endregion
-//#region resources/js/Pages/Public/Contact.jsx
+// resources/js/Pages/Public/Contact.jsx
 var Contact_exports = /* @__PURE__ */ __exportAll({ default: () => Contact });
 function Contact() {
 	const { locale, flash } = usePage().props;
@@ -22570,8 +22623,7 @@ function Contact() {
 		]
 	});
 }
-//#endregion
-//#region resources/js/Pages/Public/Home.jsx
+// resources/js/Pages/Public/Home.jsx
 var Home_exports = /* @__PURE__ */ __exportAll({ default: () => Home });
 var HERO_BG = "/images/hero.webp";
 var HERO_BG_MOBILE = "/images/hero-mobile.webp";
@@ -22889,8 +22941,7 @@ function Home({ featuredUnits, latestUnits, latestProjects, popularSearches, are
 		]
 	});
 }
-//#endregion
-//#region resources/js/Pages/Public/Projects/Index.jsx
+// resources/js/Pages/Public/Projects/Index.jsx
 var Index_exports$1 = /* @__PURE__ */ __exportAll({ default: () => ProjectsIndex });
 function ProjectsIndex({ projects, filters, areas, features, finishingTypes, seo_meta }) {
 	const { locale } = usePage().props;
@@ -23202,8 +23253,7 @@ function ProjectsIndex({ projects, filters, areas, features, finishingTypes, seo
 		]
 	});
 }
-//#endregion
-//#region resources/js/Components/UI/PaymentTerms.jsx
+// resources/js/Components/UI/PaymentTerms.jsx
 function PaymentTerms({ item }) {
 	const { locale } = usePage().props;
 	const trans = useTrans(locale);
@@ -23237,8 +23287,7 @@ function PaymentTerms({ item }) {
 		})]
 	});
 }
-//#endregion
-//#region resources/js/Components/UI/VideoPlayer.jsx
+// resources/js/Components/UI/VideoPlayer.jsx
 function VideoPlayer({ embedUrl, title = "Video Tour", className = "" }) {
 	const [isPlaying, setIsPlaying] = useState(false);
 	if (!embedUrl) return null;
@@ -23280,8 +23329,7 @@ function VideoPlayer({ embedUrl, title = "Video Tour", className = "" }) {
 		})
 	});
 }
-//#endregion
-//#region resources/js/Utils/youtube.js
+// resources/js/Utils/youtube.js
 function getYouTubeEmbedUrl(url) {
 	if (!url || typeof url !== "string") return null;
 	const trimmed = url.trim();
@@ -23296,8 +23344,7 @@ function getYouTubeEmbedUrl(url) {
 	}
 	return null;
 }
-//#endregion
-//#region resources/js/Utils/location.js
+// resources/js/Utils/location.js
 /**
 * Validates whether an entity has valid, non-zero geographic coordinates.
 * 
@@ -23310,8 +23357,7 @@ function hasValidCoords(item) {
 	const lng = parseFloat(item.longitude);
 	return Boolean(item.latitude && item.longitude && lat !== 0 && lng !== 0 && isFinite(lat) && isFinite(lng));
 }
-//#endregion
-//#region resources/js/Pages/Public/Projects/Show.jsx
+// resources/js/Pages/Public/Projects/Show.jsx
 var Show_exports$1 = /* @__PURE__ */ __exportAll({ default: () => ProjectShow });
 function ProjectShow({ project, projectUnits, similarProjects, relatedArticles, seo_meta }) {
 	const page = usePage();
@@ -24283,8 +24329,7 @@ function ProjectShow({ project, projectUnits, similarProjects, relatedArticles, 
 		]
 	});
 }
-//#endregion
-//#region resources/js/Pages/Public/Units/Deals.jsx
+// resources/js/Pages/Public/Units/Deals.jsx
 var Deals_exports = /* @__PURE__ */ __exportAll({ default: () => UnitsDeals });
 function UnitsDeals({ units, filters, areas, unitTypes, features, finishingTypes, seo_meta }) {
 	const { locale } = usePage().props;
@@ -24390,17 +24435,68 @@ function UnitsDeals({ units, filters, areas, unitTypes, features, finishingTypes
 		]
 	});
 }
-//#endregion
-//#region resources/js/Pages/Public/Units/Index.jsx
+// resources/js/Pages/Public/Units/Index.jsx
 var Index_exports = /* @__PURE__ */ __exportAll({ default: () => UnitsIndex });
+var FILTER_KEYS = [
+	"area_id",
+	"type_id",
+	"transaction",
+	"price_min",
+	"price_max",
+	"size_min",
+	"size_max",
+	"search",
+	"payment_method",
+	"finishing_type_id",
+	"features"
+];
+var SORT_OPTIONS = [
+	{
+		value: "",
+		labelKey: "sort_featured"
+	},
+	{
+		value: "newest",
+		labelKey: "sort_newest"
+	},
+	{
+		value: "price_asc",
+		labelKey: "sort_price_low"
+	},
+	{
+		value: "price_desc",
+		labelKey: "sort_price_high"
+	},
+	{
+		value: "size_desc",
+		labelKey: "sort_size_high"
+	}
+];
 function UnitsIndex({ units, filters, areas, unitTypes, features, finishingTypes, seo_meta }) {
 	const { locale } = usePage().props;
 	const trans = useTrans(locale);
 	const isRtl = locale === "ar";
 	const isLoading = !units;
 	const hasUnits = units?.data?.length > 0;
+	const activeFilters = Array.isArray(filters) ? {} : filters || {};
+	const activeSort = SORT_OPTIONS.some((option) => option.value === activeFilters.sort) ? activeFilters.sort : "";
 	function handleSearch(params) {
 		router.get(`/${locale}/units`, params, { preserveState: true });
+	}
+	const unitTotal = units?.meta?.total || units?.total || units?.data?.length || 0;
+	function handleSort(sort) {
+		const params = {};
+		FILTER_KEYS.forEach((key) => {
+			const value = activeFilters[key];
+			if (value === "" || value === null || value === void 0) return;
+			if (Array.isArray(value) && value.length === 0) return;
+			params[key] = value;
+		});
+		if (sort) params.sort = sort;
+		router.get(`/${locale}/units`, params, {
+			preserveState: true,
+			preserveScroll: true
+		});
 	}
 	return /* @__PURE__ */ jsxs("div", {
 		dir: isRtl ? "rtl" : "ltr",
@@ -24453,16 +24549,38 @@ function UnitsIndex({ units, filters, areas, unitTypes, features, finishingTypes
 						children: Array.from({ length: 8 }).map((_, i) => /* @__PURE__ */ jsx(UnitCard_default, { loading: true }, i))
 					}) : hasUnits ? /* @__PURE__ */ jsxs("div", {
 						className: "flex flex-col gap-8",
-						children: [/* @__PURE__ */ jsx("div", {
-							className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6",
-							children: units.data.map((unit, i) => /* @__PURE__ */ jsx(UnitCard_default, {
-								unit,
-								priority: i === 0
-							}, unit.id))
-						}), /* @__PURE__ */ jsx(Pagination, {
-							meta: units.meta || units,
-							links: units.links
-						})]
+						children: [
+							/* @__PURE__ */ jsxs("div", {
+								className: "flex items-center justify-between gap-3 flex-wrap",
+								children: [/* @__PURE__ */ jsx("p", {
+									className: "text-sm font-medium text-secondary-500",
+									children: locale === "ar" ? `عرض ${unitTotal} وحدة` : `Showing ${unitTotal} units`
+								}), /* @__PURE__ */ jsxs("label", {
+									className: "flex items-center gap-2 text-sm font-semibold text-secondary-700",
+									children: [/* @__PURE__ */ jsx("span", { children: trans("sort_by") }), /* @__PURE__ */ jsx("select", {
+										value: activeSort,
+										onChange: (event) => handleSort(event.target.value),
+										"aria-label": trans("sort_by"),
+										className: "rounded-xl border border-secondary-200 bg-white px-3 py-2 text-sm font-semibold text-secondary-800 focus:outline-none focus:ring-2 focus:ring-primary-900",
+										children: SORT_OPTIONS.map((option) => /* @__PURE__ */ jsx("option", {
+											value: option.value,
+											children: trans(option.labelKey)
+										}, option.value || "featured"))
+									})]
+								})]
+							}),
+							/* @__PURE__ */ jsx("div", {
+								className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6",
+								children: units.data.map((unit, i) => /* @__PURE__ */ jsx(UnitCard_default, {
+									unit,
+									priority: i === 0
+								}, unit.id))
+							}),
+							/* @__PURE__ */ jsx(Pagination, {
+								meta: units.meta || units,
+								links: units.links
+							})
+						]
 					}) : /* @__PURE__ */ jsxs("div", {
 						className: "text-center py-20 bg-white rounded-[2rem] border border-secondary-100 shadow-sm max-w-2xl mx-auto w-full",
 						children: [
@@ -24497,8 +24615,7 @@ function UnitsIndex({ units, filters, areas, unitTypes, features, finishingTypes
 		]
 	});
 }
-//#endregion
-//#region resources/js/Pages/Public/Units/Show.jsx
+// resources/js/Pages/Public/Units/Show.jsx
 var Show_exports = /* @__PURE__ */ __exportAll({ default: () => UnitShow });
 function UnitShow({ unit, similarUnits, relatedProjects, relatedArticles, seo_meta }) {
 	const page = usePage();
@@ -25899,8 +26016,7 @@ function UnitContactForm({ idPrefix, isRtl, sentSuccess, flash, trans, data, set
 		]
 	});
 }
-//#endregion
-//#region resources/js/Components/Layout/AuthLayout.jsx
+// resources/js/Components/Layout/AuthLayout.jsx
 function AuthLayout({ children, title, subtitle }) {
 	const { locale, settings } = usePage().props;
 	const trans = useTrans(locale);
@@ -25995,8 +26111,7 @@ function AuthLayout({ children, title, subtitle }) {
 		]
 	});
 }
-//#endregion
-//#region resources/js/Pages/Shared/ForgotPassword.jsx
+// resources/js/Pages/Shared/ForgotPassword.jsx
 var ForgotPassword_exports = /* @__PURE__ */ __exportAll({ default: () => ForgotPassword });
 function ForgotPassword() {
 	const { locale, flash, status: pageStatus } = usePage().props;
@@ -26108,8 +26223,7 @@ function ForgotPassword() {
 		]
 	});
 }
-//#endregion
-//#region resources/js/Pages/Shared/Login.jsx
+// resources/js/Pages/Shared/Login.jsx
 var Login_exports = /* @__PURE__ */ __exportAll({ default: () => Login });
 function Login() {
 	const { locale } = usePage().props;
@@ -26301,8 +26415,7 @@ function Login() {
 		})
 	});
 }
-//#endregion
-//#region resources/js/Pages/Shared/Profile.jsx
+// resources/js/Pages/Shared/Profile.jsx
 var Profile_exports = /* @__PURE__ */ __exportAll({ default: () => Profile });
 function Profile() {
 	const { locale, auth } = usePage().props;
@@ -26476,8 +26589,7 @@ function Profile() {
 		})
 	});
 }
-//#endregion
-//#region resources/js/Pages/Shared/ResetPassword.jsx
+// resources/js/Pages/Shared/ResetPassword.jsx
 var ResetPassword_exports = /* @__PURE__ */ __exportAll({ default: () => ResetPassword });
 function ResetPassword({ token, email, secondsRemaining = 60, error: propError }) {
 	const { locale, flash, status: pageStatus } = usePage().props;
@@ -26762,8 +26874,7 @@ function ResetPassword({ token, email, secondsRemaining = 60, error: propError }
 		]
 	});
 }
-//#endregion
-//#region resources/js/Pages/Shared/VerifyOtp.jsx
+// resources/js/Pages/Shared/VerifyOtp.jsx
 var VerifyOtp_exports = /* @__PURE__ */ __exportAll({ default: () => VerifyOtp });
 function VerifyOtp() {
 	const { locale, flash, status: pageStatus, email: propEmail } = usePage().props;
@@ -26886,8 +26997,7 @@ function VerifyOtp() {
 		]
 	});
 }
-//#endregion
-//#region resources/js/Pages/Shared/Welcome.jsx
+// resources/js/Pages/Shared/Welcome.jsx
 var Welcome_exports = /* @__PURE__ */ __exportAll({ default: () => Welcome });
 function Welcome({ auth, laravelVersion, phpVersion }) {
 	const { locale } = usePage().props;
@@ -26926,8 +27036,7 @@ function Welcome({ auth, laravelVersion, phpVersion }) {
 		})
 	})] });
 }
-//#endregion
-//#region resources/js/ssr.jsx
+// resources/js/ssr.jsx
 async function renderPage(page) {
 	await loadLocale(page.props?.locale);
 	return createInertiaApp({
@@ -27033,5 +27142,4 @@ http.createServer(async (req, res) => {
 }).listen(PORT, "127.0.0.1", () => {
 	if (process.env.NODE_ENV !== "production") console.log(`Custom SSR server listening on port ${PORT}...`);
 });
-//#endregion
-export { useTrans as t };
+export { useCompare as n, useTrans as r, ChatLauncherButton as t };

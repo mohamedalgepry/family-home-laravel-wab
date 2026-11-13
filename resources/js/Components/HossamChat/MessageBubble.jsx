@@ -47,7 +47,7 @@ export default function MessageBubble({
             return <span key={key} className="font-semibold text-slate-800">{label}</span>
         }
 
-        const linkClasses = "inline-flex items-center gap-1.5 px-2.5 py-1 my-0.5 rounded-lg bg-primary-50/80 hover:bg-primary-100 text-primary-900 font-bold text-xs border border-primary-200/60 transition-all cursor-pointer shadow-2xs hover:shadow-xs"
+        const linkClasses = "inline-flex items-center gap-1.5 px-2.5 py-1 my-0.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-800 font-semibold text-xs border border-slate-200 transition-colors cursor-pointer"
 
         if (!isInternalUnitOrProject) {
             return (
@@ -142,7 +142,7 @@ export default function MessageBubble({
         const flushTable = (key) => {
             if (tableRows.length > 0) {
                 elements.push(
-                    <div key={`tbl_${key}`} className="my-2 overflow-x-auto rounded-xl border border-slate-200/80 shadow-2xs bg-white">
+                    <div key={`tbl_${key}`} className="my-2 overflow-x-auto rounded-xl border border-slate-200 bg-white">
                         <table className="min-w-full text-xs text-start divide-y divide-slate-100">
                             <tbody>
                                 {tableRows.map((row, rIdx) => {
@@ -150,7 +150,7 @@ export default function MessageBubble({
                                     const isDivider = row.every(cell => /^[-:\s|]+$/.test(cell))
                                     if (isDivider) return null
                                     return (
-                                        <tr key={rIdx} className={isHeader ? 'bg-slate-50 font-bold text-slate-900' : 'hover:bg-slate-50/50 text-slate-700 divide-x divide-slate-100'}>
+                                        <tr key={rIdx} className={isHeader ? 'bg-slate-50 font-semibold text-slate-800' : 'text-slate-700 divide-x divide-slate-100'}>
                                             {row.map((cell, cIdx) => (
                                                 <td key={cIdx} className={`px-2.5 py-1.5 whitespace-nowrap ${isHeader ? 'font-bold text-slate-900' : ''}`}>
                                                     {formatInline(cell)}
@@ -256,7 +256,7 @@ export default function MessageBubble({
             <div className={`flex items-end gap-2 max-w-[92%] ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
                 {/* Assistant avatar icon */}
                 {!isUser && (
-                    <div className="w-7 h-7 rounded-full bg-slate-900 flex items-center justify-center p-0.5 shrink-0 shadow-2xs mb-0.5">
+                    <div className="w-7 h-7 rounded-full bg-white border border-slate-200 flex items-center justify-center p-0.5 shrink-0 mb-0.5">
                         <img
                             src="/images/ai-agent-head.webp"
                             alt=""
@@ -268,12 +268,12 @@ export default function MessageBubble({
 
                 {/* Message Bubble Card */}
                 <div
-                    className={`rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed transition-all ${
+                    className={`rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed ${
                         isUser
-                            ? `bg-slate-900 text-white ${isRtl ? 'rounded-tl-xs' : 'rounded-tr-xs'} shadow-xs`
+                            ? `bg-slate-800 text-white ${isRtl ? 'rounded-tl-xs' : 'rounded-tr-xs'}`
                             : msg.isError
-                                ? 'bg-rose-50 text-rose-800 border border-rose-200/90 rounded-2xl shadow-2xs'
-                                : `bg-white text-slate-800 border border-slate-200/70 ${isRtl ? 'rounded-tr-xs' : 'rounded-tl-xs'} shadow-xs`
+                                ? 'bg-rose-50 text-rose-800 border border-rose-200 rounded-2xl'
+                                : `bg-white text-slate-800 border border-slate-200 ${isRtl ? 'rounded-tr-xs' : 'rounded-tl-xs'}`
                     }`}
                 >
                     <div className={isUser ? 'text-white' : msg.isError ? 'text-rose-800' : 'text-slate-800'}>

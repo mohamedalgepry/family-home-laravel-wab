@@ -48,7 +48,6 @@ export function useChatSession(locale, trans, isRtl, pageProps) {
     })
 
     const [hasUnread, setHasUnread] = useState(true)
-    const [isHovered, setIsHovered] = useState(false)
     const [feedback, setFeedback] = useState({})
     const [proactivePill, setProactivePill] = useState(null)
 
@@ -162,8 +161,6 @@ export function useChatSession(locale, trans, isRtl, pageProps) {
         setIsFullscreen,
         hasUnread,
         setHasUnread,
-        isHovered,
-        setIsHovered,
         feedback,
         setReaction,
         proactivePill,

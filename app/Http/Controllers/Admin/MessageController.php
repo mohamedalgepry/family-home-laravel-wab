@@ -154,26 +154,18 @@ class MessageController extends Controller
         $request->headers->remove('X-Inertia');
         $request->headers->remove('X-Inertia-Version');
 
-        try {
-            $user = $request->user();
-            if (! $user) {
-                return response()->json(['count' => 0]);
-            }
+        $user = $request->user();
+        abort_unless($user, 401);
 
-            $query = Message::where('status', 'pending');
+        $query = Message::where('status', 'pending');
 
+        if ($user->isAdmin()) {
+            $query->where('agent_id', $user->id);
+        } else {
             UserScopeQueryBuilder::applyTeamScope($query, $user);
-
-            $count = $query->count();
-
-            return response()->json(['count' => $count]);
-        } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('Failed to get unread messages count', [
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json(['count' => 0]);
         }
+
+        return response()->json(['count' => $query->count()]);
     }
 
     public function destroy(Message $message): RedirectResponse

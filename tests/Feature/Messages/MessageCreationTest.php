@@ -27,15 +27,32 @@ class MessageCreationTest extends TestCase
         );
     }
 
-    public function test_public_contact_message_creates_message_and_queues_notification_to_agent(): void
+    public function test_unit_contact_message_notifies_owner_and_manager_but_not_admin(): void
     {
         Notification::fake();
+
+        $manager = User::create([
+            'name' => 'Test Manager',
+            'email' => 'manager@test.com',
+            'password' => bcrypt('password'),
+            'role' => 'manager',
+            'is_active' => true,
+        ]);
 
         $agent = User::create([
             'name' => 'Test Agent',
             'email' => 'agent@test.com',
             'password' => bcrypt('password'),
+            'manager_id' => $manager->id,
             'role' => 'agent',
+            'is_active' => true,
+        ]);
+
+        $admin = User::create([
+            'name' => 'Platform Admin',
+            'email' => 'admin@test.com',
+            'password' => bcrypt('password'),
+            'role' => 'admin',
             'is_active' => true,
         ]);
 
@@ -104,6 +121,37 @@ class MessageCreationTest extends TestCase
                 return $notification->message->id === $message->id;
             }
         );
+
+        Notification::assertSentTo(
+            $manager,
+            NewMessageNotification::class,
+            function ($notification) use ($message) {
+                return $notification->message->id === $message->id;
+            }
+        );
+        Notification::assertNotSentTo($admin, NewMessageNotification::class);
+
+        $this->actingAs($manager)
+            ->get('/admin/messages')
+            ->assertInertia(fn ($page) => $page
+                ->component('Admin/Messages/Index')
+                ->where('messages.data.0.id', $message->id));
+
+        $this->actingAs($admin)
+            ->get('/admin/messages')
+            ->assertInertia(fn ($page) => $page
+                ->component('Admin/Messages/Index')
+                ->where('messages.data.0.id', $message->id));
+
+        $this->actingAs($manager)
+            ->getJson('/admin/messages/unread-count')
+            ->assertOk()
+            ->assertJson(['count' => 1]);
+
+        $this->actingAs($admin)
+            ->getJson('/admin/messages/unread-count')
+            ->assertOk()
+            ->assertJson(['count' => 0]);
     }
 
     public function test_general_contact_message_without_unit_assigns_to_admin_and_notifies_admin(): void

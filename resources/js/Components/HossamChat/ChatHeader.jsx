@@ -9,12 +9,12 @@ export default function ChatHeader({
     onClose,
 }) {
     return (
-        <header className="bg-white/95 backdrop-blur-sm border-b border-slate-100 shrink-0 concierge-safe-top transition-colors">
+        <header className="bg-white border-b border-slate-200 shrink-0 concierge-safe-top">
             <div className="px-4 py-3 flex items-center justify-between gap-3">
                 {/* Agent Identity */}
                 <div className="flex items-center gap-2.5 min-w-0">
                     <div className="relative shrink-0">
-                        <div className="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center overflow-hidden p-1 ring-2 ring-slate-100 shadow-xs">
+                        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden p-1 border border-slate-200">
                             <img
                                 src="/images/ai-agent-head.webp"
                                 alt={trans('assistant_name')}
@@ -32,8 +32,8 @@ export default function ChatHeader({
                             <h3 className="font-bold text-[14px] leading-tight text-slate-900 tracking-tight">
                                 {trans('assistant_name')}
                             </h3>
-                            <span className="inline-flex items-center text-[10px] font-semibold text-primary-900 bg-primary-50 px-1.5 py-0.5 rounded-full border border-primary-100/80">
-                                {isRtl ? 'مستشار ذكي' : 'AI Agent'}
+                            <span className="inline-flex items-center text-[10px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">
+                                {trans('assistant_agent_badge')}
                             </span>
                         </div>
                         <p className="text-[11px] text-slate-500 font-normal leading-tight mt-0.5 truncate">

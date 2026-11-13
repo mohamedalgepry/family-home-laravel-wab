@@ -18,7 +18,7 @@ function action(key, method, url, external = false) {
  * Used when a cached payload has no server-built `actions`.
  * Keep this aligned with NotificationActionResolver.
  */
-export function fallbackNotificationActions(item, { isAdmin = false, isManager = false } = {}) {
+export function fallbackNotificationActions(item, { isAdmin = false } = {}) {
     const type = item?.type || ''
     const deleted = type === 'unit_permanently_deleted' || type === 'project_permanently_deleted'
     const unitExists = Boolean(item?.unit_id) && item?.unit_exists !== false && !deleted
@@ -28,7 +28,7 @@ export function fallbackNotificationActions(item, { isAdmin = false, isManager =
     const unitScoped = UNIT_SCOPED.has(type)
     const actions = []
 
-    if (type === 'unit_pending_approval' && unitExists && !unitActive && (isAdmin || isManager)) {
+    if (type === 'unit_pending_approval' && unitExists && !unitActive && isAdmin) {
         actions.push(action('approve_unit', 'post', `/admin/units/${item.unit_id}/approve`))
     }
 
@@ -41,11 +41,9 @@ export function fallbackNotificationActions(item, { isAdmin = false, isManager =
 
     const isExtended = item?.is_extended === true
 
-    if ((type === 'unit_expiry_warning' || type === 'unit_expired') && unitExists && !isExtended && (isAdmin || isManager)) {
+    if ((type === 'unit_expiry_warning' || type === 'unit_expired') && unitExists && !isExtended && isAdmin) {
         actions.push(action('extend_unit', 'modal', null))
-        if (isAdmin) {
-            actions.push(action('delete_unit', 'delete', `/admin/units/${item.unit_id}/force`))
-        }
+        actions.push(action('delete_unit', 'delete', `/admin/units/${item.unit_id}/force`))
     }
 
     if (type === 'project_expiry_warning' && projectExists && !isExtended && isAdmin) {
@@ -56,15 +54,15 @@ export function fallbackNotificationActions(item, { isAdmin = false, isManager =
         actions.push(action('messages', 'get', '/admin/messages'))
     }
 
-    if (type === 'new_assistant_lead' || (item?.lead_id && type !== 'new_message')) {
+    if (isAdmin && (type === 'new_assistant_lead' || (item?.lead_id && type !== 'new_message'))) {
         actions.push(action('lead', 'get', item?.action_url || '/admin/assistant-leads'))
     }
 
-    if (unitExists) {
+    if (unitExists && isAdmin) {
         actions.push(action('edit_unit', 'get', `/admin/units/${item.unit_id}/edit`))
     }
 
-    if (projectExists && !unitScoped && !deleted) {
+    if (projectExists && !unitScoped && !deleted && isAdmin) {
         actions.push(action('edit_project', 'get', `/admin/projects/${item.project_id}/edit`))
     }
 
@@ -83,12 +81,12 @@ export function notificationActions(item, roles) {
     return Array.isArray(item?.actions) ? item.actions : fallbackNotificationActions(item, roles)
 }
 
-export function notificationPrimaryUrl(item) {
+export function notificationPrimaryUrl(item, roles = {}) {
     if (typeof item?.primary_url === 'string' && item.primary_url.startsWith('/')) {
         return item.primary_url
     }
 
-    const actions = Array.isArray(item?.actions) ? item.actions : fallbackNotificationActions(item, { isAdmin: true, isManager: true })
+    const actions = Array.isArray(item?.actions) ? item.actions : fallbackNotificationActions(item, roles)
     const byKey = Object.fromEntries(actions.map((entry) => [entry.key, entry]))
 
     if (byKey.messages) return '/admin/messages'

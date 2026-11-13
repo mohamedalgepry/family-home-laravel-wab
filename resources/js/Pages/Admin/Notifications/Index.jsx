@@ -317,6 +317,9 @@ export default function NotificationsIndex({ notifications, unreadCount, autoDel
                                         const isAssistantLead = item.type === 'new_assistant_lead' || Boolean(item.lead_id)
                                         const title = isRtl ? (item.title || meta.label.ar) : (item.title_en || item.title || meta.label.en)
                                         const body = isRtl ? (item.message || '') : (item.message_en || item.message || '')
+                                        const resolvedActions = notificationActions(item, { isAdmin, isManager })
+                                        const hasAction = (key) => resolvedActions.some(action => action.key === key)
+                                        const actionUrl = (key) => resolvedActions.find(action => action.key === key)?.url
 
                                         // --- type helpers ---
                                         const isNewProject      = item.type === 'new_project_created' || item.type === 'project_pending_approval'
@@ -330,16 +333,6 @@ export default function NotificationsIndex({ notifications, unreadCount, autoDel
                                         const projectActive     = item.project_is_active === true || item.project_is_active === 1
                                         const unitExists        = Boolean(item.unit_id) && item.unit_exists !== false
                                         const projectExists     = Boolean(item.project_id) && item.project_exists !== false
-                                        const isDeleted         = item.type === 'unit_permanently_deleted' || item.type === 'project_permanently_deleted'
-                                        const isUnitScoped      = [
-                                            'unit_expiry_warning',
-                                            'unit_expired',
-                                            'unit_pending_approval',
-                                            'unit_approved',
-                                            'unit_extended',
-                                            'unit_permanently_deleted',
-                                            'new_message',
-                                        ].includes(item.type)
 
                                         const approveUnitDone   = isUnitPendingApproval  && unitActive
                                         const approveProjDone   = isNewProject            && projectActive
@@ -507,7 +500,7 @@ export default function NotificationsIndex({ notifications, unreadCount, autoDel
                                                                     </button>
                                                                 )}
 
-                                                                {isNewProject && item.project_id && isAdmin && (
+                                                                {isNewProject && projectExists && isAdmin && (
                                                                     approveProjDone ? (
                                                                         <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg">
                                                                             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -515,17 +508,17 @@ export default function NotificationsIndex({ notifications, unreadCount, autoDel
                                                                             </svg>
                                                                             {isRtl ? 'تمت الموافقة' : 'Approved'}
                                                                         </span>
-                                                                    ) : (
+                                                                    ) : hasAction('approve_project') ? (
                                                                         <button
                                                                             onClick={() => handleApproveProject(item.project_id)}
                                                                             className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition-colors"
                                                                         >
                                                                             {isRtl ? 'موافقة ونشر' : 'Approve & publish'}
                                                                         </button>
-                                                                    )
+                                                                    ) : null
                                                                 )}
 
-                                                                {isUnitPendingApproval && item.unit_id && (isAdmin || isManager) && (
+                                                                {isUnitPendingApproval && unitExists && (isAdmin || isManager) && (
                                                                     approveUnitDone ? (
                                                                         <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg">
                                                                             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -533,17 +526,17 @@ export default function NotificationsIndex({ notifications, unreadCount, autoDel
                                                                             </svg>
                                                                             {isRtl ? 'تمت الموافقة' : 'Approved'}
                                                                         </span>
-                                                                    ) : (
+                                                                    ) : hasAction('approve_unit') ? (
                                                                         <button
                                                                             onClick={() => handleApproveUnit(item.unit_id)}
                                                                             className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition-colors"
                                                                         >
                                                                             {isRtl ? 'موافقة ونشر' : 'Approve & publish'}
                                                                         </button>
-                                                                    )
+                                                                    ) : null
                                                                 )}
 
-                                                                {(isUnitExpiry || isUnitExpired) && item.unit_id && (isAdmin || isManager) && (
+                                                                {(isUnitExpiry || isUnitExpired) && unitExists && (hasAction('extend_unit') || extendUnitDone) && (
                                                                     extendUnitDone ? (
                                                                         <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg">
                                                                             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -564,7 +557,7 @@ export default function NotificationsIndex({ notifications, unreadCount, autoDel
                                                                     )
                                                                 )}
 
-                                                                {isProjectExpiry && item.project_id && isAdmin && (
+                                                                {isProjectExpiry && projectExists && (hasAction('extend_project') || extendProjDone) && (
                                                                     extendProjDone ? (
                                                                         <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg">
                                                                             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -585,7 +578,7 @@ export default function NotificationsIndex({ notifications, unreadCount, autoDel
                                                                     )
                                                                 )}
 
-                                                                {(isUnitExpiry || isUnitExpired) && item.unit_id && isAdmin && (
+                                                                {(isUnitExpiry || isUnitExpired) && hasAction('delete_unit') && (
                                                                     confirmDeleteId === item.id ? (
                                                                         <div className="flex items-center gap-1">
                                                                             <button
@@ -614,9 +607,9 @@ export default function NotificationsIndex({ notifications, unreadCount, autoDel
                                                                     )
                                                                 )}
 
-                                                                {isNewMessage && (
+                                                                {hasAction('messages') && (
                                                                     <Link
-                                                                        href="/admin/messages"
+                                                                        href={actionUrl('messages')}
                                                                         className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1"
                                                                     >
                                                                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -626,9 +619,9 @@ export default function NotificationsIndex({ notifications, unreadCount, autoDel
                                                                     </Link>
                                                                 )}
 
-                                                                {(isAssistantLead || item.lead_id) && (
+                                                                {hasAction('lead') && (
                                                                     <Link
-                                                                        href="/admin/assistant-leads"
+                                                                        href={actionUrl('lead')}
                                                                         className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1 shadow-xs"
                                                                     >
                                                                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -639,9 +632,9 @@ export default function NotificationsIndex({ notifications, unreadCount, autoDel
                                                                     </Link>
                                                                 )}
 
-                                                                {unitExists && !isDeleted && (
+                                                                {hasAction('edit_unit') && (
                                                                     <Link
-                                                                        href={`/admin/units/${item.unit_id}/edit`}
+                                                                        href={actionUrl('edit_unit')}
                                                                         className="px-3 py-1.5 bg-secondary-800 hover:bg-secondary-900 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1"
                                                                     >
                                                                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -651,9 +644,9 @@ export default function NotificationsIndex({ notifications, unreadCount, autoDel
                                                                     </Link>
                                                                 )}
 
-                                                                {projectExists && !isUnitScoped && !isDeleted && (
+                                                                {hasAction('edit_project') && (
                                                                     <Link
-                                                                        href={`/admin/projects/${item.project_id}/edit`}
+                                                                        href={actionUrl('edit_project')}
                                                                         className="px-3 py-1.5 bg-secondary-800 hover:bg-secondary-900 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1"
                                                                     >
                                                                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -663,10 +656,11 @@ export default function NotificationsIndex({ notifications, unreadCount, autoDel
                                                                     </Link>
                                                                 )}
 
-                                                                {unitExists && unitActive && item.unit_slug && (
+                                                                {hasAction('view_unit') && (
                                                                     <Link
-                                                                        href={localizedPath(`/units/${item.unit_slug}`, locale)}
+                                                                        href={localizedPath(actionUrl('view_unit'), locale)}
                                                                         target="_blank"
+                                                                        rel="noopener noreferrer"
                                                                         className="px-3 py-1.5 text-secondary-500 hover:bg-secondary-100 text-xs font-medium rounded-lg transition-colors flex items-center gap-1"
                                                                     >
                                                                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -676,10 +670,11 @@ export default function NotificationsIndex({ notifications, unreadCount, autoDel
                                                                     </Link>
                                                                 )}
 
-                                                                {projectExists && projectActive && item.project_slug && !isUnitScoped && (
+                                                                {hasAction('view_project') && (
                                                                     <Link
-                                                                        href={localizedPath(`/projects/${item.project_slug}`, locale)}
+                                                                        href={localizedPath(actionUrl('view_project'), locale)}
                                                                         target="_blank"
+                                                                        rel="noopener noreferrer"
                                                                         className="px-3 py-1.5 text-secondary-500 hover:bg-secondary-100 text-xs font-medium rounded-lg transition-colors flex items-center gap-1"
                                                                     >
                                                                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
