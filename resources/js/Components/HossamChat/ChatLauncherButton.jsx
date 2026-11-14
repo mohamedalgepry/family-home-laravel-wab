@@ -1,4 +1,6 @@
-export default function ChatLauncherButton({ title, description, onClick, expanded = false, ref }) {
+import { forwardRef } from 'react'
+
+const ChatLauncherButton = forwardRef(function ChatLauncherButton({ title, description, onClick, expanded = false }, ref) {
     return (
         <button
             type="button"
@@ -25,4 +27,6 @@ export default function ChatLauncherButton({ title, description, onClick, expand
             </span>
         </button>
     )
-}
+})
+
+export default ChatLauncherButton

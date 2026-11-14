@@ -41,6 +41,7 @@ export default function Footer() {
     const trans = useTrans(locale)
     const isRtl = locale === 'ar'
     const [chatMounted, setChatMounted] = useState(false)
+    const [chatAutoOpened, setChatAutoOpened] = useState(false)
     const hasCompareItems = unitCompareList.length > 0 || projectCompareList.length > 0
 
     const socialLinks = [
@@ -173,14 +174,17 @@ export default function Footer() {
             <CompareBar />
             {chatMounted ? (
                 <Suspense fallback={null}>
-                    <HossamChatWidget autoOpen />
+                    <HossamChatWidget autoOpen={chatAutoOpened} />
                 </Suspense>
             ) : (
                 <div className={`fixed z-50 end-4 ${hasCompareItems ? 'bottom-[100px]' : 'bottom-6'} sm:bottom-8 sm:end-8`}>
                     <ChatLauncherButton
                         title={trans('assistant_launcher_title')}
                         description={trans('assistant_launcher_description')}
-                        onClick={() => setChatMounted(true)}
+                        onClick={() => {
+                            setChatMounted(true)
+                            setChatAutoOpened(true)
+                        }}
                     />
                 </div>
             )}
